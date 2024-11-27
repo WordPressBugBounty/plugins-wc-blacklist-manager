@@ -1,0 +1,90 @@
+/* 
+** WooCommerce Blacklist Manager CSS 
+*/
+
+/* Icons */
+.icon-button {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+}
+.red-button {
+    background: #d63638 !important;
+    color: white !important;
+    border-color: #d63638 !important;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+}
+.red-button:hover {
+    background: rgb(192, 1, 1) !important;
+    border-color: rgb(192, 1, 1) !important;
+}
+.red-button:active {
+    border-color: rgb(192, 1, 1) !important;
+}
+.dashicons-flag, .dashicons-dismiss, .dashicons-trash {
+    display: block;
+}
+
+/* Premium labels */
+.yo-premium {
+    color: red;
+    border: solid 1px;
+    border-radius: 10px;
+    border-color: #a5a5a5;
+    padding: 12px;
+    margin-bottom: 10px;
+}
+.premium-text {
+    color: #aaaaaa;
+}
+.premium-label {
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    color: #ffffff;
+    background-color: #00a32a;
+    margin-left: 10px;
+    padding: 5px 10px;
+    border-radius: 5px;
+}
+.premium-label:hover {
+    color: #ffffff;
+    background-color: rgb(26, 156, 26);
+}
+
+/* Blocked users */
+.user-blocked-row .column-username a {
+    display: inline-flex;
+    align-items: center;
+}
+.user-blocked-row .column-username a:before {
+    font-family: 'dashicons';
+    content: '\f153';
+    font-size: 18px;
+    color: #d63638;
+}
+.user-blocked-row .column-username .row-actions a {
+    display: contents;
+}
+.user-blocked-row .column-username .row-actions a:before {
+    content: ''; /* Prevent adding icon to row actions */
+}
+
+/* Address addition form */
+.country-state-container {
+    display: flex;
+    margin-bottom: 10px;
+}
+.country-state-container #hide-state-selection, .country-state-container input[type=text] {
+    margin-left: 6px;
+}
+.address-1-2-container, .city-postcode-container {
+    margin-bottom: 6px;
+}
+
+/* Search box */
+.wcbm-search-box {
+    margin: 7px 0 !important;
+}

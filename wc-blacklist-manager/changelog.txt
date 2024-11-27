@@ -1,0 +1,175 @@
+=== WooCommerce Blacklist Manager (Free Version) ===
+
+== Changelog ==
+
+= 1.4.3 (Nov 12, 2024) =
+* New: Optional for receiving emails during blocked user attempts to place orders or register an account.
+* Fixed: New logged-in users do not receive the phone verification code.
+
+= 1.4.2 (Nov 4, 2024) =
+* Fixed: Verification form does not display in some themes.
+* Fixed: Duplicated success notice after verification.
+* Fixed: Block button displaying when the phone or email field is empty at order page.
+* Fixed: Missing phone number country code when resend verification code.
+* Fixed: Minor typo errors.
+* Improved: Customize, reorder, and add class for verification form.
+* Improved: Added verification email content translation.
+* Improved: Security updated.
+
+= 1.4.1 (Oct 25, 2024) =
+* Improved: Optimize the script.
+* Improved: Language file updated.
+
+= 1.4.0 (Oct 16, 2024) =
+* New: Verifications feature is now available.
+* New: Require the new customer to verify email address when checkout.
+* New: Require the new customer to verify phone number when checkout.
+* Improved: Minor improvement.
+
+
+= 1.3.14 (Sep 19, 2024) =
+* Fixed: Removed the missing file.
+* Improved: Minor improvement.
+
+= 1.3.13 (Sep 16, 2024) =
+* New: Supported the website uses Cloudflare to block user IPs.
+* Improved: Some minor improvement.
+
+= 1.3.12.1 (Sep 4, 2024) =
+* Fixed: Error at the Settings page.
+
+= 1.3.12 (Sep 4, 2024) =
+* Fixed: The rule to display the Suspect & Blocklist buttons in Order page.
+* Improved: Minor changes for better performance.
+
+= 1.3.11 (Jul 31, 2024) =
+* Fixed: The Add to Blocklist button logic has been updated.
+* Fixed: Avoid to block administrator users.
+* Improved: Auto cancel action logic has been updated.
+
+= 1.3.10 (Jul 23, 2024) =
+* Fixed: Blank entries are removed at blocklist.
+* Fixed: Missing messages at dashboard.
+* Improved: Display only one notice a time at dashboard.
+* Improved: Updated CSS at dashboard.
+* Improved: Minor improvement.
+
+= 1.3.9 (Jul 18, 2024) =
+* Fixed: Removed duplicate messages are on the dashboard.
+* Improved: The search function has improved.
+
+= 1.3.8 (Jul 9, 2024) =
+* New: Email sent to admin when blocked customer attempts detection.
+* Improved: Updated text content at Settings.
+* Improved: Core improvement.
+
+= 1.3.7 (Jul 3, 2024) =
+* Fixed: Bug at Settings page.
+* Improved: Added Settings notice for the new installs.
+
+= 1.3.6 (Jun 28, 2024) =
+* Improved: Changed the display of blocked user row at Users page.
+* Improved: Core improvement.
+
+= 1.3.5 =
+* Improved: Language file updated.
+* Improved: Core improvement.
+
+= 1.3.4 =
+* New: Added selection of status at Addition manual form.
+* Improved: Minor bug fixed.
+
+= 1.3.3 =
+* Improved: Language file updated.
+* Improved: Minor improvement.
+
+= 1.3.2 =
+* New: Added blocked user notice customizable in Notifications.
+* Improved: Changed the blocked user notice from browser pop-up to error notice.
+* Improved: Minor bugs fixed.
+
+= 1.3.1 =
+* New: Notices when the customer is in suspect list or blocklist at edit order page.
+* Fix: Fixed domain addition form did not open when IP address option disabled.
+* Improved: Updated the logics of Add to suspect list and blocklist at edit order page.
+* Improved: Added missing date & time when click on Add to suspect button at edit order page.
+* Improved: Some minor bugs fixed and improved.
+
+= 1.3.0 =
+* New: Upgrade entire code to be OOP style.
+* New: User blocking option now is available.
+* New: Source added, allowing you to know the entry's source.
+* New: IP status, allowing you to know Suspect or Blocked.
+* New: Email notification template added.
+* Improved: Dashboard tab will stay where you left off.
+* Improved: Duplicated checkout notice fixed.
+* Improved: Unexpected strings fixed.
+
+Premium version is now available, check it out on our website!
+
+= 1.2.1 =
+* Improved: The activation notice was dismissed to be a bit more robust. To ensure the notice behavior persists even with caching plugins like WP Rocket etc...
+
+= 1.2.0 =
+* Improved: CSS conflict fixed.
+* Improved: Solved the issue of settings notice displays when cache cleared.
+
+= 1.1.9.2 =
+* Improved: Minor javascript bugs are fixed.
+
+= 1.1.9.1 =
+* Improved: A bug fixed.
+
+= 1.1.9 =
+* Improved: Avoid a hardcore security for some themes.
+* Improved: Codes improved.
+
+= 1.1.8 =
+* Change: Text buttons to be icon buttons in the lists.
+* Change: Rename Blacklist to Suspects to avoid confusing .
+* Improved: Reorganised the files.
+* Improved: Codes improved.
+
+= 1.1.7 =
+* New: IP Addresses multi lines addition.
+* Improved: Small fixes.
+
+= 1.1.6 =
+* Error: Important bugs fixed.
+
+= 1.1.5 =
+* New: Email domain blocking added.
+* New: Bulk action, easily delete multi rows in every lists.
+* Improved: Small fixes.
+
+= 1.1.4 =
+* Change: Email notification setting became Notifications settings.
+* New: Checkout, Registration Notice now is customizable.
+* New: Prevent registration option for the user ip address is on the blacklist.
+* Improved: Reorganized the codes to make them smoother and cleaner.
+
+= 1.1.3 =
+* New: Added an option (Settings) to prevent placing an order.
+* Improved: Clear some unused codes. Small fixes.
+
+= 1.1.2 =
+* New: IP Blacklist released.
+* New: Add customer IP into IP Blacklist by click on Add to Blacklist button (Flag icon) in the Order page (Admin).
+* Improved: Popup message to confirm if you are sure to do the actions in the Blacklist Management.
+
+= 1.1.1 =
+* New: Declined to create an account if the email address is on Blocked list.
+* New: Added the popup message to confirm if you are sure to do the action in the Order page (Admin).
+* Improved: Change the text button to be icon button in the Order page (Admin).
+* Improved: Refresh the Order page after Add to Blacklist message's displaying automatically (in 3 seconds).
+
+= 1.1.0 =
+* Settings: Prevent Order selection added.
+* Language updated.
+
+= 1.0.1 =
+* JavaScript file is specifically enqueued only on the plugin.
+* Small bugs fixed.
+
+= 1.0.0 =
+* Initial release.
