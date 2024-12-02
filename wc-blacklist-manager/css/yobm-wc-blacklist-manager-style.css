@@ -88,3 +88,19 @@
 .wcbm-search-box {
     margin: 7px 0 !important;
 }
+
+/* Table */
+#blacklisted .check-column, #blocked .check-column, #ip-banned .check-column, #customer-address .check-column, #domain-blocking .check-column {
+    padding: 20px 10px;
+    vertical-align: middle;
+}
+#blacklisted td, #blocked td, #ip-banned td, #customer-address td, #domain-blocking td {
+    vertical-align: middle;
+}
+
+/* Upload form */
+.yobm-upload-form {
+    background: #f6f7f7;
+    border: 1px solid #c3c4c7;
+    padding: 20px;
+}

@@ -65,47 +65,30 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 	}
 
 	public function email_verification() {
-		$email_verified = false;
-	
 		if (is_checkout() && get_option('wc_blacklist_email_verification_enabled') == '1') {
-			$user_id = get_current_user_id();
-			$email = '';
+			// Get the billing email from the checkout form (sanitize the input)
+			$email = isset($_POST['billing_email']) ? sanitize_email($_POST['billing_email']) : '';
 	
-			if (is_user_logged_in()) {
-				$email = get_user_meta($user_id, 'billing_email', true);
-			} else {
-				$email = sanitize_email($_POST['billing_email']);
+			// If email is empty, skip verification
+			if (empty($email)) {
+				wc_add_notice(__('Please enter your email address for verification.', 'wc-blacklist-manager'), 'error');
+				return;
 			}
-	
 	
 			$verification_action = get_option('wc_blacklist_email_verification_action');
 	
-			if ($verification_action === 'all') {
-				if (!$this->is_email_in_whitelist($email)) {
-					$this->send_verification_code($email);
-					wc_add_notice('<span class="email-verification-error">' . __('Please verify your email before proceeding with the checkout.', 'wc-blacklist-manager') . '</span>', 'error');
-				} else {
-					$email_verified = true;
-				}
+			// Verify based on the selected action
+			if ($verification_action === 'all' && !$this->is_email_in_whitelist($email)) {
+				$this->send_verification_code($email);
+				wc_add_notice('<span class="email-verification-error">' . __('Please verify your email before proceeding with the checkout.', 'wc-blacklist-manager') . '</span>', 'error');
 			}
 	
-			if ($verification_action === 'suspect') {
-				if ($this->is_email_in_blacklist($email)) {
-					$this->send_verification_code($email);
-					wc_add_notice('<span class="email-verification-error">' . __('Please verify your email before proceeding with the checkout.', 'wc-blacklist-manager') . '</span>', 'error');
-				} else {
-					$email_verified = true;
-				}
-			}
-	
-			// Store the verification status in the session or user meta
-			if ($user_id === 0) {
-				WC()->session->set('_email_verified', $email_verified ? 1 : 0);
-			} else {
-				update_user_meta($user_id, '_email_verified', $email_verified ? 1 : 0);
+			if ($verification_action === 'suspect' && $this->is_email_in_blacklist($email)) {
+				$this->send_verification_code($email);
+				wc_add_notice('<span class="email-verification-error">' . __('Please verify your email before proceeding with the checkout.', 'wc-blacklist-manager') . '</span>', 'error');
 			}
 		}
-	}	
+	}		
 	
 	private function is_email_in_whitelist($email) {
 		global $wpdb;

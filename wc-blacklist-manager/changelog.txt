@@ -2,6 +2,11 @@
 
 == Changelog ==
 
+= 1.4.4 (Dec 1, 2024) =
+* Fixed: Blocking email checkbox option does not display correctly.
+* Improved: Optimized the email and phone verification functions.
+* Improved: Some improvements.
+
 = 1.4.3 (Nov 12, 2024) =
 * New: Optional for receiving emails during blocked user attempts to place orders or register an account.
 * Fixed: New logged-in users do not receive the phone verification code.

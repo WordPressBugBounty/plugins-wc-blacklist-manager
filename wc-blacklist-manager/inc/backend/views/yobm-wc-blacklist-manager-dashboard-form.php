@@ -11,9 +11,12 @@ if (!defined('ABSPATH')) {
 
 	<h1>
 		<?php echo esc_html__('Blacklist management', 'wc-blacklist-manager'); ?> 
-		<a href="https://yoohw.com/docs/category/woocommerce-blacklist-manager/blacklist-management/" target="_blank" style="text-decoration: none;"><span class="dashicons dashicons-editor-help"></span></a> 
+		<a href="https://yoohw.com/docs/category/woocommerce-blacklist-manager/blacklist-management/" target="_blank" class="button button-secondary" style="display: inline-flex; align-items: center;"><span class="dashicons dashicons-editor-help"></span> Documents</a> 
 		<?php if (!$premium_active): ?>
 			<a href="https://yoohw.com/contact-us/" target="_blank" class="button button-secondary">Support / Suggestion</a>
+		<?php endif; ?>
+		<?php if ($premium_active): ?>
+			<a href="https://yoohw.com/support/" target="_blank" class="button button-secondary">Premium support</a>
 		<?php endif; ?>
 	</h1>
 
@@ -125,15 +128,15 @@ if (!defined('ABSPATH')) {
 				<table class="wp-list-table widefat fixed striped">
 					<thead>
 						<tr>
-							<th style="width: 5%;" class="check-column"><input type="checkbox" id="select_all" /></th>
+							<th style="max-width: 24px;" class="check-column"><input type="checkbox" id="select_all" /></th>
 							<?php if ($premium_active && get_option('wc_blacklist_customer_name_blocking_enabled', '0') === '1'): ?>
-								<th style="width: 20%;"><?php echo esc_html__('Customer name', 'wc-blacklist-manager'); ?></th>
+								<th style="max-width: 20%;"><?php echo esc_html__('Customer name', 'wc-blacklist-manager'); ?></th>
 							<?php endif; ?>
-							<th style="width: 20%;"><?php echo esc_html__('Phone number', 'wc-blacklist-manager'); ?></th>
-							<th style="width: 20%;"><?php echo esc_html__('Email address', 'wc-blacklist-manager'); ?></th>
-							<th style="width: 20%;"><?php echo esc_html__('Date added', 'wc-blacklist-manager'); ?></th>
-							<th style="width: 20%;"><?php echo esc_html__('Source', 'wc-blacklist-manager'); ?></th>
-							<th style="width: 15%;"><?php echo esc_html__('Actions', 'wc-blacklist-manager'); ?></th>
+							<th style="max-width: 20%;"><?php echo esc_html__('Phone number', 'wc-blacklist-manager'); ?></th>
+							<th style="max-width: 20%;"><?php echo esc_html__('Email address', 'wc-blacklist-manager'); ?></th>
+							<th style="max-width: 20%;"><?php echo esc_html__('Date added', 'wc-blacklist-manager'); ?></th>
+							<th style="max-width: 10%;"><?php echo esc_html__('Source', 'wc-blacklist-manager'); ?></th>
+							<th style="width: 100px"><?php echo esc_html__('Actions', 'wc-blacklist-manager'); ?></th>
 						</tr>
 					</thead>
 					<tbody>
@@ -222,15 +225,15 @@ if (!defined('ABSPATH')) {
 				<table class="wp-list-table widefat fixed striped">
 					<thead>
 						<tr>
-							<th style="width: 5%;" class="check-column"><input type="checkbox" id="select_all" /></th>
+							<th style="max-width: 24px;" class="check-column"><input type="checkbox" id="select_all" /></th>
 							<?php if ($premium_active && get_option('wc_blacklist_customer_name_blocking_enabled', '0') === '1'): ?>
-								<th style="width: 20%;"><?php echo esc_html__('Customer name', 'wc-blacklist-manager'); ?></th>
+								<th style="max-width: 20%;"><?php echo esc_html__('Customer name', 'wc-blacklist-manager'); ?></th>
 							<?php endif; ?>
-							<th style="width: 20%;"><?php echo esc_html__('Phone number', 'wc-blacklist-manager'); ?></th>
-							<th style="width: 20%;"><?php echo esc_html__('Email address', 'wc-blacklist-manager'); ?></th>
-							<th style="width: 20%;"><?php echo esc_html__('Date added', 'wc-blacklist-manager'); ?></th>
-							<th style="width: 20%;"><?php echo esc_html__('Source', 'wc-blacklist-manager'); ?></th>
-							<th style="width: 15%;"><?php echo esc_html__('Actions', 'wc-blacklist-manager'); ?></th>
+							<th style="max-width: 20%;"><?php echo esc_html__('Phone number', 'wc-blacklist-manager'); ?></th>
+							<th style="max-width: 20%;"><?php echo esc_html__('Email address', 'wc-blacklist-manager'); ?></th>
+							<th style="max-width: 20%;"><?php echo esc_html__('Date added', 'wc-blacklist-manager'); ?></th>
+							<th style="max-width: 10%;"><?php echo esc_html__('Source', 'wc-blacklist-manager'); ?></th>
+							<th style="width: 60px;"><?php echo esc_html__('Actions', 'wc-blacklist-manager'); ?></th>
 						</tr>
 					</thead>
 					<tbody>
@@ -328,12 +331,12 @@ if (!defined('ABSPATH')) {
 					<table class="wp-list-table widefat fixed striped">
 						<thead>
 							<tr>
-								<th style="width: 5%;" class="check-column"><input type="checkbox" id="select_all_ip_banned" /></th>
-								<th style="width: 20%;"><?php echo esc_html__('IP address', 'wc-blacklist-manager'); ?></th>
-								<th style="width: 20%;"><?php echo esc_html__('Date added', 'wc-blacklist-manager'); ?></th>
-								<th style="width: 20%;"><?php echo esc_html__('Source', 'wc-blacklist-manager'); ?></th>
-								<th style="width: 20%;"><?php echo esc_html__('Status', 'wc-blacklist-manager'); ?></th>
-								<th style="width: 15%;"><?php echo esc_html__('Actions', 'wc-blacklist-manager'); ?></th>
+								<th style="max-width: 24px;" class="check-column"><input type="checkbox" id="select_all_ip_banned" /></th>
+								<th style="max-width: 20%;"><?php echo esc_html__('IP address', 'wc-blacklist-manager'); ?></th>
+								<th style="max-width: 20%;"><?php echo esc_html__('Date added', 'wc-blacklist-manager'); ?></th>
+								<th style="max-width: 10%;"><?php echo esc_html__('Source', 'wc-blacklist-manager'); ?></th>
+								<th style="max-width: 10%;"><?php echo esc_html__('Status', 'wc-blacklist-manager'); ?></th>
+								<th style="width: 100px;"><?php echo esc_html__('Actions', 'wc-blacklist-manager'); ?></th>
 							</tr>
 						</thead>
 						<tbody>
@@ -527,12 +530,12 @@ if (!defined('ABSPATH')) {
 				<table class="wp-list-table widefat fixed striped">
 					<thead>
 						<tr>
-							<th style="width: 5%;" class="check-column"><input type="checkbox" id="select_all_address" /></th>
-							<th style="width: 44%;"><?php echo esc_html__('Customer address', 'wc-blacklist-manager'); ?></th>
-							<th style="width: 12%;"><?php echo esc_html__('Date added', 'wc-blacklist-manager'); ?></th>
-							<th style="width: 12%;"><?php echo esc_html__('Source', 'wc-blacklist-manager'); ?></th>
-							<th style="width: 12%;"><?php echo esc_html__('Status', 'wc-blacklist-manager'); ?></th>
-							<th style="width: 15%;"><?php echo esc_html__('Actions', 'wc-blacklist-manager'); ?></th>
+							<th style="max-width: 24px;" class="check-column"><input type="checkbox" id="select_all_address" /></th>
+							<th style="width: 40%;"><?php echo esc_html__('Customer address', 'wc-blacklist-manager'); ?></th>
+							<th style="max-width: 20%;"><?php echo esc_html__('Date added', 'wc-blacklist-manager'); ?></th>
+							<th style="max-width: 10%;"><?php echo esc_html__('Source', 'wc-blacklist-manager'); ?></th>
+							<th style="max-width: 10%;"><?php echo esc_html__('Status', 'wc-blacklist-manager'); ?></th>
+							<th style="width: 100px;"><?php echo esc_html__('Actions', 'wc-blacklist-manager'); ?></th>
 						</tr>
 					</thead>
 					<tbody>
@@ -644,10 +647,10 @@ if (!defined('ABSPATH')) {
 					<table class="wp-list-table widefat fixed striped">
 						<thead>
 							<tr>
-								<th style="width: 5%;" class="check-column"><input type="checkbox" id="select_all_domain" /></th>
-								<th style="width: 30%;"><?php echo esc_html__('Domain', 'wc-blacklist-manager'); ?></th>
-								<th style="width: 30%;"><?php echo esc_html__('Date added', 'wc-blacklist-manager'); ?></th>
-								<th style="width: 15%;"><?php echo esc_html__('Actions', 'wc-blacklist-manager'); ?></th>
+								<th style="max-width: 24px;" class="check-column"><input type="checkbox" id="select_all_domain" /></th>
+								<th style="max-width: 30%;"><?php echo esc_html__('Domain', 'wc-blacklist-manager'); ?></th>
+								<th style="max-width: 30%;"><?php echo esc_html__('Date added', 'wc-blacklist-manager'); ?></th>
+								<th style="width: 100px;"><?php echo esc_html__('Actions', 'wc-blacklist-manager'); ?></th>
 							</tr>
 						</thead>
 						<tbody>

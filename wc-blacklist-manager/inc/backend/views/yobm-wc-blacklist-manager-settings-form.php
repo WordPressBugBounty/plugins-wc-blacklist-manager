@@ -11,7 +11,7 @@ if (!defined('ABSPATH')) {
 	
 	<h1>
 		<?php echo esc_html__('Blacklist Manager Settings', 'wc-blacklist-manager'); ?> 
-		<a href="https://yoohw.com/docs/category/woocommerce-blacklist-manager/settings/" target="_blank" style="text-decoration: none;"><span class="dashicons dashicons-editor-help"></span></a>
+		<a href="https://yoohw.com/docs/category/woocommerce-blacklist-manager/settings/" target="_blank" class="button button-secondary" style="display: inline-flex; align-items: center;"><span class="dashicons dashicons-editor-help"></span> Documents</a>
 		<?php if (!$premium_active): ?>
 			<a href="https://yoohw.com/contact-us/" target="_blank" class="button button-secondary">Support / Suggestion</a>
 		<?php endif; ?>
@@ -24,6 +24,7 @@ if (!defined('ABSPATH')) {
 		<a href="#tab-content-integrations" class="nav-tab" id="tab-integrations"><?php echo esc_html__('Integrations', 'wc-blacklist-manager'); ?></a>
 		<a href="#tab-content-payments" class="nav-tab" id="tab-payments"><?php echo esc_html__('Payments', 'wc-blacklist-manager'); ?></a>
 		<a href="#tab-content-permission" class="nav-tab" id="tab-permission"><?php echo esc_html__('Permission', 'wc-blacklist-manager'); ?></a>
+		<a href="#tab-content-tools" class="nav-tab" id="tab-tools"><?php echo esc_html__('Tools', 'wc-blacklist-manager'); ?></a>
 	</nav>
 
 	<div id="tab-content-general" class="tab-content">
@@ -48,15 +49,6 @@ if (!defined('ABSPATH')) {
 					<td>
 						<input type="number" id="order_delay" name="order_delay" value="<?php echo esc_attr($settings['order_delay']); ?>" class="small-text" min="0">
 						<?php echo esc_html__('minute(s)', 'wc-blacklist-manager'); ?>
-					</td>
-				</tr>
-				<tr>
-					<th scope="row">
-						<label class='premium-text'><?php echo esc_html__('Disposable emails:', 'wc-blacklist-manager'); ?></label>
-					</th>
-					<td>
-						<input type="checkbox" disabled>
-						<label class='premium-text'><?php echo esc_html__('Enable blocking disposable email address.', 'wc-blacklist-manager'); ?></label><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Upgrade</a>
 					</td>
 				</tr>
 				<tr>
@@ -100,7 +92,7 @@ if (!defined('ABSPATH')) {
 				</tr>
 				<tr id="ip_blacklist_action_row" style="<?php echo ($settings['ip_blacklist_enabled']) ? '' : 'display: none;'; ?>">
 					<th scope="row">
-						<label for="ip_blacklist_action"><?php echo esc_html__('IP blocking action:', 'wc-blacklist-manager'); ?></label>
+						<label for="ip_blacklist_action"><?php echo esc_html__('1.1 - IP blocking action:', 'wc-blacklist-manager'); ?></label>
 					</th>
 					<td>
 						<select id="ip_blacklist_action" name="ip_blacklist_action">
@@ -111,7 +103,7 @@ if (!defined('ABSPATH')) {
 				</tr>
 				<tr id="block_ip_registration_row" style="<?php echo ($settings['ip_blacklist_enabled']) ? '' : 'display: none;'; ?>">
 					<th scope="row">
-						<label for="block_ip_registration"><?php echo esc_html__('Registration action:', 'wc-blacklist-manager'); ?></label>
+						<label for="block_ip_registration"><?php echo esc_html__('1.2 - Registration action:', 'wc-blacklist-manager'); ?></label>
 					</th>
 					<td>
 						<p>
@@ -137,7 +129,7 @@ if (!defined('ABSPATH')) {
 				</tr>
 				<tr>
 					<th scope="row">
-						<label class='premium-text'><?php esc_html_e('Select countries:', 'wc-blacklist-manager'); ?></label>
+						<label class='premium-text'><?php esc_html_e('2.1 - Select countries:', 'wc-blacklist-manager'); ?></label>
 					</th>
 					<td>
 						<input type="text" class="regular-text" disabled/>
@@ -145,12 +137,22 @@ if (!defined('ABSPATH')) {
 				</tr>
 				<tr>
 					<th scope="row">
-						<label class='premium-text'><?php echo esc_html__('Access action:', 'wc-blacklist-manager'); ?></label>
+						<label class='premium-text'><?php echo esc_html__('2.2 - Access action:', 'wc-blacklist-manager'); ?></label>
 					</th>
 					<td>
 						<select disabled>
 							<option><?php echo esc_html__('Prevent this list', 'wc-blacklist-manager'); ?></option>
 						</select>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">
+						<label class='premium-text'><?php echo esc_html__('3 - Enable IP details:', 'wc-blacklist-manager'); ?></label>
+					</th>
+					<td>
+						<input type="checkbox" disabled>
+						<label class='premium-text'><?php echo esc_html__('Enable to check the IP address details at order page.', 'wc-blacklist-manager'); ?></label><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Upgrade</a>
+						<p class='premium-text'><?php echo esc_html__('You will be able to click on customer IP and see the details in the popup.', 'wc-blacklist-manager'); ?></p>
 					</td>
 				</tr>
 			</table>
@@ -332,6 +334,25 @@ if (!defined('ABSPATH')) {
 						<td>
 							<input type="checkbox" disabled>
 							<label class='premium-text'><?php echo esc_html__('Action if a customer placed too many orders within the time period.', 'wc-blacklist-manager'); ?></label>
+						</td>
+					</tr>
+
+					<tr>
+						<th scope="row">
+							<label class='premium-text'><?php esc_html_e('Add as suspect:', 'wc-blacklist-manager'); ?></label>
+						</th>
+						<td>
+							<input type="text" class="regular-text" disabled/>
+							<p class="premium-text"><?php echo esc_html__('Auto-adding the customer to the suspect list for these order statuses.', 'wc-blacklist-manager'); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row">
+							<label class='premium-text'><?php esc_html_e('Add to blocklist:', 'wc-blacklist-manager'); ?></label>
+						</th>
+						<td>
+							<input type="text" class="regular-text" disabled/>
+							<p class="premium-text"><?php echo esc_html__('Auto-adding the customer to the blocklist for these order statuses.', 'wc-blacklist-manager'); ?></p>
 						</td>
 					</tr>
 				</table>
@@ -668,6 +689,29 @@ if (!defined('ABSPATH')) {
 
 				<span class="yo-premium"><i class="dashicons dashicons-lock"></i> Power up with the finest third-party services to deliver the highest level of protection for your business <a href="https://yoohw.com/product/woocommerce-blacklist-manager-premium/" target="_blank" class="premium-label">Upgrade</a></span>
 
+				<h2 class='premium-text'><?php esc_html_e('Google reCAPTCHA (v3)', 'wc-blacklist-manager'); ?><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Upgrade</a></h2>
+				<p class='premium-text'><?php esc_html_e('Prevent the bots from spamming orders on your site.', 'wc-blacklist-manager'); ?></p>
+				
+				<table class="form-table">
+					<tr valign="top">
+						<th scope="row">
+							<label class='premium-text'><?php esc_html_e('Site key (v3)', 'wc-blacklist-manager'); ?></label>
+						</th>
+						<td>
+							<input type="text" class="regular-text" disabled>
+						</td>
+					</tr>
+					<tr valign="top">
+						<th scope="row">
+							<label class='premium-text'><?php esc_html_e('Secret key (v3)', 'wc-blacklist-manager'); ?></label>
+						</th>
+						<td>
+							<input type="text" class="regular-text" disabled>
+							<p class="premium-text"><?php esc_html_e('Enter Google reCAPTCHA site key and secret key.', 'wc-blacklist-manager'); ?> <a href="https://yoohw.com/docs/woocommerce-blacklist-manager/settings/integrations/6/" target="_blank"><?php esc_html_e('How to get the keys?', 'wc-blacklist-manager'); ?></a><br>
+						</td>
+					</tr>
+				</table>
+
 				<h2><span class='premium-text'><?php echo esc_html__('Google API Settings', 'wc-blacklist-manager'); ?></span><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Upgrade</a></h2>
 				
 				<table class="form-table">
@@ -702,26 +746,27 @@ if (!defined('ABSPATH')) {
 					</tr>
 				</table>
 
-				<h2><span class='premium-text'><?php echo esc_html__('IPinfo.io Settings', 'wc-blacklist-manager'); ?></span><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Upgrade</a></h2>
-				
+				<h2 class='premium-text'><?php esc_html_e('Usercheck Settings', 'wc-blacklist-manager'); ?><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Upgrade</a></h2>
+		
 				<table class="form-table">
 					<tr valign="top">
 						<th scope="row">
-							<label class='premium-text'><?php esc_html_e('IPinfo Geolocation', 'wc-blacklist-manager'); ?></label>
+							<label class='premium-text'><?php esc_html_e('Usercheck', 'wc-blacklist-manager'); ?></label>
 						</th>
 						<td>
 							<input type="checkbox" disabled>
-							<label class='premium-text'><?php esc_html_e('Enable to get the coordinates from IP using IPinfo.io', 'wc-blacklist-manager'); ?></label>
+							<label class='premium-text'><?php esc_html_e('Enable blocking disposable email address using usercheck.com.', 'wc-blacklist-manager'); ?></label>
+							<p class="premium-text"><?php esc_html_e('You do not need to add a key to make it work, but it is limited to 60 requests per hour.', 'wc-blacklist-manager'); ?></p>
 						</td>
 					</tr>
 					<tr valign="top">
 						<th scope="row">
-							<label class='premium-text'><?php esc_html_e('IPinfo Access Token', 'wc-blacklist-manager'); ?></label>
+							<label class='premium-text'><?php esc_html_e('Usercheck API key', 'wc-blacklist-manager'); ?></label>
 						</th>
 						<td>
-							<input type="text" class="regular-text" disabled/>
-							<p class="premium-text"><?php esc_html_e('Enter your IPinfo.io access token.', 'wc-blacklist-manager'); ?> <a href="https://yoohw.com/docs/woocommerce-blacklist-manager/settings/integrations/3/" target="_blank">How to get the API?</a><br>
-							<p class="premium-text" style="display: inline-flex; align-items: center;"><span style="margin-right: 5px; padding: 3px 8px; color: white; background-color: #aaaaaa; font-size: 11px; border-radius: 5px;"><?php esc_html_e('Free', 'wc-blacklist-manager'); ?></span><?php esc_html_e('50,000 requests per month for no charge. Better service to get the IP information, not required.', 'wc-blacklist-manager'); ?> <a href="https://ipinfo.io/" target="_blank" style="margin-left: 5px;"><?php esc_html_e('Click here for more info.', 'wc-blacklist-manager'); ?></a></p>
+							<input type="text" class="regular-text" disabled>
+							<p class="premium-text"><?php esc_html_e('Enter your usercheck.com API key.', 'wc-blacklist-manager'); ?> <a href="https://yoohw.com/docs/woocommerce-blacklist-manager/settings/integrations/5/" target="_blank"><?php esc_html_e('How to get the API?', 'wc-blacklist-manager'); ?></a><br>
+							<p class="premium-text" style="display: inline-flex; align-items: center;"><span style="margin-right: 5px; padding: 3px 8px; color: white; background-color: #aaaaaa; font-size: 11px; border-radius: 5px;"><?php esc_html_e('Free', 'wc-blacklist-manager'); ?></span><?php esc_html_e('1000 requests per month for no charge.', 'wc-blacklist-manager'); ?> <a href="https://www.usercheck.com/#pricing" target="_blank" style="margin-left: 5px;"><?php esc_html_e('Click here for more info.', 'wc-blacklist-manager'); ?></a></p>
 						</td>
 					</tr>
 				</table>
@@ -749,6 +794,30 @@ if (!defined('ABSPATH')) {
 						</td>
 					</tr>
 				</table>
+
+				<h2><span class='premium-text'><?php echo esc_html__('IPinfo.io Settings', 'wc-blacklist-manager'); ?></span><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Upgrade</a></h2>
+				
+				<table class="form-table">
+					<tr valign="top">
+						<th scope="row">
+							<label class='premium-text'><?php esc_html_e('IPinfo Geolocation', 'wc-blacklist-manager'); ?></label>
+						</th>
+						<td>
+							<input type="checkbox" disabled>
+							<label class='premium-text'><?php esc_html_e('Enable to get the coordinates from IP using IPinfo.io', 'wc-blacklist-manager'); ?></label>
+						</td>
+					</tr>
+					<tr valign="top">
+						<th scope="row">
+							<label class='premium-text'><?php esc_html_e('IPinfo Access Token', 'wc-blacklist-manager'); ?></label>
+						</th>
+						<td>
+							<input type="text" class="regular-text" disabled/>
+							<p class="premium-text"><?php esc_html_e('Enter your IPinfo.io access token.', 'wc-blacklist-manager'); ?> <a href="https://yoohw.com/docs/woocommerce-blacklist-manager/settings/integrations/3/" target="_blank">How to get the API?</a><br>
+							<p class="premium-text" style="display: inline-flex; align-items: center;"><span style="margin-right: 5px; padding: 3px 8px; color: white; background-color: #aaaaaa; font-size: 11px; border-radius: 5px;"><?php esc_html_e('Free', 'wc-blacklist-manager'); ?></span><?php esc_html_e('50,000 requests per month for no charge. Better service to get the IP information, not required.', 'wc-blacklist-manager'); ?> <a href="https://ipinfo.io/" target="_blank" style="margin-left: 5px;"><?php esc_html_e('Click here for more info.', 'wc-blacklist-manager'); ?></a></p>
+						</td>
+					</tr>
+				</table>				
 				
 				<p class="submit">
 					<input type="submit" class="button-primary" value="<?php echo esc_attr__('Save Settings', 'wc-blacklist-manager'); ?>" disabled/>
@@ -849,7 +918,7 @@ if (!defined('ABSPATH')) {
 								</label>
 								<br>
 							<?php endforeach; ?>
-							<p class="description" style="max-width: 500px; color: #aaaaaa;"><?php echo wp_kses_post( __( '<b>Note</b>: User roles have permission to control the dashboard will have permission to control the Suspect/Block buttons in Order page either.', 'wc-blacklist-manager-premium' ) ); ?></p>
+							<p class="description" style="max-width: 500px; color: #aaaaaa;"><?php echo wp_kses_post( __( '<b>Note</b>: User roles have permission to control the dashboard will have permission to control the Suspect/Block buttons in Order page either.', 'wc-blacklist-manager' ) ); ?></p>
 						</td>
 					</tr>
 					<tr valign="top">
@@ -885,6 +954,56 @@ if (!defined('ABSPATH')) {
 					<input type="submit" class="button-primary" value="<?php echo esc_attr__('Save Settings', 'wc-blacklist-manager'); ?>" disabled/>
 				</p>
 			</form>
+		</div>
+	</div>
+	<div id="tab-content-tools" class="tab-content" style="display:none;">
+		<div class="wrap">
+				<span class="yo-premium"><i class="dashicons dashicons-lock"></i> Easily manage your blacklist data with our Import/Export feature <a href="https://yoohw.com/product/woocommerce-blacklist-manager-premium/" target="_blank" class="premium-label">Upgrade</a></span>
+
+				<h2><span class='premium-text'><?php echo esc_html__('Import / Export', 'wc-blacklist-manager'); ?></span><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Upgrade</a></h2>
+				
+				<p class='premium-text'><?php esc_html_e('Import or export blacklist entries from the data.', 'wc-blacklist-manager'); ?></p>
+
+				<table class="form-table">
+					<tr>
+						<th>
+							<label class='premium-text'><?php esc_html_e('Import CSV', 'wc-blacklist-manager'); ?></label>
+						</th>
+						<td>
+							<form method="post" enctype="multipart/form-data">
+								<span class="yobm-upload-form">
+									<input type="file" disabled>
+									<input type="submit" class="button-primary" value="<?php esc_attr_e('Import', 'wc-blacklist-manager'); ?>" disabled>
+								</span>
+							</form>
+							<p class="premium-text" style="margin-top: 20px;">
+								<?php 
+								printf(
+									__('Download the CSV sample file and add the entries to the correct column.', 'wc-blacklist-manager'), 
+								); 
+								?><br>
+								<?php 
+								printf(
+									/* translators: %1$s: documentation link */
+									__('Read <a href="%1$s" target="_blank">this article</a> for more details.', 'wc-blacklist-manager'), 
+									esc_url('https://yoohw.com/docs/woocommerce-blacklist-manager/settings/tools/')
+								); 
+								?>
+							</p>
+						</td>
+					</tr>
+					<tr>
+						<th>
+							<label class='premium-text'><?php esc_html_e('Export CSV', 'wc-blacklist-manager'); ?></label>
+						</th>
+						<td>
+							<form method="post">
+								<?php wp_nonce_field('wc_blacklist_export_action', 'wc_blacklist_export_nonce'); ?>
+								<input type="submit" class="button-primary" value="<?php esc_attr_e('Export', 'wc-blacklist-manager'); ?>" disabled>
+							</form>
+						</td>
+					</tr>
+				</table>
 		</div>
 	</div>
 </div>

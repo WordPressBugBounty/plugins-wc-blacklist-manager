@@ -5,7 +5,7 @@ Requires at least: 6.3
 Tested up to: 6.7.1
 WC tested up to: 9.4.2
 Requires PHP: 5.6
-Stable tag: 1.4.3
+Stable tag: 1.4.4
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -84,6 +84,10 @@ Service integrations: [Cloudflare](https://www.cloudflare.com/), [Google reCaptc
 
 Plugin integrations: [WooCommerce Stripe Gateway](https://wordpress.org/plugins/woocommerce-gateway-stripe/), [Payment Plugins for Stripe WooCommerce](https://wordpress.org/plugins/woo-stripe-payment/). 
 
+**Import / Export**
+
+Easily manage your blacklist data with our Import/Export feature. Quickly upload entries via CSV or export your blacklist data for backup, review, or migration purposes, ensuring seamless data management.
+
 **Premium Support**
 
 [Access our Premium Support site](https://yoohw.com/support/)
@@ -129,18 +133,24 @@ A: There is no set limit within the plugin, but practical limitations depend on 
 10. Quick block/unblock and track down blocked users.
 11. Block the user directly from the user page.
 12. Unblock the user.
-13. Email notification, alert notices are customizable.
-14. Require to verify email address or phone number.
+13. Require to verify email address or phone number.
+14. Email notification, alert notices are customizable.
 15. Flexible settings allow you to decide what is on your site.
 16. Automation settings to automate protecting your business.
 17. Set risk score and risk score thresholds.
 18. The finest third-party services in the market are integrated.
 19. Payment gateways integrated, safeguarding your transactions.
 20. Set user roles are able to manage the Blacklist plugin.
-21. Risk score is in the new order email to admin and shop manager.
-22. Alert email notification with a custom template.
+21. Easily import your existing data or export.
+22. Risk score is in the new order email to admin and shop manager.
+23. Alert email notification with a custom template.
 
 == Changelog ==
+
+= 1.4.4 (Dec 1, 2024) =
+* Fixed: Blocking email checkbox option does not display correctly.
+* Improved: Optimized the email and phone verification functions.
+* Improved: Some improvements.
 
 = 1.4.3 (Nov 12, 2024) =
 * New: Optional for receiving emails during blocked user attempts to place orders or register an account.

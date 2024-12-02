@@ -10,10 +10,13 @@ if (!defined('ABSPATH')) {
 	<?php endif; ?>
 
 	<h1>
-		<?php echo esc_html__('Verification Settings', 'wc-blacklist-manager'); ?>
-		<a href="https://yoohw.com/docs/category/woocommerce-blacklist-manager/verifications/" target="_blank" style="text-decoration: none;"><span class="dashicons dashicons-editor-help"></span></a>
+		<?php echo esc_html__('Verifications', 'wc-blacklist-manager'); ?>
+		<a href="https://yoohw.com/docs/category/woocommerce-blacklist-manager/verifications/" target="_blank" class="button button-secondary" style="display: inline-flex; align-items: center;"><span class="dashicons dashicons-editor-help"></span> Documents</a>
 		<?php if (!$premium_active): ?>
 			<a href="https://yoohw.com/contact-us/" target="_blank" class="button button-secondary"><?php esc_html_e('Support / Suggestion', 'wc-blacklist-manager'); ?></a>
+		<?php endif; ?>
+		<?php if ($premium_active): ?>
+			<a href="https://yoohw.com/support/" target="_blank" class="button button-secondary">Premium support</a>
 		<?php endif; ?>
 	</h1>
 
@@ -29,11 +32,11 @@ if (!defined('ABSPATH')) {
 		<table class="form-table">
 			<tr>
 				<th scope="row">
-					<label for="email_verification_enabled"><?php echo esc_html__('Email address:', 'wc-blacklist-manager'); ?></label>
+					<label for="email_verification_enabled"><?php echo esc_html__('Checkout email:', 'wc-blacklist-manager'); ?></label>
 				</th>
 				<td>
 					<input type="checkbox" id="email_verification_enabled" name="email_verification_enabled" value="1" <?php checked(!empty($data['email_verification_enabled'])); ?>>
-					<label for="email_verification_enabled"><?php echo esc_html__('Enable email address verification when checkout.', 'wc-blacklist-manager'); ?></label>
+					<label for="email_verification_enabled"><?php echo esc_html__('Enable email address verification during checkout.', 'wc-blacklist-manager'); ?></label>
 				</td>
 			</tr>
 			<tr id="email_verification_action_row" style="<?php echo (!empty($data['email_verification_enabled'])) ? '' : 'display: none;'; ?>">
@@ -54,11 +57,11 @@ if (!defined('ABSPATH')) {
 		<table class="form-table">
 			<tr>
 				<th scope="row">
-					<label for="phone_verification_enabled"><?php echo esc_html__('Phone number:', 'wc-blacklist-manager'); ?></label>
+					<label for="phone_verification_enabled"><?php echo esc_html__('Checkout phone:', 'wc-blacklist-manager'); ?></label>
 				</th>
 				<td>
 					<input type="checkbox" id="phone_verification_enabled" name="phone_verification_enabled" value="1" <?php checked(!empty($data['phone_verification_enabled'])); ?>>
-					<label for="phone_verification_enabled"><?php echo esc_html__('Enable phone number verification when checkout.', 'wc-blacklist-manager'); ?></label>
+					<label for="phone_verification_enabled"><?php echo esc_html__('Enable phone number verification during checkout.', 'wc-blacklist-manager'); ?></label>
 				</td>
 			</tr>
 			<tr id="phone_verification_action_row" style="<?php echo (!empty($data['phone_verification_enabled'])) ? '' : 'display: none;'; ?>">
@@ -103,7 +106,7 @@ if (!defined('ABSPATH')) {
 				</th>
 				<td>
 					<?php
-					$remaining_sms = floatval(get_option('wc_blacklist_phone_verification_sms_quota', 0));
+					$remaining_sms = floatval(get_option('yoohw_phone_verification_sms_quota', 0));
 
 					if ($remaining_sms > 15) {
 						$text_color = '#00a32a';
@@ -122,7 +125,7 @@ if (!defined('ABSPATH')) {
 						<?php echo esc_html($remaining_text); ?> 
 						<?php if ( ! empty( $sms_key ) ) : ?>
 							<a href="https://bmc.yoohw.com/sms/smslog/<?php echo esc_attr($sms_key); ?>" target="_blank">
-								<?php echo esc_html__('[History logs]', 'wc-blacklist-manager'); ?>
+								<?php echo esc_html__('[Credits history]', 'wc-blacklist-manager'); ?>
 							</a>
 						<?php endif; ?>
 					</p>
@@ -135,11 +138,11 @@ if (!defined('ABSPATH')) {
 				</th>
 				<td>
 					<p><?php echo esc_html__('Code length', 'wc-blacklist-manager'); ?></p>
-					<input type="number" id="code_length" name="code_length" value="<?php echo esc_attr($data['phone_verification_code_length'] ?? 4); ?>" min="4" max="10">
+					<input type="number" id="code_length" name="code_length" value="<?php echo esc_attr($data['phone_verification_code_length'] ?? 4); ?>" min="4" max="10"> <?php echo esc_html__('digits.', 'wc-blacklist-manager'); ?>
 					<p><?php echo esc_html__('Resend', 'wc-blacklist-manager'); ?></p>
-					<input type="number" id="resend" name="resend" value="<?php echo esc_attr($data['phone_verification_resend'] ?? 180); ?>" min="60" max="3600"> <?php echo esc_html__('second(s).', 'wc-blacklist-manager'); ?>
+					<input type="number" id="resend" name="resend" value="<?php echo esc_attr($data['phone_verification_resend'] ?? 180); ?>" min="60" max="3600"> <?php echo esc_html__('seconds.', 'wc-blacklist-manager'); ?>
 					<p><?php echo esc_html__('Limit', 'wc-blacklist-manager'); ?></p>
-					<input type="number" id="limit" name="limit" value="<?php echo esc_attr($data['phone_verification_limit'] ?? 5); ?>" min="1" max="10"> <?php echo esc_html__('time(s).', 'wc-blacklist-manager'); ?>
+					<input type="number" id="limit" name="limit" value="<?php echo esc_attr($data['phone_verification_limit'] ?? 5); ?>" min="1" max="10"> <?php echo esc_html__('times.', 'wc-blacklist-manager'); ?>
 					<p><?php echo esc_html__('Message', 'wc-blacklist-manager'); ?></p>
 					<textarea id="message" name="message" rows="2" class="regular-text"><?php echo esc_textarea(!empty($data['phone_verification_message']) ? $data['phone_verification_message'] : $this->default_sms_message); ?></textarea>
 					<p class="description"><?php echo esc_html__('Add {site_name}, {code} where you want them to appear.', 'wc-blacklist-manager'); ?></p>
