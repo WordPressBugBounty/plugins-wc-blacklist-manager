@@ -36,7 +36,7 @@ class WC_Blacklist_Manager_Notices {
 		$time_since_activation = $current_time - $activation_time;
 		$days_since_activation = floor($time_since_activation / DAY_IN_SECONDS);
 	
-		if ($days_since_activation >= 1 && get_user_meta($user_id, 'wc_blacklist_manager_notice_dismissed', true) !== 'yes') {
+		if (current_user_can('administrator') && $days_since_activation >= 1 && get_user_meta($user_id, 'wc_blacklist_manager_notice_dismissed', true) !== 'yes') {
 			echo '<div class="notice notice-info is-dismissible">
 					<p>Thank you for using WooCommerce Blacklist Manager! Please support us by <a href="https://wordpress.org/plugins/wc-blacklist-manager/#reviews" target="_blank">leaving a review</a> <span style="color: #e26f56;">&#9733;&#9733;&#9733;&#9733;&#9733;</span> to keep updating & improving.</p>
 					<p><a href="#" onclick="WC_Blacklist_Manager_Admin_Notice.dismissForever()">Never show this again</a></p>
@@ -46,15 +46,15 @@ class WC_Blacklist_Manager_Notices {
 	
 	public function first_time_notice() {
 		$user_id = get_current_user_id();
-		$first_time_notice_dismissed = get_user_meta($user_id, 'wc_blacklist_manager_first_time_notice_dismissed', true);
-
-		if ($first_time_notice_dismissed !== 'yes') {
-			echo '<div class="notice error is-dismissible">
-					<p style="color:#d63638;">WooCommerce Blacklist Manager is a security and guardian plugin! Kindly read our <a href="https://yoohw.com/docs/category/woocommerce-blacklist-manager/" target="_blank">Documentation</a> carefully before <a href="' . esc_url(admin_url('admin.php?page=wc-blacklist-manager-settings')) . '">visiting the Settings page</a> to configure the plugin.<br>To avoid unexpected workflows or any help needed, please reach out to our technique support team.</p>
-					<p><a href="#" onclick="WC_Blacklist_Manager_Admin_Notice.dismissFirstTimeNotice()">I understand and do not show this notice again!</a></p>
-				</div>';
+	  
+		// Check if user is administrator and notice hasn't been dismissed
+		if (current_user_can('administrator') && get_user_meta($user_id, 'wc_blacklist_manager_first_time_notice_dismissed', true) !== 'yes') {
+		  echo '<div class="notice error is-dismissible">
+				  <p style="color:#d63638;">WooCommerce Blacklist Manager is a security and guardian plugin! Kindly read our <a href="https://yoohw.com/docs/category/woocommerce-blacklist-manager/" target="_blank">Documentation</a> carefully before <a href="' . esc_url(admin_url('admin.php?page=wc-blacklist-manager-settings')) . '">visiting the Settings page</a> to configure the plugin.<br>To avoid unexpected workflows or any help needed, please reach out to our technique support team.</p>
+				  <p><a href="#" onclick="WC_Blacklist_Manager_Admin_Notice.dismissFirstTimeNotice()">I understand and do not show this notice again!</a></p>
+			  </div>';
 		}
-	}
+	  }
 
 	public function enqueue_inline_scripts() {
 		$nonce_dismiss = wp_create_nonce('dismiss_wc_blacklist_manager_notice_nonce');

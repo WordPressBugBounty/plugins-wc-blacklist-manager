@@ -233,7 +233,7 @@ if (!defined('ABSPATH')) {
 							<th style="max-width: 20%;"><?php echo esc_html__('Email address', 'wc-blacklist-manager'); ?></th>
 							<th style="max-width: 20%;"><?php echo esc_html__('Date added', 'wc-blacklist-manager'); ?></th>
 							<th style="max-width: 10%;"><?php echo esc_html__('Source', 'wc-blacklist-manager'); ?></th>
-							<th style="width: 60px;"><?php echo esc_html__('Actions', 'wc-blacklist-manager'); ?></th>
+							<th style="width: 100px;"><?php echo esc_html__('Actions', 'wc-blacklist-manager'); ?></th>
 						</tr>
 					</thead>
 					<tbody>

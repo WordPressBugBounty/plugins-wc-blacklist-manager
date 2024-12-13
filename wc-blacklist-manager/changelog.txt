@@ -2,6 +2,10 @@
 
 == Changelog ==
 
+= 1.4.5 (Dec 13, 2024) =
+* Fixed: Prevent registration for suspected IP addresses.
+* Improved: The notices will only display for administrators.
+
 = 1.4.4 (Dec 1, 2024) =
 * Fixed: Blocking email checkbox option does not display correctly.
 * Improved: Optimized the email and phone verification functions.

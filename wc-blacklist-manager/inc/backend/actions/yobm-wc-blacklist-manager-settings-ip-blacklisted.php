@@ -84,7 +84,7 @@ class WC_Blacklist_Manager_IP_Blacklisted {
 
 			if (false === $ip_banned) {
 				$ip_banned = $wpdb->get_var($wpdb->prepare(
-					"SELECT COUNT(*) FROM `{$table_name}` WHERE ip_address = %s",
+					"SELECT COUNT(*) FROM `{$table_name}` WHERE ip_address = %s AND is_blocked = 1",
 					$user_ip
 				));
 				wp_cache_set($cache_key, $ip_banned, 'wc_blacklist', HOUR_IN_SECONDS);

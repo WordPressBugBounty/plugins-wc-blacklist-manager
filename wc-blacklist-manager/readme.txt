@@ -3,9 +3,9 @@ Contributors: yoohw, baonguyen0310
 Tags: blacklist customers, block ip, fraud prevention, woocommerce anti fraud, Prevent fake orders
 Requires at least: 6.3
 Tested up to: 6.7.1
-WC tested up to: 9.4.2
+WC tested up to: 9.4.3
 Requires PHP: 5.6
-Stable tag: 1.4.4
+Stable tag: 1.4.5
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -35,10 +35,11 @@ Building on the robust features of the free version, the premium version offers 
 
 **Prevent Orders from Bots**
 
-This solution secures your WooCommerce checkout with a combination of Google reCAPTCHA v3 and an invisible honeypot trap to block bot-generated orders. Key features include:
+This solution secures your WooCommerce checkout with a combination of Google reCAPTCHA v3, v2, hCaptcha and an invisible honeypot trap to block bot-generated orders. Key features include:
 
 * **Advanced bot detection**: Uses AI-driven behavioral analysis and hidden honeypot fields to stop spam.
 * **Seamless user experience**: Invisible security layers ensure a frictionless checkout for legitimate users.
+* **API protection**: Safeguards the checkout process from bots attempting to place orders via API access.
 * **Efficient and lightweight**: Protects your store without impacting performance.
 
 **Fully Automation**
@@ -80,7 +81,7 @@ The Permission Settings feature of our plugin allows you to set both default and
 
 Our premier solution for combating fraud and unauthorized transactions: we've integrated up with the finest third-party services to deliver the highest level of protection for your business. Each service we chose excels in identifying and preventing fraudulent activities. Moreover, these services offer free plans designed to support small and medium-sized businesses, enabling you to focus on growth while safeguarding your transactions.
 
-Service integrations: [Cloudflare](https://www.cloudflare.com/), [Google reCaptcha v3](https://www.google.com/recaptcha/about/), [IPinfo](https://ipinfo.io/), [ip-api](https://ip-api.com/), [Usercheck](https://www.usercheck.com/), [NumCheckr](https://numcheckr.com/), [Google Maps Platform](https://mapsplatform.google.com/), [SMS Credits](https://yoohw.com/product/sms-credits/).
+Service integrations: [Cloudflare](https://www.cloudflare.com/), [Google reCaptcha v3/v2](https://www.google.com/recaptcha/about/), [hCaptcha](https://www.hcaptcha.com/), [IPinfo](https://ipinfo.io/), [ip-api](https://ip-api.com/), [Usercheck](https://www.usercheck.com/), [NumCheckr](https://numcheckr.com/), [Google Maps Platform](https://mapsplatform.google.com/), [SMS Credits](https://yoohw.com/product/sms-credits/).
 
 Plugin integrations: [WooCommerce Stripe Gateway](https://wordpress.org/plugins/woocommerce-gateway-stripe/), [Payment Plugins for Stripe WooCommerce](https://wordpress.org/plugins/woo-stripe-payment/). 
 
@@ -146,6 +147,10 @@ A: There is no set limit within the plugin, but practical limitations depend on 
 23. Alert email notification with a custom template.
 
 == Changelog ==
+
+= 1.4.5 (Dec 13, 2024) =
+* Fixed: Prevent registration for suspected IP addresses.
+* Improved: The notices will only display for administrators.
 
 = 1.4.4 (Dec 1, 2024) =
 * Fixed: Blocking email checkbox option does not display correctly.

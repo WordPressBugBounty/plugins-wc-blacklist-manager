@@ -71,7 +71,6 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 	
 			// If email is empty, skip verification
 			if (empty($email)) {
-				wc_add_notice(__('Please enter your email address for verification.', 'wc-blacklist-manager'), 'error');
 				return;
 			}
 	
@@ -81,11 +80,13 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 			if ($verification_action === 'all' && !$this->is_email_in_whitelist($email)) {
 				$this->send_verification_code($email);
 				wc_add_notice('<span class="email-verification-error">' . __('Please verify your email before proceeding with the checkout.', 'wc-blacklist-manager') . '</span>', 'error');
+				return;
 			}
 	
 			if ($verification_action === 'suspect' && $this->is_email_in_blacklist($email)) {
 				$this->send_verification_code($email);
 				wc_add_notice('<span class="email-verification-error">' . __('Please verify your email before proceeding with the checkout.', 'wc-blacklist-manager') . '</span>', 'error');
+				return;
 			}
 		}
 	}		
@@ -165,6 +166,16 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 	}	
 
 	public function verify_email_code() {
+		$ip_address = $_SERVER['REMOTE_ADDR'];
+		$attempts = get_transient("verify_email_attempts_{$ip_address}");
+		
+		if ($attempts >= 5) {
+			wp_send_json_error(['message' => __('Too many attempts. Please try again later.', 'wc-blacklist-manager')]);
+			return;
+		}
+	
+		set_transient("verify_email_attempts_{$ip_address}", $attempts + 1, HOUR_IN_SECONDS);
+		
 		check_ajax_referer('email_verification_nonce', 'security');
 		
 		$submitted_code = isset($_POST['code']) ? sanitize_text_field(trim($_POST['code'])) : '';
@@ -277,11 +288,15 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 	
 		$blacklist_table = $wpdb->prefix . 'wc_blacklist';
 	
-		$wpdb->update(
+		$result = $wpdb->update(
 			$blacklist_table,
-			['email_address' => ''],
-			['email_address' => $email]
+			['email_address' => null],
+			['email_address' => $email, 'is_blocked' => 1]
 		);
+	
+		if ($result) {
+			error_log("Email {$email} removed from blacklist at " . current_time('mysql'));
+		}
 	}
 	
 	public function resend_verification_code() {

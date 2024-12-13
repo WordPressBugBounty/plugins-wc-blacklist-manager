@@ -183,14 +183,22 @@ if (!defined('ABSPATH')) {
 								<?php echo esc_html__('Merging... Please wait, DO NOT leave the page until finished.', 'wc-blacklist-manager'); ?>
 							</span>
 							<span id="finished_message" class="finished-message" style="display: none; color: green;"></span>
+							<p class="description" style="max-width: 500px;">
+								<?php echo esc_html__('This will set all of the emails and phones from the completed orders to verified. So the return customers will not need to verify their emails or phone numbers anymore.', 'wc-blacklist-manager'); ?>
+							</p>
 						<?php else : ?>
 							<span style="color: green;">
 								<?php echo esc_html__('Merged successfully.', 'wc-blacklist-manager'); ?>
 							</span>
+							<p>
+								<a href="<?php echo esc_url(admin_url('admin-post.php?action=refresh_merging')); ?>" id="refresh_button" class="button button-secondary">
+									<?php echo esc_html__('Refresh merging', 'wc-blacklist-manager'); ?>
+								</a>
+							</p>
+							<p class="description" style="max-width: 500px;">
+								<?php echo esc_html__('Refresh to re-merge the emails and phones from the completed orders to be verified again.', 'wc-blacklist-manager'); ?>
+							</p>
 						<?php endif; ?>
-						<p class="description" style="max-width: 500px;">
-							<?php echo esc_html__('This will set all of the emails and phones from the completed orders to verified. So the return customers will not need to verify their emails or phone numbers anymore.', 'wc-blacklist-manager'); ?>
-						</p>
 					<?php endif; ?>
 				</td>
 			</tr>

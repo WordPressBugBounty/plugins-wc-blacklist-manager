@@ -689,10 +689,20 @@ if (!defined('ABSPATH')) {
 
 				<span class="yo-premium"><i class="dashicons dashicons-lock"></i> Power up with the finest third-party services to deliver the highest level of protection for your business <a href="https://yoohw.com/product/woocommerce-blacklist-manager-premium/" target="_blank" class="premium-label">Upgrade</a></span>
 
-				<h2 class='premium-text'><?php esc_html_e('Google reCAPTCHA (v3)', 'wc-blacklist-manager'); ?><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Upgrade</a></h2>
+				<h2 class='premium-text'><?php esc_html_e('Anti-bots by CAPTCHA', 'wc-blacklist-manager'); ?><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Upgrade</a></h2>
 				<p class='premium-text'><?php esc_html_e('Prevent the bots from spamming orders on your site.', 'wc-blacklist-manager'); ?></p>
 				
 				<table class="form-table">
+					<tr>
+						<th scope="row">
+							<label class='premium-text'><?php echo esc_html__('Select Captcha:', 'wc-blacklist-manager'); ?></label>
+						</th>
+						<td>
+							<select disabled>
+								<option><?php echo esc_html__('reCaptcha v3', 'wc-blacklist-manager'); ?></option>
+							</select>
+						</td>
+					</tr>
 					<tr valign="top">
 						<th scope="row">
 							<label class='premium-text'><?php esc_html_e('Site key (v3)', 'wc-blacklist-manager'); ?></label>
@@ -708,6 +718,15 @@ if (!defined('ABSPATH')) {
 						<td>
 							<input type="text" class="regular-text" disabled>
 							<p class="premium-text"><?php esc_html_e('Enter Google reCAPTCHA site key and secret key.', 'wc-blacklist-manager'); ?> <a href="https://yoohw.com/docs/woocommerce-blacklist-manager/settings/integrations/6/" target="_blank"><?php esc_html_e('How to get the keys?', 'wc-blacklist-manager'); ?></a><br>
+						</td>
+					</tr>
+					<tr valign="top">
+						<th scope="row">
+							<label class='premium-text'><?php esc_html_e('Checkout API', 'wc-blacklist-manager'); ?></label>
+						</th>
+						<td>
+							<input type="checkbox" disabled>
+							<label class='premium-text'><?php esc_html_e('Enable requiring CAPTCHA for checkout through API.', 'wc-blacklist-manager'); ?></label>
 						</td>
 					</tr>
 				</table>

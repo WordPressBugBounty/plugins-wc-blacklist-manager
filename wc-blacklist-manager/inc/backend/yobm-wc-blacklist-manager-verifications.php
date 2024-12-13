@@ -11,6 +11,7 @@ class WC_Blacklist_Manager_Verifications {
         $this->default_sms_message = __('{site_name}: Your verification code is {code}', 'wc-blacklist-manager');
         add_action('admin_menu', [$this, 'add_verifications_submenu']);
 		add_action('wp_ajax_generate_sms_key', [$this, 'handle_generate_sms_key']);
+        add_action('admin_post_refresh_merging', [$this, 'wc_blacklist_refresh_merging']);
 
         $this->includes();
     }
@@ -200,6 +201,25 @@ class WC_Blacklist_Manager_Verifications {
         } else {
             wp_send_json_error(['message' => __('Failed to save the generated key. Please try again.', 'wc-blacklist-manager')]);
         }
+    }
+
+    public function wc_blacklist_refresh_merging() {
+        // Check for required capabilities (optional, based on your requirements)
+        if (!current_user_can('manage_options')) {
+            wp_die(__('You do not have sufficient permissions to access this page.', 'wc-blacklist-manager'));
+        }
+    
+        // Delete the option
+        delete_option('wc_blacklist_whitelist_merged_success');
+    
+        // Redirect back to the referring page
+        $referrer = wp_get_referer();
+        if ($referrer) {
+            wp_safe_redirect($referrer);
+        } else {
+            wp_safe_redirect(admin_url());
+        }
+        exit;
     }
     
     private function includes() {
