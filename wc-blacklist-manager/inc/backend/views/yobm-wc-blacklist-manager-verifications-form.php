@@ -11,11 +11,13 @@ if (!defined('ABSPATH')) {
 
 	<h1>
 		<?php echo esc_html__('Verifications', 'wc-blacklist-manager'); ?>
-		<a href="https://yoohw.com/docs/category/woocommerce-blacklist-manager/verifications/" target="_blank" class="button button-secondary" style="display: inline-flex; align-items: center;"><span class="dashicons dashicons-editor-help"></span> Documents</a>
+		<?php if (get_option('yoohw_settings_disable_menu') != 1): ?>
+			<a href="https://yoohw.com/docs/category/woocommerce-blacklist-manager/verifications/" target="_blank" class="button button-secondary" style="display: inline-flex; align-items: center;"><span class="dashicons dashicons-editor-help"></span> Documents</a>
+		<?php endif; ?>
 		<?php if (!$premium_active): ?>
 			<a href="https://yoohw.com/contact-us/" target="_blank" class="button button-secondary"><?php esc_html_e('Support / Suggestion', 'wc-blacklist-manager'); ?></a>
 		<?php endif; ?>
-		<?php if ($premium_active): ?>
+		<?php if ($premium_active && get_option('yoohw_settings_disable_menu') != 1): ?>
 			<a href="https://yoohw.com/support/" target="_blank" class="button button-secondary">Premium support</a>
 		<?php endif; ?>
 	</h1>

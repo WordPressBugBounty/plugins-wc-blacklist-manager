@@ -6,7 +6,7 @@ jQuery(document).ready(function($) {
         $('a[data-tab="' + tabId + '"]').addClass('nav-tab-active');
         $('.tab-pane').hide();
         $('#' + tabId).show();
-        localStorage.setItem('currentTab', tabId); // Save the current tab to localStorage
+        localStorage.setItem('currentTab', tabId);
     }
 
     // Handle tab clicks

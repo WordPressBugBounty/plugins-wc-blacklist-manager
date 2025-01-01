@@ -170,8 +170,8 @@ class WC_Blacklist_Manager_Button_Add_To_Blocklist {
 			$full_name_blocked = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table_name} WHERE CONCAT(first_name, ', ', last_name) = %s AND is_blocked = 1", $full_name)) > 0;
 			$all_empty = false;
 		} else {
-			$full_name_exists = true; // If premium is not active, name blocking is disabled, or full name is empty, we consider it non-blocked
-			$full_name_blocked = true; // Set to true if premium is not active or name blocking is disabled
+			$full_name_exists = true;
+			$full_name_blocked = true;
 		}
 	
 		// If all fields are empty, do not display the button
@@ -236,7 +236,7 @@ class WC_Blacklist_Manager_Button_Add_To_Blocklist {
 			}
 		}
 
-		if ($customer_name_blocking_enabled && $premium_active && !empty($full_name)) {
+		if ($customer_name_blocking_enabled && $premium_active && !empty($full_name) && trim($full_name) !== ',') {
 			$full_name_blocked = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table_name} WHERE CONCAT(first_name, ', ', last_name) = %s AND is_blocked = 1", $full_name)) > 0;
 			if ($full_name_blocked) {
 				$blocked_fields[] = 'name (' . $full_name . ')';

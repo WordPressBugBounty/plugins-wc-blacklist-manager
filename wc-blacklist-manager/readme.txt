@@ -5,7 +5,7 @@ Requires at least: 6.3
 Tested up to: 6.7.1
 WC tested up to: 9.4.3
 Requires PHP: 5.6
-Stable tag: 1.4.5
+Stable tag: 1.4.6
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -147,6 +147,12 @@ A: There is no set limit within the plugin, but practical limitations depend on 
 23. Alert email notification with a custom template.
 
 == Changelog ==
+
+= 1.4.6 (Jan 1, 2025) =
+* Fix: Blocked name displays in add new order page.
+* Improve: Not prevent a blocked domain if an empty email field is allowed on the checkout page.
+
+HAPPY NEW YEAR!!!
 
 = 1.4.5 (Dec 13, 2024) =
 * Fixed: Prevent registration for suspected IP addresses.

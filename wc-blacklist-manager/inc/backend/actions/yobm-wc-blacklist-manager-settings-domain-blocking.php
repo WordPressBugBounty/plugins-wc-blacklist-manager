@@ -18,27 +18,34 @@ class WC_Blacklist_Manager_Domain_Blocking_Actions {
 		if (!$domain_blocking_enabled) {
 			return;
 		}
-
+	
 		$domain_blocking_action = get_option('wc_blacklist_domain_action', 'none');
 		if ($domain_blocking_action !== 'prevent') {
 			return;
 		}
-
+	
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'wc_blacklist';
-
+	
 		$billing_email = isset($_POST['billing_email']) ? sanitize_email(wp_unslash($_POST['billing_email'])) : '';
-		if (empty($billing_email) || !is_email($billing_email)) {
+	
+		// Allow checkout to proceed if no billing email is provided.
+		if (empty($billing_email)) {
+			return;
+		}
+	
+		// Validate email format.
+		if (!is_email($billing_email)) {
 			wc_add_notice(__('Invalid email address provided.', 'wc-blacklist-manager'), 'error');
 			return;
 		}
-
+	
 		$email_domain = substr(strrchr($billing_email, "@"), 1);
 		if (empty($email_domain)) {
 			wc_add_notice(__('Invalid email domain.', 'wc-blacklist-manager'), 'error');
 			return;
 		}
-
+	
 		$cache_key = 'banned_domain_' . md5($email_domain);
 		$is_domain_banned = wp_cache_get($cache_key, 'wc_blacklist');
 		if (false === $is_domain_banned) {
@@ -48,12 +55,12 @@ class WC_Blacklist_Manager_Domain_Blocking_Actions {
 			));
 			wp_cache_set($cache_key, $is_domain_banned, 'wc_blacklist', HOUR_IN_SECONDS);
 		}
-
+	
 		if ($is_domain_banned > 0) {
 			$this->add_checkout_notice();
 			$this->send_admin_email('order', '', $billing_email, null);
 		}
-	}
+	}	
 
 	public function prevent_domain_registration($errors, $sanitized_user_login, $user_email) {
 		return $this->handle_domain_registration($errors, $user_email);

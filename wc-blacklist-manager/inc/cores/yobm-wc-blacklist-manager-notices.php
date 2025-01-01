@@ -54,7 +54,7 @@ class WC_Blacklist_Manager_Notices {
 				  <p><a href="#" onclick="WC_Blacklist_Manager_Admin_Notice.dismissFirstTimeNotice()">I understand and do not show this notice again!</a></p>
 			  </div>';
 		}
-	  }
+	}
 
 	public function enqueue_inline_scripts() {
 		$nonce_dismiss = wp_create_nonce('dismiss_wc_blacklist_manager_notice_nonce');

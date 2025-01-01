@@ -9,12 +9,14 @@ if (!defined('ABSPATH')) {
 		<p>Please support us by <a href="https://wordpress.org/plugins/wc-blacklist-manager/#reviews" target="_blank">leaving a review</a> <span style="color: #e26f56;">&#9733;&#9733;&#9733;&#9733;&#9733;</span> to keep updating & improving.</p>
 	<?php endif; ?>
 	<h1>
-		<?php echo esc_html__('Notifications', 'wc-blacklist-manager'); ?> 
-		<a href="https://yoohw.com/docs/category/woocommerce-blacklist-manager/notifications/" target="_blank" class="button button-secondary" style="display: inline-flex; align-items: center;"><span class="dashicons dashicons-editor-help"></span> Documents</a>
+		<?php echo esc_html__('Notifications', 'wc-blacklist-manager'); ?>
+		<?php if (get_option('yoohw_settings_disable_menu') != 1): ?>
+			<a href="https://yoohw.com/docs/category/woocommerce-blacklist-manager/notifications/" target="_blank" class="button button-secondary" style="display: inline-flex; align-items: center;"><span class="dashicons dashicons-editor-help"></span> Documents</a>
+			<?php endif; ?>
 		<?php if (!$premium_active): ?>
 			<a href="https://yoohw.com/contact-us/" target="_blank" class="button button-secondary">Support / Suggestion</a>
 		<?php endif; ?>
-		<?php if ($premium_active): ?>
+		<?php if ($premium_active && get_option('yoohw_settings_disable_menu') != 1): ?>
 			<a href="https://yoohw.com/support/" target="_blank" class="button button-secondary">Premium support</a>
 		<?php endif; ?>
 	</h1>
