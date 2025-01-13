@@ -5,9 +5,18 @@ if (!defined('ABSPATH')) {
 }
 
 class WC_Blacklist_Manager_Verifications {
+    private $verfications_advanced;
+
+    private $default_email_subject;
+    private $default_email_heading;
+    private $default_email_message;
     private $default_sms_message;
 
     public function __construct() {
+
+        $this->default_email_subject = __('Verify your email address', 'wc-blacklist-manager');
+        $this->default_email_heading = __('Verify your email address', 'wc-blacklist-manager');
+        $this->default_email_message = __('Hi there,<br><br>To complete your checkout process, please verify your email address by entering the following code:<br><br><strong>{code}</strong><br><br>If you did not request this, please ignore this email.<br><br>Thank you.', 'wc-blacklist-manager');
         $this->default_sms_message = __('{site_name}: Your verification code is {code}', 'wc-blacklist-manager');
         add_action('admin_menu', [$this, 'add_verifications_submenu']);
 		add_action('wp_ajax_generate_sms_key', [$this, 'handle_generate_sms_key']);
@@ -40,10 +49,54 @@ class WC_Blacklist_Manager_Verifications {
                 __('Verifications', 'wc-blacklist-manager'),
                 'read',
                 'wc-blacklist-manager-verifications',
-                [$this, 'render_verifications_settings']
+                [$this, 'verifications_page_content']
             );
         }
     }
+
+    public function verifications_page_content() {
+        $settings_instance = new WC_Blacklist_Manager_Settings();
+        $premium_active = $settings_instance->is_premium_active();
+
+		$active_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'verify';
+		?>
+		<div class="wrap">
+            <?php if (!$premium_active): ?>
+                <p><?php esc_html_e('Please support us by', 'wc-blacklist-manager'); ?> <a href="https://wordpress.org/plugins/wc-blacklist-manager/#reviews" target="_blank"><?php esc_html_e('leaving a review', 'wc-blacklist-manager'); ?></a> <span style="color: #e26f56;">&#9733;&#9733;&#9733;&#9733;&#9733;</span> <?php esc_html_e('to keep updating & improving.', 'wc-blacklist-manager'); ?></p>
+            <?php endif; ?>
+
+            <h1>
+                <?php echo esc_html__('Verifications', 'wc-blacklist-manager'); ?>
+                <?php if (get_option('yoohw_settings_disable_menu') != 1): ?>
+                    <a href="https://yoohw.com/docs/category/woocommerce-blacklist-manager/verifications/" target="_blank" class="button button-secondary" style="display: inline-flex; align-items: center;"><span class="dashicons dashicons-editor-help"></span> Documents</a>
+                <?php endif; ?>
+                <?php if (!$premium_active): ?>
+                    <a href="https://yoohw.com/contact-us/" target="_blank" class="button button-secondary"><?php esc_html_e('Support / Suggestion', 'wc-blacklist-manager'); ?></a>
+                <?php endif; ?>
+                <?php if ($premium_active && get_option('yoohw_settings_disable_menu') != 1): ?>
+                    <a href="https://yoohw.com/support/" target="_blank" class="button button-secondary">Premium support</a>
+                <?php endif; ?>
+            </h1>
+
+			<h2 class="nav-tab-wrapper">
+				<a href="?page=wc-blacklist-manager-verifications&tab=verify" class="nav-tab <?php echo $active_tab == 'verify' ? 'nav-tab-active' : ''; ?>"><?php echo esc_html__('Verify', 'wc-blacklist-manager-premium'); ?></a>
+				<a href="?page=wc-blacklist-manager-verifications&tab=advanced" class="nav-tab <?php echo $active_tab == 'advanced' ? 'nav-tab-active' : ''; ?>"><?php echo esc_html__('Advanced', 'wc-blacklist-manager-premium'); ?></a>
+			</h2>
+
+			<form method="post" enctype="multipart/form-data" action="">
+				<?php
+				wp_nonce_field('wc_blacklist_settings_action', 'wc_blacklist_settings_nonce');
+
+				if ($active_tab == 'verify') {
+					$this->render_verifications_settings();
+				} elseif ($active_tab == 'advanced') {
+					$this->render_verifications_advanced();
+				}
+				?>
+			</form>
+		</div>
+		<?php
+	}
 
     public function render_verifications_settings() {
         $settings_instance = new WC_Blacklist_Manager_Settings();
@@ -52,6 +105,18 @@ class WC_Blacklist_Manager_Verifications {
         $data = $this->get_verifications_settings();
         $data['message'] = $message;
         $template_path = plugin_dir_path(__FILE__) . 'views/yobm-wc-blacklist-manager-verifications-form.php';
+
+        if (file_exists($template_path)) {
+            include $template_path;
+        } else {
+            echo '<div class="error"><p>Failed to load the settings template.</p></div>';
+        }
+    }
+
+    public function render_verifications_advanced() {
+        $settings_instance = new WC_Blacklist_Manager_Settings();
+        $premium_active = $settings_instance->is_premium_active();
+        $template_path = plugin_dir_path(__FILE__) . 'views/yobm-wc-blacklist-manager-verifications-advanced.php';
 
         if (file_exists($template_path)) {
             include $template_path;
@@ -98,6 +163,7 @@ class WC_Blacklist_Manager_Verifications {
         return [
             'email_verification_enabled' => get_option('wc_blacklist_email_verification_enabled', '0'),
             'email_verification_action' => get_option('wc_blacklist_email_verification_action', 'all'),
+            'email_verification_real_time_validate' => get_option('wc_blacklist_email_verification_real_time_validate', '0'),
             'phone_verification_enabled' => get_option('wc_blacklist_phone_verification_enabled', '0'),
             'phone_verification_action' => get_option('wc_blacklist_phone_verification_action', 'all'),
             'phone_verification_sms_key' => get_option('yoohw_phone_verification_sms_key', ''),
@@ -105,27 +171,21 @@ class WC_Blacklist_Manager_Verifications {
             'phone_verification_resend' => $phone_verification_settings['resend'],
             'phone_verification_limit' => $phone_verification_settings['limit'],
             'phone_verification_message' => !empty($phone_verification_settings['message']) ? $phone_verification_settings['message'] : $this->default_sms_message,
+            'phone_verification_failed_email' => get_option('wc_blacklist_phone_verification_failed_email', '0'),
         ];
     }
 
     private function save_settings() {
-        // Email Verification Settings
         $email_verification_enabled = isset($_POST['email_verification_enabled']) ? '1' : '0';
-        
-        // Unslash and sanitize the email verification action
         $email_verification_action = isset($_POST['email_verification_action']) 
             ? sanitize_text_field(wp_unslash($_POST['email_verification_action'])) 
             : 'all';
-    
-        // Phone Verification Settings
+        $email_verification_real_time_validate = isset($_POST['email_verification_real_time_validate']) ? '1' : '0';
+
         $phone_verification_enabled = isset($_POST['phone_verification_enabled']) ? '1' : '0';
-        
-        // Unslash and sanitize the phone verification action
         $phone_verification_action = isset($_POST['phone_verification_action']) 
             ? sanitize_text_field(wp_unslash($_POST['phone_verification_action'])) 
             : 'all';
-    
-        // Sanitize and trim the message field
         $message = isset($_POST['message']) 
             ? sanitize_text_field(trim(wp_unslash($_POST['message']))) 
             : '';
@@ -147,15 +207,18 @@ class WC_Blacklist_Manager_Verifications {
             'limit' => isset($_POST['limit']) ? intval(wp_unslash($_POST['limit'])) : 5,
             'message' => $message,
         ];
+        $phone_verification_failed_email = isset($_POST['phone_verification_failed_email']) ? '1' : '0';
     
         // Save Email Verification Settings
         update_option('wc_blacklist_email_verification_enabled', $email_verification_enabled);
         update_option('wc_blacklist_email_verification_action', $email_verification_action);
+        update_option('wc_blacklist_email_verification_real_time_validate', $email_verification_real_time_validate);
     
         // Save Phone Verification Settings
         update_option('wc_blacklist_phone_verification_enabled', $phone_verification_enabled);
         update_option('wc_blacklist_phone_verification_action', $phone_verification_action);
-        update_option('wc_blacklist_phone_verification', $phone_verification_settings); // Save the combined settings
+        update_option('wc_blacklist_phone_verification', $phone_verification_settings);
+        update_option('wc_blacklist_phone_verification_failed_email', $phone_verification_failed_email);
     
         // Display success message
         add_settings_error('wc_blacklist_verifications_settings', 'settings_saved', __('Settings saved successfully.', 'wc-blacklist-manager'), 'updated');

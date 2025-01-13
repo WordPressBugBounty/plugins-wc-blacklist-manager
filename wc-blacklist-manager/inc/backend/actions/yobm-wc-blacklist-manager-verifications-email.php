@@ -36,7 +36,7 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 				'yobm-wc-blacklist-manager-verifications-email',
 				plugins_url('/../../../js/yobm-wc-blacklist-manager-verifications-email.js', __FILE__),
 				['jquery'],
-				'1.4',
+				'1.5',
 				true 
 			);
 	
@@ -79,13 +79,13 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 			// Verify based on the selected action
 			if ($verification_action === 'all' && !$this->is_email_in_whitelist($email)) {
 				$this->send_verification_code($email);
-				wc_add_notice('<span class="email-verification-error">' . __('Please verify your email before proceeding with the checkout.', 'wc-blacklist-manager') . '</span>', 'error');
+				wc_add_notice('<span class="yobm-email-verification-error">' . __('Please verify your email before proceeding with the checkout.', 'wc-blacklist-manager') . '</span>', 'error');
 				return;
 			}
 	
 			if ($verification_action === 'suspect' && $this->is_email_in_blacklist($email)) {
 				$this->send_verification_code($email);
-				wc_add_notice('<span class="email-verification-error">' . __('Please verify your email before proceeding with the checkout.', 'wc-blacklist-manager') . '</span>', 'error');
+				wc_add_notice('<span class="yobm-email-verification-error">' . __('Please verify your email before proceeding with the checkout.', 'wc-blacklist-manager') . '</span>', 'error');
 				return;
 			}
 		}
@@ -228,7 +228,6 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 
 	private function add_billing_details_to_whitelist($billing_details) {
 		global $wpdb;
-		
 		
 		$email = $billing_details['email'];
 		$phone = $billing_details['phone'];

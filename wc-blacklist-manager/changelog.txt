@@ -2,6 +2,11 @@
 
 == Changelog ==
 
+= 1.4.7 (Jan 13, 2025) =
+* New: Email notifications to admin if sending the phone verification code has failed.
+* Fix: The verification form does not display with some themes and third-party checkout plugins.
+* Improve: Make sure the verification form displays when triggering the verification code.
+
 = 1.4.6 (Jan 1, 2025) =
 * Fix: Blocked name displays in add new order page.
 * Improve: Not prevent a blocked domain if an empty email field is allowed on the checkout page.

@@ -70,6 +70,7 @@ if (!defined('ABSPATH')) {
 					<td>
 						<input type="checkbox" id="wc_blacklist_email_blocking_notification" name="wc_blacklist_email_blocking_notification" value="yes" <?php checked($data['email_blocking_notification_enabled'], 'yes'); ?> />
 						<label for="wc_blacklist_email_blocking_notification"><?php echo esc_html__( 'Send email notification to admin when an order is placed by a blocked customer', 'wc-blacklist-manager' ); ?></label>
+						<p class="description"><?php echo esc_html__( 'The addional recipient(s) will be based on the "Additional email(s)" option of suspect email above.', 'wc-blacklist-manager' ); ?></p>
 					</td>
 				</tr>
 			</tbody>
@@ -83,10 +84,16 @@ if (!defined('ABSPATH')) {
 						<textarea id="wc_blacklist_checkout_notice" name="wc_blacklist_checkout_notice" rows="3" class="regular-text"><?php echo esc_textarea($data['checkout_notice']); ?></textarea>
 						<p class="description" style="margin-bottom:20px;"><?php echo esc_html__('Enter the notice message to display when an order is blocked at checkout.', 'wc-blacklist-manager'); ?></p>
 						<?php if ($premium_active): ?>
+							<p><textarea id="wc_blacklist_vpn_proxy_checkout_notice" name="wc_blacklist_vpn_proxy_checkout_notice" rows="3" class="regular-text"><?php echo esc_textarea($data['vpn_proxy_checkout_notice']); ?></textarea></p>
+							<p class="description" style="margin-bottom:20px;"><?php echo esc_html__('Enter the notice message to display when a customer uses Proxy or VPN to checkout.', 'wc-blacklist-manager'); ?></p>
+
 							<p><textarea id="wc_blacklist_payment_method_notice" name="wc_blacklist_payment_method_notice" rows="3" class="regular-text"><?php echo esc_textarea($data['payment_method_notice']); ?></textarea></p>
 							<p class="description"><?php echo esc_html__('Enter the notice message to display when a payment method is not available for a suspected customer.', 'wc-blacklist-manager'); ?></p>
 						<?php endif; ?>
 						<?php if (!$premium_active): ?>
+							<p><textarea rows="3" class="regular-text" disabled><?php echo esc_textarea($data['vpn_proxy_checkout_notice']); ?></textarea></p>
+							<p class="premium-text"><?php echo esc_html__('Enter the notice message to display when a customer uses Proxy or VPN to checkout.', 'wc-blacklist-manager'); ?><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Upgrade</a></p>
+
 							<p><textarea rows="3" class="regular-text" disabled><?php echo esc_textarea($data['payment_method_notice']); ?></textarea></p>
 							<p class="premium-text"><?php echo esc_html__('Enter the notice message to display when a payment method is not available for a suspected customer.', 'wc-blacklist-manager'); ?><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Upgrade</a></p>
 						<?php endif; ?>

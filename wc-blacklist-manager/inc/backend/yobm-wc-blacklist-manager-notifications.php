@@ -8,6 +8,7 @@ class WC_Blacklist_Manager_Notifications {
 	private $default_email_subject;
 	private $default_email_message;
 	private $default_checkout_notice;
+	private $default_vpn_proxy_checkout_notice;
 	private $default_payment_method_notice;
 	private $default_registration_notice;
 	private $default_vpn_proxy_registration_notice;
@@ -17,6 +18,7 @@ class WC_Blacklist_Manager_Notifications {
 		$this->default_email_subject = __('WARNING: Order #{order_id} from suspected customer!', 'wc-blacklist-manager');
 		$this->default_email_message = __('A customer ({first_name} {last_name}) has placed order #{order_id}. Review it carefully.', 'wc-blacklist-manager');
 		$this->default_checkout_notice = __('Sorry! You are no longer allowed to shop with us. If you think it is a mistake, please contact support.', 'wc-blacklist-manager');
+		$this->default_vpn_proxy_checkout_notice = __('Checkout from VPNs or Proxies is not allowed. Please disable your VPN or Proxy and try again.', 'wc-blacklist-manager');
 		$this->default_payment_method_notice = __('Payment method you have chosen is not available, please select another and try again.', 'wc-blacklist-manager');
 		$this->default_registration_notice = __('You have been blocked from registering. Think it is a mistake? Contact the administrator.', 'wc-blacklist-manager');
 		$this->default_vpn_proxy_registration_notice = __('Registrations from VPNs or Proxies are not allowed. Please disable your VPN or Proxy and try again.', 'wc-blacklist-manager');
@@ -85,6 +87,7 @@ class WC_Blacklist_Manager_Notifications {
 			'additional_emails' => get_option('wc_blacklist_additional_emails', ''),
 			'email_blocking_notification_enabled' => get_option('wc_blacklist_email_blocking_notification', 'no'),
 			'checkout_notice' => get_option('wc_blacklist_checkout_notice', $this->default_checkout_notice),
+			'vpn_proxy_checkout_notice' => get_option('wc_blacklist_vpn_proxy_checkout_notice', $this->default_vpn_proxy_checkout_notice),
 			'payment_method_notice' => get_option('wc_blacklist_payment_method_notice', $this->default_payment_method_notice),
 			'registration_notice' => get_option('wc_blacklist_registration_notice', $this->default_registration_notice),
 			'vpn_proxy_registration_notice' => get_option('wc_blacklist_vpn_proxy_registration_notice', $this->default_vpn_proxy_registration_notice),
@@ -101,6 +104,7 @@ class WC_Blacklist_Manager_Notifications {
 		$email_blocking_notif_enabled = isset($_POST['wc_blacklist_email_blocking_notification']) ? 'yes' : 'no';
 		
 		$checkout_notice = isset($_POST['wc_blacklist_checkout_notice']) && !empty($_POST['wc_blacklist_checkout_notice']) ? sanitize_text_field($_POST['wc_blacklist_checkout_notice']) : $this->default_checkout_notice;
+		$vpn_proxy_checkout_notice = isset($_POST['wc_blacklist_vpn_proxy_checkout_notice']) && !empty($_POST['wc_blacklist_vpn_proxy_checkout_notice']) ? sanitize_text_field($_POST['wc_blacklist_vpn_proxy_checkout_notice']) : $this->default_vpn_proxy_checkout_notice;
 		$payment_method_notice = isset($_POST['wc_blacklist_payment_method_notice']) && !empty($_POST['wc_blacklist_payment_method_notice']) ? sanitize_text_field($_POST['wc_blacklist_payment_method_notice']) : $this->default_payment_method_notice;
 		$registration_notice = isset($_POST['wc_blacklist_registration_notice']) && !empty($_POST['wc_blacklist_registration_notice']) ? sanitize_text_field($_POST['wc_blacklist_registration_notice']) : $this->default_registration_notice;
 		$vpn_proxy_registration_notice = isset($_POST['wc_blacklist_vpn_proxy_registration_notice']) && !empty($_POST['wc_blacklist_vpn_proxy_registration_notice']) ? sanitize_text_field($_POST['wc_blacklist_vpn_proxy_registration_notice']) : $this->default_vpn_proxy_registration_notice;
@@ -112,6 +116,7 @@ class WC_Blacklist_Manager_Notifications {
 		update_option('wc_blacklist_additional_emails', $additional_emails);
 		update_option('wc_blacklist_email_blocking_notification', $email_blocking_notif_enabled);
 		update_option('wc_blacklist_checkout_notice', $checkout_notice);
+		update_option('wc_blacklist_vpn_proxy_checkout_notice', $vpn_proxy_checkout_notice);
 		update_option('wc_blacklist_payment_method_notice', $payment_method_notice);
 		update_option('wc_blacklist_registration_notice', $registration_notice);
 		update_option('wc_blacklist_vpn_proxy_registration_notice', $vpn_proxy_registration_notice);

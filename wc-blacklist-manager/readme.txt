@@ -3,9 +3,9 @@ Contributors: yoohw, baonguyen0310
 Tags: blacklist customers, block ip, fraud prevention, woocommerce anti fraud, Prevent fake orders
 Requires at least: 6.3
 Tested up to: 6.7.1
-WC tested up to: 9.4.3
+WC tested up to: 9.5.2
 Requires PHP: 5.6
-Stable tag: 1.4.6
+Stable tag: 1.4.7
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -147,6 +147,11 @@ A: There is no set limit within the plugin, but practical limitations depend on 
 23. Alert email notification with a custom template.
 
 == Changelog ==
+
+= 1.4.7 (Jan 13, 2025) =
+* New: Email notifications to admin if sending the phone verification code has failed.
+* Fix: The verification form does not display with some themes and third-party checkout plugins.
+* Improve: Make sure the verification form displays when triggering the verification code.
 
 = 1.4.6 (Jan 1, 2025) =
 * Fix: Blocked name displays in add new order page.

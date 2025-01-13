@@ -5,24 +5,7 @@ if (!defined('ABSPATH')) {
 ?>
 
 <div class="wrap">
-	<?php if (!$premium_active): ?>
-		<p><?php esc_html_e('Please support us by', 'wc-blacklist-manager'); ?> <a href="https://wordpress.org/plugins/wc-blacklist-manager/#reviews" target="_blank"><?php esc_html_e('leaving a review', 'wc-blacklist-manager'); ?></a> <span style="color: #e26f56;">&#9733;&#9733;&#9733;&#9733;&#9733;</span> <?php esc_html_e('to keep updating & improving.', 'wc-blacklist-manager'); ?></p>
-	<?php endif; ?>
-
-	<h1>
-		<?php echo esc_html__('Verifications', 'wc-blacklist-manager'); ?>
-		<?php if (get_option('yoohw_settings_disable_menu') != 1): ?>
-			<a href="https://yoohw.com/docs/category/woocommerce-blacklist-manager/verifications/" target="_blank" class="button button-secondary" style="display: inline-flex; align-items: center;"><span class="dashicons dashicons-editor-help"></span> Documents</a>
-		<?php endif; ?>
-		<?php if (!$premium_active): ?>
-			<a href="https://yoohw.com/contact-us/" target="_blank" class="button button-secondary"><?php esc_html_e('Support / Suggestion', 'wc-blacklist-manager'); ?></a>
-		<?php endif; ?>
-		<?php if ($premium_active && get_option('yoohw_settings_disable_menu') != 1): ?>
-			<a href="https://yoohw.com/support/" target="_blank" class="button button-secondary">Premium support</a>
-		<?php endif; ?>
-	</h1>
-
-	<p><?php echo esc_html__('Each email address or phone number will only need to be verified once.', 'wc-blacklist-manager'); ?></p>
+	<p class="description"><?php echo esc_html__('Each email address or phone number will only need to be verified once.', 'wc-blacklist-manager'); ?></p>
 
 	<?php settings_errors('wc_blacklist_verifications_settings'); ?>
 
@@ -38,7 +21,8 @@ if (!defined('ABSPATH')) {
 				</th>
 				<td>
 					<input type="checkbox" id="email_verification_enabled" name="email_verification_enabled" value="1" <?php checked(!empty($data['email_verification_enabled'])); ?>>
-					<label for="email_verification_enabled"><?php echo esc_html__('Enable email address verification during checkout.', 'wc-blacklist-manager'); ?></label>
+					<label for="email_verification_enabled"><?php echo esc_html__('Enable email address verification during checkout', 'wc-blacklist-manager'); ?></label>
+					<p class="description"><?php echo esc_html__('Require the customer to verify their email address by code before checking out.', 'wc-blacklist-manager'); ?></p>
 				</td>
 			</tr>
 			<tr id="email_verification_action_row" style="<?php echo (!empty($data['email_verification_enabled'])) ? '' : 'display: none;'; ?>">
@@ -53,6 +37,30 @@ if (!defined('ABSPATH')) {
 					<p class="description"><?php echo wp_kses_post(__('<b>All</b>: Require new customer to verify email address before checkout.<br><b>Suspect</b>: Require the suspected customer to verify email address before checkout.', 'wc-blacklist-manager')); ?></p>
 				</td>
 			</tr>
+			<?php if ($premium_active): ?>
+				<tr>
+					<th scope="row">
+						<label for="email_verification_real_time_validate"><?php echo esc_html__('Real-time validation:', 'wc-blacklist-manager'); ?></label>
+					</th>
+					<td>
+						<input type="checkbox" id="email_verification_real_time_validate" name="email_verification_real_time_validate" value="1" <?php checked(!empty($data['email_verification_real_time_validate'])); ?>>
+						<label for="email_verification_real_time_validate"><?php echo esc_html__('Enable real-time automatic email address validation on the checkout page', 'wc-blacklist-manager'); ?></label>
+						<p class="description"><?php echo esc_html__('Avoid bounces, spam complaints, spam traps, or wrong types in the email address field by mistake.', 'wc-blacklist-manager'); ?> <a href="https://yoohw.com/docs/woocommerce-blacklist-manager/verifications/email-verification/#real-time-validation" target="_blank"><?php echo esc_html__('Know more', 'wc-blacklist-manager'); ?></a></p>
+					</td>
+				</tr>
+			<?php endif; ?>
+			<?php if (!$premium_active): ?>
+				<tr>
+					<th scope="row">
+						<label class='premium-text'><?php echo esc_html__('Real-time validation:', 'wc-blacklist-manager'); ?></label>
+					</th>
+					<td>
+						<input type="checkbox" disabled>
+						<label class='premium-text'><?php echo esc_html__('Enable real-time automatic email address validation on the checkout page', 'wc-blacklist-manager'); ?></label> <a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Upgrade</a>
+						<p class="premium-text"><?php echo esc_html__('Avoid bounces, spam complaints, spam traps, or wrong types in the email address field by mistake.', 'wc-blacklist-manager'); ?> <a href="https://yoohw.com/docs/woocommerce-blacklist-manager/verifications/email-verification/#real-time-validation" target="_blank"><?php echo esc_html__('Know more', 'wc-blacklist-manager'); ?></a></p>
+					</td>
+				</tr>
+			<?php endif; ?>
 		</table>
 
 		<h2><?php echo esc_html__('Phone verification', 'wc-blacklist-manager'); ?></h2>
@@ -63,7 +71,8 @@ if (!defined('ABSPATH')) {
 				</th>
 				<td>
 					<input type="checkbox" id="phone_verification_enabled" name="phone_verification_enabled" value="1" <?php checked(!empty($data['phone_verification_enabled'])); ?>>
-					<label for="phone_verification_enabled"><?php echo esc_html__('Enable phone number verification during checkout.', 'wc-blacklist-manager'); ?></label>
+					<label for="phone_verification_enabled"><?php echo esc_html__('Enable phone number verification during checkout', 'wc-blacklist-manager'); ?></label>
+					<p class="description"><?php echo esc_html__('Require the customer to verify their phone number by code before checking out.', 'wc-blacklist-manager'); ?></p>
 				</td>
 			</tr>
 			<tr id="phone_verification_action_row" style="<?php echo (!empty($data['phone_verification_enabled'])) ? '' : 'display: none;'; ?>">
@@ -150,58 +159,14 @@ if (!defined('ABSPATH')) {
 					<p class="description"><?php echo esc_html__('Add {site_name}, {code} where you want them to appear.', 'wc-blacklist-manager'); ?></p>
 				</td>
 			</tr>
-		</table>
-
-		<?php if (!$premium_active): ?>
-			<h2 class='premium-text'><?php echo esc_html__('Advanced', 'wc-blacklist-manager'); ?> <a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Upgrade</a></h2>
-		<?php endif; ?>
-
-		<?php if ($premium_active): ?>
-			<h2><?php echo esc_html__('Advanced', 'wc-blacklist-manager'); ?></h2>
-		<?php endif; ?>
-
-		<table class="form-table">
-			<tr>
+			<tr id="phone_verification_failed_email_row" style="<?php echo (!empty($data['phone_verification_enabled'])) ? '' : 'display: none;'; ?>">
 				<th scope="row">
-					<label for="merge_completed_order_whitelist" class="<?php echo !$premium_active ? 'premium-text' : ''; ?>">
-						<?php echo esc_html__('Verifications merge:', 'wc-blacklist-manager'); ?>
-					</label>
+					<label for="phone_verification_failed_email"><?php echo esc_html__('Failed verification notify:', 'wc-blacklist-manager'); ?></label>
 				</th>
 				<td>
-					<?php if (!$premium_active): ?>
-						<button id="merge_button" class="button button-secondary" disabled>
-							<?php echo esc_html__('Start to merge', 'wc-blacklist-manager'); ?>
-						</button>
-						<p class="description" style="max-width: 500px; color: #aaaaaa;">
-							<?php echo esc_html__('This will set all of the emails and phones from the completed orders to verified. So the return customers will not need to verify their emails or phone numbers anymore.', 'wc-blacklist-manager'); ?>
-						</p>
-					<?php else: ?>
-						<?php if (get_option('wc_blacklist_whitelist_merged_success') != 1) : ?>
-							<a href="<?php echo esc_url(admin_url('admin-post.php?action=merge_completed_orders_to_whitelist')); ?>" id="merge_button" class="button button-secondary">
-								<?php echo esc_html__('Start to merge', 'wc-blacklist-manager'); ?>
-							</a>
-							<span id="loading_indicator" class="loading-indicator" style="display: none;">
-								<img src="<?php echo esc_url(admin_url('images/spinner.gif')); ?>" alt="Loading...">
-								<?php echo esc_html__('Merging... Please wait, DO NOT leave the page until finished.', 'wc-blacklist-manager'); ?>
-							</span>
-							<span id="finished_message" class="finished-message" style="display: none; color: green;"></span>
-							<p class="description" style="max-width: 500px;">
-								<?php echo esc_html__('This will set all of the emails and phones from the completed orders to verified. So the return customers will not need to verify their emails or phone numbers anymore.', 'wc-blacklist-manager'); ?>
-							</p>
-						<?php else : ?>
-							<span style="color: green;">
-								<?php echo esc_html__('Merged successfully.', 'wc-blacklist-manager'); ?>
-							</span>
-							<p>
-								<a href="<?php echo esc_url(admin_url('admin-post.php?action=refresh_merging')); ?>" id="refresh_button" class="button button-secondary">
-									<?php echo esc_html__('Refresh merging', 'wc-blacklist-manager'); ?>
-								</a>
-							</p>
-							<p class="description" style="max-width: 500px;">
-								<?php echo esc_html__('Refresh to re-merge the emails and phones from the completed orders to be verified again.', 'wc-blacklist-manager'); ?>
-							</p>
-						<?php endif; ?>
-					<?php endif; ?>
+					<input type="checkbox" id="phone_verification_failed_email" name="phone_verification_failed_email" value="1" <?php checked(!empty($data['phone_verification_failed_email'])); ?>>
+					<label for="phone_verification_failed_email"><?php echo esc_html__('Enable the email notification to admin when the customer has failed verification', 'wc-blacklist-manager'); ?></label>
+					<p class="description"><?php echo esc_html__('You can add the additional recipient(s) in the "Additional email(s)" option in the "Notifications" menu.', 'wc-blacklist-manager'); ?></p>
 				</td>
 			</tr>
 		</table>
@@ -228,10 +193,12 @@ if (!defined('ABSPATH')) {
 
 				// Rows
 				var emailVerificationActionRow = document.getElementById('email_verification_action_row');
+				var emailVerificationContentRow = document.getElementById('email_verification_email_content_row');
 				var phoneVerificationActionRow = document.getElementById('phone_verification_action_row');
 				var phoneVerificationSmsKeyRow = document.getElementById('phone_verification_sms_key_row');
 				var phoneVerificationSmsQuotaRow = document.getElementById('phone_verification_sms_quota_row');
 				var phoneVerificationSmsSettingsRow = document.getElementById('phone_verification_sms_settings_row');
+				var phoneVerificationFailedEmailRow = document.getElementById('phone_verification_failed_email_row');
 
 				function toggleDisplay(element, display) {
 					element.style.display = display ? '' : 'none';
@@ -240,6 +207,7 @@ if (!defined('ABSPATH')) {
 				// Email verification checkbox changes
 				emailVerificationCheckbox.addEventListener('change', function () {
 					toggleDisplay(emailVerificationActionRow, this.checked);
+					toggleDisplay(emailVerificationContentRow, this.checked);
 				});
 
 				// Phone verification checkbox changes
@@ -249,6 +217,7 @@ if (!defined('ABSPATH')) {
 					toggleDisplay(phoneVerificationSmsKeyRow, isChecked);
 					toggleDisplay(phoneVerificationSmsQuotaRow, isChecked);
 					toggleDisplay(phoneVerificationSmsSettingsRow, isChecked);
+					toggleDisplay(phoneVerificationFailedEmailRow, isChecked);
 				});
 
 				// SMS key generate
@@ -316,30 +285,29 @@ if (!defined('ABSPATH')) {
 					}
 					return result;
 				}
-
-				// Merge the complepleted order to whitelist
-				var mergeButton = document.getElementById('merge_button');
-				var loadingIndicator = document.getElementById('loading_indicator');
-				var finishedMessage = document.getElementById('finished_message');
-
-				if (mergeButton) {
-					mergeButton.addEventListener('click', function (e) {
-						loadingIndicator.style.display = 'inline-block';
-						finishedMessage.style.display = 'none';
-					});
-				}
-
-				window.updateMergeProgress = function (processed, total) {
-					if (processed === total) {
-						loadingIndicator.style.display = 'none';
-						finishedMessage.textContent = 'All done! Finished ' + total + '/' + total + '.';
-						finishedMessage.style.display = 'inline-block';
-					} else {
-						loadingIndicator.innerHTML = 'Completed orders found: ' + total + '. Merging... ' + processed + '/' + total;
-					}
-				};
 			});
 		</script>
+
+		<?php if ($premium_active): ?>
+		<script type="text/javascript">
+			document.addEventListener('DOMContentLoaded', function () {
+				function handleRealtimeValidateCheckbox() {
+					var realtimeValidateCheckbox = document.getElementById('email_verification_real_time_validate');
+
+					realtimeValidateCheckbox.addEventListener('click', function (event) {
+						var zeroBounceApiKey = <?php echo json_encode(!empty(get_option('wc_blacklist_manager_premium_zerobounce_api_key'))); ?>;
+
+						if (!zeroBounceApiKey) {
+							event.preventDefault();
+							alert("<?php echo esc_html__('Please set the ZeroBounce API key to allow this option to work.', 'wc-blacklist-manager'); ?>");
+							window.location.href = 'admin.php?page=wc-blacklist-manager-settings&tab=integrations';
+						}
+					});
+				}
+				handleRealtimeValidateCheckbox();
+			});
+		</script>
+		<?php endif; ?>
 
 		<p class="submit">
 			<input type="submit" class="button-primary" value="<?php echo esc_attr__('Save Settings', 'wc-blacklist-manager'); ?>" />

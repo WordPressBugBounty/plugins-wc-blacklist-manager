@@ -46,7 +46,7 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 				'yobm-wc-blacklist-manager-verifications-phone',
 				plugins_url('/../../../js/yobm-wc-blacklist-manager-verifications-phone.js', __FILE__),
 				['jquery'],
-				'1.5', 
+				'1.6', 
 				true  
 			);
 		
@@ -112,7 +112,7 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 			if ($verification_action === 'all') {
 				if (!$this->is_phone_in_whitelist($phone)) {
 					$this->send_verification_code($phone);
-					wc_add_notice('<span class="phone-verification-error">' . __('Please verify your phone number before proceeding with the checkout.', 'wc-blacklist-manager') . '</span>', 'error');
+					wc_add_notice('<span class="yobm-phone-verification-error">' . __('Please verify your phone number before proceeding with the checkout.', 'wc-blacklist-manager') . '</span>', 'error');
 				} else {
 					$phone_verified = true;
 				}
@@ -121,7 +121,7 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 			if ($verification_action === 'suspect') {
 				if ($this->is_phone_in_blacklist($phone)) {
 					$this->send_verification_code($phone);
-					wc_add_notice('<span class="phone-verification-error">' . __('Please verify your phone number before proceeding with the checkout.', 'wc-blacklist-manager') . '</span>', 'error');
+					wc_add_notice('<span class="yobm-phone-verification-error">' . __('Please verify your phone number before proceeding with the checkout.', 'wc-blacklist-manager') . '</span>', 'error');
 				}
 			}
 	
@@ -211,9 +211,14 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 		));
 	
 		if ( is_wp_error( $response ) ) {
-			
+			$this->send_admin_notification_on_sms_failure( $response, $phone, $verification_code );
 		} else {
 			$response_body = wp_remote_retrieve_body( $response );
+			$response_data = json_decode( $response_body, true );
+		
+			if ( isset( $response_data['status'] ) && $response_data['status'] === 'error' ) {
+				$this->send_admin_notification_on_sms_failure( $response, $phone, $verification_code );
+			}
 		}
 	}    
 
@@ -414,6 +419,52 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 			delete_user_meta($user_id, $this->resend_count_meta_key);
 		}
 	}
+
+	private function send_admin_notification_on_sms_failure( $response, $phone, $verification_code ) {
+		$admin_notification_sms_failure = get_option( 'wc_blacklist_phone_verification_failed_email', '0' );
+
+		if ( $admin_notification_sms_failure !== '1' ) {
+			return;
+		}
+
+		$admin_email = get_option( 'admin_email' );
+		$additional_emails_option = get_option( 'wc_blacklist_additional_emails', '' );
+		$additional_emails = ! empty( $additional_emails_option ) ? array_map( 'trim', explode( ',', $additional_emails_option ) ) : array();
+	
+		$recipients = array_merge( array( $admin_email ), $additional_emails );
+		$recipients = implode( ',', $recipients ); // Convert to comma-separated string
+	
+		$response_body = wp_remote_retrieve_body( $response );
+		$response_data = json_decode( $response_body, true );
+	
+		$error_message = isset( $response_data['message'] ) ? $response_data['message'] : 'Unknown error occurred while sending SMS.';
+	
+		$template_path = trailingslashit( plugin_dir_path( __FILE__ ) ) . '../emails/templates/yobm-wc-blacklist-manager-email-template-phone-verificaiton-failed.html';
+	
+		if ( file_exists( $template_path ) ) {
+			$html_template = file_get_contents( $template_path );
+	
+			// Replace placeholders in the template
+			$email_body = str_replace(
+				array( '{{phone_number}}', '{{error_message}}' ),
+				array( esc_html( $phone ), esc_html( $error_message ) ),
+				$html_template
+			);
+		} else {
+			// Fallback plain text email if template is missing
+			error_log( 'Email template missing: ' . $template_path );
+			$email_body = sprintf(
+				"An error occurred while sending the verification SMS.\n\nPhone: %s\nError Message: %s",
+				esc_html( $phone ),
+				esc_html( $error_message )
+			);
+		}
+	
+		$subject = 'SMS Verification Failed Notification';
+		$headers = array( 'Content-Type: text/html; charset=UTF-8' );
+	
+		wp_mail( $recipients, $subject, $email_body, $headers );
+	}		
 }
 
 new WC_Blacklist_Manager_Verifications_Verify_Phone();

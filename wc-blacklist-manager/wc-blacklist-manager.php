@@ -3,7 +3,7 @@
  * Plugin Name: WooCommerce Blacklist Manager
  * Plugin URI: https://wordpress.org/plugins/wc-blacklist-manager
  * Description: A blacklist management for WooCommerce. Easily helps store owners to avoid unwanted customers.
- * Version: 1.4.6
+ * Version: 1.4.7
  * Author: YoOhw.com
  * Author URI: https://yoohw.com
  * License: GPL v2 or later
