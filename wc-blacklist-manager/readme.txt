@@ -69,6 +69,18 @@ Fully Automated-Protecting against fraud and unauthorized transactions, hands-fr
 * **Prevent Disposable Phones**: Block orders and automate adding to the blocklist  if the customer is using a disposable phone number.
 * **Optional Payment Methods**: Disable the payment methods for the customers are in the Suspects list.
 
+**Real-time Automatic Validation**
+
+Our plugin ensures a seamless and error-free checkout experience with Real-time Automatic Validation. This feature automatically validates customer-provided details, including names, email addresses, and phone numbers, as they are entered. By detecting and alerting users of issues such as incomplete or invalid data, it helps to reduce errors and ensure compliance with your data integrity rules.
+
+With intelligent validation logic, the plugin checks for:
+
+* **Name Validation**: Detects invalid characters, excessive spaces, repeated characters, and ensures adherence to your custom length rules.
+* **Email Validation**: Confirms that email addresses are correctly formatted and free from common typos or invalid domains.
+* **Phone Number Validation**: Verifies phone numbers against predefined formats and country codes, with optional integration for SMS-based verification.
+
+This real-time validation not only improves the user experience by providing instant feedback but also ensures that your customer database remains accurate and clean.
+
 **Universal Checkout Compatibility**
 
 Our plugin is compatible with all types of checkout pages, including WooCommerce Classic, [Block-based Checkout](https://woocommerce.com/checkout-blocks/), and third-party checkout plugins. It also features address autocompletion on the checkout page to ensure accuracy and clarity through seamless Google Maps API integration.
@@ -81,7 +93,7 @@ The Permission Settings feature of our plugin allows you to set both default and
 
 Our premier solution for combating fraud and unauthorized transactions: we've integrated up with the finest third-party services to deliver the highest level of protection for your business. Each service we chose excels in identifying and preventing fraudulent activities. Moreover, these services offer free plans designed to support small and medium-sized businesses, enabling you to focus on growth while safeguarding your transactions.
 
-Service integrations: [Cloudflare](https://www.cloudflare.com/), [Google reCaptcha v3/v2](https://www.google.com/recaptcha/about/), [hCaptcha](https://www.hcaptcha.com/), [IPinfo](https://ipinfo.io/), [ip-api](https://ip-api.com/), [Usercheck](https://www.usercheck.com/), [NumCheckr](https://numcheckr.com/), [Google Maps Platform](https://mapsplatform.google.com/), [SMS Credits](https://yoohw.com/product/sms-credits/).
+Service integrations: [Cloudflare](https://www.cloudflare.com/), [Google reCaptcha v3/v2](https://www.google.com/recaptcha/about/), [hCaptcha](https://www.hcaptcha.com/), [IPinfo](https://ipinfo.io/), [ip-api](https://ip-api.com/), [Usercheck](https://www.usercheck.com/), [ZeroBounce](https://www.zerobounce.net?ref=owqwzgy) [NumCheckr](https://numcheckr.com/), [Google Maps Platform](https://mapsplatform.google.com/), [SMS Credits](https://yoohw.com/product/sms-credits/).
 
 Plugin integrations: [WooCommerce Stripe Gateway](https://wordpress.org/plugins/woocommerce-gateway-stripe/), [Payment Plugins for Stripe WooCommerce](https://wordpress.org/plugins/woo-stripe-payment/). 
 
@@ -134,17 +146,20 @@ A: There is no set limit within the plugin, but practical limitations depend on 
 10. Quick block/unblock and track down blocked users.
 11. Block the user directly from the user page.
 12. Unblock the user.
-13. Require to verify email address or phone number.
-14. Email notification, alert notices are customizable.
-15. Flexible settings allow you to decide what is on your site.
-16. Automation settings to automate protecting your business.
-17. Set risk score and risk score thresholds.
-18. The finest third-party services in the market are integrated.
-19. Payment gateways integrated, safeguarding your transactions.
-20. Set user roles are able to manage the Blacklist plugin.
-21. Easily import your existing data or export.
-22. Risk score is in the new order email to admin and shop manager.
-23. Alert email notification with a custom template.
+13. Verification settings.
+14. Phone number format settings.
+15. Name format & validation settings.
+16. Email & Phone verifications merging.
+17. Email notification, alert notices are customizable.
+18. Flexible settings allow you to decide what is on your site.
+19. Automation settings to automate protecting your business.
+20. Set risk score and risk score thresholds.
+21. The finest third-party services in the market are integrated.
+22. Payment gateways integrated, safeguarding your transactions.
+23. Set user roles are able to manage the Blacklist plugin.
+24. Easily import your existing data or export.
+25. Risk score is in the new order email to admin and shop manager.
+26. Alert email notification with a custom template.
 
 == Changelog ==
 

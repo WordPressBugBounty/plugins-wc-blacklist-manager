@@ -27,9 +27,17 @@ class WC_Blacklist_Manager_Suspected_Email {
 		$state = sanitize_text_field($order->get_billing_state());
 		$postcode = sanitize_text_field($order->get_billing_postcode());
 		$country = sanitize_text_field($order->get_billing_country());
-	
 		$address_parts = array_filter([$address_1, $address_2, $city, $state, $postcode, $country]);
 		$customer_address = implode(', ', $address_parts);
+
+		$shipping_address_1 = sanitize_text_field($order->get_shipping_address_1());
+		$shipping_address_2 = sanitize_text_field($order->get_shipping_address_2());
+		$shipping_city = sanitize_text_field($order->get_shipping_city());
+		$shipping_state = sanitize_text_field($order->get_shipping_state());
+		$shipping_postcode = sanitize_text_field($order->get_shipping_postcode());
+		$shipping_country = sanitize_text_field($order->get_shipping_country());
+		$shipping_address_parts = array_filter([$shipping_address_1, $shipping_address_2, $shipping_city, $shipping_state, $shipping_postcode, $shipping_country]);
+		$shipping_address = implode(', ', $shipping_address_parts);
 	
 		$send_email = false;
 	
@@ -76,13 +84,23 @@ class WC_Blacklist_Manager_Suspected_Email {
 				$send_email = true;
 			}
 		}
+
+		if (!empty($shipping_address)) {
+			$shipping_address_blacklisted = $wpdb->get_var($wpdb->prepare(
+				"SELECT COUNT(*) FROM {$table_name} WHERE customer_address = %s AND is_blocked = 0",
+				$shipping_address
+			));
+			if ($shipping_address_blacklisted > 0) {
+				$send_email = true;
+			}
+		}
 	
 		if ($send_email && get_option('wc_blacklist_email_notification', 'no') === 'yes') {
-			$this->send_notification_email($order_id, $first_name, $last_name, $phone, $email, $user_ip, $customer_address, $order_edit_url);
+			$this->send_notification_email($order_id, $first_name, $last_name, $phone, $email, $user_ip, $customer_address, $shipping_address, $order_edit_url);
 		}
 	}
 	
-	private function send_notification_email($order_id, $first_name, $last_name, $phone, $email, $user_ip, $customer_address, $order_edit_url) {
+	private function send_notification_email($order_id, $first_name, $last_name, $phone, $email, $user_ip, $customer_address, $shipping_address, $order_edit_url) {
 		$subject_template = get_option('wc_blacklist_email_subject', __('WARNING: Order {order_id} from blacklisted customer!', 'wc-blacklist-manager'));
 	
 		// Define the path to the HTML template
@@ -110,14 +128,15 @@ class WC_Blacklist_Manager_Suspected_Email {
 			'{email}' => esc_html($email),
 			'{order_id}' => esc_html($order_id),
 			'{user_ip}' => esc_html($user_ip),
-			'{address}' => esc_html($customer_address),
+			'{billing_address}' => esc_html($customer_address),
+			'{shipping_address}' => esc_html($shipping_address),
 		];
 	
 		$suspicious_order_content = strtr($suspicious_order_content, $content_replacements);
 	
 		$replacements = [
 			'{{order_id}}' => esc_html($order_id),
-			'{{suspicious_order_content}}' => wpautop(esc_html($suspicious_order_content)), // Use wpautop to add paragraph tags
+			'{{suspicious_order_content}}' => wpautop(esc_html($suspicious_order_content)),
 			'{{edit_order_url}}' => esc_url($order_edit_url)
 		];
 	

@@ -2,14 +2,14 @@
 # This file is distributed under the GPL v2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: WooCommerce Blacklist Manager 1.4.7\n"
+"Project-Id-Version: WooCommerce Blacklist Manager 1.4.7.1\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/wc-blacklist-manager\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2025-01-13T02:31:04+00:00\n"
+"POT-Creation-Date: 2025-01-18T02:47:25+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.9.0\n"
 "X-Domain: wc-blacklist-manager\n"
@@ -34,7 +34,7 @@ msgstr ""
 msgid "https://yoohw.com"
 msgstr ""
 
-#: inc/backend/actions/yobm-wc-blacklist-manager-notificaitions-blacklisted-email.php:86
+#: inc/backend/actions/yobm-wc-blacklist-manager-notificaitions-blacklisted-email.php:104
 msgid "WARNING: Order {order_id} from blacklisted customer!"
 msgstr ""
 
@@ -311,8 +311,8 @@ msgstr ""
 #: inc/backend/views/yobm-wc-blacklist-manager-dashboard-form.php:67
 #: inc/backend/views/yobm-wc-blacklist-manager-dashboard-form.php:373
 #: inc/backend/views/yobm-wc-blacklist-manager-dashboard-form.php:572
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:35
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:85
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:33
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:84
 msgid "Suspect"
 msgstr ""
 
@@ -636,7 +636,7 @@ msgid "Message:"
 msgstr ""
 
 #: inc/backend/views/yobm-wc-blacklist-manager-notifications-form.php:53
-msgid "You can use {first_name}, {last_name}, {phone}, {email}, {user_ip}, {address} and {order_id} in message and subject. HTML allowed."
+msgid "You can use {first_name}, {last_name}, {phone}, {email}, {user_ip}, {billing_address}, {shipping_address} and {order_id} in message and subject. HTML allowed."
 msgstr ""
 
 #: inc/backend/views/yobm-wc-blacklist-manager-notifications-form.php:57
@@ -895,7 +895,7 @@ msgstr ""
 #: inc/backend/views/yobm-wc-blacklist-manager-settings-form.php:842
 #: inc/backend/views/yobm-wc-blacklist-manager-settings-form.php:911
 #: inc/backend/views/yobm-wc-blacklist-manager-settings-form.php:973
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:313
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:423
 msgid "Save Settings"
 msgstr ""
 
@@ -1371,224 +1371,304 @@ msgstr ""
 msgid "Refresh to re-merge the emails and phones from the completed orders to be verified again."
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:8
-msgid "Each email address or phone number will only need to be verified once."
-msgstr ""
-
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:15
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:13
 msgid "Email verification"
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:20
-msgid "Checkout email:"
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:18
+msgid "1 - Checkout email:"
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:24
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:22
 msgid "Enable email address verification during checkout"
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:25
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:23
 msgid "Require the customer to verify their email address by code before checking out."
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:30
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:80
-msgid "Request verify:"
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:28
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:79
+msgid "1.1 - Request verify:"
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:34
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:84
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:32
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:83
 msgid "All"
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:37
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:35
 msgid "<b>All</b>: Require new customer to verify email address before checkout.<br><b>Suspect</b>: Require the suspected customer to verify email address before checkout."
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:43
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:55
-msgid "Real-time validation:"
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:41
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:53
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:174
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:196
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:229
+msgid "2 - Real-time validation:"
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:47
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:59
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:45
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:57
 msgid "Enable real-time automatic email address validation on the checkout page"
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:48
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:60
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:46
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:58
 msgid "Avoid bounces, spam complaints, spam traps, or wrong types in the email address field by mistake."
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:48
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:60
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:46
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:58
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:179
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:201
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:234
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:256
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:266
 msgid "Know more"
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:66
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:64
 msgid "Phone verification"
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:70
-msgid "Checkout phone:"
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:69
+msgid "1 - Checkout phone:"
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:74
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:73
 msgid "Enable phone number verification during checkout"
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:75
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:74
 msgid "Require the customer to verify their phone number by code before checking out."
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:87
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:86
 msgid "<b>All</b>: Require new customer to verify phone number before checkout.<br><b>Suspect</b>: Require the suspected customer to verify phone number before checkout."
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:92
-msgid "SMS verification key:"
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:91
+msgid "1.2 - SMS verification key:"
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:96
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:95
 msgid "Generate a key"
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:97
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:96
 msgid "Copy"
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:102
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:259
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:101
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:369
 msgid "Use this key when you purchase SMS credits."
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:104
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:103
 msgid "Generate a new key to start using SMS Verification."
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:109
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:108
 msgid "How it works?"
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:116
-msgid "SMS quota:"
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:115
+msgid "1.3 - SMS quota:"
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:132
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:131
 msgid "%s USD credits remaining."
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:139
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:138
 msgid "[Credits history]"
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:143
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:142
 msgid "Purchase SMS credits"
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:148
-msgid "SMS options:"
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:147
+msgid "1.4 - SMS options:"
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:151
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:150
 msgid "Code length"
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:152
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:151
 msgid "digits."
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:153
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:152
 msgid "Resend"
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:154
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:153
 msgid "seconds."
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:155
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:154
 msgid "Limit"
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:156
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:155
 msgid "times."
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:157
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:156
 msgid "Message"
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:159
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:158
 msgid "Add {site_name}, {code} where you want them to appear."
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:164
-msgid "Failed verification notify:"
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:163
+msgid "1.5 - Failed verification notify:"
+msgstr ""
+
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:167
+msgid "Enable the email notification to admin if it has failed sending verification code"
 msgstr ""
 
 #: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:168
-msgid "Enable the email notification to admin when the customer has failed verification"
-msgstr ""
-
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:169
 msgid "You can add the additional recipient(s) in the \"Additional email(s)\" option in the \"Notifications\" menu."
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:260
-#: inc/backend/yobm-wc-blacklist-manager-verifications.php:263
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:178
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:200
+msgid "Enable real-time automatic phone number format validation on the checkout page"
+msgstr ""
+
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:179
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:201
+msgid "Avoid wrong types by mistake, automatically corrected in the phone number field."
+msgstr ""
+
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:184
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:239
+msgid "2.1 - Format validation:"
+msgstr ""
+
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:188
+msgid "Set number format"
+msgstr ""
+
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:208
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:212
+msgid "Name verification"
+msgstr ""
+
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:219
+msgid "1 - Auto capitalization:"
+msgstr ""
+
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:223
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:255
+msgid "Enable automatic capitalization of the customer first and last name"
+msgstr ""
+
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:224
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:256
+msgid "It will be auto-capitalized on the customer name on the checkout and edit account pages."
+msgstr ""
+
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:233
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:265
+msgid "Enable real-time automatic customer name format validation on the checkout page"
+msgstr ""
+
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:234
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:266
+msgid "Avoid meaningless, spammy names in the first and last name fields."
+msgstr ""
+
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:243
+msgid "Set name format"
+msgstr ""
+
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:251
+msgid "Auto capitalization:"
+msgstr ""
+
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:261
+msgid "Real-time validation:"
+msgstr ""
+
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:370
+#: inc/backend/yobm-wc-blacklist-manager-verifications.php:272
 msgid "Key generated and saved successfully."
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:262
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:372
 msgid "Failed to generate the key. Please try again."
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:302
+#: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:412
 msgid "Please set the ZeroBounce API key to allow this option to work."
 msgstr ""
 
 #: inc/backend/yobm-wc-blacklist-manager-button-add-to-blacklist.php:50
-msgid "Are you sure you want to add this to the suspected list?"
+msgid "Are you sure you want to add this to the suspects list?"
 msgstr ""
 
-#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blacklist.php:176
-#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blocklist.php:281
+#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blacklist.php:164
+msgid "Add to the suspects list"
+msgstr ""
+
+#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blacklist.php:192
+#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blocklist.php:300
 msgid "Invalid order ID."
 msgstr ""
 
-#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blacklist.php:194
+#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blacklist.php:212
 msgid "Order ID: %d"
 msgstr ""
 
-#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blacklist.php:267
+#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blacklist.php:281
+msgid "Order ID: %d | Shipping"
+msgstr ""
+
+#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blacklist.php:308
 msgid "Customer has been added to the Suspects list."
 msgstr ""
 
-#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blacklist.php:269
+#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blacklist.php:310
 msgid "No new information to add to the Suspects list."
 msgstr ""
 
 #: inc/backend/yobm-wc-blacklist-manager-button-add-to-blocklist.php:49
-msgid "Are you sure you want to add this to the blocked list?"
+msgid "Are you sure you want to block this customer?"
 msgstr ""
 
-#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blocklist.php:276
+#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blocklist.php:119
+msgid "Add to the blocklist"
+msgstr ""
+
+#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blocklist.php:295
 msgid "You do not have sufficient permissions"
 msgstr ""
 
-#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blocklist.php:296
+#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blocklist.php:315
 msgid "Cannot block the administrators."
 msgstr ""
 
-#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blocklist.php:305
-msgid "Customer has been moved to the blocked list."
+#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blocklist.php:324
+msgid "Customer has been moved to the blocklist."
 msgstr ""
 
-#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blocklist.php:327
-msgid "Address has been moved to the blocked list."
+#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blocklist.php:346
+msgid "Address has been moved to the blocklist."
 msgstr ""
 
-#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blocklist.php:332
+#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blocklist.php:362
+msgid "Shipping address has been moved to the blocklist."
+msgstr ""
+
+#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blocklist.php:368
 msgid "Customer is not in the blacklist."
 msgstr ""
 
@@ -1607,7 +1687,7 @@ msgstr ""
 #: inc/backend/yobm-wc-blacklist-manager-dashboard.php:595
 #: inc/backend/yobm-wc-blacklist-manager-dashboard.php:643
 #: inc/backend/yobm-wc-blacklist-manager-dashboard.php:713
-#: inc/backend/yobm-wc-blacklist-manager-verifications.php:272
+#: inc/backend/yobm-wc-blacklist-manager-verifications.php:281
 msgid "You do not have sufficient permissions to access this page."
 msgstr ""
 
@@ -1820,22 +1900,22 @@ msgstr ""
 msgid "Changes saved successfully."
 msgstr ""
 
-#: inc/backend/yobm-wc-blacklist-manager-verifications.php:196
+#: inc/backend/yobm-wc-blacklist-manager-verifications.php:199
 msgid "The message must contain the {code} placeholder."
 msgstr ""
 
-#: inc/backend/yobm-wc-blacklist-manager-verifications.php:224
+#: inc/backend/yobm-wc-blacklist-manager-verifications.php:233
 msgid "Settings saved successfully."
 msgstr ""
 
-#: inc/backend/yobm-wc-blacklist-manager-verifications.php:230
+#: inc/backend/yobm-wc-blacklist-manager-verifications.php:239
 msgid "Security check failed."
 msgstr ""
 
-#: inc/backend/yobm-wc-blacklist-manager-verifications.php:237
+#: inc/backend/yobm-wc-blacklist-manager-verifications.php:246
 msgid "Invalid or empty key provided."
 msgstr ""
 
-#: inc/backend/yobm-wc-blacklist-manager-verifications.php:265
+#: inc/backend/yobm-wc-blacklist-manager-verifications.php:274
 msgid "Failed to save the generated key. Please try again."
 msgstr ""

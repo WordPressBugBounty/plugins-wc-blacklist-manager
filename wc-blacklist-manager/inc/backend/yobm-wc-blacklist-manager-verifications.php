@@ -172,6 +172,9 @@ class WC_Blacklist_Manager_Verifications {
             'phone_verification_limit' => $phone_verification_settings['limit'],
             'phone_verification_message' => !empty($phone_verification_settings['message']) ? $phone_verification_settings['message'] : $this->default_sms_message,
             'phone_verification_failed_email' => get_option('wc_blacklist_phone_verification_failed_email', '0'),
+            'phone_verification_real_time_validate' => get_option('wc_blacklist_phone_verification_real_time_validate', '0'),
+            'name_verification_auto_capitalization' => get_option('wc_blacklist_name_verification_auto_capitalization', '0'),
+            'name_verification_real_time_validate' => get_option('wc_blacklist_name_verification_real_time_validate', '0'),
         ];
     }
 
@@ -208,6 +211,9 @@ class WC_Blacklist_Manager_Verifications {
             'message' => $message,
         ];
         $phone_verification_failed_email = isset($_POST['phone_verification_failed_email']) ? '1' : '0';
+        $phone_verification_real_time_validate = isset($_POST['phone_verification_real_time_validate']) ? '1' : '0';
+        $name_verification_auto_capitalization = isset($_POST['name_verification_auto_capitalization']) ? '1' : '0';
+        $name_verification_real_time_validate = isset($_POST['name_verification_real_time_validate']) ? '1' : '0';
     
         // Save Email Verification Settings
         update_option('wc_blacklist_email_verification_enabled', $email_verification_enabled);
@@ -219,6 +225,9 @@ class WC_Blacklist_Manager_Verifications {
         update_option('wc_blacklist_phone_verification_action', $phone_verification_action);
         update_option('wc_blacklist_phone_verification', $phone_verification_settings);
         update_option('wc_blacklist_phone_verification_failed_email', $phone_verification_failed_email);
+        update_option('wc_blacklist_phone_verification_real_time_validate', $phone_verification_real_time_validate);
+        update_option('wc_blacklist_name_verification_auto_capitalization', $name_verification_auto_capitalization);
+        update_option('wc_blacklist_name_verification_real_time_validate', $name_verification_real_time_validate);
     
         // Display success message
         add_settings_error('wc_blacklist_verifications_settings', 'settings_saved', __('Settings saved successfully.', 'wc-blacklist-manager'), 'updated');

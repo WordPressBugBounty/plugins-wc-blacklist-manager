@@ -50,7 +50,7 @@ if (!defined('ABSPATH')) {
 					<th scope="row"><label for="wc_blacklist_email_message"><?php echo esc_html__( 'Message:', 'wc-blacklist-manager' ); ?></label></th>
 					<td>
 						<textarea id="wc_blacklist_email_message" name="wc_blacklist_email_message" rows="5" class="regular-text"><?php echo esc_textarea($data['email_message']); ?></textarea>
-						<p class="description"><?php echo esc_html__( 'You can use {first_name}, {last_name}, {phone}, {email}, {user_ip}, {address} and {order_id} in message and subject. HTML allowed.', 'wc-blacklist-manager' ); ?></p>
+						<p class="description"><?php echo esc_html__( 'You can use {first_name}, {last_name}, {phone}, {email}, {user_ip}, {billing_address}, {shipping_address} and {order_id} in message and subject. HTML allowed.', 'wc-blacklist-manager' ); ?></p>
 					</td>
 				</tr>
 				<tr>
