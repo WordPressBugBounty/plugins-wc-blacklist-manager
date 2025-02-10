@@ -32,6 +32,16 @@ class WC_Blacklist_Manager_Button_Add_To_Blacklist {
 			return;
 		}
 
+		global $pagenow;
+    
+		// Check if we're on the WooCommerce Edit Order Page
+		$is_legacy_edit_order_page = ($pagenow === 'post.php' && isset($_GET['post']) && isset($_GET['action']) && $_GET['action'] === 'edit' && get_post_type($_GET['post']) === 'shop_order');
+		$is_hpos_edit_order_page = ($pagenow === 'admin.php' && isset($_GET['page']) && $_GET['page'] === 'wc-orders' && isset($_GET['id'])); // HPOS order edit page uses 'id' parameter
+	
+		if (!($is_legacy_edit_order_page || $is_hpos_edit_order_page)) {
+			return;
+		}
+
 		$script_url = plugin_dir_url(__FILE__) . '../../js/yobm-wc-blacklist-manager-button-add-to-blacklist.js?v=' . $this->version;
 		$script_url = filter_var($script_url, FILTER_SANITIZE_URL);
 		if (!filter_var($script_url, FILTER_VALIDATE_URL)) {

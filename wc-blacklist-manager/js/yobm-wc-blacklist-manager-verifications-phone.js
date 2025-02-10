@@ -31,18 +31,21 @@ jQuery(document).ready(function($) {
 		if ($('.yobm-phone-verification-error').length > 0) {
 	
 			disablePlaceOrderButton();
+			setInterval(checkForFailedSMSVerification, 3000);
 	
-			$('.yobm-phone-verification-error').append(`
-				<div class="yobm-verify-form">
-					<input type="text" id="verification_code" name="verification_code" placeholder="${wc_blacklist_manager_verification_data.enter_code_placeholder}" style="max-width: 120px; margin-top: 10px;" />
-					<button type="button" id="resend_button" class="button" style="display:none;">${wc_blacklist_manager_verification_data.resend_button_label}</button>
-					<button type="button" id="submit_verification_code" class="button">${wc_blacklist_manager_verification_data.verify_button_label}</button>
-					<div id="resend_timer">${wc_blacklist_manager_verification_data.resend_in_label}</div>
-				</div>
-				<div id="verification_message" style="display:none;"></div>
-			`);
-	
-			startCountdown();
+			if ($('.yobm-phone-verification-error').find('.yobm-verify-form').length === 0) {
+				$('.yobm-phone-verification-error').append(`
+					<div class="yobm-verify-form">
+						<input type="text" id="verification_code" name="verification_code" placeholder="${wc_blacklist_manager_verification_data.enter_code_placeholder}" style="max-width: 120px; margin-top: 10px;" />
+						<button type="button" id="resend_button" class="button" style="display:none;">${wc_blacklist_manager_verification_data.resend_button_label}</button>
+						<button type="button" id="submit_verification_code" class="button">${wc_blacklist_manager_verification_data.verify_button_label}</button>
+						<div id="resend_timer">${wc_blacklist_manager_verification_data.resend_in_label}</div>
+					</div>
+					<div id="verification_message" style="display:none;"></div>
+				`);
+		
+				startCountdown();
+			}
 	
 			$('#submit_verification_code').off('click').on('click', function () {
 				var verificationCode = $('#verification_code').val().trim();
@@ -50,6 +53,8 @@ jQuery(document).ready(function($) {
 					alert(wc_blacklist_manager_verification_data.enter_code_alert);
 					return;
 				}
+
+				var selectedCountryCode = $('#selected_country_code').val() || '';
 	
 				var billingDetails = {
 					billing_first_name: $('input[name="billing_first_name"]').val() || '',
@@ -61,7 +66,8 @@ jQuery(document).ready(function($) {
 					billing_postcode: $('input[name="billing_postcode"]').val() || '',
 					billing_country: $('select[name="billing_country"]').val() || '',
 					billing_email: $('input[name="billing_email"]').val() || '',
-					billing_phone: $('input[name="billing_phone"]').val() || ''
+					billing_phone: $('input[name="billing_phone"]').val() || '',
+					selected_country_code: selectedCountryCode
 				};
 		
 				$.ajax({
@@ -88,6 +94,9 @@ jQuery(document).ready(function($) {
 								$('.yobm-verify-form').hide();
 							}
 							enablePlaceOrderButton();
+							setTimeout(function () {
+								$('#place_order').trigger('click'); // Auto-submit the order
+							}, 1000); // Delay to allow UI update
 						} else {
 							$('#verification_message').text(response.data.message).show();
 						}
@@ -157,4 +166,26 @@ jQuery(document).ready(function($) {
 			handlePhoneVerification();
 		});
 	});
+
+	// Failed SMS Verification
+    function checkForFailedSMSVerification() {
+        $.ajax({
+            url: wc_blacklist_manager_verification_data.ajax_url,
+            type: 'POST',
+            data: {
+                action: 'check_sms_verification_status',
+                security: wc_blacklist_manager_verification_data.nonce,
+            },
+            success: function(response) {
+                // Accessing nested 'failed' property correctly
+                if (response.success && response.data && response.data.failed === true) {
+                    alert(wc_blacklist_manager_verification_data.verification_failed_message);
+                    window.location.reload(); // Refresh checkout page after clicking OK
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error("SMS Verification AJAX Error:", status, error, xhr.responseText);
+            }
+        });
+    }
 });

@@ -1,11 +1,11 @@
-=== Blacklist Manager - Anti Fraud / Fake / Spam Orders for WooCommerce ===
+=== Blacklist Manager - Anti-Fraud / Checkout Verification for WooCommerce ===
 Contributors: yoohw, baonguyen0310
 Tags: blacklist customers, block ip, fraud prevention, woocommerce anti fraud, Prevent fake orders
 Requires at least: 6.3
 Tested up to: 6.7.1
-WC tested up to: 9.5.2
+WC tested up to: 9.6.1
 Requires PHP: 5.6
-Stable tag: 1.4.7
+Stable tag: 1.4.8
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -13,7 +13,11 @@ Easily helps store owners to avoid unwanted customers.
 
 == Description ==
 
-The Blacklist Manager – Anti Fraud / Fake / Spam Orders for WooCommerce plugin is an essential tool for WooCommerce store owners. Providing the ability to blacklist specific phone numbers, email addresses, ip addresses, email domains and block user. This plugin helps in preventing orders or cancellations from unwanted or problematic sources, also refused the visitor to create an account. With an easy-to-use interface integrated into the WordPress dashboard, managing your blacklist is both straightforward and efficient.
+The **Blacklist Manager - Anti-Fraud / Checkout Verification for WooCommerce** plugin is an essential tool for WooCommerce store owners. It provides the ability to blacklist specific phone numbers, email addresses, IP addresses, and email domains, effectively blocking users from placing orders, canceling them, or even creating an account.
+
+Additionally, this plugin includes a **Checkout Verification** feature, ensuring that only legitimate customers can complete their purchases. Store owners can require verification for phone numbers, email addresses, and customer names before allowing checkout, adding multiple layers of fraud protection. Customers may be prompted to verify their phone via SMS, confirm their email through a one-time code, or validate their identity using their registered name, significantly reducing fraudulent orders.
+
+With an easy-to-use interface integrated into the WordPress dashboard, managing your blacklist and verification settings is both straightforward and efficient. This plugin ensures your store remains secure by preventing unwanted or problematic orders while enhancing trust and safety for legitimate customers.
 
 [Premium version](https://yoohw.com/product/woocommerce-blacklist-manager-premium/) | [Documentation](https://yoohw.com/docs/category/woocommerce-blacklist-manager/) | [Support](https://yoohw.com/support/)  | [Demo](https://sandbox.yoohw.com/create-sandbox-user/)
 
@@ -32,15 +36,6 @@ The Blacklist Manager – Anti Fraud / Fake / Spam Orders for WooCommerce plugin
 == Premium Features ==
 
 Building on the robust features of the free version, the premium version offers advanced functionalities to safeguard your business against fraud and unauthorized transactions.
-
-**Prevent Orders from Bots**
-
-This solution secures your WooCommerce checkout with a combination of Google reCAPTCHA v3, v2, hCaptcha and an invisible honeypot trap to block bot-generated orders. Key features include:
-
-* **Advanced bot detection**: Uses AI-driven behavioral analysis and hidden honeypot fields to stop spam.
-* **Seamless user experience**: Invisible security layers ensure a frictionless checkout for legitimate users.
-* **API protection**: Safeguards the checkout process from bots attempting to place orders via API access.
-* **Efficient and lightweight**: Protects your store without impacting performance.
 
 **Fully Automation**
 
@@ -80,6 +75,15 @@ With intelligent validation logic, the plugin checks for:
 * **Phone Number Validation**: Verifies phone numbers against predefined formats and country codes, with optional integration for SMS-based verification.
 
 This real-time validation not only improves the user experience by providing instant feedback but also ensures that your customer database remains accurate and clean.
+
+**Prevent Orders from Bots**
+
+This solution secures your WooCommerce checkout with a combination of Google reCAPTCHA v3, v2, hCaptcha and an invisible honeypot trap to block bot-generated orders. Key features include:
+
+* **Advanced bot detection**: Uses AI-driven behavioral analysis and hidden honeypot fields to stop spam.
+* **Seamless user experience**: Invisible security layers ensure a frictionless checkout for legitimate users.
+* **API protection**: Safeguards the checkout process from bots attempting to place orders via API access.
+* **Efficient and lightweight**: Protects your store without impacting performance.
 
 **Universal Checkout Compatibility**
 
@@ -162,6 +166,12 @@ A: There is no set limit within the plugin, but practical limitations depend on 
 26. Alert email notification with a custom template.
 
 == Changelog ==
+
+= 1.4.8 (Feb 10, 2025) =
+* New: Upgrade the user verification with our integrated WooCommerce Advanced Accounts.
+* New: Auto-place the order after verification successfully.
+* New: Alert the customer to review their phone number if SMS verification failed.
+* Improve: Customize JavaScript files to run only on the exact pages.
 
 = 1.4.7 (Jan 13, 2025) =
 * New: Email notifications to admin if sending the phone verification code has failed.

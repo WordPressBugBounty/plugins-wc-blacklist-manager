@@ -36,6 +36,9 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 		add_action('wp_ajax_resend_phone_verification_code', [$this, 'resend_verification_code']);
 		add_action('wp_ajax_nopriv_resend_phone_verification_code', [$this, 'resend_verification_code']);
 		add_action('wc_blacklist_manager_cleanup_verification_code', [$this, 'cleanup_expired_code']);
+		add_action('wp_ajax_check_sms_verification_status', [$this, 'yoohw_check_sms_verification_status']);
+        add_action('wp_ajax_nopriv_check_sms_verification_status', [$this, 'yoohw_check_sms_verification_status']);
+        add_action('yoohw_sms_verification_failed', [$this, 'handle_sms_verification_failed']);
 
 		add_action('init', [$this, 'initialize_session'], 1);
 	}
@@ -46,7 +49,7 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 				'yobm-wc-blacklist-manager-verifications-phone',
 				plugins_url('/../../../js/yobm-wc-blacklist-manager-verifications-phone.js', __FILE__),
 				['jquery'],
-				'1.6', 
+				'1.7', 
 				true  
 			);
 		
@@ -64,6 +67,7 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 				'code_resent_message'       => __('A new code has been sent to your phone.', 'wc-blacklist-manager'),
 				'code_resend_failed_message' => __('Failed to resend the code. Please try again.', 'wc-blacklist-manager'),
 				'resend_limit_reached_message' => __('You have reached the resend limit. Please contact support.', 'wc-blacklist-manager'),
+				'verification_failed_message' => __('Failed to send verification code. Please check your phone number and try again. If the issue persists, contact customer support.', 'wc-blacklist-manager'),
 			]);
 		}
 	}
@@ -81,10 +85,22 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 	
 		if (is_checkout() && get_option('wc_blacklist_phone_verification_enabled') == '1') {    
 			$user_id = get_current_user_id();
-	
+		
+			// Get the selected country code from the hidden field
+			$selected_country_code = isset($_POST['selected_country_code']) ? sanitize_text_field($_POST['selected_country_code']) : '';
+
 			// Get the billing phone from the checkout form and store it in the session
 			if (!empty($_POST['billing_phone'])) {
 				$phone = sanitize_text_field($_POST['billing_phone']);
+
+				// Remove leading zero before adding country code
+				$phone = ltrim($phone, '0');
+
+				// Prepend country code if available
+				if (!empty($selected_country_code)) {
+					$phone = $selected_country_code . $phone;
+				}
+
 				WC()->session->set('billing_phone', $phone);
 			} else {
 				$phone = WC()->session->get('billing_phone', '');
@@ -112,7 +128,10 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 			if ($verification_action === 'all') {
 				if (!$this->is_phone_in_whitelist($phone)) {
 					$this->send_verification_code($phone);
-					wc_add_notice('<span class="yobm-phone-verification-error">' . __('Please verify your phone number before proceeding with the checkout.', 'wc-blacklist-manager') . '</span>', 'error');
+					// Only add the notice if there are no existing error notices
+					if (empty(wc_get_notices('error'))) {
+						wc_add_notice('<span class="yobm-phone-verification-error">' . __('Please verify your phone number before proceeding with the checkout.', 'wc-blacklist-manager') . '</span>', 'error');
+					}
 				} else {
 					$phone_verified = true;
 				}
@@ -121,7 +140,9 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 			if ($verification_action === 'suspect') {
 				if ($this->is_phone_in_blacklist($phone)) {
 					$this->send_verification_code($phone);
-					wc_add_notice('<span class="yobm-phone-verification-error">' . __('Please verify your phone number before proceeding with the checkout.', 'wc-blacklist-manager') . '</span>', 'error');
+					if (empty(wc_get_notices('error'))) {
+						wc_add_notice('<span class="yobm-phone-verification-error">' . __('Please verify your phone number before proceeding with the checkout.', 'wc-blacklist-manager') . '</span>', 'error');
+					}
 				}
 			}
 	
@@ -208,16 +229,20 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 			'headers' => array(
 				'Content-Type' => 'application/json',
 			),
+			'timeout'  => 15,
 		));
 	
 		if ( is_wp_error( $response ) ) {
+			$error_message = $response->get_error_message(); // Get the exact error message
 			$this->send_admin_notification_on_sms_failure( $response, $phone, $verification_code );
+			do_action('yoohw_sms_verification_failed', $phone, $verification_code);
 		} else {
 			$response_body = wp_remote_retrieve_body( $response );
 			$response_data = json_decode( $response_body, true );
-		
+
 			if ( isset( $response_data['status'] ) && $response_data['status'] === 'error' ) {
 				$this->send_admin_notification_on_sms_failure( $response, $phone, $verification_code );
+				do_action('yoohw_sms_verification_failed', $phone, $verification_code);
 			}
 		}
 	}    
@@ -287,6 +312,20 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 		if ($submitted_code == $stored_code) {
 			$this->cleanup_expired_code($user_id, '');
 
+        // Get and sanitize the selected country code
+        $selected_country_code = isset($_POST['selected_country_code']) ? sanitize_text_field($_POST['selected_country_code']) : '';
+
+        // Get and sanitize the phone number
+        $billing_phone = isset($_POST['billing_phone']) ? sanitize_text_field($_POST['billing_phone']) : '';
+
+        // Remove leading zero from phone number
+        $billing_phone = ltrim($billing_phone, '0');
+
+        // Prepend country code if it exists
+        if (!empty($selected_country_code)) {
+            $billing_phone = $selected_country_code . $billing_phone;
+        }
+
 			$billing_details = [
 				'first_name'     => sanitize_text_field($_POST['billing_first_name'] ?? ''),
 				'last_name'      => sanitize_text_field($_POST['billing_last_name'] ?? ''),
@@ -297,7 +336,7 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 				'postcode'       => sanitize_text_field($_POST['billing_postcode'] ?? ''),
 				'country'        => sanitize_text_field($_POST['billing_country'] ?? ''),
 				'email'          => sanitize_email($_POST['billing_email'] ?? ''),
-				'phone'          => sanitize_text_field($_POST['billing_phone'] ?? ''),
+				'phone'          => $billing_phone,
 				'verified_phone' => 1,
 			];
 
@@ -452,7 +491,6 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 			);
 		} else {
 			// Fallback plain text email if template is missing
-			error_log( 'Email template missing: ' . $template_path );
 			$email_body = sprintf(
 				"An error occurred while sending the verification SMS.\n\nPhone: %s\nError Message: %s",
 				esc_html( $phone ),
@@ -464,7 +502,26 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 		$headers = array( 'Content-Type: text/html; charset=UTF-8' );
 	
 		wp_mail( $recipients, $subject, $email_body, $headers );
-	}		
+	}
+	
+	public function yoohw_check_sms_verification_status() {
+		if (!check_ajax_referer('phone_verification_nonce', 'security', false)) {
+			wp_send_json_error(['message' => 'Security check failed.']);
+		}
+
+		$failed_sms = get_transient('yoohw_sms_verification_failed');
+		
+		if ($failed_sms) {
+			delete_transient('yoohw_sms_verification_failed'); // Reset the failure flag
+			wp_send_json_success(['failed' => true]);
+		} else {
+			wp_send_json_success(['failed' => false]);
+		}
+	}
+
+	public function handle_sms_verification_failed() {
+		set_transient('yoohw_sms_verification_failed', true, 60); // Store for 60 seconds
+	}
 }
 
 new WC_Blacklist_Manager_Verifications_Verify_Phone();

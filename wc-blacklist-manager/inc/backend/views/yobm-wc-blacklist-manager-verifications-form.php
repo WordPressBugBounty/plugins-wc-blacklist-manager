@@ -15,7 +15,7 @@ if (!defined('ABSPATH')) {
 		<table class="form-table">
 			<tr>
 				<th scope="row">
-					<label for="email_verification_enabled"><?php echo esc_html__('1 - Checkout email:', 'wc-blacklist-manager'); ?></label>
+					<label for="email_verification_enabled"><?php echo esc_html__('1 - Checkout email', 'wc-blacklist-manager'); ?></label>
 				</th>
 				<td>
 					<input type="checkbox" id="email_verification_enabled" name="email_verification_enabled" value="1" <?php checked(!empty($data['email_verification_enabled'])); ?>>
@@ -25,7 +25,7 @@ if (!defined('ABSPATH')) {
 			</tr>
 			<tr id="email_verification_action_row" style="<?php echo (!empty($data['email_verification_enabled'])) ? '' : 'display: none;'; ?>">
 				<th scope="row">
-					<label for="email_verification_action"><?php echo esc_html__('1.1 - Request verify:', 'wc-blacklist-manager'); ?></label>
+					<label for="email_verification_action"><?php echo esc_html__('1.1 - Request verify', 'wc-blacklist-manager'); ?></label>
 				</th>
 				<td>
 					<select id="email_verification_action" name="email_verification_action">
@@ -38,7 +38,7 @@ if (!defined('ABSPATH')) {
 			<?php if ($premium_active): ?>
 				<tr>
 					<th scope="row">
-						<label for="email_verification_real_time_validate"><?php echo esc_html__('2 - Real-time validation:', 'wc-blacklist-manager'); ?></label>
+						<label for="email_verification_real_time_validate"><?php echo esc_html__('2 - Real-time validation', 'wc-blacklist-manager'); ?></label>
 					</th>
 					<td>
 						<input type="checkbox" id="email_verification_real_time_validate" name="email_verification_real_time_validate" value="1" <?php checked(!empty($data['email_verification_real_time_validate'])); ?>>
@@ -50,7 +50,7 @@ if (!defined('ABSPATH')) {
 			<?php if (!$premium_active): ?>
 				<tr>
 					<th scope="row">
-						<label class='premium-text'><?php echo esc_html__('2 - Real-time validation:', 'wc-blacklist-manager'); ?></label>
+						<label class='premium-text'><?php echo esc_html__('2 - Real-time validation', 'wc-blacklist-manager'); ?></label>
 					</th>
 					<td>
 						<input type="checkbox" disabled>
@@ -66,7 +66,7 @@ if (!defined('ABSPATH')) {
 		<table class="form-table">
 			<tr>
 				<th scope="row">
-					<label for="phone_verification_enabled"><?php echo esc_html__('1 - Checkout phone:', 'wc-blacklist-manager'); ?></label>
+					<label for="phone_verification_enabled"><?php echo esc_html__('1 - Checkout phone', 'wc-blacklist-manager'); ?></label>
 				</th>
 				<td>
 					<input type="checkbox" id="phone_verification_enabled" name="phone_verification_enabled" value="1" <?php checked(!empty($data['phone_verification_enabled'])); ?>>
@@ -76,7 +76,7 @@ if (!defined('ABSPATH')) {
 			</tr>
 			<tr id="phone_verification_action_row" style="<?php echo (!empty($data['phone_verification_enabled'])) ? '' : 'display: none;'; ?>">
 				<th scope="row">
-					<label for="phone_verification_action"><?php echo esc_html__('1.1 - Request verify:', 'wc-blacklist-manager'); ?></label>
+					<label for="phone_verification_action"><?php echo esc_html__('1.1 - Request verify', 'wc-blacklist-manager'); ?></label>
 				</th>
 				<td>
 					<select id="phone_verification_action" name="phone_verification_action">
@@ -88,7 +88,7 @@ if (!defined('ABSPATH')) {
 			</tr>
 			<tr id="phone_verification_sms_key_row" style="<?php echo (!empty($data['phone_verification_enabled'])) ? '' : 'display: none;'; ?>">
 				<th scope="row">
-					<label for="phone_verification_sms_key"><?php echo esc_html__('1.2 - SMS verification key:', 'wc-blacklist-manager'); ?></label>
+					<label for="phone_verification_sms_key"><?php echo esc_html__('1.2 - SMS verification key', 'wc-blacklist-manager'); ?></label>
 				</th>
 				<td>
 					<input type="text" id="phone_verification_sms_key" name="phone_verification_sms_key" value="<?php echo esc_attr($data['phone_verification_sms_key'] ?? ''); ?>" readonly>
@@ -112,7 +112,7 @@ if (!defined('ABSPATH')) {
 			</tr>
 			<tr id="phone_verification_sms_quota_row" style="<?php echo (!empty($data['phone_verification_enabled'])) ? '' : 'display: none;'; ?>">
 				<th scope="row">
-					<label for="phone_verification_sms_quota"><?php echo esc_html__('1.3 - SMS quota:', 'wc-blacklist-manager'); ?></label>
+					<label for="phone_verification_sms_quota"><?php echo esc_html__('1.3 - SMS quota', 'wc-blacklist-manager'); ?></label>
 				</th>
 				<td>
 					<?php
@@ -144,7 +144,7 @@ if (!defined('ABSPATH')) {
 			</tr>
 			<tr id="phone_verification_sms_settings_row" style="<?php echo (!empty($data['phone_verification_enabled'])) ? '' : 'display: none;'; ?>">
 				<th scope="row">
-					<label for="phone_verification_sms_settings"><?php echo esc_html__('1.4 - SMS options:', 'wc-blacklist-manager'); ?></label>
+					<label for="phone_verification_sms_settings"><?php echo esc_html__('1.4 - SMS options', 'wc-blacklist-manager'); ?></label>
 				</th>
 				<td>
 					<p><?php echo esc_html__('Code length', 'wc-blacklist-manager'); ?></p>
@@ -160,7 +160,7 @@ if (!defined('ABSPATH')) {
 			</tr>
 			<tr id="phone_verification_failed_email_row" style="<?php echo (!empty($data['phone_verification_enabled'])) ? '' : 'display: none;'; ?>">
 				<th scope="row">
-					<label for="phone_verification_failed_email"><?php echo esc_html__('1.5 - Failed verification notify:', 'wc-blacklist-manager'); ?></label>
+					<label for="phone_verification_failed_email"><?php echo esc_html__('1.5 - Failed verification notify', 'wc-blacklist-manager'); ?></label>
 				</th>
 				<td>
 					<input type="checkbox" id="phone_verification_failed_email" name="phone_verification_failed_email" value="1" <?php checked(!empty($data['phone_verification_failed_email'])); ?>>
@@ -171,17 +171,17 @@ if (!defined('ABSPATH')) {
 			<?php if ($premium_active): ?>
 				<tr>
 					<th scope="row">
-						<label for="phone_verification_real_time_validate"><?php echo esc_html__('2 - Real-time validation:', 'wc-blacklist-manager'); ?></label>
+						<label for="phone_verification_real_time_validate"><?php echo esc_html__('2 - Real-time validation', 'wc-blacklist-manager'); ?></label>
 					</th>
 					<td>
 						<input type="checkbox" id="phone_verification_real_time_validate" name="phone_verification_real_time_validate" value="1" <?php checked(!empty($data['phone_verification_real_time_validate'])); ?>>
 						<label for="phone_verification_real_time_validate"><?php echo esc_html__('Enable real-time automatic phone number format validation on the checkout page', 'wc-blacklist-manager'); ?></label>
-						<p class="description"><?php echo esc_html__('Avoid wrong types by mistake, automatically corrected in the phone number field.', 'wc-blacklist-manager'); ?> <a href="#" target="_blank"><?php echo esc_html__('Know more', 'wc-blacklist-manager'); ?></p>
+						<p class="description"><?php echo esc_html__('Avoid wrong types by mistake, automatically corrected in the phone number field.', 'wc-blacklist-manager'); ?> <a href="https://yoohw.com/docs/woocommerce-blacklist-manager/verifications/phone-verification/#real-time-validation" target="_blank"><?php echo esc_html__('Know more', 'wc-blacklist-manager'); ?></p>
 					</td>
 				</tr>
 				<tr id="phone_verification_format_validate_row" style="<?php echo (!empty($data['phone_verification_real_time_validate'])) ? '' : 'display: none;'; ?>">
 					<th scope="row">
-						<label for="phone_verification_format_validate"><?php echo esc_html__('2.1 - Format validation:', 'wc-blacklist-manager'); ?></label>
+						<label for="phone_verification_format_validate"><?php echo esc_html__('2.1 - Format validation', 'wc-blacklist-manager'); ?></label>
 					</th>
 					<td>
 						<button id="yobm-phone-number-format" type="button" class="button button-secondary">
@@ -193,12 +193,24 @@ if (!defined('ABSPATH')) {
 			<?php if (!$premium_active): ?>
 				<tr>
 					<th scope="row">
-						<label class='premium-text'><?php echo esc_html__('2 - Real-time validation:', 'wc-blacklist-manager'); ?></label>
+						<label class='premium-text'><?php echo esc_html__('2 - Real-time validation', 'wc-blacklist-manager'); ?></label>
 					</th>
 					<td>
 						<input type="checkbox" disabled>
 						<label class='premium-text'><?php echo esc_html__('Enable real-time automatic phone number format validation on the checkout page', 'wc-blacklist-manager'); ?></label> <a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Upgrade</a>
-						<p class="premium-text"><?php echo esc_html__('Avoid wrong types by mistake, automatically corrected in the phone number field.', 'wc-blacklist-manager'); ?> <a href="#" target="_blank"><?php echo esc_html__('Know more', 'wc-blacklist-manager'); ?></a></p>
+						<p class="premium-text"><?php echo esc_html__('Avoid wrong types by mistake, automatically corrected in the phone number field.', 'wc-blacklist-manager'); ?> <a href="https://yoohw.com/docs/woocommerce-blacklist-manager/verifications/phone-verification/#real-time-validation" target="_blank"><?php echo esc_html__('Know more', 'wc-blacklist-manager'); ?></a></p>
+					</td>
+				</tr>
+			<?php endif; ?>
+			<?php if ($premium_active && !$skip_country_code): ?>
+				<tr>
+					<th scope="row">
+						<label for="phone_verification_country_code_disabled"><?php echo esc_html__('3 - Country code', 'wc-blacklist-manager'); ?></label>
+					</th>
+					<td>
+						<input type="checkbox" id="phone_verification_country_code_disabled" name="phone_verification_country_code_disabled" value="1" <?php checked(!empty($data['phone_verification_country_code_disabled'])); ?>>
+						<label for="phone_verification_country_code_disabled"><?php echo esc_html__('Disable the country code dropdown on the checkout page', 'wc-blacklist-manager'); ?></label>
+						<p class="description"><?php echo esc_html__('The country code will be excluded from the phone number for the blacklist, verified list, and orders.', 'wc-blacklist-manager'); ?></p>
 					</td>
 				</tr>
 			<?php endif; ?>
@@ -216,27 +228,27 @@ if (!defined('ABSPATH')) {
 			<?php if ($premium_active): ?>
 				<tr>
 					<th scope="row">
-						<label for="name_verification_auto_capitalization"><?php echo esc_html__('1 - Auto capitalization:', 'wc-blacklist-manager'); ?></label>
+						<label for="name_verification_auto_capitalization"><?php echo esc_html__('1 - Auto capitalization', 'wc-blacklist-manager'); ?></label>
 					</th>
 					<td>
 						<input type="checkbox" id="name_verification_auto_capitalization" name="name_verification_auto_capitalization" value="1" <?php checked(!empty($data['name_verification_auto_capitalization'])); ?>>
 						<label for="name_verification_auto_capitalization"><?php echo esc_html__('Enable automatic capitalization of the customer first and last name', 'wc-blacklist-manager'); ?></label>
-						<p class="description"><?php echo esc_html__('It will be auto-capitalized on the customer name on the checkout and edit account pages.', 'wc-blacklist-manager'); ?></p>
+						<p class="description"><?php echo esc_html__('It will be auto-capitalized on the customer name on the checkout and edit account pages.', 'wc-blacklist-manager'); ?> <a href="https://yoohw.com/docs/woocommerce-blacklist-manager/verifications/name-verification" target="_blank"><?php echo esc_html__('Know more', 'wc-blacklist-manager'); ?></a></p>
 					</td>
 				</tr>
 				<tr>
 					<th scope="row">
-						<label for="name_verification_real_time_validate"><?php echo esc_html__('2 - Real-time validation:', 'wc-blacklist-manager'); ?></label>
+						<label for="name_verification_real_time_validate"><?php echo esc_html__('2 - Real-time validation', 'wc-blacklist-manager'); ?></label>
 					</th>
 					<td>
 						<input type="checkbox" id="name_verification_real_time_validate" name="name_verification_real_time_validate" value="1" <?php checked(!empty($data['name_verification_real_time_validate'])); ?>>
 						<label for="name_verification_real_time_validate"><?php echo esc_html__('Enable real-time automatic customer name format validation on the checkout page', 'wc-blacklist-manager'); ?></label>
-						<p class="description"><?php echo esc_html__('Avoid meaningless, spammy names in the first and last name fields.', 'wc-blacklist-manager'); ?> <a href="#" target="_blank"><?php echo esc_html__('Know more', 'wc-blacklist-manager'); ?></p>
+						<p class="description"><?php echo esc_html__('Avoid meaningless, spammy names in the first and last name fields.', 'wc-blacklist-manager'); ?> <a href="https://yoohw.com/docs/woocommerce-blacklist-manager/verifications/name-verification#real-time-validation" target="_blank"><?php echo esc_html__('Know more', 'wc-blacklist-manager'); ?></p>
 					</td>
 				</tr>
 				<tr id="name_verification_format_validate_row" style="<?php echo (!empty($data['name_verification_real_time_validate'])) ? '' : 'display: none;'; ?>">
 					<th scope="row">
-						<label for="name_verification_format_validate"><?php echo esc_html__('2.1 - Format validation:', 'wc-blacklist-manager'); ?></label>
+						<label for="name_verification_format_validate"><?php echo esc_html__('2.1 - Format validation', 'wc-blacklist-manager'); ?></label>
 					</th>
 					<td>
 						<button id="yobm-customer-name-format" type="button" class="button button-secondary">
@@ -248,25 +260,59 @@ if (!defined('ABSPATH')) {
 			<?php if (!$premium_active): ?>
 				<tr>
 					<th scope="row">
-						<label class='premium-text'><?php echo esc_html__('Auto capitalization:', 'wc-blacklist-manager'); ?></label>
+						<label class='premium-text'><?php echo esc_html__('Auto capitalization', 'wc-blacklist-manager'); ?></label>
 					</th>
 					<td>
 						<input type="checkbox" disabled>
 						<label class='premium-text'><?php echo esc_html__('Enable automatic capitalization of the customer first and last name', 'wc-blacklist-manager'); ?></label> <a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Upgrade</a>
-						<p class="premium-text"><?php echo esc_html__('It will be auto-capitalized on the customer name on the checkout and edit account pages.', 'wc-blacklist-manager'); ?> <a href="#" target="_blank"><?php echo esc_html__('Know more', 'wc-blacklist-manager'); ?></a></p>
+						<p class="premium-text"><?php echo esc_html__('It will be auto-capitalized on the customer name on the checkout and edit account pages.', 'wc-blacklist-manager'); ?> <a href="https://yoohw.com/docs/woocommerce-blacklist-manager/verifications/name-verification" target="_blank"><?php echo esc_html__('Know more', 'wc-blacklist-manager'); ?></a></p>
 					</td>
 				</tr>
 				<tr>
 					<th scope="row">
-						<label class='premium-text'><?php echo esc_html__('Real-time validation:', 'wc-blacklist-manager'); ?></label>
+						<label class='premium-text'><?php echo esc_html__('Real-time validation', 'wc-blacklist-manager'); ?></label>
 					</th>
 					<td>
 						<input type="checkbox" disabled>
 						<label class='premium-text'><?php echo esc_html__('Enable real-time automatic customer name format validation on the checkout page', 'wc-blacklist-manager'); ?></label> <a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Upgrade</a>
-						<p class="premium-text"><?php echo esc_html__('Avoid meaningless, spammy names in the first and last name fields.', 'wc-blacklist-manager'); ?> <a href="#" target="_blank"><?php echo esc_html__('Know more', 'wc-blacklist-manager'); ?></a></p>
+						<p class="premium-text"><?php echo esc_html__('Avoid meaningless, spammy names in the first and last name fields.', 'wc-blacklist-manager'); ?> <a href="https://yoohw.com/docs/woocommerce-blacklist-manager/verifications/name-verification/#real-time-validation" target="_blank"><?php echo esc_html__('Know more', 'wc-blacklist-manager'); ?></a></p>
 					</td>
 				</tr>
 			<?php endif; ?>
+		</table>
+
+		<h2><?php echo esc_html__('User verification', 'wc-blacklist-manager'); ?></h2>
+
+		<table class="form-table">
+			<tr>
+				<th scope="row">
+					<label><?php echo esc_html__('Advanced accounts', 'wc-blacklist-manager'); ?></label>
+				</th>
+				<td>
+					<?php
+					$plugin_slug = 'wc-advanced-accounts';
+					$install_url = wp_nonce_url(
+						self_admin_url('update.php?action=install-plugin&plugin=' . $plugin_slug),
+						'install-plugin_' . $plugin_slug
+					);
+					$plugin_info_url = self_admin_url('plugin-install.php?tab=plugin-information&plugin=' . $plugin_slug . '&TB_iframe=true&width=772&height=900');
+					$settings_url = esc_url(admin_url('admin.php?page=wc-settings&tab=account&section=advanced'));
+
+					if (!is_plugin_active($plugin_slug . '/' . $plugin_slug . '.php')) {
+						echo '<p>' . sprintf(
+							esc_html__('Enhance your WooCommerce account system with our %s plugin.', 'wc-blacklist-manager'),
+							'<a href="' . esc_url($plugin_info_url) . '" class="thickbox" title="' . esc_attr__('WooCommerce Advanced Accounts', 'wc-blacklist-manager') . '">' . esc_html__('Advanced Accounts', 'wc-blacklist-manager') . '</a>'
+						) . '</p>';
+						echo '<p><a href="' . esc_url($install_url) . '" class="button button-primary">' . esc_html__('Install now', 'wc-blacklist-manager') . '</a></p>';
+					} else {
+						echo '<p>' . sprintf(
+							esc_html__('WooCommerce Advanced Accounts is already active. %s', 'wc-blacklist-manager'),
+							'<a href="' . $settings_url . '">' . esc_html__('Go to settings page.', 'wc-blacklist-manager') . '</a>'
+						) . '</p>';
+					}
+					?>
+				</td>
+			</tr>
 		</table>
 
 		<script type="text/javascript">

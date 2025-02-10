@@ -34,27 +34,27 @@ if (!defined('ABSPATH')) {
 		<table class="form-table">
 			<tbody>
 				<tr>
-					<th scope="row"><?php echo esc_html__( 'Enable:', 'wc-blacklist-manager' ); ?></th>
+					<th scope="row"><?php echo esc_html__( 'Enable', 'wc-blacklist-manager' ); ?></th>
 					<td>
 						<input type="checkbox" id="wc_blacklist_email_notification" name="wc_blacklist_email_notification" value="yes" <?php checked($data['email_notification_enabled'], 'yes'); ?> />
 						<label for="wc_blacklist_email_notification"><?php echo esc_html__( 'Send email notification to admin when an order is placed by a suspected customer', 'wc-blacklist-manager' ); ?></label>
 					</td>
 				</tr>
 				<tr>
-					<th scope="row"><label for="wc_blacklist_email_subject"><?php echo esc_html__( 'Subject:', 'wc-blacklist-manager' ); ?></label></th>
+					<th scope="row"><label for="wc_blacklist_email_subject"><?php echo esc_html__( 'Subject', 'wc-blacklist-manager' ); ?></label></th>
 					<td>
 						<input type="text" id="wc_blacklist_email_subject" name="wc_blacklist_email_subject" value="<?php echo esc_attr($data['email_subject']); ?>" class="regular-text" />
 					</td>
 				</tr>
 				<tr>
-					<th scope="row"><label for="wc_blacklist_email_message"><?php echo esc_html__( 'Message:', 'wc-blacklist-manager' ); ?></label></th>
+					<th scope="row"><label for="wc_blacklist_email_message"><?php echo esc_html__( 'Message', 'wc-blacklist-manager' ); ?></label></th>
 					<td>
 						<textarea id="wc_blacklist_email_message" name="wc_blacklist_email_message" rows="5" class="regular-text"><?php echo esc_textarea($data['email_message']); ?></textarea>
 						<p class="description"><?php echo esc_html__( 'You can use {first_name}, {last_name}, {phone}, {email}, {user_ip}, {billing_address}, {shipping_address} and {order_id} in message and subject. HTML allowed.', 'wc-blacklist-manager' ); ?></p>
 					</td>
 				</tr>
 				<tr>
-					<th scope="row"><label for="wc_blacklist_additional_emails"><?php echo esc_html__( 'Additional email(s):', 'wc-blacklist-manager' ); ?></label></th>
+					<th scope="row"><label for="wc_blacklist_additional_emails"><?php echo esc_html__( 'Additional email(s)', 'wc-blacklist-manager' ); ?></label></th>
 					<td>
 						<input type="text" id="wc_blacklist_additional_emails" name="wc_blacklist_additional_emails" value="<?php echo esc_attr($data['additional_emails']); ?>" class="regular-text" />
 						<p class="description"><?php echo esc_html__( 'Enter additional email addresses separated by commas.', 'wc-blacklist-manager' ); ?></p>
@@ -66,7 +66,7 @@ if (!defined('ABSPATH')) {
 		<table class="form-table">
 			<tbody>
 				<tr>
-					<th scope="row"><?php echo esc_html__( 'Enable:', 'wc-blacklist-manager' ); ?></th>
+					<th scope="row"><?php echo esc_html__( 'Enable', 'wc-blacklist-manager' ); ?></th>
 					<td>
 						<input type="checkbox" id="wc_blacklist_email_blocking_notification" name="wc_blacklist_email_blocking_notification" value="yes" <?php checked($data['email_blocking_notification_enabled'], 'yes'); ?> />
 						<label for="wc_blacklist_email_blocking_notification"><?php echo esc_html__( 'Send email notification to admin when an order is placed by a blocked customer', 'wc-blacklist-manager' ); ?></label>
@@ -79,7 +79,7 @@ if (!defined('ABSPATH')) {
 		<table class="form-table">
 			<tbody>
 				<tr>
-					<th scope="row"><label for="wc_blacklist_checkout_notice"><?php echo esc_html__('Checkout notice:', 'wc-blacklist-manager'); ?></label></th>
+					<th scope="row"><label for="wc_blacklist_checkout_notice"><?php echo esc_html__('Checkout notice', 'wc-blacklist-manager'); ?></label></th>
 					<td>
 						<textarea id="wc_blacklist_checkout_notice" name="wc_blacklist_checkout_notice" rows="3" class="regular-text"><?php echo esc_textarea($data['checkout_notice']); ?></textarea>
 						<p class="description" style="margin-bottom:20px;"><?php echo esc_html__('Enter the notice message to display when an order is blocked at checkout.', 'wc-blacklist-manager'); ?></p>
@@ -100,7 +100,7 @@ if (!defined('ABSPATH')) {
 					</td>
 				</tr>
 				<tr>
-					<th scope="row"><label for="wc_blacklist_registration_notice"><?php echo esc_html__('Registration notice:', 'wc-blacklist-manager'); ?></label></th>
+					<th scope="row"><label for="wc_blacklist_registration_notice"><?php echo esc_html__('Registration notice', 'wc-blacklist-manager'); ?></label></th>
 					<td>
 						<p><textarea id="wc_blacklist_registration_notice" name="wc_blacklist_registration_notice" rows="3" class="regular-text"><?php echo esc_textarea($data['registration_notice']); ?></textarea></p>
 						<p class="description" style="margin-bottom:20px;"><?php echo esc_html__('Enter the notice message to display when a blocked visitor tries to register an account.', 'wc-blacklist-manager'); ?></p>
@@ -115,7 +115,7 @@ if (!defined('ABSPATH')) {
 					</td>
 				</tr>
 				<tr>
-					<th scope="row"><label for="wc_blacklist_blocked_user_notice"><?php echo esc_html__('Blocked user notice:', 'wc-blacklist-manager'); ?></label></th>
+					<th scope="row"><label for="wc_blacklist_blocked_user_notice"><?php echo esc_html__('Blocked user notice', 'wc-blacklist-manager'); ?></label></th>
 					<td>
 						<textarea id="wc_blacklist_blocked_user_notice" name="wc_blacklist_blocked_user_notice" rows="3" class="regular-text"><?php echo esc_textarea($data['blocked_user_notice']); ?></textarea>
 						<p class="description"><?php echo esc_html__('Enter the notice message to display when a blocked user tries to login or force out.', 'wc-blacklist-manager'); ?></p>

@@ -16,8 +16,16 @@ class WC_Blacklist_Manager_Blocklisted_Actions {
 	public function prevent_order() {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'wc_blacklist';
+		
+		// Get the selected country code if it exists
+		$selected_country_code = isset($_POST['selected_country_code']) ? sanitize_text_field(wp_unslash($_POST['selected_country_code'])) : '';
 
+		// Get the billing phone and prepend the country code if applicable
 		$billing_phone = isset($_POST['billing_phone']) ? sanitize_text_field(wp_unslash($_POST['billing_phone'])) : '';
+		if (!empty($selected_country_code) && !empty($billing_phone)) {
+			$billing_phone = $selected_country_code . $billing_phone;
+		}
+
 		$billing_email = isset($_POST['billing_email']) ? sanitize_email(wp_unslash($_POST['billing_email'])) : '';
 
 		$blacklist_action = get_option('wc_blacklist_action', 'none');
@@ -83,6 +91,10 @@ class WC_Blacklist_Manager_Blocklisted_Actions {
 		}
 
 		$billing_phone = sanitize_text_field($order->get_billing_phone());
+		if (!empty($selected_country_code) && !empty($billing_phone)) {
+			$billing_phone = $selected_country_code . $billing_phone;
+		}
+		
 		$billing_email = sanitize_email($order->get_billing_email());
 
 		$is_blocked = false;

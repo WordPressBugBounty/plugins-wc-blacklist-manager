@@ -45,7 +45,7 @@ if (!defined('ABSPATH')) {
 			<tbody>
 				<?php if ($premium_active && $customer_name_blocking_enabled === '1'): ?>
 					<tr>
-						<th scope="row"><label for="new_customer_name"><?php echo esc_html__('Customer name:', 'wc-blacklist-manager'); ?></label></th>
+						<th scope="row"><label for="new_customer_name"><?php echo esc_html__('Customer name', 'wc-blacklist-manager'); ?></label></th>
 						<td>
 							<input type="text" id="new_first_name" name="new_first_name" placeholder="<?php echo esc_attr__('Enter first name', 'wc-blacklist-manager'); ?>" style="width: 12.25em;" />
 							<input type="text" id="new_last_name" name="new_last_name" placeholder="<?php echo esc_attr__('Enter last name', 'wc-blacklist-manager'); ?>" style="width: 12.25em;" />
@@ -53,15 +53,15 @@ if (!defined('ABSPATH')) {
 					</tr>
 				<?php endif; ?>
 				<tr>
-					<th scope="row"><label for="new_phone_number"><?php echo esc_html__('Phone number:', 'wc-blacklist-manager'); ?></label></th>
+					<th scope="row"><label for="new_phone_number"><?php echo esc_html__('Phone number', 'wc-blacklist-manager'); ?></label></th>
 					<td><input type="tel" id="new_phone_number" name="new_phone_number" placeholder="<?php echo esc_attr__('Enter phone number', 'wc-blacklist-manager'); ?>" class="regular-text" title="<?php echo esc_attr__('Phone number format: 0123456789 or +19876543210', 'wc-blacklist-manager'); ?>" pattern="[0-9\+]*" /></td>
 				</tr>
 				<tr>
-					<th scope="row"><label for="new_email_address"><?php echo esc_html__('Email address:', 'wc-blacklist-manager'); ?></label></th>
+					<th scope="row"><label for="new_email_address"><?php echo esc_html__('Email address', 'wc-blacklist-manager'); ?></label></th>
 					<td><input type="email" id="new_email_address" name="new_email_address" placeholder="<?php echo esc_attr__('Enter email address', 'wc-blacklist-manager'); ?>" class="regular-text" /></td>
 				</tr>
 				<tr>
-					<th scope="row"><label for="status"><?php echo esc_html__('Status:', 'wc-blacklist-manager'); ?></label></th>
+					<th scope="row"><label for="status"><?php echo esc_html__('Status', 'wc-blacklist-manager'); ?></label></th>
 					<td>
 						<select id="status" name="status">
 							<option value="suspect" <?php selected($last_selected_status, 'suspect'); ?>><?php echo esc_html__('Suspect', 'wc-blacklist-manager'); ?></option>

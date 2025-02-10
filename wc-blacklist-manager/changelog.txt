@@ -2,6 +2,12 @@
 
 == Changelog ==
 
+= 1.4.8 (Feb 10, 2025) =
+* New: Upgrade the user verification with our integrated WooCommerce Advanced Accounts.
+* New: Auto-place the order after verification successfully.
+* New: Alert the customer to review their phone number if SMS verification failed.
+* Improve: Customize JavaScript files to run only on the exact pages.
+
 = 1.4.7 (Jan 13, 2025) =
 * New: Email notifications to admin if sending the phone verification code has failed.
 * Fix: The verification form does not display with some themes and third-party checkout plugins.

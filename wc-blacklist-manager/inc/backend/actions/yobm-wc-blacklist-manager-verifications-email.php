@@ -36,7 +36,7 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 				'yobm-wc-blacklist-manager-verifications-email',
 				plugins_url('/../../../js/yobm-wc-blacklist-manager-verifications-email.js', __FILE__),
 				['jquery'],
-				'1.5',
+				'1.6',
 				true 
 			);
 	
@@ -65,6 +65,14 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 	}
 
 	public function email_verification() {
+		// Check if 'wc-advanced-accounts' plugin is active
+		if (is_plugin_active('wc-advanced-accounts/wc-advanced-accounts.php') && get_option('yoaa_wc_enable_email_verification') == 'yes' && get_option('wc_blacklist_email_verification_action') == 'all') {
+			// Check if the "Create an account?" checkbox is checked
+			if (!empty($_POST['createaccount'])) {
+				return;
+			}
+		}
+		
 		if (is_checkout() && get_option('wc_blacklist_email_verification_enabled') == '1') {
 			// Get the billing email from the checkout form (sanitize the input)
 			$email = isset($_POST['billing_email']) ? sanitize_email($_POST['billing_email']) : '';
@@ -79,13 +87,17 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 			// Verify based on the selected action
 			if ($verification_action === 'all' && !$this->is_email_in_whitelist($email)) {
 				$this->send_verification_code($email);
-				wc_add_notice('<span class="yobm-email-verification-error">' . __('Please verify your email before proceeding with the checkout.', 'wc-blacklist-manager') . '</span>', 'error');
+				if (empty(wc_get_notices('error'))) {
+					wc_add_notice('<span class="yobm-email-verification-error">' . __('Please verify your email before proceeding with the checkout.', 'wc-blacklist-manager') . '</span>', 'error');
+				}
 				return;
 			}
 	
 			if ($verification_action === 'suspect' && $this->is_email_in_blacklist($email)) {
 				$this->send_verification_code($email);
-				wc_add_notice('<span class="yobm-email-verification-error">' . __('Please verify your email before proceeding with the checkout.', 'wc-blacklist-manager') . '</span>', 'error');
+				if (empty(wc_get_notices('error'))) {
+					wc_add_notice('<span class="yobm-email-verification-error">' . __('Please verify your email before proceeding with the checkout.', 'wc-blacklist-manager') . '</span>', 'error');
+				}
 				return;
 			}
 		}
