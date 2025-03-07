@@ -25,6 +25,7 @@ if (!defined('ABSPATH')) {
 		<a href="#tab-content-payments" class="nav-tab" id="tab-payments"><?php echo esc_html__('Payments', 'wc-blacklist-manager'); ?></a>
 		<a href="#tab-content-permission" class="nav-tab" id="tab-permission"><?php echo esc_html__('Permission', 'wc-blacklist-manager'); ?></a>
 		<a href="#tab-content-tools" class="nav-tab" id="tab-tools"><?php echo esc_html__('Tools', 'wc-blacklist-manager'); ?></a>
+		<a href="#tab-content-connection" class="nav-tab" id="tab-connection"><?php echo esc_html__('Connection', 'wc-blacklist-manager'); ?></a>
 	</nav>
 
 	<div id="tab-content-general" class="tab-content">
@@ -69,15 +70,6 @@ if (!defined('ABSPATH')) {
 						<input type="checkbox" disabled>
 						<label class='premium-text'><?php echo esc_html__('Enable the customer first and last name on the blocklist', 'wc-blacklist-manager'); ?></label><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Upgrade</a>
 						<p class="premium-text"><?php echo esc_html__('If checked, it will cancel the order/prevent customers from checking out if their first and last name is in the blocklist.', 'wc-blacklist-manager'); ?></p>
-					</td>
-				</tr>
-				<tr>
-					<th scope="row">
-						<label class='premium-text'><?php esc_html_e('Browser blocking', 'wc-blacklist-manager'); ?></label>
-					</th>
-					<td>
-						<input type="text" class="regular-text" disabled/> <a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Upgrade</a>
-						<p class="premium-text"><?php echo esc_html__('The users cannot access your site if using these browsers.', 'wc-blacklist-manager'); ?></p>
 					</td>
 				</tr>
 			</table>
@@ -244,6 +236,20 @@ if (!defined('ABSPATH')) {
 					<td>
 						<input type="checkbox" id="enable_user_blocking" name="enable_user_blocking" value="1" <?php checked($settings['enable_user_blocking']); ?>>
 						<label for="enable_user_blocking"><?php echo esc_html__('Block user when add to blocklist the order placed by that user', 'wc-blacklist-manager'); ?></label>
+					</td>
+				</tr>
+			</table>
+
+			<h2><span class='premium-text'><?php echo esc_html__('Additional', 'wc-blacklist-manager'); ?></span><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Upgrade</a></h2>
+
+			<table class="form-table">
+				<tr>
+					<th scope="row">
+						<label class='premium-text'><?php esc_html_e('Browser blocking', 'wc-blacklist-manager'); ?></label>
+					</th>
+					<td>
+						<input type="text" class="regular-text" disabled/> <a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Upgrade</a>
+						<p class="premium-text"><?php echo esc_html__('The users cannot access your site if using these browsers.', 'wc-blacklist-manager'); ?></p>
 					</td>
 				</tr>
 			</table>
@@ -1063,52 +1069,159 @@ if (!defined('ABSPATH')) {
 	</div>
 	<div id="tab-content-tools" class="tab-content" style="display:none;">
 		<div class="wrap">
-				<span class="yo-premium"><i class="dashicons dashicons-lock"></i> Easily manage your blacklist data with our Import/Export feature <a href="https://yoohw.com/product/woocommerce-blacklist-manager-premium/" target="_blank" class="premium-label">Upgrade</a></span>
+			<span class="yo-premium"><i class="dashicons dashicons-lock"></i> Easily manage your blacklist data with our Import/Export feature <a href="https://yoohw.com/product/woocommerce-blacklist-manager-premium/" target="_blank" class="premium-label">Upgrade</a></span>
 
-				<h2><span class='premium-text'><?php echo esc_html__('Import / Export', 'wc-blacklist-manager'); ?></span><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Upgrade</a></h2>
-				
-				<p class='premium-text'><?php esc_html_e('Import or export blacklist entries from the data.', 'wc-blacklist-manager'); ?></p>
+			<h2><span class='premium-text'><?php echo esc_html__('Import / Export', 'wc-blacklist-manager'); ?></span><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Upgrade</a></h2>
+			
+			<p class='premium-text'><?php esc_html_e('Import or export blacklist entries from the data.', 'wc-blacklist-manager'); ?></p>
 
+			<table class="form-table">
+				<tr>
+					<th>
+						<label class='premium-text'><?php esc_html_e('Import CSV', 'wc-blacklist-manager'); ?></label>
+					</th>
+					<td>
+						<form method="post" enctype="multipart/form-data">
+							<span class="yobm-upload-form">
+								<input type="file" disabled>
+								<input type="submit" class="button-primary" value="<?php esc_attr_e('Import', 'wc-blacklist-manager'); ?>" disabled>
+							</span>
+						</form>
+						<p class="premium-text" style="margin-top: 20px;">
+							<?php 
+							printf(
+								__('Download the CSV sample file and add the entries to the correct column.', 'wc-blacklist-manager'), 
+							); 
+							?><br>
+							<?php 
+							printf(
+								/* translators: %1$s: documentation link */
+								__('Read <a href="%1$s" target="_blank">this article</a> for more details.', 'wc-blacklist-manager'), 
+								esc_url('https://yoohw.com/docs/woocommerce-blacklist-manager/settings/tools/')
+							); 
+							?>
+						</p>
+					</td>
+				</tr>
+				<tr>
+					<th>
+						<label class='premium-text'><?php esc_html_e('Export CSV', 'wc-blacklist-manager'); ?></label>
+					</th>
+					<td>
+						<form method="post">
+							<?php wp_nonce_field('wc_blacklist_export_action', 'wc_blacklist_export_nonce'); ?>
+							<input type="submit" class="button-primary" value="<?php esc_attr_e('Export', 'wc-blacklist-manager'); ?>" disabled>
+						</form>
+					</td>
+				</tr>
+			</table>
+
+			<h2><span class='premium-text'><?php esc_html_e('Logs settings', 'wc-blacklist-manager'); ?></span><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Upgrade</a></h2>
+			<p class='premium-text'><?php esc_html_e('Tracks system events for monitoring and troubleshooting.', 'wc-blacklist-manager'); ?></p>
+
+			<!-- Logging Settings Form -->
+			<form method="post">
+				<?php wp_nonce_field('wc_blacklist_manager_premium_settings_nonce', 'wc_blacklist_manager_premium_settings_nonce_field'); ?>
 				<table class="form-table">
 					<tr>
-						<th>
-							<label class='premium-text'><?php esc_html_e('Import CSV', 'wc-blacklist-manager'); ?></label>
+						<th scope="row">
+							<label class="premium-text"><?php esc_html_e('Logger', 'wc-blacklist-manager'); ?></label>
 						</th>
 						<td>
-							<form method="post" enctype="multipart/form-data">
-								<span class="yobm-upload-form">
-									<input type="file" disabled>
-									<input type="submit" class="button-primary" value="<?php esc_attr_e('Import', 'wc-blacklist-manager'); ?>" disabled>
-								</span>
-							</form>
-							<p class="premium-text" style="margin-top: 20px;">
-								<?php 
-								printf(
-									__('Download the CSV sample file and add the entries to the correct column.', 'wc-blacklist-manager'), 
-								); 
-								?><br>
-								<?php 
-								printf(
-									/* translators: %1$s: documentation link */
-									__('Read <a href="%1$s" target="_blank">this article</a> for more details.', 'wc-blacklist-manager'), 
-									esc_url('https://yoohw.com/docs/woocommerce-blacklist-manager/settings/tools/')
-								); 
-								?>
-							</p>
-						</td>
-					</tr>
-					<tr>
-						<th>
-							<label class='premium-text'><?php esc_html_e('Export CSV', 'wc-blacklist-manager'); ?></label>
-						</th>
-						<td>
-							<form method="post">
-								<?php wp_nonce_field('wc_blacklist_export_action', 'wc_blacklist_export_nonce'); ?>
-								<input type="submit" class="button-primary" value="<?php esc_attr_e('Export', 'wc-blacklist-manager'); ?>" disabled>
-							</form>
+							<input type="checkbox" disabled>
+							<label class="premium-text"><?php esc_html_e('Enable logging', 'wc-blacklist-manager'); ?></label>
 						</td>
 					</tr>
 				</table>
+				<p class="submit">
+					<input type="submit" class="button-primary" value="<?php esc_attr_e('Save Settings', 'wc-blacklist-manager'); ?>" disabled/>
+				</p>
+			</form>
+		</div>
+	</div>
+	<div id="tab-content-connection" class="tab-content" style="display:none;">
+		<div class="wrap">
+			<span class="yo-premium"><i class="dashicons dashicons-lock"></i> Connect multiple stores' blacklists together for a more robust and effective solution <a href="https://yoohw.com/product/woocommerce-blacklist-manager-premium/" target="_blank" class="premium-label">Upgrade</a></span>
+
+			<h2><span class='premium-text'><?php echo esc_html__('Blacklist connection', 'wc-blacklist-manager'); ?></span><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Upgrade</a></h2>
+	
+			<table class="form-table">
+				<tr>
+					<th scope="row">
+						<label class='premium-text'><?php echo esc_html__('Connection mode	', 'wc-blacklist-manager'); ?></label>
+					</th>
+					<td>
+						<select disabled>
+							<option><?php echo esc_html__('Host site', 'wc-blacklist-manager'); ?></option>
+						</select>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">
+						<label class='premium-text'><?php echo esc_html__('Host site URL', 'wc-blacklist-manager'); ?></label>
+					</th>
+					<td>
+						<input type="text" value="https://yoursite.com" disabled>
+						<a href="#" class="button button-secondary" disabled><?php echo esc_html__('Copy', 'wc-blacklist-manager'); ?></a>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">
+						<label class='premium-text'><?php echo esc_html__('Host site key', 'wc-blacklist-manager'); ?></label>
+					</th>
+					<td>
+						<input type="text" disabled>
+						<a href="#" class="button button-secondary" disabled><?php echo esc_html__('Generate a key', 'wc-blacklist-manager'); ?></a>
+						<p class="description">
+							<span class='premium-text'>
+								<?php echo esc_html__('Generate a new key to start using blacklist connection.', 'wc-blacklist-manager'); ?>
+							</span>
+							<a href="#" target="_blank">
+								<?php echo esc_html__('How it works?', 'wc-blacklist-manager'); ?>
+							</a>
+						</p>
+					</td>
+				</tr>
+			</table>
+
+			<h2><span class='premium-text'><?php echo esc_html__('Sub site connection', 'wc-blacklist-manager'); ?></span><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Upgrade</a></h2>
+
+			<table class="form-table">
+				<tr>
+					<th scope="row">
+						<label class='premium-text'><?php echo esc_html__('Auto approval', 'wc-blacklist-manager'); ?></label>
+					</th>
+					<td>
+						<input type="checkbox" disabled>
+						<label class='premium-text'><?php echo esc_html__('Enable to automatically set the sub site connection as \'Connected\'', 'wc-blacklist-manager'); ?></label>
+						<p class='premium-text'><?php echo esc_html__('If checked, your host site will be connected with the subsites without needing your permission.', 'wc-blacklist-manager'); ?></p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">
+						<label class='premium-text'><?php esc_html_e('Sub site list', 'wc-blacklist-manager'); ?></label>
+					</th>
+					<td>
+						<table class="wp-list-table widefat fixed striped subsite-list-demo">
+							<thead>
+								<tr>
+									<th class="column-id"><?php esc_html_e('ID', 'wc-blacklist-manager'); ?></th>
+									<th><?php esc_html_e('Domain', 'wc-blacklist-manager'); ?></th>
+									<th><?php esc_html_e('Key', 'wc-blacklist-manager'); ?></th>
+									<th><?php esc_html_e('Connected date', 'wc-blacklist-manager'); ?></th>
+									<th class="column-status"><?php esc_html_e('Status', 'wc-blacklist-manager'); ?></th>
+									<th class="column-actions"><?php esc_html_e('Actions', 'wc-blacklist-manager'); ?></th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<td colspan="6"><?php esc_html_e('No subsites found.', 'wc-blacklist-manager'); ?></td>
+								</tr>
+							</tbody>
+						</table>
+					</td>
+				</tr>
+			</table>
 		</div>
 	</div>
 </div>

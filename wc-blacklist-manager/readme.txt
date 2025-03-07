@@ -2,10 +2,10 @@
 Contributors: yoohw, baonguyen0310
 Tags: blacklist customers, block ip, fraud prevention, woocommerce anti fraud, Prevent fake orders
 Requires at least: 6.3
-Tested up to: 6.7.1
-WC tested up to: 9.6.1
+Tested up to: 6.7
+WC tested up to: 9.6
 Requires PHP: 5.6
-Stable tag: 1.4.8
+Stable tag: 1.4.9
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -85,6 +85,12 @@ This solution secures your WooCommerce checkout with a combination of Google reC
 * **API protection**: Safeguards the checkout process from bots attempting to place orders via API access.
 * **Efficient and lightweight**: Protects your store without impacting performance.
 
+**Blacklist Connection for Multiple Stores**
+
+Blacklist Connection allows you to sync and consolidate blacklists from multiple WooCommerce stores, creating a centralized network of blacklisted emails, phone numbers, IP addresses, customer addresses, and email domains. This unified blacklist ensures a comprehensive defense against fraud across all your online stores, improving security and saving you time.
+
+Ideal for multi-store owners and agencies managing numerous client sites—save time and boost security.
+
 **Universal Checkout Compatibility**
 
 Our plugin is compatible with all types of checkout pages, including WooCommerce Classic, [Block-based Checkout](https://woocommerce.com/checkout-blocks/), and third-party checkout plugins. It also features address autocompletion on the checkout page to ensure accuracy and clarity through seamless Google Maps API integration.
@@ -99,7 +105,7 @@ Our premier solution for combating fraud and unauthorized transactions: we've in
 
 Service integrations: [Cloudflare](https://www.cloudflare.com/), [Google reCaptcha v3/v2](https://www.google.com/recaptcha/about/), [hCaptcha](https://www.hcaptcha.com/), [IPinfo](https://ipinfo.io/), [ip-api](https://ip-api.com/), [Usercheck](https://www.usercheck.com/), [ZeroBounce](https://www.zerobounce.net?ref=owqwzgy) [NumCheckr](https://numcheckr.com/), [Google Maps Platform](https://mapsplatform.google.com/), [SMS Credits](https://yoohw.com/product/sms-credits/).
 
-Plugin integrations: [WooCommerce Stripe Gateway](https://wordpress.org/plugins/woocommerce-gateway-stripe/), [Payment Plugins for Stripe WooCommerce](https://wordpress.org/plugins/woo-stripe-payment/). 
+Plugin integrations: [WooComerce Advanced Account](https://wordpress.org/plugins/wc-advanced-accounts/) [WooCommerce Stripe Gateway](https://wordpress.org/plugins/woocommerce-gateway-stripe/), [Payment Plugins for Stripe WooCommerce](https://wordpress.org/plugins/woo-stripe-payment/). 
 
 **Import / Export**
 
@@ -162,10 +168,23 @@ A: There is no set limit within the plugin, but practical limitations depend on 
 22. Payment gateways integrated, safeguarding your transactions.
 23. Set user roles are able to manage the Blacklist plugin.
 24. Easily import your existing data or export.
-25. Risk score is in the new order email to admin and shop manager.
-26. Alert email notification with a custom template.
+25. Set up a host site for your blacklist connection.
+26. Easy to connect with the host site.
+27. Risk score is in the new order email to admin and shop manager.
+28. Alert email notification with a custom template.
 
 == Changelog ==
+
+= 1.4.9 (Mar 7, 2025) =
+* Update: Optimize blocking function performance.
+* Update: Added strict logic to prevent the phone number.
+* Fix: Error phone format of the auto-cancel the blocked order.
+* Fix: Added missing action of removing suspected phone after verifying during checkout.
+* Fix: Remove the suspected instead of blocked email after verifying during checkout.
+* Fix: Cannot generate a new SMS key for the new site register.
+* Improve: Optimize verification form displaying.
+* Improve: Limit resend code even when refreshing checkout page.
+* Improve: Optimized and cleaned up.
 
 = 1.4.8 (Feb 10, 2025) =
 * New: Upgrade the user verification with our integrated WooCommerce Advanced Accounts.
@@ -185,102 +204,102 @@ A: There is no set limit within the plugin, but practical limitations depend on 
 HAPPY NEW YEAR!!!
 
 = 1.4.5 (Dec 13, 2024) =
-* Fixed: Prevent registration for suspected IP addresses.
-* Improved: The notices will only display for administrators.
+* Fix: Prevent registration for suspected IP addresses.
+* Improve: The notices will only display for administrators.
 
 = 1.4.4 (Dec 1, 2024) =
-* Fixed: Blocking email checkbox option does not display correctly.
-* Improved: Optimized the email and phone verification functions.
-* Improved: Some improvements.
+* Fix: Blocking email checkbox option does not display correctly.
+* Improve: Optimized the email and phone verification functions.
+* Improve: Some improvements.
 
 = 1.4.3 (Nov 12, 2024) =
 * New: Optional for receiving emails during blocked user attempts to place orders or register an account.
-* Fixed: New logged-in users do not receive the phone verification code.
+* Fix: New logged-in users do not receive the phone verification code.
 
 = 1.4.2 (Nov 4, 2024) =
-* Fixed: Verification form does not display in some themes.
-* Fixed: Duplicated success notice after verification.
-* Fixed: Block button displaying when the phone or email field is empty at order page.
-* Fixed: Missing phone number country code when resend verification code.
-* Fixed: Minor typo errors.
-* Improved: Customize, reorder, and add class for verification form.
-* Improved: Added verification email content translation.
-* Improved: Security updated.
+* Fix: Verification form does not display in some themes.
+* Fix: Duplicated success notice after verification.
+* Fix: Block button displaying when the phone or email field is empty at order page.
+* Fix: Missing phone number country code when resend verification code.
+* Fix: Minor typo errors.
+* Improve: Customize, reorder, and add class for verification form.
+* Improve: Added verification email content translation.
+* Improve: Security updated.
 
 = 1.4.1 (Oct 25, 2024) =
-* Improved: Optimize the scripts.
-* Improved: Language file updated.
+* Improve: Optimize the scripts.
+* Improve: Language file updated.
 
 = 1.4.0 (Oct 16, 2024) =
 * New: Verifications feature is now available.
 * New: Require the new customer to verify email address when checkout.
 * New: Require the new customer to verify phone number when checkout.
-* Improved: Minor improvement.
+* Improve: Minor improvement.
 
 = 1.3.14 (Sep 19, 2024) =
-* Improved: Minor improvement.
-* Fixed: Removed the missing file.
+* Improve: Minor improvement.
+* Fix: Removed the missing file.
 
 = 1.3.13 (Sep 16, 2024) =
 * New: Supported the website uses Cloudflare to block user IPs.
-* Improved: Some minor improvement.
+* Improve: Some minor improvement.
 
 = 1.3.12 (Sep 4, 2024) =
-* Fixed: The rule to display the Suspect & Blocklist buttons in Order page.
-* Improved: Minor changes for better performance.
+* Fix: The rule to display the Suspect & Blocklist buttons in Order page.
+* Improve: Minor changes for better performance.
 
 = 1.3.11 (Jul 31, 2024) =
-* Fixed: The Add to Blocklist button logic has been updated.
-* Fixed: Avoid to block administrator users.
-* Improved: Auto cancel action logic has been updated.
+* Fix: The Add to Blocklist button logic has been updated.
+* Fix: Avoid to block administrator users.
+* Improve: Auto cancel action logic has been updated.
 
 = 1.3.10 (Jul 23, 2024) =
-* Fixed: Blank entries are removed at blocklist.
-* Fixed: Missing messages at dashboard.
-* Improved: Display only one notice a time at dashboard.
-* Improved: Updated CSS at dashboard.
-* Improved: Minor improvement.
+* Fix: Blank entries are removed at blocklist.
+* Fix: Missing messages at dashboard.
+* Improve: Display only one notice a time at dashboard.
+* Improve: Updated CSS at dashboard.
+* Improve: Minor improvement.
 
 = 1.3.9 (Jul 18, 2024) =
-* Fixed: Removed duplicate messages are on the dashboard.
-* Improved: The search function has improved.
+* Fix: Removed duplicate messages are on the dashboard.
+* Improve: The search function has improved.
 
 = 1.3.8 (Jul 9, 2024) =
 * New: Email sent to admin when blocked customer attempts detection.
-* Improved: Updated text content at Settings.
-* Improved: Core improvement.
+* Improve: Updated text content at Settings.
+* Improve: Core improvement.
 
 = 1.3.7 (Jul 3, 2024) =
-* Fixed: Bug at Settings page.
-* Improved: Added Settings notice for the new installs.
+* Fix: Bug at Settings page.
+* Improve: Added Settings notice for the new installs.
 
 = 1.3.6 (Jun 28, 2024) =
-* Improved: Changed the display of blocked user row at Users page.
-* Improved: Core improvement.
+* Improve: Changed the display of blocked user row at Users page.
+* Improve: Core improvement.
 
 = 1.3.5 =
-* Improved: Language file updated.
-* Improved: Core improvement.
+* Improve: Language file updated.
+* Improve: Core improvement.
 
 = 1.3.4 =
 * New: Added selection of status at Addition manual form.
-* Improved: Minor bug fixed.
+* Improve: Minor bug fixed.
 
 = 1.3.3 =
-* Improved: Language file updated.
-* Improved: Minor improvement.
+* Improve: Language file updated.
+* Improve: Minor improvement.
 
 = 1.3.2 =
 * New: Added blocked user notice customizable in Notifications.
-* Improved: Changed the blocked user notice from browser pop-up to error notice.
-* Improved: Minor bugs fixed.
+* Improve: Changed the blocked user notice from browser pop-up to error notice.
+* Improve: Minor bugs fixed.
 
 = 1.3.1 =
 * New: Notices when the customer is in suspect list or blocklist at edit order page.
 * Fix: Fixed domain addition form did not open when IP address option disabled.
-* Improved: Updated the logics of Add to suspect list and blocklist at edit order page.
-* Improved: Added missing date & time when click on Add to suspect button at edit order page.
-* Improved: Some minor bugs fixed and improved.
+* Improve: Updated the logics of Add to suspect list and blocklist at edit order page.
+* Improve: Added missing date & time when click on Add to suspect button at edit order page.
+* Improve: Some minor bugs fixed and improved.
 
 = 1.3.0 =
 * New: Upgrade entire code to be OOP style.
@@ -288,38 +307,38 @@ HAPPY NEW YEAR!!!
 * New: Source added, allowing you to know the entry's source.
 * New: IP status, allowing you to know Suspect or Blocked.
 * New: Email notification template added.
-* Improved: Dashboard tab will stay where you left off.
-* Improved: Duplicated checkout notice fixed.
-* Improved: Unexpected strings fixed.
+* Improve: Dashboard tab will stay where you left off.
+* Improve: Duplicated checkout notice fixed.
+* Improve: Unexpected strings fixed.
 
 Premium version is now available, check it out on our website!
 
 = 1.2.1 =
-* Improved: The activation notice was dismissed to be a bit more robust. To ensure the notice behavior persists even with caching plugins like WP Rocket etc...
+* Improve: The activation notice was dismissed to be a bit more robust. To ensure the notice behavior persists even with caching plugins like WP Rocket etc...
 
 = 1.2.0 =
-* Improved: CSS conflict fixed.
-* Improved: Solved the issue of settings notice displays when cache cleared.
+* Improve: CSS conflict fixed.
+* Improve: Solved the issue of settings notice displays when cache cleared.
 
 = 1.1.9.2 =
-* Improved: Minor javascript bugs are fixed.
+* Improve: Minor javascript bugs are fixed.
 
 = 1.1.9.1 =
-* Improved: A bug fixed.
+* Improve: A bug fixed.
 
 = 1.1.9 =
-* Improved: Avoid a hardcore security for some themes.
-* Improved: Codes improved.
+* Improve: Avoid a hardcore security for some themes.
+* Improve: Codes improved.
 
 = 1.1.8 =
 * Change: Text buttons to be icon buttons in the lists.
 * Change: Rename Blacklist to Suspects to avoid confusing .
-* Improved: Reorganised the files.
-* Improved: Codes improved.
+* Improve: Reorganised the files.
+* Improve: Codes improved.
 
 = 1.1.7 =
 * New: IP Addresses multi lines addition.
-* Improved: Small fixes.
+* Improve: Small fixes.
 
 = 1.1.6 =
 * Error: Important bugs fixed.
@@ -327,28 +346,28 @@ Premium version is now available, check it out on our website!
 = 1.1.5 =
 * New: Email domain blocking added.
 * New: Bulk action, easily delete multi rows in every lists.
-* Improved: Small fixes.
+* Improve: Small fixes.
 
 = 1.1.4 =
 * Change: Email notification setting became Notifications settings.
 * New: Checkout, Registration Notice now is customizable.
 * New: Prevent registration option for the user ip address is on the blacklist.
-* Improved: Reorganized the codes to make them smoother and cleaner.
+* Improve: Reorganized the codes to make them smoother and cleaner.
 
 = 1.1.3 =
 * New: Added an option (Settings) to prevent placing an order.
-* Improved: Clear some unused codes. Small fixes.
+* Improve: Clear some unused codes. Small fixes.
 
 = 1.1.2 =
 * New: IP Blacklist released.
 * New: Add customer IP into IP Blacklist by click on Add to Blacklist button (Flag icon) in the Order page (Admin).
-* Improved: Popup message to confirm if you are sure to do the actions in the Blacklist Management.
+* Improve: Popup message to confirm if you are sure to do the actions in the Blacklist Management.
 
 = 1.1.1 =
 * New: Declined to create an account if the email address is on Blocked list.
 * New: Added the popup message to confirm if you are sure to do the action in the Order page (Admin).
-* Improved: Change the text button to be icon button in the Order page (Admin).
-* Improved: Refresh the Order page after Add to Blacklist message's displaying automatically (in 3 seconds).
+* Improve: Change the text button to be icon button in the Order page (Admin).
+* Improve: Refresh the Order page after Add to Blacklist message's displaying automatically (in 3 seconds).
 
 = 1.1.0 =
 * Settings: Prevent Order selection added.

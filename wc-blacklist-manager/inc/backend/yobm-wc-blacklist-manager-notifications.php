@@ -24,7 +24,6 @@ class WC_Blacklist_Manager_Notifications {
 		$this->default_vpn_proxy_registration_notice = __('Registrations from VPNs or Proxies are not allowed. Please disable your VPN or Proxy and try again.', 'wc-blacklist-manager');
 		$this->default_blocked_user_notice = __('Your account has been blocked. Think it is a mistake? Contact the administrator.', 'wc-blacklist-manager');		
 		add_action('admin_menu', [$this, 'add_notification_submenu']);
-		$this->includes();
 	}
 
 	public function add_notification_submenu() {
@@ -121,10 +120,6 @@ class WC_Blacklist_Manager_Notifications {
 		update_option('wc_blacklist_registration_notice', $registration_notice);
 		update_option('wc_blacklist_vpn_proxy_registration_notice', $vpn_proxy_registration_notice);
 		update_option('wc_blacklist_blocked_user_notice', $blocked_user_notice);
-	}
-
-	private function includes() {
-		include_once plugin_dir_path(__FILE__) . '/actions/yobm-wc-blacklist-manager-notificaitions-blacklisted-email.php';
 	}
 }
 

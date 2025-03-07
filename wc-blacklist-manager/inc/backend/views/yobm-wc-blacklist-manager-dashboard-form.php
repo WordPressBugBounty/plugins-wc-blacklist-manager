@@ -124,7 +124,7 @@ if (!defined('ABSPATH')) {
 							<option value=""><?php echo esc_html__('Bulk Actions', 'wc-blacklist-manager'); ?></option>
 							<option value="delete"><?php echo esc_html__('Delete', 'wc-blacklist-manager'); ?></option>
 						</select>
-						<input type="submit" class="button action" value="<?php echo esc_attr__('Apply', 'wc-blacklist-manager'); ?>" onclick="return confirm('<?php echo esc_js(__('Are you sure you want to delete the entries?', 'wc-blacklist-manager')); ?>')">
+						<input type="submit" class="button action" value="<?php echo esc_attr__('Apply', 'wc-blacklist-manager'); ?>" onclick="if(document.getElementById('bulk_action').value === 'delete'){ return confirm('<?php echo esc_js( __( 'Are you sure you want to delete the selected entries?', 'yo-booking' ) ); ?>'); }">
 					</div>
 				</div>
 				<table class="wp-list-table widefat fixed striped">
@@ -221,9 +221,8 @@ if (!defined('ABSPATH')) {
 							<option value=""><?php echo esc_html__('Bulk Actions', 'wc-blacklist-manager'); ?></option>
 							<option value="delete"><?php echo esc_html__('Delete', 'wc-blacklist-manager'); ?></option>
 						</select>
-						<input type="submit" class="button action" value="<?php echo esc_attr__('Apply', 'wc-blacklist-manager'); ?>" onclick="return confirm('<?php echo esc_js(__('Are you sure you want to delete the entries?', 'wc-blacklist-manager')); ?>')">
+						<input type="submit" class="button action" value="<?php echo esc_attr__('Apply', 'wc-blacklist-manager'); ?>" onclick="if(document.getElementById('bulk_action_blocked').value === 'delete'){ return confirm('<?php echo esc_js( __( 'Are you sure you want to delete the selected entries?', 'yo-booking' ) ); ?>'); }">					</div>
 					</div>
-				</div>
 				<table class="wp-list-table widefat fixed striped">
 					<thead>
 						<tr>
@@ -327,9 +326,8 @@ if (!defined('ABSPATH')) {
 								<option value=""><?php echo esc_html__('Bulk Actions', 'wc-blacklist-manager'); ?></option>
 								<option value="delete"><?php echo esc_html__('Delete', 'wc-blacklist-manager'); ?></option>
 							</select>
-							<input type="submit" class="button action" value="<?php echo esc_attr__('Apply', 'wc-blacklist-manager'); ?>" onclick="return confirm('<?php echo esc_js(__('Are you sure you want to delete the entries?', 'wc-blacklist-manager')); ?>')">
+							<input type="submit" class="button action" value="<?php echo esc_attr__('Apply', 'wc-blacklist-manager'); ?>" onclick="if(document.getElementById('bulk_action_ip_banned').value === 'delete'){ return confirm('<?php echo esc_js( __( 'Are you sure you want to delete the selected entries?', 'yo-booking' ) ); ?>'); }">						</div>
 						</div>
-					</div>
 					<table class="wp-list-table widefat fixed striped">
 						<thead>
 							<tr>
@@ -526,9 +524,8 @@ if (!defined('ABSPATH')) {
 							<option value=""><?php echo esc_html__('Bulk Actions', 'wc-blacklist-manager'); ?></option>
 							<option value="delete"><?php echo esc_html__('Delete', 'wc-blacklist-manager'); ?></option>
 						</select>
-						<input type="submit" class="button action" value="<?php echo esc_attr__('Apply', 'wc-blacklist-manager'); ?>" onclick="return confirm('<?php echo esc_js(__('Are you sure you want to delete the entries?', 'wc-blacklist-manager')); ?>')">
+						<input type="submit" class="button action" value="<?php echo esc_attr__('Apply', 'wc-blacklist-manager'); ?>" onclick="if(document.getElementById('bulk_action_address').value === 'delete'){ return confirm('<?php echo esc_js( __( 'Are you sure you want to delete the selected entries?', 'yo-booking' ) ); ?>'); }">					</div>
 					</div>
-				</div>
 				<table class="wp-list-table widefat fixed striped">
 					<thead>
 						<tr>
@@ -643,9 +640,8 @@ if (!defined('ABSPATH')) {
 								<option value=""><?php echo esc_html__('Bulk Actions', 'wc-blacklist-manager'); ?></option>
 								<option value="delete"><?php echo esc_html__('Delete', 'wc-blacklist-manager'); ?></option>
 							</select>
-							<input type="submit" class="button action" value="<?php echo esc_attr__('Apply', 'wc-blacklist-manager'); ?>" onclick="return confirm('<?php echo esc_js(__('Are you sure you want to delete the entries?', 'wc-blacklist-manager')); ?>')">
+							<input type="submit" class="button action" value="<?php echo esc_attr__('Apply', 'wc-blacklist-manager'); ?>" onclick="if(document.getElementById('bulk_action_domain').value === 'delete'){ return confirm('<?php echo esc_js( __( 'Are you sure you want to delete the selected entries?', 'yo-booking' ) ); ?>'); }">						</div>
 						</div>
-					</div>
 					<table class="wp-list-table widefat fixed striped">
 						<thead>
 							<tr>

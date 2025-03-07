@@ -28,12 +28,14 @@ jQuery(document).ready(function($) {
 	}
 
 	function checkForVerificationNotice() {    
-		if ($('.yobm-email-verification-error').length > 0) {
-	
+		var $errorContainer = $('.yobm-email-verification-error');
+		if ($errorContainer.length > 0) {
 			disablePlaceOrderButton();
 	
-			if ($('.yobm-email-verification-error').find('.yobm-verify-form').length === 0) {
-				$('.yobm-email-verification-error').append(`
+			// Check if the verification form already exists.
+			var $verifyForm = $errorContainer.find('.yobm-verify-form');
+			if ($verifyForm.length === 0) {
+				$errorContainer.append(`
 					<div class="yobm-verify-form">
 						<input type="text" id="verification_code" name="verification_code" placeholder="${wc_blacklist_manager_verification_data.enter_code_placeholder}" style="max-width: 120px; margin-top: 10px;" />
 						<button type="button" id="resend_button" class="button" style="display:none;">${wc_blacklist_manager_verification_data.resend_button_label}</button>
@@ -42,12 +44,15 @@ jQuery(document).ready(function($) {
 					</div>
 					<div id="verification_message" style="display:none;"></div>
 				`);
-	
 				startCountdown();
 				attachEventHandlers();
+			} else {
+				// Ensure the existing form is visible and the message area is hidden.
+				$verifyForm.show();
+				$('#verification_message').hide();
 			}
 		} else {    
-			// Observe changes in the DOM
+			// If the error container isn't available yet, observe changes in the DOM.
 			observeForVerificationError();
 		}
 	}
@@ -71,13 +76,16 @@ jQuery(document).ready(function($) {
 	}
 	
 	function attachEventHandlers() {
-		$('#submit_verification_code').on('click', function () {
+		// Use off() to avoid attaching multiple events
+		$('#submit_verification_code').off('click').on('click', function () {
 			const verificationCode = $('#verification_code').val().trim();
 	
 			if (verificationCode === '') {
 				alert(wc_blacklist_manager_verification_data.enter_code_alert);
 				return;
 			}
+
+			var billingDialCode = $('#billing_dial_code').val() || '';
 	
 			const billingDetails = {
 				billing_first_name: $('input[name="billing_first_name"]').val() || '',
@@ -89,7 +97,8 @@ jQuery(document).ready(function($) {
 				billing_postcode: $('input[name="billing_postcode"]').val() || '',
 				billing_country: $('select[name="billing_country"]').val() || '',
 				billing_email: $('input[name="billing_email"]').val() || '',
-				billing_phone: $('input[name="billing_phone"]').val() || ''
+				billing_phone: $('input[name="billing_phone"]').val() || '',
+				billing_dial_code: billingDialCode
 			};
 		
 			$.ajax({
@@ -104,11 +113,11 @@ jQuery(document).ready(function($) {
 				success: function (response) {
 					if (response.success) {
 						$('#verification_message').text(response.data.message).show();
-
+	
 						if ($('.woocommerce-error').length > 0) {
+							$('<div class="woocommerce-message alert alert_success">' + response.data.message + '</div>')
+								.insertAfter('.woocommerce-error');
 							$('.woocommerce-error').hide();
-							$('<div class="woocommerce-message alert alert_success">' + response.data.message + '</div>').insertBefore('.woocommerce-form-coupon-toggle');
-		
 							$('html, body').animate({
 								scrollTop: $('.woocommerce-message').offset().top - 150
 							}, 500);
@@ -117,8 +126,8 @@ jQuery(document).ready(function($) {
 						}
 						enablePlaceOrderButton();
 						setTimeout(function () {
-							$('#place_order').trigger('click'); // Auto-submit the order
-						}, 1000); // Delay to allow UI update
+							$('#place_order').trigger('click');
+						}, 1000);
 					} else {
 						$('#verification_message').text(response.data.message).show();
 					}
@@ -126,7 +135,7 @@ jQuery(document).ready(function($) {
 			});
 		});
 	
-		$('#resend_button').on('click', function () {
+		$('#resend_button').off('click').on('click', function () {
 			if (!resendButtonEnabled) {
 				return;
 			}
@@ -151,7 +160,7 @@ jQuery(document).ready(function($) {
 				}
 			});
 		});
-	}
+	}	
 	
 	// Attach the event listener
 	$(document).ready(function () {

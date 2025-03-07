@@ -17,7 +17,6 @@ class WC_Blacklist_Manager_DB {
 		$this->version = WC_BLACKLIST_MANAGER_VERSION;
 
 		register_activation_hook(WC_BLACKLIST_MANAGER_PLUGIN_FILE, [$this, 'activate']);
-
 		add_action('admin_init', [$this, 'check_version']);
 	}
 
@@ -28,7 +27,7 @@ class WC_Blacklist_Manager_DB {
 		if (version_compare($installed_ver, $this->version, '<')) {
 			$charset_collate = $wpdb->get_charset_collate();
 
-			// Create Blacklist Table
+			// Updated Blacklist Table with new column "order_id"
 			$blacklist_sql = "CREATE TABLE $this->blacklist_table_name (
 				id mediumint(9) NOT NULL AUTO_INCREMENT,
 				first_name varchar(255) DEFAULT '' NOT NULL,
@@ -37,14 +36,15 @@ class WC_Blacklist_Manager_DB {
 				email_address varchar(255) DEFAULT '' NOT NULL,
 				ip_address varchar(255) DEFAULT '' NOT NULL,
 				domain varchar(255) DEFAULT '' NOT NULL,
-				customer_address text DEFAULT '' NOT NULL,
+				customer_address text NOT NULL,
+				order_id int(11) DEFAULT NULL,
 				date_added datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
-				sources text DEFAULT '' NOT NULL,
+				sources text NOT NULL,
 				is_blocked boolean NOT NULL DEFAULT FALSE,
 				PRIMARY KEY  (id)
 			) $charset_collate;";
 
-			// Create Whitelist Table (brand new)
+			// Whitelist Table remains the same
 			$whitelist_sql = "CREATE TABLE $this->whitelist_table_name (
 				id mediumint(9) NOT NULL AUTO_INCREMENT,
 				first_name varchar(255) DEFAULT '' NOT NULL,
@@ -67,7 +67,7 @@ class WC_Blacklist_Manager_DB {
 			dbDelta($blacklist_sql);
 			dbDelta($whitelist_sql);
 
-			// Update the version in the database
+			// Update the version in the database so the update isn't run again.
 			update_option('wc_blacklist_manager_version', $this->version);
 		}
 	}

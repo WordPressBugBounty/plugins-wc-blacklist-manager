@@ -115,7 +115,7 @@ class WC_Blacklist_Manager_Button_Add_To_Blocklist {
 
 		$first_name = sanitize_text_field($order->get_billing_first_name());
 		$last_name = sanitize_text_field($order->get_billing_last_name());
-		$full_name = $first_name . ', ' . $last_name;
+		$full_name = $first_name . ' ' . $last_name;
 
 		$show_block_button = $this->should_show_block_button($phone, $email, $ip_address, $customer_address, $shipping_address, $full_name);
 		$blocked_notice = $this->generate_blocked_notice($phone, $email, $ip_address, $customer_address, $full_name);
@@ -126,7 +126,7 @@ class WC_Blacklist_Manager_Button_Add_To_Blocklist {
 
 		if ($show_block_button) {
 			echo '<div style="margin-top: 12px;" id="block_customer_container">';
-			echo '<button id="block_customer" class="button red-button" title="' . esc_html__('Add to the blocklist', 'wc-blacklist-manager') . '"><span class="dashicons dashicons-dismiss"></span></button>';
+			echo '<button id="block_customer" class="button red-button" title="' . esc_html__('Add to blocklist', 'wc-blacklist-manager') . '"><span class="dashicons dashicons-dismiss"></span></button>';
 			echo '</div>';
 		}
 	}
@@ -195,8 +195,8 @@ class WC_Blacklist_Manager_Button_Add_To_Blocklist {
 		}
 	
 		if ($premium_active && $customer_name_blocking_enabled && !empty($full_name)) {
-			$full_name_exists = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table_name} WHERE CONCAT(first_name, ', ', last_name) = %s", $full_name)) > 0;
-			$full_name_blocked = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table_name} WHERE CONCAT(first_name, ', ', last_name) = %s AND is_blocked = 1", $full_name)) > 0;
+			$full_name_exists = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table_name} WHERE CONCAT(first_name, ' ', last_name) = %s", $full_name)) > 0;
+			$full_name_blocked = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table_name} WHERE CONCAT(first_name, ' ', last_name) = %s AND is_blocked = 1", $full_name)) > 0;
 			$all_empty = false;
 		} else {
 			$full_name_exists = true;
@@ -228,66 +228,69 @@ class WC_Blacklist_Manager_Button_Add_To_Blocklist {
 	private function generate_blocked_notice($phone, $email, $ip_address, $customer_address, $full_name) {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'wc_blacklist';
-
+	
 		$ip_blacklist_enabled = get_option('wc_blacklist_ip_enabled', 0);
 		$address_blocking_enabled = get_option('wc_blacklist_enable_customer_address_blocking', 0);
 		$customer_name_blocking_enabled = get_option('wc_blacklist_customer_name_blocking_enabled', 0);
 		$settings_instance = new WC_Blacklist_Manager_Settings();
 		$premium_active = $settings_instance->is_premium_active();
-
+	
 		$blocked_fields = [];
-
+	
 		if (!empty($phone)) {
 			$phone_blocked = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table_name} WHERE phone_number = %s AND is_blocked = 1", $phone)) > 0;
 			if ($phone_blocked) {
-				$blocked_fields[] = 'phone';
+				$blocked_fields[] = __('phone', 'wc-blacklist-manager');
 			}
 		}
-
+	
 		if (!empty($email)) {
 			$email_blocked = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table_name} WHERE email_address = %s AND is_blocked = 1", $email)) > 0;
 			if ($email_blocked) {
-				$blocked_fields[] = 'email';
+				$blocked_fields[] = __('email', 'wc-blacklist-manager');
 			}
 		}
-
+	
 		if ($ip_blacklist_enabled && !empty($ip_address)) {
 			$ip_blocked = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table_name} WHERE ip_address = %s AND is_blocked = 1", $ip_address)) > 0;
 			if ($ip_blocked) {
-				$blocked_fields[] = 'IP';
+				$blocked_fields[] = __('IP', 'wc-blacklist-manager');
 			}
 		}
-
+	
 		if ($address_blocking_enabled && !empty($customer_address)) {
 			$address_blocked = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table_name} WHERE customer_address = %s AND is_blocked = 1", $customer_address)) > 0;
 			if ($address_blocked) {
-				$blocked_fields[] = 'address';
+				$blocked_fields[] = __('customer address', 'wc-blacklist-manager');
 			}
 		}
-
-		if ($customer_name_blocking_enabled && $premium_active && !empty($full_name) && trim($full_name) !== ',') {
-			$full_name_blocked = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table_name} WHERE CONCAT(first_name, ', ', last_name) = %s AND is_blocked = 1", $full_name)) > 0;
+	
+		if ($customer_name_blocking_enabled && $premium_active && !empty($full_name)) {
+			$full_name_blocked = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table_name} WHERE CONCAT(first_name, ' ', last_name) = %s AND is_blocked = 1", $full_name)) > 0;
 			if ($full_name_blocked) {
-				$blocked_fields[] = 'name (' . $full_name . ')';
+				$blocked_fields[] = sprintf(__('name (%s)', 'wc-blacklist-manager'), $full_name);
 			}
 		}
-
+	
 		if (!empty($blocked_fields)) {
-			return 'This order ' . implode(', ', $blocked_fields) . ' is blocked.';
+			return sprintf(__('This order\'s %s in the blocklist.', 'wc-blacklist-manager'), implode(', ', $blocked_fields));
 		}
-
+	
 		return '';
-	}
+	}	
 
 	public function handle_block_customer() {
 		check_ajax_referer($this->nonce_key, 'nonce');
-
+	
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'wc_blacklist';
 
+		$settings_instance = new WC_Blacklist_Manager_Settings();
+		$premium_active = $settings_instance->is_premium_active();
+	
 		$allowed_roles = get_option('wc_blacklist_dashboard_permission', []);
 		$user_has_permission = false;
-
+	
 		if (is_array($allowed_roles) && !empty($allowed_roles)) {
 			foreach ($allowed_roles as $role) {
 				if (current_user_can($role)) {
@@ -296,28 +299,22 @@ class WC_Blacklist_Manager_Button_Add_To_Blocklist {
 				}
 			}
 		}
-
+	
 		if (!$user_has_permission && !current_user_can('manage_options')) {
 			return;
 		}
-
+	
 		if (!current_user_can('edit_posts')) {
 			wp_die(esc_html__('You do not have sufficient permissions', 'wc-blacklist-manager'));
 		}
-
+	
 		$order_id = isset($_POST['order_id']) ? intval($_POST['order_id']) : 0;
 		if ($order_id <= 0) {
 			echo esc_html__('Invalid order ID.', 'wc-blacklist-manager');
 			wp_die();
 		}
-
+	
 		$order = wc_get_order($order_id);
-		$phone = sanitize_text_field($order->get_billing_phone());
-		$email = sanitize_email($order->get_billing_email());
-		$first_name = sanitize_text_field($order->get_billing_first_name());
-		$last_name = sanitize_text_field($order->get_billing_last_name());
-		$full_name = $first_name . ', ' . $last_name;
-
 		$user_id = $order->get_user_id();
 		if ($user_id) {
 			$user = get_userdata($user_id);
@@ -326,84 +323,58 @@ class WC_Blacklist_Manager_Button_Add_To_Blocklist {
 				wp_die();
 			}
 		}
+	
+		// Get the blacklist suspect IDs from order meta
+		$blacklist_meta = $order->get_meta('_blacklist_suspect_id', true);
+	
+		if (!empty($blacklist_meta)) {
+			// Explode the meta value to get an array of IDs (ensuring they're integers)
+			$blacklist_ids = array_map('intval', explode(',', $blacklist_meta));
+	
+			// Loop through each ID and update the corresponding row in the table
+			foreach ($blacklist_ids as $bid) {
+				$wpdb->update(
+					$table_name,
+					['is_blocked' => 1],
+					['id' => $bid]
+				);
 
-		$entry_exists = $this->get_customer_entry($phone, $email, $full_name);
+				if ($premium_active && get_option('wc_blacklist_connection_mode') === 'host') {
+					$is_blocked = 1;
 
-		if ($entry_exists) {
-			$wpdb->update($table_name, ['is_blocked' => 1], ['id' => $entry_exists->id]);
-			echo esc_html__('Customer has been moved to the blocklist.', 'wc-blacklist-manager');
+					$site_url = site_url();
+					$clean_domain = preg_replace( '/^https?:\/\//', '', $site_url );
+					$sources = $clean_domain . '[' . $bid . ']';
 
-			if ($user_id) {
-				if (get_option('wc_blacklist_enable_user_blocking') == '1') {
-					update_user_meta($user_id, 'user_blocked', '1');
-				}
-			}
-
-			if (get_option('wc_blacklist_enable_customer_address_blocking') == '1') {
-				$address_1 = sanitize_text_field($order->get_billing_address_1());
-				$address_2 = sanitize_text_field($order->get_billing_address_2());
-				$city = sanitize_text_field($order->get_billing_city());
-				$state = sanitize_text_field($order->get_billing_state());
-				$postcode = sanitize_text_field($order->get_billing_postcode());
-				$country = sanitize_text_field($order->get_billing_country());
-
-				$address_parts = array_filter([$address_1, $address_2, $city, $state, $postcode, $country]);
-				$customer_address = implode(', ', $address_parts);
-
-				$address_exists = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table_name} WHERE customer_address = %s", $customer_address));
-				if ($address_exists) {
-					$wpdb->update($table_name, ['is_blocked' => 1], ['id' => $address_exists->id]);
-					echo esc_html__('Address has been moved to the blocklist.', 'wc-blacklist-manager');
+					if ( ! wp_next_scheduled( 'wc_blacklist_connection_update_to_subsite', array( $is_blocked, $sources ) ) ) {
+						wp_schedule_single_event( time() + 5, 'wc_blacklist_connection_update_to_subsite', array( $is_blocked, $sources ) );
+					}
 				}
 
-				if (get_option('wc_blacklist_enable_shipping_address_blocking') == '1') {
-					$shipping_address_1 = sanitize_text_field($order->get_shipping_address_1());
-					$shipping_address_2 = sanitize_text_field($order->get_shipping_address_2());
-					$shipping_city = sanitize_text_field($order->get_shipping_city());
-					$shipping_state = sanitize_text_field($order->get_shipping_state());
-					$shipping_postcode = sanitize_text_field($order->get_shipping_postcode());
-					$shipping_country = sanitize_text_field($order->get_shipping_country());
-					$shipping_address_parts = array_filter([$shipping_address_1, $shipping_address_2, $shipping_city, $shipping_state, $shipping_postcode, $shipping_country]);
-					$shipping_address = implode(', ', $shipping_address_parts);
-
-					$shipping_address_exists = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table_name} WHERE customer_address = %s", $shipping_address));
-					if ($shipping_address_exists) {
-						$wpdb->update($table_name, ['is_blocked' => 1], ['id' => $shipping_address_exists->id]);
-						echo esc_html__('Shipping address has been moved to the blocklist.', 'wc-blacklist-manager');
+				if ($premium_active && get_option('wc_blacklist_connection_mode') === 'sub') {
+					if ( ! wp_next_scheduled( 'wc_blacklist_connection_update_to_hostsite', array( $bid ) ) ) {
+						wp_schedule_single_event( time() + 5, 'wc_blacklist_connection_update_to_hostsite', array( $bid ) );
 					}
 				}
 			}
-
+	
+			echo esc_html__('The customer\'s details have been moved to the blocklist.', 'wc-blacklist-manager');
+	
+			// Optionally update the user meta for user blocking if enabled
+			if ($user_id && get_option('wc_blacklist_enable_user_blocking') == '1') {
+				update_user_meta($user_id, 'user_blocked', '1');
+			}
+	
+			// Delete the suspect meta and add blocked meta with the previous value
+			$order->delete_meta_data('_blacklist_suspect_id');
+			$order->update_meta_data('_blacklist_blocked_id', $blacklist_meta);
+			$order->save();
 		} else {
 			echo esc_html__('Customer is not in the blacklist.', 'wc-blacklist-manager');
 		}
-
+	
 		wp_die();
-	}
-
-	private function get_customer_entry($phone, $email, $full_name) {
-		global $wpdb;
-		$table_name = $wpdb->prefix . 'wc_blacklist';
-
-		if (!empty($phone)) {
-			return $wpdb->get_row($wpdb->prepare(
-				"SELECT * FROM `{$table_name}` WHERE phone_number = %s AND is_blocked = 0", 
-				$phone
-			));
-		} elseif (!empty($email)) {
-			return $wpdb->get_row($wpdb->prepare(
-				"SELECT * FROM `{$table_name}` WHERE email_address = %s AND is_blocked = 0", 
-				$email
-			));
-		} elseif (!empty($full_name)) {
-			return $wpdb->get_row($wpdb->prepare(
-				"SELECT * FROM `{$table_name}` WHERE CONCAT(first_name, ', ', last_name) = %s AND is_blocked = 0", 
-				$full_name
-			));
-		}
-
-		return false;
-	}
+	}	
 }
 
 new WC_Blacklist_Manager_Button_Add_To_Blocklist();

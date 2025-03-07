@@ -33,8 +33,12 @@ jQuery(document).ready(function($) {
 			disablePlaceOrderButton();
 			setInterval(checkForFailedSMSVerification, 3000);
 	
-			if ($('.yobm-phone-verification-error').find('.yobm-verify-form').length === 0) {
-				$('.yobm-phone-verification-error').append(`
+			var $errorContainer = $('.yobm-phone-verification-error');
+			var $verifyForm = $errorContainer.find('.yobm-verify-form');
+	
+			// If the form doesn't exist, append it.
+			if ($verifyForm.length === 0) {
+				$errorContainer.append(`
 					<div class="yobm-verify-form">
 						<input type="text" id="verification_code" name="verification_code" placeholder="${wc_blacklist_manager_verification_data.enter_code_placeholder}" style="max-width: 120px; margin-top: 10px;" />
 						<button type="button" id="resend_button" class="button" style="display:none;">${wc_blacklist_manager_verification_data.resend_button_label}</button>
@@ -43,8 +47,11 @@ jQuery(document).ready(function($) {
 					</div>
 					<div id="verification_message" style="display:none;"></div>
 				`);
-		
 				startCountdown();
+			} else {
+				// Otherwise, ensure the existing form is visible.
+				$verifyForm.show();
+				$('#verification_message').hide();
 			}
 	
 			$('#submit_verification_code').off('click').on('click', function () {
@@ -53,8 +60,8 @@ jQuery(document).ready(function($) {
 					alert(wc_blacklist_manager_verification_data.enter_code_alert);
 					return;
 				}
-
-				var selectedCountryCode = $('#selected_country_code').val() || '';
+	
+				var billingDialCode = $('#billing_dial_code').val() || '';
 	
 				var billingDetails = {
 					billing_first_name: $('input[name="billing_first_name"]').val() || '',
@@ -67,9 +74,9 @@ jQuery(document).ready(function($) {
 					billing_country: $('select[name="billing_country"]').val() || '',
 					billing_email: $('input[name="billing_email"]').val() || '',
 					billing_phone: $('input[name="billing_phone"]').val() || '',
-					selected_country_code: selectedCountryCode
+					billing_dial_code: billingDialCode
 				};
-		
+	
 				$.ajax({
 					url: wc_blacklist_manager_verification_data.ajax_url,
 					type: 'POST',
@@ -82,11 +89,11 @@ jQuery(document).ready(function($) {
 					success: function (response) {
 						if (response.success) {
 							$('#verification_message').text(response.data.message).show();
-							
+	
 							if ($('.woocommerce-error').length > 0) {
+								$('<div class="woocommerce-message alert alert_success">' + response.data.message + '</div>').insertAfter('.woocommerce-error');
 								$('.woocommerce-error').hide();
-								$('<div class="woocommerce-message alert alert_success">' + response.data.message + '</div>').insertBefore('.woocommerce-form-coupon-toggle');
-		
+	
 								$('html, body').animate({
 									scrollTop: $('.woocommerce-message').offset().top - 150
 								}, 500);
@@ -95,15 +102,15 @@ jQuery(document).ready(function($) {
 							}
 							enablePlaceOrderButton();
 							setTimeout(function () {
-								$('#place_order').trigger('click'); // Auto-submit the order
-							}, 1000); // Delay to allow UI update
+								$('#place_order').trigger('click');
+							}, 1000);
 						} else {
 							$('#verification_message').text(response.data.message).show();
 						}
 					}
 				});
 			});
-
+	
 			$('#resend_button').on('click', function() {
 				if (!resendButtonEnabled) return;
 			
@@ -135,13 +142,13 @@ jQuery(document).ready(function($) {
 						}
 					}
 				});
-			});			
-		} else {	
+			});
+		} else {    
 			// Observe changes in the DOM
 			observeForPhoneVerificationError();
 		}
 	}
-
+	
 	function observeForPhoneVerificationError() {
 		const targetNode = document.body; // Monitor the entire body
 		const config = { childList: true, subtree: true };

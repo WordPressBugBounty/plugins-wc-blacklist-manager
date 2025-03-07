@@ -100,3 +100,31 @@
     border: 1px solid #c3c4c7;
     padding: 20px;
 }
+
+/* Connection */
+.subsite-list-demo {
+    width: auto;
+    max-width: 800px;
+}
+
+.subsite-list-demo th {
+    padding: 10px;
+    font-weight: 400;
+    color: #aaaaaa !important;
+}
+
+.subsite-list-demo td {
+    color: #aaaaaa !important;
+}
+
+.subsite-list-demo .column-id {
+    width: 4ch !important;
+}
+
+.subsite-list-demo .column-status {
+    width: 12ch;
+}
+
+.subsite-list-demo .column-actions {
+    width: 8ch;
+}

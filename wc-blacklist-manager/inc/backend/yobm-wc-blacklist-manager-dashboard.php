@@ -174,6 +174,9 @@ class WC_Blacklist_Manager_Dashboard {
 	}	
 	
 	public function handle_form_submission() {
+		$settings_instance = new WC_Blacklist_Manager_Settings();
+		$premium_active = $settings_instance->is_premium_active();
+
 		$allowed_roles = get_option('wc_blacklist_dashboard_permission', []);
 		$user_has_permission = false;
 
@@ -309,6 +312,24 @@ class WC_Blacklist_Manager_Dashboard {
 			} else {
 				$message = __("There is nothing to add.", "wc-blacklist-manager");
 			}
+
+			$new_insert_id = $this->wpdb->insert_id;
+
+			if ( ! empty( $new_first_name ) || ! empty( $new_last_name ) || ! empty( $new_phone_number ) || ! empty( $new_email_address ) ) {
+				if ($premium_active && get_option('wc_blacklist_connection_mode') === 'host') {
+					$ip_address = '';
+					$customer_domain = '';
+					$customer_address = '';
+					
+					$site_url = site_url();
+					$clean_domain = preg_replace( '/^https?:\/\//', '', $site_url );
+					$sources = $clean_domain . '[' . $new_insert_id . ']';
+		
+					if ( ! wp_next_scheduled( 'wc_blacklist_connection_send_to_subsite', array( $new_phone_number, $new_email_address, $ip_address, $customer_domain, $is_blocked, $sources, $customer_address, $new_first_name, $new_last_name ) ) ) {
+						wp_schedule_single_event( time() + 5, 'wc_blacklist_connection_send_to_subsite', array( $new_phone_number, $new_email_address, $ip_address, $customer_domain, $is_blocked, $sources, $customer_address, $new_first_name, $new_last_name ) );
+					}
+				}
+			}
 	
 			$message = esc_html($message);
 			wp_redirect(add_query_arg(['add_suspect_message' => urlencode($message), 'status' => urlencode($status)], wp_get_referer()));
@@ -344,6 +365,9 @@ class WC_Blacklist_Manager_Dashboard {
 
 	private function handle_block_action($id) {
 		$nonce = isset($_GET['_wpnonce']) ? sanitize_text_field(wp_unslash($_GET['_wpnonce'])) : '';
+
+		$settings_instance = new WC_Blacklist_Manager_Settings();
+		$premium_active = $settings_instance->is_premium_active();
 	
 		if (!wp_verify_nonce($nonce, 'block_action')) {
 			$message = __('Security check failed. Please try again.', 'wc-blacklist-manager');
@@ -365,8 +389,27 @@ class WC_Blacklist_Manager_Dashboard {
 				}
 			}
 	
-				$wpdb->update($this->table_name, ['is_blocked' => true], ['id' => $id]);
-				$message = __("Entry moved to blocked list successfully.", "wc-blacklist-manager");
+			$wpdb->update($this->table_name, ['is_blocked' => true], ['id' => $id]);
+
+			if ($premium_active && get_option('wc_blacklist_connection_mode') === 'host') {
+				$is_blocked = 1;
+
+				$site_url = site_url();
+				$clean_domain = preg_replace( '/^https?:\/\//', '', $site_url );
+				$sources = $clean_domain . '[' . $id . ']';
+
+				if ( ! wp_next_scheduled( 'wc_blacklist_connection_update_to_subsite', array( $is_blocked, $sources ) ) ) {
+					wp_schedule_single_event( time() + 5, 'wc_blacklist_connection_update_to_subsite', array( $is_blocked, $sources ) );
+				}
+			}
+
+			if ($premium_active && get_option('wc_blacklist_connection_mode') === 'sub') {
+				if ( ! wp_next_scheduled( 'wc_blacklist_connection_update_to_hostsite', array( $id ) ) ) {
+					wp_schedule_single_event( time() + 5, 'wc_blacklist_connection_update_to_hostsite', array( $id ) );
+				}
+			}
+
+			$message = __("Entry moved to blocked list successfully.", "wc-blacklist-manager");
 		}
 	
 		wp_redirect(add_query_arg('message', urlencode($message), wp_get_referer()));
@@ -375,11 +418,25 @@ class WC_Blacklist_Manager_Dashboard {
 	
 	private function handle_delete_action($id) {
 		$nonce = isset($_GET['_wpnonce']) ? sanitize_text_field(wp_unslash($_GET['_wpnonce'])) : '';
+
+		$settings_instance = new WC_Blacklist_Manager_Settings();
+		$premium_active = $settings_instance->is_premium_active();
 	
 		if (!wp_verify_nonce($nonce, 'delete_action')) {
 			$message = __('Security check failed. Please try again.', 'wc-blacklist-manager');
 		} else {
 			$this->wpdb->delete($this->table_name, ['id' => $id]);
+
+			if ($premium_active && get_option('wc_blacklist_connection_mode') === 'host') {
+				$site_url = site_url();
+				$clean_domain = preg_replace( '/^https?:\/\//', '', $site_url );
+				$sources = $clean_domain . '[' . $id . ']';
+
+				if ( ! wp_next_scheduled( 'wc_blacklist_connection_remove_to_subsite', array( $sources ) ) ) {
+					wp_schedule_single_event( time() + 5, 'wc_blacklist_connection_remove_to_subsite', array( $sources ) );
+				}
+			}
+
 			$message = __("Entry removed successfully.", "wc-blacklist-manager");
 		}
 	
@@ -490,6 +547,9 @@ class WC_Blacklist_Manager_Dashboard {
 	}
 	
 	public function handle_bulk_action_callback() {
+		$settings_instance = new WC_Blacklist_Manager_Settings();
+		$premium_active = $settings_instance->is_premium_active();
+
 		$allowed_roles = get_option('wc_blacklist_dashboard_permission', []);
 		$user_has_permission = false;
 
@@ -520,6 +580,16 @@ class WC_Blacklist_Manager_Dashboard {
 
 			foreach ($entry_ids as $id) {
 				$this->wpdb->delete($this->table_name, ['id' => $id], ['%d']);
+
+				if ($premium_active && get_option('wc_blacklist_connection_mode') === 'host') {
+					$site_url = site_url();
+					$clean_domain = preg_replace( '/^https?:\/\//', '', $site_url );
+					$sources = $clean_domain . '[' . $id . ']';
+	
+					if ( ! wp_next_scheduled( 'wc_blacklist_connection_remove_to_subsite', array( $sources ) ) ) {
+						wp_schedule_single_event( time() + 5, 'wc_blacklist_connection_remove_to_subsite', array( $sources ) );
+					}
+				}
 			}
 		}
 
@@ -579,6 +649,9 @@ class WC_Blacklist_Manager_Dashboard {
 	}
 
 	public function handle_add_address() {
+		$settings_instance = new WC_Blacklist_Manager_Settings();
+		$premium_active = $settings_instance->is_premium_active();
+
 		$allowed_roles = get_option('wc_blacklist_dashboard_permission', []);
 		$user_has_permission = false;
 
@@ -620,6 +693,26 @@ class WC_Blacklist_Manager_Dashboard {
 			'is_blocked' => true,
 			'sources' => 'manual'
 		]);
+
+		$new_insert_id = $this->wpdb->insert_id;
+
+		if ($premium_active && get_option('wc_blacklist_connection_mode') === 'host') {
+			$phone = '';
+			$email = '';
+			$ip_address = '';
+			$customer_domain = '';
+			$first_name = '';
+			$last_name = '';
+			$is_blocked = 1;
+			
+			$site_url = site_url();
+			$clean_domain = preg_replace( '/^https?:\/\//', '', $site_url );
+			$sources = $clean_domain . '[' . $new_insert_id . ']';
+
+			if ( ! wp_next_scheduled( 'wc_blacklist_connection_send_to_subsite', array( $phone, $email, $ip_address, $customer_domain, $is_blocked, $sources, $customer_address, $first_name, $last_name ) ) ) {
+				wp_schedule_single_event( time() + 5, 'wc_blacklist_connection_send_to_subsite', array( $phone, $email, $ip_address, $customer_domain, $is_blocked, $sources, $customer_address, $first_name, $last_name ) );
+			}
+		}
 	
 		$message = __('Address added successfully.', 'wc-blacklist-manager');
 		wp_redirect(add_query_arg('add_address_message', urlencode($message), wp_get_referer()));
@@ -697,6 +790,9 @@ class WC_Blacklist_Manager_Dashboard {
 	}
 
 	public function handle_bulk_action_address_callback() {
+		$settings_instance = new WC_Blacklist_Manager_Settings();
+		$premium_active = $settings_instance->is_premium_active();
+
 		$allowed_roles = get_option('wc_blacklist_dashboard_permission', []);
 		$user_has_permission = false;
 
@@ -727,6 +823,16 @@ class WC_Blacklist_Manager_Dashboard {
 
 			foreach ($entry_ids as $id) {
 				$this->wpdb->delete($this->table_name, ['id' => $id], ['%d']);
+
+				if ($premium_active && get_option('wc_blacklist_connection_mode') === 'host') {
+					$site_url = site_url();
+					$clean_domain = preg_replace( '/^https?:\/\//', '', $site_url );
+					$sources = $clean_domain . '[' . $id . ']';
+	
+					if ( ! wp_next_scheduled( 'wc_blacklist_connection_remove_to_subsite', array( $sources ) ) ) {
+						wp_schedule_single_event( time() + 5, 'wc_blacklist_connection_remove_to_subsite', array( $sources ) );
+					}
+				}
 			}
 		}
 

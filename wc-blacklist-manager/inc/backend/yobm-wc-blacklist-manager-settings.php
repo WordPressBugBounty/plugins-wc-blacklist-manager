@@ -89,10 +89,11 @@ class WC_Blacklist_Manager_Settings {
 	}
 
 	private function includes() {
-		include_once plugin_dir_path(__FILE__) . '/actions/yobm-wc-blacklist-manager-settings-blocklisted.php';
-		include_once plugin_dir_path(__FILE__) . '/actions/yobm-wc-blacklist-manager-settings-ip-blacklisted.php';
-		include_once plugin_dir_path(__FILE__) . '/actions/yobm-wc-blacklist-manager-settings-domain-blocking.php';
-		include_once plugin_dir_path(__FILE__) . '/actions/yobm-wc-blacklist-manager-settings-user-blocking.php';
+		include_once plugin_dir_path(__FILE__) . '/actions/yobm-wc-blacklist-manager-settings-suspects.php';
+		include_once plugin_dir_path(__FILE__) . '/actions/yobm-wc-blacklist-manager-settings-blocklist.php';
+		include_once plugin_dir_path(__FILE__) . '/actions/yobm-wc-blacklist-manager-settings-blocking-ip.php';
+		include_once plugin_dir_path(__FILE__) . '/actions/yobm-wc-blacklist-manager-settings-blocking-domain.php';
+		include_once plugin_dir_path(__FILE__) . '/actions/yobm-wc-blacklist-manager-settings-blocking-user.php';
 	}
 
 	public function is_premium_active() {

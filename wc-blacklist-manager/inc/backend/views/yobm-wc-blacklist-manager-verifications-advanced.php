@@ -31,6 +31,9 @@ if (!defined('ABSPATH')) {
 						<p class="description" style="max-width: 500px; color: #aaaaaa;">
 							<?php echo esc_html__('This will set all of the emails and phones from the completed orders to verified. So the return customers will not need to verify their emails or phone numbers anymore.', 'wc-blacklist-manager'); ?>
 						</p>
+						<p class="description" style="color: #aaaaaa;">
+							<?php echo esc_html__('This feature updates the verification list from completed orders. If the store operates in a single country, the phone number remains unchanged. For multi-country stores, if the phone number has a leading 0, that 0 is removed and the appropriate dial code—based on the order\'s billing country—is added.', 'wc-blacklist-manager'); ?>
+						</p>
 					<?php else: ?>
 						<?php if (get_option('wc_blacklist_whitelist_merged_success') != 1) : ?>
 							<a href="<?php echo esc_url(admin_url('admin-post.php?action=merge_completed_orders_to_whitelist')); ?>" id="merge_button" class="button button-secondary">
@@ -57,6 +60,9 @@ if (!defined('ABSPATH')) {
 								<?php echo esc_html__('Refresh to re-merge the emails and phones from the completed orders to be verified again.', 'wc-blacklist-manager'); ?>
 							</p>
 						<?php endif; ?>
+						<p class="description">
+							<?php echo esc_html__('This feature updates the verification list from completed orders. If the store operates in a single country, the phone number remains unchanged. For multi-country stores, if the phone number has a leading 0, that 0 is removed and the appropriate dial code—based on the order\'s billing country—is added.', 'wc-blacklist-manager'); ?>
+						</p>
 					<?php endif; ?>
 				</td>
 			</tr>

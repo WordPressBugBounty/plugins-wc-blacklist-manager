@@ -241,46 +241,75 @@ class WC_Blacklist_Manager_Verifications {
 	  
 	public function handle_generate_sms_key() {
 		// Verify nonce before processing
-		if (!isset($_POST['security']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['security'])), 'generate_sms_key_nonce')) {
-			wp_send_json_error(['message' => __('Security check failed.', 'wc-blacklist-manager')]);
+		if (
+			!isset($_POST['security']) ||
+			!wp_verify_nonce(
+				sanitize_text_field(wp_unslash($_POST['security'])),
+				'generate_sms_key_nonce'
+			)
+		) {
+			wp_send_json_error([
+				'message' => __('Security check failed.', 'wc-blacklist-manager')
+			]);
 		}
 	
 		// Unslash and sanitize the sms_key
 		$sms_key = isset($_POST['sms_key']) ? sanitize_text_field(wp_unslash($_POST['sms_key'])) : '';
 	
 		if (empty($sms_key)) {
-			wp_send_json_error(['message' => __('Invalid or empty key provided.', 'wc-blacklist-manager')]);
+			wp_send_json_error([
+				'message' => __('Invalid or empty key provided.', 'wc-blacklist-manager')
+			]);
 		}
 	
-		// Save the generated key to the option
+		// Prepare data for API call
+		$domain     = get_site_url();
+		$site_email = get_option('admin_email');
+	
+		$api_url = 'https://bmc.yoohw.com/wp-json/sms/v1/sms_key_generate/';
+		$body    = array(
+			'sms_key'    => $sms_key,
+			'domain'     => $domain,
+			'site_email' => $site_email,
+		);
+	
+		$response = wp_remote_post($api_url, array(
+			'method'  => 'POST',
+			'body'    => wp_json_encode($body),
+			'headers' => array('Content-Type' => 'application/json'),
+		));
+	
+		// Check for WP errors in API call
+		if (is_wp_error($response)) {
+			wp_send_json_error([
+				'message' => __('API call failed: ', 'wc-blacklist-manager') . $response->get_error_message()
+			]);
+		}
+	
+		$response_code = wp_remote_retrieve_response_code($response);
+		$response_body = wp_remote_retrieve_body($response);
+		$data          = json_decode($response_body, true);
+	
+		// Ensure response is a success
+		if ($response_code !== 200 || !isset($data['status']) || $data['status'] !== 'success') {
+			wp_send_json_error([
+				'message' => __('API error: ', 'wc-blacklist-manager') . (isset($data['message']) ? $data['message'] : __('Unknown error', 'wc-blacklist-manager'))
+			]);
+		}
+	
+		// Only update the option if the API call was successful
 		$updated = update_option('yoohw_phone_verification_sms_key', $sms_key);
-	
 		if ($updated) {
-			// Proceed with other processing
-			$domain = get_site_url();
-			$site_email = get_option('admin_email');
-	
-			// Prepare and send data via API
-			$api_url = 'https://bmc.yoohw.com/wp-json/sms/v1/sms_key_generate/';
-			$body = array(
-				'sms_key'   => $sms_key,
-				'domain'    => $domain,
-				'site_email' => $site_email,
-			);
-	
-			$response = wp_remote_post($api_url, array(
-				'method'    => 'POST',
-				'body'      => wp_json_encode($body),
-				'headers'   => array('Content-Type' => 'application/json'),
-			));
-	
-			// Send a success response
-			wp_send_json_success(['message' => __('Key generated and saved successfully.', 'wc-blacklist-manager')]);
+			wp_send_json_success([
+				'message' => __('Key generated and saved successfully.', 'wc-blacklist-manager')
+			]);
 		} else {
-			wp_send_json_error(['message' => __('Failed to save the generated key. Please try again.', 'wc-blacklist-manager')]);
+			wp_send_json_error([
+				'message' => __('Failed to save the generated key. Please try again.', 'wc-blacklist-manager')
+			]);
 		}
 	}
-
+	
 	public function wc_blacklist_refresh_merging() {
 		// Check for required capabilities (optional, based on your requirements)
 		if (!current_user_can('manage_options')) {

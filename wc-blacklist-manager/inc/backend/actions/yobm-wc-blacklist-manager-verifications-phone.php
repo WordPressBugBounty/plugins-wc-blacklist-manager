@@ -49,7 +49,7 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 				'yobm-wc-blacklist-manager-verifications-phone',
 				plugins_url('/../../../js/yobm-wc-blacklist-manager-verifications-phone.js', __FILE__),
 				['jquery'],
-				'1.7', 
+				'1.9.0', 
 				true  
 			);
 		
@@ -87,18 +87,18 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 			$user_id = get_current_user_id();
 		
 			// Get the selected country code from the hidden field
-			$selected_country_code = isset($_POST['selected_country_code']) ? sanitize_text_field($_POST['selected_country_code']) : '';
+			$billing_dial_code = isset($_POST['billing_dial_code']) ? sanitize_text_field($_POST['billing_dial_code']) : '';
 
 			// Get the billing phone from the checkout form and store it in the session
 			if (!empty($_POST['billing_phone'])) {
 				$phone = sanitize_text_field($_POST['billing_phone']);
 
-				// Remove leading zero before adding country code
+				$phone = preg_replace('/[^0-9]/', '', $phone);
 				$phone = ltrim($phone, '0');
 
 				// Prepend country code if available
-				if (!empty($selected_country_code)) {
-					$phone = $selected_country_code . $phone;
+				if (!empty($billing_dial_code)) {
+					$phone = $billing_dial_code . $phone;
 				}
 
 				WC()->session->set('billing_phone', $phone);
@@ -123,6 +123,8 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 			}
 	
 			$verification_action = get_option('wc_blacklist_phone_verification_action');
+
+			error_log("Phone: $phone");
 	
 			// Verify based on the selected action
 			if ($verification_action === 'all') {
@@ -132,6 +134,16 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 					if (empty(wc_get_notices('error'))) {
 						wc_add_notice('<span class="yobm-phone-verification-error">' . __('Please verify your phone number before proceeding with the checkout.', 'wc-blacklist-manager') . '</span>', 'error');
 					}
+
+					if ($user_id === 0) {
+						$resend_count = WC()->session->get($this->resend_count_meta_key, 0);
+						$resend_count++;
+						WC()->session->set($this->resend_count_meta_key, $resend_count);
+					} else {
+						$resend_count = get_user_meta($user_id, $this->resend_count_meta_key, true) ?: 0;
+						$resend_count++;
+						update_user_meta($user_id, $this->resend_count_meta_key, $resend_count);
+					}					
 				} else {
 					$phone_verified = true;
 				}
@@ -143,6 +155,16 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 					if (empty(wc_get_notices('error'))) {
 						wc_add_notice('<span class="yobm-phone-verification-error">' . __('Please verify your phone number before proceeding with the checkout.', 'wc-blacklist-manager') . '</span>', 'error');
 					}
+
+					if ($user_id === 0) {
+						$resend_count = WC()->session->get($this->resend_count_meta_key, 0);
+						$resend_count++;
+						WC()->session->set($this->resend_count_meta_key, $resend_count);
+					} else {
+						$resend_count = get_user_meta($user_id, $this->resend_count_meta_key, true) ?: 0;
+						$resend_count++;
+						update_user_meta($user_id, $this->resend_count_meta_key, $resend_count);
+					}					
 				}
 			}
 	
@@ -158,21 +180,21 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 	private function is_phone_in_whitelist($phone) {
 		global $wpdb;
 		$query = $wpdb->prepare(
-			"SELECT * FROM $this->whitelist_table WHERE phone = %s AND verified_phone = 1", 
+			"SELECT 1 FROM $this->whitelist_table WHERE TRIM(LEADING '0' FROM phone) = %s AND verified_phone = 1 LIMIT 1", 
 			$phone
 		);
-		$result = $wpdb->get_row($query);
-		return $result ? true : false;
+		$result = $wpdb->get_var($query);
+		return !empty($result);	
 	}
 
 	private function is_phone_in_blacklist($phone) {
 		global $wpdb;
 		$query = $wpdb->prepare(
-			"SELECT * FROM $this->blacklist_table WHERE phone_number = %s AND is_blocked = 0", 
+			"SELECT 1 FROM $this->blacklist_table WHERE TRIM(LEADING '0' FROM phone_number) = %s AND is_blocked = 0 LIMIT 1", 
 			$phone
 		);
-		$result = $wpdb->get_row($query);
-		return $result ? true : false;
+		$result = $wpdb->get_var($query);
+		return !empty($result);
 	}
 
 	private function send_verification_code($phone) {
@@ -312,19 +334,23 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 		if ($submitted_code == $stored_code) {
 			$this->cleanup_expired_code($user_id, '');
 
-        // Get and sanitize the selected country code
-        $selected_country_code = isset($_POST['selected_country_code']) ? sanitize_text_field($_POST['selected_country_code']) : '';
+			// Get and sanitize the selected country code
+			$billing_dial_code = isset($_POST['billing_dial_code']) ? sanitize_text_field($_POST['billing_dial_code']) : '';
 
-        // Get and sanitize the phone number
-        $billing_phone = isset($_POST['billing_phone']) ? sanitize_text_field($_POST['billing_phone']) : '';
+			// Get and sanitize the phone number
+			$billing_phone = isset($_POST['billing_phone']) ? sanitize_text_field($_POST['billing_phone']) : '';
 
-        // Remove leading zero from phone number
-        $billing_phone = ltrim($billing_phone, '0');
+			$billing_phone = preg_replace('/[^0-9]/', '', $billing_phone);
+			$billing_phone = ltrim($billing_phone, '0');
 
-        // Prepend country code if it exists
-        if (!empty($selected_country_code)) {
-            $billing_phone = $selected_country_code . $billing_phone;
-        }
+			// Prepend country code if it exists
+			if (!empty($billing_dial_code)) {
+				$billing_phone = $billing_dial_code . $billing_phone;
+			}
+
+			error_log("Phone (Add to whitelist): $billing_phone");
+
+			$verification_action = get_option('wc_blacklist_phone_verification_action');
 
 			$billing_details = [
 				'first_name'     => sanitize_text_field($_POST['billing_first_name'] ?? ''),
@@ -341,6 +367,11 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 			];
 
 			$this->add_billing_details_to_whitelist($billing_details);
+
+			if ($verification_action === 'suspect') {
+				$this->remove_phone_number_from_blacklist($billing_details['phone']);
+			}
+
 			wp_send_json_success(['message' => __('Your phone number has been successfully verified!', 'wc-blacklist-manager')]);
 		} else {
 			wp_send_json_error(['message' => __('Invalid code. Please try again.', 'wc-blacklist-manager')]);
@@ -377,6 +408,27 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 		}
 	}
 
+	private function remove_phone_number_from_blacklist($phone) {
+		global $wpdb;
+	
+		$blacklist_table = $wpdb->prefix . 'wc_blacklist';
+	
+		// Build a query that updates rows where the trimmed phone matches $phone.
+		$query = $wpdb->prepare(
+			"UPDATE {$blacklist_table} 
+			 SET phone_number = NULL 
+			 WHERE is_blocked = 0 
+			   AND TRIM(LEADING '0' FROM phone_number) = %s",
+			$phone
+		);
+	
+		$result = $wpdb->query($query);
+	
+		if ($result !== false) {
+			error_log("Phone {$phone} removed from blacklist at " . current_time('mysql'));
+		}
+	}
+	
 	public function add_verified_phone_meta_to_order($order_id) {
 		$order = wc_get_order($order_id);
 	

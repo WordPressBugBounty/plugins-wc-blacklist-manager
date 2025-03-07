@@ -2,6 +2,17 @@
 
 == Changelog ==
 
+= 1.4.9 (Mar 7, 2025) =
+* Update: Optimize blocking function performance.
+* Update: Added strict logic to prevent the phone number.
+* Fix: Error phone format of the auto-cancel the blocked order.
+* Fix: Added missing action of removing suspected phone after verifying during checkout.
+* Fix: Remove the suspected instead of blocked email after verifying during checkout.
+* Fix: Cannot generate a new SMS key for the new site register.
+* Improve: Optimize verification form displaying.
+* Improve: Limit resend code even when refreshing checkout page.
+* Improve: Optimized and cleaned up.
+
 = 1.4.8 (Feb 10, 2025) =
 * New: Upgrade the user verification with our integrated WooCommerce Advanced Accounts.
 * New: Auto-place the order after verification successfully.

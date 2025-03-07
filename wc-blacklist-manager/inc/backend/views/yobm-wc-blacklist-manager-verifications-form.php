@@ -42,7 +42,7 @@ if (!defined('ABSPATH')) {
 					</th>
 					<td>
 						<input type="checkbox" id="email_verification_real_time_validate" name="email_verification_real_time_validate" value="1" <?php checked(!empty($data['email_verification_real_time_validate'])); ?>>
-						<label for="email_verification_real_time_validate"><?php echo esc_html__('Enable real-time automatic email address validation on the checkout page', 'wc-blacklist-manager'); ?></label>
+						<label for="email_verification_real_time_validate"><?php echo esc_html__('Enable real-time automatic email address validation on the register and checkout pages', 'wc-blacklist-manager'); ?></label>
 						<p class="description"><?php echo esc_html__('Avoid bounces, spam complaints, spam traps, or wrong types in the email address field by mistake.', 'wc-blacklist-manager'); ?> <a href="https://yoohw.com/docs/woocommerce-blacklist-manager/verifications/email-verification/#real-time-validation" target="_blank"><?php echo esc_html__('Know more', 'wc-blacklist-manager'); ?></a></p>
 					</td>
 				</tr>
@@ -54,7 +54,7 @@ if (!defined('ABSPATH')) {
 					</th>
 					<td>
 						<input type="checkbox" disabled>
-						<label class='premium-text'><?php echo esc_html__('Enable real-time automatic email address validation on the checkout page', 'wc-blacklist-manager'); ?></label> <a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Upgrade</a>
+						<label class='premium-text'><?php echo esc_html__('Enable real-time automatic email address validation on the register and checkout pages', 'wc-blacklist-manager'); ?></label> <a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Upgrade</a>
 						<p class="premium-text"><?php echo esc_html__('Avoid bounces, spam complaints, spam traps, or wrong types in the email address field by mistake.', 'wc-blacklist-manager'); ?> <a href="https://yoohw.com/docs/woocommerce-blacklist-manager/verifications/email-verification/#real-time-validation" target="_blank"><?php echo esc_html__('Know more', 'wc-blacklist-manager'); ?></a></p>
 					</td>
 				</tr>
@@ -322,20 +322,21 @@ if (!defined('ABSPATH')) {
 				var phoneVerificationRealtimeValidateCheckbox = document.getElementById('phone_verification_real_time_validate');
 				var nameVerificationRealtimeValidateCheckbox = document.getElementById('name_verification_real_time_validate');
 
-				emailVerificationCheckbox.addEventListener('change', function () {
-					if (emailVerificationCheckbox.checked) {
-						phoneVerificationCheckbox.checked = false;
-					}
-				});
+				if (emailVerificationCheckbox) {
+					emailVerificationCheckbox.addEventListener('change', function () {
+						if (emailVerificationCheckbox.checked) {
+							phoneVerificationCheckbox.checked = false;
+						}
+					});
+				}
 
-				phoneVerificationCheckbox.addEventListener('change', function () {
-					if (phoneVerificationCheckbox.checked) {
-						emailVerificationCheckbox.checked = false;
-					}
-				});
-
-				var generateKeyButton = document.getElementById('generate_key_button');
-				var smsKeyInput = document.getElementById('phone_verification_sms_key');
+				if (phoneVerificationCheckbox) {
+					phoneVerificationCheckbox.addEventListener('change', function () {
+						if (phoneVerificationCheckbox.checked) {
+							emailVerificationCheckbox.checked = false;
+						}
+					});
+				}
 
 				// Rows
 				var emailVerificationActionRow = document.getElementById('email_verification_action_row');
@@ -368,13 +369,17 @@ if (!defined('ABSPATH')) {
 					toggleDisplay(phoneVerificationFailedEmailRow, isChecked);
 				});
 
-				phoneVerificationRealtimeValidateCheckbox.addEventListener('change', function () {
-					toggleDisplay(phoneVerificationFormatValidateRow, this.checked);
-				});
+				if (phoneVerificationRealtimeValidateCheckbox) {
+					phoneVerificationRealtimeValidateCheckbox.addEventListener('change', function () {
+						toggleDisplay(phoneVerificationFormatValidateRow, this.checked);
+					});
+				}
 
-				nameVerificationRealtimeValidateCheckbox.addEventListener('change', function () {
-					toggleDisplay(nameVerificationFormatValidateRow, this.checked);
-				});
+				if (nameVerificationRealtimeValidateCheckbox) {
+					nameVerificationRealtimeValidateCheckbox.addEventListener('change', function () {
+						toggleDisplay(nameVerificationFormatValidateRow, this.checked);
+					});
+				}
 
 				// SMS key generate
 				var smsKeyInput = document.getElementById('phone_verification_sms_key');
@@ -405,7 +410,15 @@ if (!defined('ABSPATH')) {
 					xhr.open('POST', '<?php echo esc_url(admin_url('admin-ajax.php')); ?>', true);
 					xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
 					xhr.onload = function () {
-						if (xhr.status === 200) {
+						var response;
+						try {
+							response = JSON.parse(xhr.responseText);
+						} catch (error) {
+							alert('<?php echo esc_js(__('Unexpected server response. Please try again.', 'wc-blacklist-manager')); ?>');
+							return;
+						}
+						
+						if (xhr.status === 200 && response.success) {
 							// Set the generated key to the input field
 							smsKeyInput.value = key;
 							// Hide the "Generate a key" button and show the "Copy" button
@@ -413,9 +426,12 @@ if (!defined('ABSPATH')) {
 							copyKeyButton.style.display = 'inline-block';
 							// Update the description
 							smsKeyMessage.textContent = '<?php echo esc_js(__('Use this key when you purchase SMS credits.', 'wc-blacklist-manager')); ?>';
-							alert('<?php echo esc_js(__('Key generated and saved successfully.', 'wc-blacklist-manager')); ?>');
+							alert(response.data.message);
 						} else {
-							alert('<?php echo esc_js(__('Failed to generate the key. Please try again.', 'wc-blacklist-manager')); ?>');
+							var errorMsg = response && response.data && response.data.message 
+								? response.data.message 
+								: '<?php echo esc_js(__('Failed to generate the key. Please try again.', 'wc-blacklist-manager')); ?>';
+							alert(errorMsg);
 						}
 					};
 					xhr.send('action=generate_sms_key&sms_key=' + encodeURIComponent(key) + '&security=<?php echo esc_js(wp_create_nonce('generate_sms_key_nonce')); ?>');

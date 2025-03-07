@@ -36,7 +36,7 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 				'yobm-wc-blacklist-manager-verifications-email',
 				plugins_url('/../../../js/yobm-wc-blacklist-manager-verifications-email.js', __FILE__),
 				['jquery'],
-				'1.6',
+				'1.8.0',
 				true 
 			);
 	
@@ -105,28 +105,22 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 	
 	private function is_email_in_whitelist($email) {
 		global $wpdb;
-
 		$query = $wpdb->prepare(
-			"SELECT * FROM $this->whitelist_table WHERE email = %s AND verified_email = 1", 
+			"SELECT 1 FROM $this->whitelist_table WHERE email = %s AND verified_email = 1 LIMIT 1", 
 			$email
 		);
-
-		$result = $wpdb->get_row($query);
-
-		return $result ? true : false;
+		$result = $wpdb->get_var($query);
+		return !empty($result);
 	}
-
+	
 	private function is_email_in_blacklist($email) {
 		global $wpdb;
-
 		$query = $wpdb->prepare(
-			"SELECT * FROM $this->blacklist_table WHERE email_address = %s AND is_blocked = 0", 
+			"SELECT 1 FROM $this->blacklist_table WHERE email_address = %s AND is_blocked = 0 LIMIT 1", 
 			$email
 		);
-
-		$result = $wpdb->get_row($query);
-
-		return $result ? true : false;
+		$result = $wpdb->get_var($query);
+		return !empty($result);
 	}	
 
 	private function send_verification_code($email) {
@@ -210,6 +204,20 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 		if ($submitted_code == $stored_code) {
 			$this->cleanup_expired_code($user_id, '');
 
+			// Get and sanitize the selected country code
+			$billing_dial_code = isset($_POST['billing_dial_code']) ? sanitize_text_field($_POST['billing_dial_code']) : '';
+
+			// Get and sanitize the phone number
+			$billing_phone = isset($_POST['billing_phone']) ? sanitize_text_field($_POST['billing_phone']) : '';
+
+			$billing_phone = preg_replace('/[^0-9]/', '', $billing_phone);
+			$billing_phone = ltrim($billing_phone, '0');
+
+			// Prepend country code if it exists
+			if (!empty($billing_dial_code)) {
+				$billing_phone = $billing_dial_code . $billing_phone;
+			}
+
 			$verification_action = get_option('wc_blacklist_email_verification_action');
 
 			$billing_details = [
@@ -223,7 +231,7 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 				'country'        => sanitize_text_field($_POST['billing_country'] ?? ''),
 				'email'          => sanitize_email($_POST['billing_email'] ?? ''),
 				'verified_email' => 1,
-				'phone'          => sanitize_text_field($_POST['billing_phone'] ?? ''),
+				'phone'          => $billing_phone,
 			];
 
 			$this->add_billing_details_to_whitelist($billing_details);
@@ -302,7 +310,7 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 		$result = $wpdb->update(
 			$blacklist_table,
 			['email_address' => null],
-			['email_address' => $email, 'is_blocked' => 1]
+			['email_address' => $email, 'is_blocked' => 0]
 		);
 	
 		if ($result) {
