@@ -13,16 +13,19 @@ class WC_Blacklist_Manager_Verifications {
 	private $default_sms_message;
 
 	public function __construct() {
-
-		$this->default_email_subject = __('Verify your email address', 'wc-blacklist-manager');
-		$this->default_email_heading = __('Verify your email address', 'wc-blacklist-manager');
-		$this->default_email_message = __('Hi there,<br><br>To complete your checkout process, please verify your email address by entering the following code:<br><br><strong>{code}</strong><br><br>If you did not request this, please ignore this email.<br><br>Thank you.', 'wc-blacklist-manager');
-		$this->default_sms_message = __('{site_name}: Your verification code is {code}', 'wc-blacklist-manager');
+		add_action('init', [$this, 'set_verifications_strings']);
 		add_action('admin_menu', [$this, 'add_verifications_submenu']);
 		add_action('wp_ajax_generate_sms_key', [$this, 'handle_generate_sms_key']);
 		add_action('admin_post_refresh_merging', [$this, 'wc_blacklist_refresh_merging']);
 
 		$this->includes();
+	}
+
+	public function set_verifications_strings() {
+		$this->default_email_subject = __('Verify your email address', 'wc-blacklist-manager');
+		$this->default_email_heading = __('Verify your email address', 'wc-blacklist-manager');
+		$this->default_email_message = __('Hi there,<br><br>To complete your checkout process, please verify your email address by entering the following code:<br><br><strong>{code}</strong><br><br>If you did not request this, please ignore this email.<br><br>Thank you.', 'wc-blacklist-manager');
+		$this->default_sms_message = __('{site_name}: Your verification code is {code}', 'wc-blacklist-manager');
 	}
 
 	public function add_verifications_submenu() {

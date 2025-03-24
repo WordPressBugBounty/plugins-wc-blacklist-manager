@@ -1,11 +1,11 @@
-=== Blacklist Manager - Anti-Fraud / Checkout Verification for WooCommerce ===
+=== WooCommerce Blacklist Manager - Anti-Fraud / Checkout Verification ===
 Contributors: yoohw, baonguyen0310
 Tags: blacklist customers, block ip, fraud prevention, woocommerce anti fraud, Prevent fake orders
 Requires at least: 6.3
 Tested up to: 6.7
 WC tested up to: 9.6
 Requires PHP: 5.6
-Stable tag: 1.4.9
+Stable tag: 1.4.10
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -13,7 +13,7 @@ Easily helps store owners to avoid unwanted customers.
 
 == Description ==
 
-The **Blacklist Manager - Anti-Fraud / Checkout Verification for WooCommerce** plugin is an essential tool for WooCommerce store owners. It provides the ability to blacklist specific phone numbers, email addresses, IP addresses, and email domains, effectively blocking users from placing orders, canceling them, or even creating an account.
+The **WooCommerce Blacklist Manager - Anti-Fraud / Checkout Verification** plugin is an essential tool for WooCommerce store owners. It provides the ability to blacklist specific phone numbers, email addresses, IP addresses, and email domains, effectively blocking users from placing orders, canceling them, or even creating an account.
 
 Additionally, this plugin includes a **Checkout Verification** feature, ensuring that only legitimate customers can complete their purchases. Store owners can require verification for phone numbers, email addresses, and customer names before allowing checkout, adding multiple layers of fraud protection. Customers may be prompted to verify their phone via SMS, confirm their email through a one-time code, or validate their identity using their registered name, significantly reducing fraudulent orders.
 
@@ -91,6 +91,8 @@ Blacklist Connection allows you to sync and consolidate blacklists from multiple
 
 Ideal for multi-store owners and agencies managing numerous client sites—save time and boost security.
 
+[See more about Blacklist Connection feature](https://yoohw.com/docs/woocommerce-blacklist-manager/settings/connection/)
+
 **Universal Checkout Compatibility**
 
 Our plugin is compatible with all types of checkout pages, including WooCommerce Classic, [Block-based Checkout](https://woocommerce.com/checkout-blocks/), and third-party checkout plugins. It also features address autocompletion on the checkout page to ensure accuracy and clarity through seamless Google Maps API integration.
@@ -105,7 +107,7 @@ Our premier solution for combating fraud and unauthorized transactions: we've in
 
 Service integrations: [Cloudflare](https://www.cloudflare.com/), [Google reCaptcha v3/v2](https://www.google.com/recaptcha/about/), [hCaptcha](https://www.hcaptcha.com/), [IPinfo](https://ipinfo.io/), [ip-api](https://ip-api.com/), [Usercheck](https://www.usercheck.com/), [ZeroBounce](https://www.zerobounce.net?ref=owqwzgy) [NumCheckr](https://numcheckr.com/), [Google Maps Platform](https://mapsplatform.google.com/), [SMS Credits](https://yoohw.com/product/sms-credits/).
 
-Plugin integrations: [WooComerce Advanced Account](https://wordpress.org/plugins/wc-advanced-accounts/) [WooCommerce Stripe Gateway](https://wordpress.org/plugins/woocommerce-gateway-stripe/), [Payment Plugins for Stripe WooCommerce](https://wordpress.org/plugins/woo-stripe-payment/). 
+Plugin integrations: [WooComerce Advanced Account](https://wordpress.org/plugins/wc-advanced-accounts/), [WooCommerce Stripe Gateway](https://wordpress.org/plugins/woocommerce-gateway-stripe/), [Payment Plugins for Stripe WooCommerce](https://wordpress.org/plugins/woo-stripe-payment/). 
 
 **Import / Export**
 
@@ -136,7 +138,7 @@ A: Yes, additional configuration is needed for the plugin to work as your expect
 **Q: Why is there a Suspects list for?**
 A: You don't want to lose customers carelessly, do you? That's why there should be the Suspects list, for you to marked the customers and suspect them a while before you decide to block them or not.
 
-**Q: Can this plugin prevent the customer to checkout through a separate payment page such as Paypal, Stripe...?**
+**Q: Can this plugin prevent the customer to checkout through a separate payment page such as Paypal, Stripe etc..?**
 A: The logic of the WooCommerce Blacklist Manager plugin is that to prevent the blocked customer can checkout through your website, the payment gateways have nothing to do with that. So, the answer is absolutely YES.
 
 **Q: Is there a limit to the number of entries I can add to the blacklist?**  
@@ -174,6 +176,12 @@ A: There is no set limit within the plugin, but practical limitations depend on 
 28. Alert email notification with a custom template.
 
 == Changelog ==
+
+= 1.4.10 (Mar 24, 2025) =
+* Update: Adding the phone number with dial code into the verification list.
+* Fix: Cannot verify the phone number with the country dial code.
+* Fix: Translation loading was triggered too early.
+* Improve: Remove update the sms key option after upgrader complete.
 
 = 1.4.9 (Mar 7, 2025) =
 * Update: Optimize blocking function performance.

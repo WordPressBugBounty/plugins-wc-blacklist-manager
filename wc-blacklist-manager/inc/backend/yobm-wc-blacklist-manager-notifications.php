@@ -15,6 +15,11 @@ class WC_Blacklist_Manager_Notifications {
 	private $default_blocked_user_notice;
 
 	public function __construct() {
+		add_action('init', [$this, 'set_default_strings']);
+		add_action('admin_menu', [$this, 'add_notification_submenu']);
+	}
+
+	public function set_default_strings() {
 		$this->default_email_subject = __('WARNING: Order #{order_id} from suspected customer!', 'wc-blacklist-manager');
 		$this->default_email_message = __('A customer ({first_name} {last_name}) has placed order #{order_id}. Review it carefully.', 'wc-blacklist-manager');
 		$this->default_checkout_notice = __('Sorry! You are no longer allowed to shop with us. If you think it is a mistake, please contact support.', 'wc-blacklist-manager');
@@ -22,8 +27,7 @@ class WC_Blacklist_Manager_Notifications {
 		$this->default_payment_method_notice = __('Payment method you have chosen is not available, please select another and try again.', 'wc-blacklist-manager');
 		$this->default_registration_notice = __('You have been blocked from registering. Think it is a mistake? Contact the administrator.', 'wc-blacklist-manager');
 		$this->default_vpn_proxy_registration_notice = __('Registrations from VPNs or Proxies are not allowed. Please disable your VPN or Proxy and try again.', 'wc-blacklist-manager');
-		$this->default_blocked_user_notice = __('Your account has been blocked. Think it is a mistake? Contact the administrator.', 'wc-blacklist-manager');		
-		add_action('admin_menu', [$this, 'add_notification_submenu']);
+		$this->default_blocked_user_notice = __('Your account has been blocked. Think it is a mistake? Contact the administrator.', 'wc-blacklist-manager');
 	}
 
 	public function add_notification_submenu() {

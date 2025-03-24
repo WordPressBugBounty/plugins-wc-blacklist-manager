@@ -44,24 +44,3 @@ if (!class_exists('Yo_Ohw_SMS_Quota_Update')) {
 
 	new Yo_Ohw_SMS_Quota_Update();
 }
-
-/**
- * Update 'yoohw_phone_verification_sms_quota' from 'wc_blacklist_phone_verification_sms_quota' on plugin update,
- * only when this plugin is updated, and delete the 'wc_blacklist_phone_verification_sms_quota' option after updating.
- */
-function yoohw_update_sms_quota_on_plugin_update($upgrader_object, $options) {
-	if ($options['action'] === 'update' && $options['type'] === 'plugin') {
-		$updated_plugins = $options['plugins'];
-
-		if (in_array('wc-blacklist-manager/wc-blacklist-manager.php', $updated_plugins)) {
-			$existing_quota = get_option('wc_blacklist_phone_verification_sms_quota', false);
-
-			if ($existing_quota !== false) {
-				update_option('yoohw_phone_verification_sms_quota', $existing_quota);
-				delete_option('wc_blacklist_phone_verification_sms_quota');
-			}
-		}
-	}
-}
-
-add_action('upgrader_process_complete', 'yoohw_update_sms_quota_on_plugin_update', 10, 2);

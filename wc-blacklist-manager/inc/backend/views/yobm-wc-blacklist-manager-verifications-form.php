@@ -442,9 +442,9 @@ if (!defined('ABSPATH')) {
 					e.preventDefault();
 					smsKeyInput.select();
 					document.execCommand('copy');
-					copyKeyButton.textContent = 'Copied!';
+					copyKeyButton.textContent = '<?php echo esc_js(__('Copied!', 'wc-blacklist-manager')); ?>';
 					setTimeout(function () {
-						copyKeyButton.textContent = 'Copy';
+						copyKeyButton.textContent = '<?php echo esc_js(__('Copy', 'wc-blacklist-manager')); ?>';
 					}, 2000); // Reset button text after 2 seconds
 				});
 

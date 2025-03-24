@@ -2,6 +2,12 @@
 
 == Changelog ==
 
+= 1.4.10 (Mar 24, 2025) =
+* Update: Adding the phone number with dial code into the verification list.
+* Fix: Cannot verify the phone number with the country dial code.
+* Fix: Translation loading was triggered too early.
+* Improve: Remove update the sms key option after upgrader complete.
+
 = 1.4.9 (Mar 7, 2025) =
 * Update: Optimize blocking function performance.
 * Update: Added strict logic to prevent the phone number.

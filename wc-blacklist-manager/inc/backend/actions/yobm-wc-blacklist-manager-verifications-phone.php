@@ -92,13 +92,14 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 			// Get the billing phone from the checkout form and store it in the session
 			if (!empty($_POST['billing_phone'])) {
 				$phone = sanitize_text_field($_POST['billing_phone']);
-
-				$phone = preg_replace('/[^0-9]/', '', $phone);
 				$phone = ltrim($phone, '0');
 
 				// Prepend country code if available
 				if (!empty($billing_dial_code)) {
+					$phone = preg_replace('/[^0-9]/', '', $phone);
 					$phone = $billing_dial_code . $phone;
+				} else {
+					$phone = $this->normalize_phone_number_with_country_code( $phone );
 				}
 
 				WC()->session->set('billing_phone', $phone);
@@ -339,13 +340,14 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 
 			// Get and sanitize the phone number
 			$billing_phone = isset($_POST['billing_phone']) ? sanitize_text_field($_POST['billing_phone']) : '';
-
-			$billing_phone = preg_replace('/[^0-9]/', '', $billing_phone);
 			$billing_phone = ltrim($billing_phone, '0');
 
 			// Prepend country code if it exists
 			if (!empty($billing_dial_code)) {
+				$billing_phone = preg_replace('/[^0-9]/', '', $billing_phone);
 				$billing_phone = $billing_dial_code . $billing_phone;
+			} else {
+				$billing_phone = $this->normalize_phone_number_with_country_code( $billing_phone );
 			}
 
 			error_log("Phone (Add to whitelist): $billing_phone");

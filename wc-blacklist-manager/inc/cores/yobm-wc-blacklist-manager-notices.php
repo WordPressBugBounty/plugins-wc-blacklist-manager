@@ -50,7 +50,7 @@ class WC_Blacklist_Manager_Notices {
 	  
 		// Check if user is administrator and notice hasn't been dismissed
 		if (current_user_can('administrator') && get_user_meta($user_id, 'wc_blacklist_manager_first_time_notice_dismissed', true) !== 'yes') {
-		  echo '<div class="notice error yobm-first-time is-dismissible">
+		    echo '<div class="notice error yobm-first-time is-dismissible">
 				  <p style="color:#d63638;">WooCommerce Blacklist Manager is a security and guardian plugin! Kindly read our <a href="https://yoohw.com/docs/category/woocommerce-blacklist-manager/" target="_blank">Documentation</a> carefully before <a href="' . esc_url(admin_url('admin.php?page=wc-blacklist-manager-settings')) . '">visiting the Settings page</a> to configure the plugin.<br>To avoid unexpected workflows or any help needed, please reach out to our technique support team.</p>
 				  <p><a href="#" onclick="WC_Blacklist_Manager_Admin_Notice.dismissFirstTimeNotice()">I understand and do not show this notice again!</a></p>
 			  </div>';
@@ -65,14 +65,14 @@ class WC_Blacklist_Manager_Notices {
 	  
 		// Check if user is administrator and notice hasn't been dismissed
 		if (current_user_can('administrator') && get_user_meta($user_id, 'wc_blacklist_manager_ads_notice_dismissed', true) !== 'yes') {
-		  echo '<div class="notice notice-info yobm-ads is-dismissible" style="display: none;">
+		    echo '<div class="notice notice-info yobm-ads is-dismissible">
 				  <p>Activate the email & phone verification for registration and login by OTP with our free <a href="https://wordpress.org/plugins/wc-advanced-accounts/" target="_blank">Advanced Accounts plugin</a>. Go to see the feature and <a href="' . esc_url(admin_url('admin.php?page=wc-blacklist-manager-verifications')) . '">install it here</a>.</p>
 				  <p><a href="#" onclick="WC_Blacklist_Manager_Admin_Notice.dismissAdsNotice()">Dismiss</a></p>
 			    </div>';
 		}
 
 		if (!$premium_active && current_user_can('administrator') && get_user_meta($user_id, 'wc_blacklist_manager_ads_notice_dismissed_7325', true) !== 'yes') {
-			echo '<div class="notice notice-info yobm-ads is-dismissible">
+			echo '<div class="notice notice-info yobm-ads is-dismissible" style="display: none;">
 					<p><strong>New Feature: Blacklist Connection!</strong> Unite your store blacklists into one powerful network for improved fraud defense. <a href="https://yoohw.com/docs/woocommerce-blacklist-manager/settings/connection/" target="_blank"><strong>Learn More</strong></a><br>
 					Ideal for multi-store owners and agencies managing numerous client sites—save time and boost security.</p>
 					<p><a href="#" onclick="WC_Blacklist_Manager_Admin_Notice.dismissAdsNotice()" style="margin-right: 10px;">Dismiss</a> <a href="https://yoohw.com/product/woocommerce-blacklist-manager-premium/" target="_blank" class="button button-primary">Go Premium Now</a></p>
@@ -80,7 +80,7 @@ class WC_Blacklist_Manager_Notices {
 		}
 
 		if ($premium_active && current_user_can('administrator') && get_user_meta($user_id, 'wc_blacklist_manager_ads_notice_dismissed_7325_pro', true) !== 'yes') {
-			echo '<div class="notice notice-info yobm-ads is-dismissible">
+			echo '<div class="notice notice-info yobm-ads is-dismissible" style="display: none;">
 					<p><strong>Introducing Blacklist Connection!</strong> Easily link blacklists from multiple stores into one central system. <strong>Available now in version 1.6</strong>. Update today and boost your security! <a href="https://yoohw.com/docs/woocommerce-blacklist-manager/settings/connection/" target="_blank"><strong>Learn More</strong></a></p>
 					<p><a href="#" onclick="WC_Blacklist_Manager_Admin_Notice.dismissAdsNotice()">Dismiss</a></p>
 				</div>';
