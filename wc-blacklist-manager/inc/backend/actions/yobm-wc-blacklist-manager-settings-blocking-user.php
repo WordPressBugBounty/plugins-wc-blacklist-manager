@@ -17,6 +17,12 @@ class WC_Blacklist_Manager_User_Blocking {
 	}
 
 	public function force_logout_blocked_user($user_login, $user) {
+		$settings_instance = new WC_Blacklist_Manager_Settings();
+		$premium_active = $settings_instance->is_premium_active();
+
+		global $wpdb;
+		$table_detection_log = $wpdb->prefix . 'wc_blacklist_detection_log';
+		
 		$is_blocked = get_user_meta($user->ID, 'user_blocked', true);
 
 		if ($is_blocked == '1') {
@@ -24,6 +30,29 @@ class WC_Blacklist_Manager_User_Blocking {
 			$this->set_blocked_user_cookie();
 			$this->set_user_blocked_notice();
 			wp_redirect(wc_get_page_permalink('myaccount'));
+
+			$sum_block_total = get_option('wc_blacklist_sum_block_total', 0);
+			update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
+
+			if ($premium_active) {
+				$timestamp = current_time('mysql');
+				$type      = 'human';
+				$source    = 'login';
+				$action    = 'block';
+				$details   = 'blocked_user_attempt: ' . $user->ID;
+				
+				$wpdb->insert(
+					$table_detection_log,
+					array(
+						'timestamp' => $timestamp,
+						'type'      => $type,
+						'source'    => $source,
+						'action'    => $action,
+						'details'   => $details,
+					)
+				);
+			}
+			
 			exit();
 		}
 	}

@@ -89,11 +89,7 @@ class WC_Blacklist_Manager_Button_Add_To_Blocklist {
 
 		$phone = sanitize_text_field($order->get_billing_phone());
 		$email = sanitize_email($order->get_billing_email());
-		if ($premium_active) {
-			$ip_address = get_post_meta($order->get_id(), '_customer_ip_address', true);
-		} else {
-			$ip_address = sanitize_text_field($order->get_customer_ip_address());
-		}
+		$ip_address = sanitize_text_field($order->get_customer_ip_address());
 
 		$address_1 = sanitize_text_field($order->get_billing_address_1());
 		$address_2 = sanitize_text_field($order->get_billing_address_2());
@@ -315,14 +311,6 @@ class WC_Blacklist_Manager_Button_Add_To_Blocklist {
 		}
 	
 		$order = wc_get_order($order_id);
-		$user_id = $order->get_user_id();
-		if ($user_id) {
-			$user = get_userdata($user_id);
-			if ($user && in_array('administrator', $user->roles)) {
-				echo esc_html__('Cannot block the administrators.', 'wc-blacklist-manager');
-				wp_die();
-			}
-		}
 	
 		// Get the blacklist suspect IDs from order meta
 		$blacklist_meta = $order->get_meta('_blacklist_suspect_id', true);
@@ -361,8 +349,14 @@ class WC_Blacklist_Manager_Button_Add_To_Blocklist {
 			echo esc_html__('The customer\'s details have been moved to the blocklist.', 'wc-blacklist-manager');
 	
 			// Optionally update the user meta for user blocking if enabled
+			$user_id = $order->get_user_id();
+
 			if ($user_id && get_option('wc_blacklist_enable_user_blocking') == '1') {
-				update_user_meta($user_id, 'user_blocked', '1');
+				$user = get_userdata($user_id);
+			
+				if ($user && !in_array('administrator', (array) $user->roles)) {
+					update_user_meta($user_id, 'user_blocked', '1');
+				}
 			}
 	
 			// Delete the suspect meta and add blocked meta with the previous value

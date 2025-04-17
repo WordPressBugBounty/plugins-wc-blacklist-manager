@@ -39,7 +39,7 @@ class WC_Blacklist_Manager_Notices {
 	
 		if (current_user_can('administrator') && $days_since_activation >= 1) {
 			echo '<div class="notice notice-info yobm-review is-dismissible">
-					<p>Thank you for using WooCommerce Blacklist Manager! Please support us by <a href="https://wordpress.org/plugins/wc-blacklist-manager/#reviews" target="_blank">leaving a review</a> <span style="color: #e26f56;">&#9733;&#9733;&#9733;&#9733;&#9733;</span> to keep updating & improving.</p>
+					<p>Thank you for using Blacklist Manager! Please support us by <a href="https://wordpress.org/support/plugin/wc-blacklist-manager/reviews/#new-post" target="_blank">leaving a review</a> <span style="color: #e26f56;">&#9733;&#9733;&#9733;&#9733;&#9733;</span> to keep updating & improving.</p>
 					<p><a href="#" onclick="WC_Blacklist_Manager_Admin_Notice.dismissForever()">Never show this again</a></p>
 				  </div>';
 		}
@@ -51,7 +51,7 @@ class WC_Blacklist_Manager_Notices {
 		// Check if user is administrator and notice hasn't been dismissed
 		if (current_user_can('administrator') && get_user_meta($user_id, 'wc_blacklist_manager_first_time_notice_dismissed', true) !== 'yes') {
 		    echo '<div class="notice error yobm-first-time is-dismissible">
-				  <p style="color:#d63638;">WooCommerce Blacklist Manager is a security and guardian plugin! Kindly read our <a href="https://yoohw.com/docs/category/woocommerce-blacklist-manager/" target="_blank">Documentation</a> carefully before <a href="' . esc_url(admin_url('admin.php?page=wc-blacklist-manager-settings')) . '">visiting the Settings page</a> to configure the plugin.<br>To avoid unexpected workflows or any help needed, please reach out to our technique support team.</p>
+				  <p style="color:#d63638;">Blacklist Manager is a security and guardian plugin! Kindly read our <a href="https://yoohw.com/docs/category/woocommerce-blacklist-manager/" target="_blank">Documentation</a> carefully before <a href="' . esc_url(admin_url('admin.php?page=wc-blacklist-manager-settings')) . '">visiting the Settings page</a> to configure the plugin.<br>To avoid unexpected workflows or any help needed, please reach out to our technique support team.</p>
 				  <p><a href="#" onclick="WC_Blacklist_Manager_Admin_Notice.dismissFirstTimeNotice()">I understand and do not show this notice again!</a></p>
 			  </div>';
 		}
@@ -64,10 +64,19 @@ class WC_Blacklist_Manager_Notices {
 		$user_id = get_current_user_id();
 	  
 		// Check if user is administrator and notice hasn't been dismissed
-		if (current_user_can('administrator') && get_user_meta($user_id, 'wc_blacklist_manager_ads_notice_dismissed', true) !== 'yes') {
+		if (current_user_can('administrator') && get_user_meta($user_id, 'wc_blacklist_manager_ads_notice_dismissed_17425', true) !== 'yes') {
 		    echo '<div class="notice notice-info yobm-ads is-dismissible">
-				  <p>Activate the email & phone verification for registration and login by OTP with our free <a href="https://wordpress.org/plugins/wc-advanced-accounts/" target="_blank">Advanced Accounts plugin</a>. Go to see the feature and <a href="' . esc_url(admin_url('admin.php?page=wc-blacklist-manager-verifications')) . '">install it here</a>.</p>
-				  <p><a href="#" onclick="WC_Blacklist_Manager_Admin_Notice.dismissAdsNotice()">Dismiss</a></p>
+				  <p>WooCommerce Blacklist Manager is now <b>Blacklist Manager</b> — a more powerful and flexible solution to protect your entire WordPress site.</p>
+					
+				  <p>We’ve expanded beyond WooCommerce! The plugin now also supports:<br>
+					✅ Contact Form 7<br>
+					✅ Gravity Forms<br>
+					✅ WPForms
+					</p>
+
+					<p>Enjoy the same reliable blacklist protections — now across your forms and not just at checkout. Thanks for growing with us!
+					</p>
+				  <p><a href="#" onclick="WC_Blacklist_Manager_Admin_Notice.dismissAdsNotice()" class="button-secondary">Dismiss</a> <a href="https://yoohw.com/product/woocommerce-blacklist-manager-premium/" class="button-primary">Go Premium!</a></p>
 			    </div>';
 		}
 
@@ -154,7 +163,7 @@ class WC_Blacklist_Manager_Notices {
 	public function dismiss_ads_notice() {
 		check_ajax_referer('dismiss_ads_notice_nonce', 'security');
 		$user_id = get_current_user_id();
-		update_user_meta($user_id, 'wc_blacklist_manager_ads_notice_dismissed', 'yes');
+		update_user_meta($user_id, 'wc_blacklist_manager_ads_notice_dismissed_17425', 'yes');
 		update_user_meta($user_id, 'wc_blacklist_manager_ads_notice_dismissed_7325', 'yes');
 		update_user_meta($user_id, 'wc_blacklist_manager_ads_notice_dismissed_7325_pro', 'yes');
 	}

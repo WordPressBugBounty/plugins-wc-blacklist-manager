@@ -68,6 +68,89 @@
     content: ''; /* Prevent adding icon to row actions */
 }
 
+/* Dashboard */
+.wc-blacklist-container, .summary-child {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px; /* Adjust the spacing between columns as needed */
+    align-items: flex-start; /* Align items at the top */
+}
+
+.wc-blacklist-container > div {
+    flex: 1;
+    min-width: 300px;
+    padding: 0 1.5em 1.5em;
+}
+
+.summary-column {
+    background-color: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 10px;
+    font-size: 13px;
+    margin-bottom: 20px;
+}
+
+.summary-column hr {
+    margin-bottom: 10px;
+}
+
+.summary-column label {
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    line-height: 1.3;
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.summary-column table {
+    margin-top: 5px;
+}
+
+.summary-column th, .summary-column td {
+    padding: 6px 14px 0;
+    text-align: left;
+    font-weight: 400;
+}
+
+.summary-column a {
+    text-decoration: none;
+}
+
+.summary-column .bm-notice {
+    display: flex;
+    align-items: center;
+    font-size: 12px;
+}
+
+.bm-notice img {
+    margin-right: 5px;
+}
+
+.bm-actions {
+    float: right;
+}
+
+.summary-child > div {
+    flex: 1;
+}
+
+.sum-premium {
+    font-size: 10px;
+    color: #ffffff;
+    background-color: #00a32a;
+    padding: 3px 5px;
+    border-radius: 3px;
+}
+
+.sum-disabled {
+    font-size: 10px;
+    color: #ffffff;
+    background-color: #c3c4c7;
+    padding: 3px 5px;
+    border-radius: 3px;
+}
+
 /* Address addition form */
 .country-state-container {
     display: flex;
@@ -92,6 +175,32 @@
 }
 #blacklisted td, #blocked td, #ip-banned td, #customer-address td, #domain-blocking td {
     vertical-align: middle;
+}
+
+/* Activity logs */
+.activity-log th, .activity-log td {
+    vertical-align: middle;
+}
+
+.activity-log-source {
+    display: flex;
+}
+
+.activity-log-source img {
+    margin-right: 5px;
+}
+
+.activity-log-demo th {
+    color: #aaaaaa !important;
+}
+
+.activity-log-demo td {
+    color: #aaaaaa !important;
+}
+
+/* Settings */
+.label_child {
+    padding-left: 20px;
 }
 
 /* Upload form */

@@ -6,7 +6,7 @@ if (!defined('ABSPATH')) {
 
 <div class="wrap">
 	<?php if (!$premium_active): ?>
-	<p>Please support us by <a href="https://wordpress.org/plugins/wc-blacklist-manager/#reviews" target="_blank">leaving a review</a> <span style="color: #e26f56;">&#9733;&#9733;&#9733;&#9733;&#9733;</span> to keep updating & improving.</p>
+	<p>Please support us by <a href="https://wordpress.org/support/plugin/wc-blacklist-manager/reviews/#new-post" target="_blank">leaving a review</a> <span style="color: #e26f56;">&#9733;&#9733;&#9733;&#9733;&#9733;</span> to keep updating & improving.</p>
 	<?php endif; ?>
 
 	<h1>
@@ -27,67 +27,278 @@ if (!defined('ABSPATH')) {
 		echo '<div id="message" class="notice notice-success is-dismissible"><p>' . esc_html($this->message) . '</p></div>';
 	}
 	?>
+	<div class="wc-blacklist-container">
+		<div class="form-column">
+			<h2><?php echo esc_html__('Add new', 'wc-blacklist-manager'); ?></h2>
+			<?php
+			$last_selected_status = isset($_GET['status']) ? sanitize_text_field($_GET['status']) : 'suspect';
+			
+			$customer_name_blocking_enabled = get_option('wc_blacklist_customer_name_blocking_enabled', '0');
+			$ip_blocking_enabled = get_option('wc_blacklist_ip_enabled', '0');
+			$address_blocking_enabled = get_option('wc_blacklist_enable_customer_address_blocking', '0');
+			$domain_blocking_enabled = get_option('wc_blacklist_domain_enabled', '0');
 
-	<h2><?php echo esc_html__('Add new', 'wc-blacklist-manager'); ?></h2>
-	<?php
-	$last_selected_status = isset($_GET['status']) ? sanitize_text_field($_GET['status']) : 'suspect';
-	$customer_name_blocking_enabled = get_option('wc_blacklist_customer_name_blocking_enabled', '0');
-	$allowed_countries_option = get_option('woocommerce_allowed_countries', 'all');
-	$specific_countries = get_option('woocommerce_specific_allowed_countries', []);
-	$skip_country_code = ($allowed_countries_option === 'specific' && count($specific_countries) === 1);
-	?>
-	<?php if (!$premium_active || $customer_name_blocking_enabled === '0'): ?>
-		<p class="description"><?php echo esc_html__('You can add only a phone number or an email address or either both.', 'wc-blacklist-manager'); ?></p>
-	<?php endif; ?>
-	<?php if ($premium_active && $customer_name_blocking_enabled === '1'): ?>
-		<p class="description"><?php echo esc_html__('You can add only customer name, phone number or email address or either all.', 'wc-blacklist-manager'); ?></p>
-	<?php endif; ?>
-	<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-		<input type="hidden" name="action" value="add_suspect_action">
-		<table class="form-table">
-			<tbody>
-				<?php if ($premium_active && $customer_name_blocking_enabled === '1'): ?>
-					<tr>
-						<th scope="row"><label for="new_customer_name"><?php echo esc_html__('Customer name', 'wc-blacklist-manager'); ?></label></th>
-						<td>
-							<input type="text" id="new_first_name" name="new_first_name" placeholder="<?php echo esc_attr__('Enter first name', 'wc-blacklist-manager'); ?>" style="width: 12.25em;" />
-							<input type="text" id="new_last_name" name="new_last_name" placeholder="<?php echo esc_attr__('Enter last name', 'wc-blacklist-manager'); ?>" style="width: 12.25em;" />
-						</td>
-					</tr>
-				<?php endif; ?>
-				<tr>
-					<th scope="row"><label for="new_phone_number"><?php echo esc_html__('Phone number', 'wc-blacklist-manager'); ?></label></th>
-					<?php if (!$premium_active || ($premium_active && $skip_country_code)): ?>
-						<td><input type="tel" id="new_phone_number" name="new_phone_number" placeholder="<?php echo esc_attr__('Enter phone number', 'wc-blacklist-manager'); ?>" class="regular-text" title="<?php echo esc_attr__('Phone number format: 0123456789 or +19876543210', 'wc-blacklist-manager'); ?>" pattern="[0-9\+]*" /></td>
-					<?php endif; ?>
-					<?php if ($premium_active && !$skip_country_code): ?>
-						<td>
-							<input type="tel" id="phone_number_holder" name="phone_number_holder" placeholder="<?php echo esc_attr__('Enter phone number', 'wc-blacklist-manager'); ?>" class="regular-text" />
-							<input type="hidden" name="phone_dial_code_holder" id="phone_dial_code_holder" value="">
-							<input type="hidden" name="new_phone_number" id="new_phone_number" value="">
-						</td>
-					<?php endif; ?>
-				</tr>
-				<tr>
-					<th scope="row"><label for="new_email_address"><?php echo esc_html__('Email address', 'wc-blacklist-manager'); ?></label></th>
-					<td><input type="email" id="new_email_address" name="new_email_address" placeholder="<?php echo esc_attr__('Enter email address', 'wc-blacklist-manager'); ?>" class="regular-text" /></td>
-				</tr>
-				<tr>
-					<th scope="row"><label for="status"><?php echo esc_html__('Status', 'wc-blacklist-manager'); ?></label></th>
-					<td>
-						<select id="status" name="status">
-							<option value="suspect" <?php selected($last_selected_status, 'suspect'); ?>><?php echo esc_html__('Suspect', 'wc-blacklist-manager'); ?></option>
-							<option value="blocked" <?php selected($last_selected_status, 'blocked'); ?>><?php echo esc_html__('Blocked', 'wc-blacklist-manager'); ?></option>
-						</select>
-					</td>
-				</tr>
-				<?php wp_nonce_field('add_suspect_action_nonce', 'add_suspect_action_nonce_field'); ?>
-				<tr>
-					<td colspan="1"><input type="submit" name="submit" value="<?php echo esc_attr__('Add to blacklist', 'wc-blacklist-manager'); ?>" class="button button-primary" /></td>
-				</tr>
-			</tbody>
-		</table>
-	</form>
+			$allowed_countries_option = get_option('woocommerce_allowed_countries', 'all');
+			$specific_countries = get_option('woocommerce_specific_allowed_countries', []);
+			$skip_country_code = ($allowed_countries_option === 'specific' && count($specific_countries) === 1);
+			?>
+			<?php if (!$premium_active || $customer_name_blocking_enabled === '0'): ?>
+				<p class="description"><?php echo esc_html__('You can add only a phone number or an email address or either both.', 'wc-blacklist-manager'); ?></p>
+			<?php endif; ?>
+			<?php if ($premium_active && $customer_name_blocking_enabled === '1'): ?>
+				<p class="description"><?php echo esc_html__('You can add only customer name, phone number or email address or either all.', 'wc-blacklist-manager'); ?></p>
+			<?php endif; ?>
+			
+			<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+				<input type="hidden" name="action" value="add_suspect_action">
+				<table class="form-table">
+					<tbody>
+						<?php if ($premium_active && $customer_name_blocking_enabled === '1'): ?>
+							<tr>
+								<th scope="row">
+									<label for="new_customer_name">
+										<?php echo esc_html__('Customer name', 'wc-blacklist-manager'); ?>
+									</label>
+								</th>
+								<td>
+									<input type="text" id="new_first_name" name="new_first_name" placeholder="<?php echo esc_attr__('Enter first name', 'wc-blacklist-manager'); ?>" style="width: 12.25em;" />
+									<input type="text" id="new_last_name" name="new_last_name" placeholder="<?php echo esc_attr__('Enter last name', 'wc-blacklist-manager'); ?>" style="width: 12.25em;" />
+								</td>
+							</tr>
+						<?php endif; ?>
+						<tr>
+							<th scope="row">
+								<label for="new_phone_number">
+									<?php echo esc_html__('Phone number', 'wc-blacklist-manager'); ?>
+								</label>
+							</th>
+							<?php if (!$premium_active || ($premium_active && $skip_country_code)): ?>
+								<td>
+									<input type="tel" id="new_phone_number" name="new_phone_number" placeholder="<?php echo esc_attr__('Enter phone number', 'wc-blacklist-manager'); ?>" class="regular-text" title="<?php echo esc_attr__('Phone number format: 0123456789 or +19876543210', 'wc-blacklist-manager'); ?>" pattern="[0-9\+]*" />
+								</td>
+							<?php endif; ?>
+							<?php if ($premium_active && !$skip_country_code): ?>
+								<td>
+									<input type="tel" id="phone_number_holder" name="phone_number_holder" placeholder="<?php echo esc_attr__('Enter phone number', 'wc-blacklist-manager'); ?>" class="regular-text" />
+									<input type="hidden" name="phone_dial_code_holder" id="phone_dial_code_holder" value="">
+									<input type="hidden" name="new_phone_number" id="new_phone_number" value="">
+								</td>
+							<?php endif; ?>
+						</tr>
+						<tr>
+							<th scope="row">
+								<label for="new_email_address">
+									<?php echo esc_html__('Email address', 'wc-blacklist-manager'); ?>
+								</label>
+							</th>
+							<td>
+								<input type="email" id="new_email_address" name="new_email_address" placeholder="<?php echo esc_attr__('Enter email address', 'wc-blacklist-manager'); ?>" class="regular-text" />
+							</td>
+						</tr>
+						<tr>
+							<th scope="row">
+								<label for="status">
+									<?php echo esc_html__('Status', 'wc-blacklist-manager'); ?>
+								</label>
+							</th>
+							<td>
+								<select id="status" name="status">
+									<option value="suspect" <?php selected($last_selected_status, 'suspect'); ?>><?php echo esc_html__('Suspect', 'wc-blacklist-manager'); ?></option>
+									<option value="blocked" <?php selected($last_selected_status, 'blocked'); ?>><?php echo esc_html__('Blocked', 'wc-blacklist-manager'); ?></option>
+								</select>
+							</td>
+						</tr>
+						<?php wp_nonce_field('add_suspect_action_nonce', 'add_suspect_action_nonce_field'); ?>
+						<tr>
+							<td colspan="1" style="padding-left: 0;">
+								<input type="submit" name="submit" value="<?php echo esc_attr__('Add to blacklist', 'wc-blacklist-manager'); ?>" class="button button-primary" />
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</form>
+		</div>
+		<div class="summary-column">
+			<h2><?php echo esc_html__('Stats overview', 'wc-blacklist-manager'); ?></h2>
+
+			<hr>
+
+			<div class="summary-child">
+				<div class="entries-column">
+					<label><span class="dashicons dashicons-list-view" style="margin-right: 5px;"></span> <?php echo esc_html__('Blacklist entries', 'wc-blacklist-manager'); ?></label>
+
+					<table>
+						<tbody>
+							<tr>
+								<th>
+									• <?php echo esc_html__( 'Customer name', 'wc-blacklist-manager' ); ?>
+								</th>
+								<?php if ($premium_active): ?>
+									<?php if ($customer_name_blocking_enabled === '1'): ?>
+										<td><?php echo esc_html( get_option( 'wc_blacklist_sum_name', 0 ) ); ?></td>
+									<?php else : ?>
+										<td><span class="sum-disabled"><?php echo esc_html__( 'Disabled', 'wc-blacklist-manager' ); ?></span></td>
+									<?php endif; ?>
+								<?php else : ?>
+									<td><span class="sum-premium"><?php echo esc_html__( 'Premium', 'wc-blacklist-manager' ); ?></span></td>
+								<?php endif; ?>
+							</tr>
+							<tr>
+								<th>
+									• <?php echo esc_html__( 'Phone number', 'wc-blacklist-manager' ); ?>
+								</th>
+								<td><?php echo esc_html( get_option( 'wc_blacklist_sum_phone', 0 ) ); ?></td>
+							</tr>
+							<tr>
+								<th>
+									• <?php echo esc_html__( 'Email address', 'wc-blacklist-manager' ); ?>
+								</th>
+								<td><?php echo esc_html( get_option( 'wc_blacklist_sum_email', 0 ) ); ?></td>
+							</tr>
+							<tr>
+								<th>
+									• <?php echo esc_html__( 'IP address', 'wc-blacklist-manager' ); ?>
+								</th>
+								<?php if ($ip_blocking_enabled === '1' || $ip_blocking_enabled === '2'): ?>
+									<td><?php echo esc_html( get_option( 'wc_blacklist_sum_ip', 0 ) ); ?></td>
+								<?php else : ?>
+									<td><span class="sum-disabled"><?php echo esc_html__( 'Disabled', 'wc-blacklist-manager' ); ?></span></td>
+								<?php endif; ?>
+							</tr>
+							<tr>
+								<th>
+									• <?php echo esc_html__( 'Address', 'wc-blacklist-manager' ); ?>
+								</th>
+								<?php if ($premium_active): ?>
+									<?php if ($address_blocking_enabled === '1'): ?>
+										<td><?php echo esc_html( get_option( 'wc_blacklist_sum_address', 0 ) ); ?></td>
+									<?php else : ?>
+										<td><span class="sum-disabled"><?php echo esc_html__( 'Disabled', 'wc-blacklist-manager' ); ?></span></td>
+									<?php endif; ?>
+								<?php else : ?>
+									<td><span class="sum-premium"><?php echo esc_html__( 'Premium', 'wc-blacklist-manager' ); ?></span></td>
+								<?php endif; ?>
+							</tr>
+							<tr>
+								<th>
+									• <?php echo esc_html__( 'Email domain', 'wc-blacklist-manager' ); ?>
+								</th>
+								<?php if ($domain_blocking_enabled === '1'): ?>
+									<td><?php echo esc_html( get_option( 'wc_blacklist_sum_domain', 0 ) ); ?></td>
+								<?php else : ?>
+									<td><span class="sum-disabled"><?php echo esc_html__( 'Disabled', 'wc-blacklist-manager' ); ?></span></td>
+								<?php endif; ?>
+							</tr>
+							<tr>
+								<th>
+									<strong><?php echo esc_html__( 'Total', 'wc-blacklist-manager' ); ?></strong>
+								</th>
+								<td>
+									<strong><?php echo esc_html( get_option( 'wc_blacklist_sum_total', 0 ) ); ?></strong>
+								</td>
+							</tr>
+						</tbody>
+					</table>
+
+					<hr>
+
+					<span class="bm-notice" style="display: none;">
+						<img src="<?php echo plugins_url('../../../img/shield-slash.svg', __FILE__); ?>" width="14" height="14" alt="<?php esc_attr_e('BMC Protection disabled', 'wc-blacklist-manager'); ?>">
+						<?php echo esc_html__('BMC protection is not active yet.', 'wc-blacklist-manager'); ?> <a href=""><?php echo esc_html__('[Enable]', 'wc-blacklist-manager'); ?></a>
+					</span>
+
+				</div>
+				<div class="attempts-column">
+					<label><span class="dashicons dashicons-shield-alt" style="margin-right: 5px;"></span> <?php echo esc_html__('Detection attempts', 'wc-blacklist-manager'); ?></label>
+
+					<table>
+						<tbody>
+							<tr>
+								<th>
+									• <?php echo esc_html__( 'Customer name', 'wc-blacklist-manager' ); ?>
+								</th>
+								<?php if ($premium_active): ?>
+									<?php if ($customer_name_blocking_enabled === '1'): ?>
+										<td><?php echo esc_html( get_option( 'wc_blacklist_sum_block_name', 0 ) ); ?></td>
+									<?php else : ?>
+										<td><span class="sum-disabled"><?php echo esc_html__( 'Disabled', 'wc-blacklist-manager' ); ?></span></td>
+									<?php endif; ?>
+								<?php else : ?>
+									<td><span class="sum-premium"><?php echo esc_html__( 'Premium', 'wc-blacklist-manager' ); ?></span></td>
+								<?php endif; ?>
+							</tr>
+							<tr>
+								<th>
+									• <?php echo esc_html__( 'Phone number', 'wc-blacklist-manager' ); ?>
+								</th>
+								<td><?php echo esc_html( get_option( 'wc_blacklist_sum_block_phone', 0 ) ); ?></td>
+							</tr>
+							<tr>
+								<th>
+									• <?php echo esc_html__( 'Email address', 'wc-blacklist-manager' ); ?>
+								</th>
+								<td><?php echo esc_html( get_option( 'wc_blacklist_sum_block_email', 0 ) ); ?></td>
+							</tr>
+							<tr>
+								<th>
+									• <?php echo esc_html__( 'IP address', 'wc-blacklist-manager' ); ?>
+								</th>
+								<?php if ($ip_blocking_enabled === '1' || $ip_blocking_enabled === '2'): ?>
+									<td><?php echo esc_html( get_option( 'wc_blacklist_sum_block_ip', 0 ) ); ?></td>
+								<?php else : ?>
+									<td><span class="sum-disabled"><?php echo esc_html__( 'Disabled', 'wc-blacklist-manager' ); ?></span></td>
+								<?php endif; ?>
+							</tr>
+							<tr>
+								<th>
+									• <?php echo esc_html__( 'Address', 'wc-blacklist-manager' ); ?>
+								</th>
+								<?php if ($premium_active): ?>
+									<?php if ($address_blocking_enabled === '1'): ?>
+										<td><?php echo esc_html( get_option( 'wc_blacklist_sum_block_address', 0 ) ); ?></td>
+									<?php else : ?>
+										<td><span class="sum-disabled"><?php echo esc_html__( 'Disabled', 'wc-blacklist-manager' ); ?></span></td>
+									<?php endif; ?>
+								<?php else : ?>
+									<td><span class="sum-premium"><?php echo esc_html__( 'Premium', 'wc-blacklist-manager' ); ?></span></td>
+								<?php endif; ?>
+							</tr>
+							<tr>
+								<th>
+									• <?php echo esc_html__( 'Email domain', 'wc-blacklist-manager' ); ?>
+								</th>
+								<?php if ($domain_blocking_enabled === '1'): ?>
+									<td><?php echo esc_html( get_option( 'wc_blacklist_sum_block_domain', 0 ) ); ?></td>
+								<?php else : ?>
+									<td><span class="sum-disabled"><?php echo esc_html__( 'Disabled', 'wc-blacklist-manager' ); ?></span></td>
+								<?php endif; ?>
+							</tr>
+							<tr>
+								<th>
+									<?php if ($premium_active): ?>
+										• <?php echo esc_html__( 'Other', 'wc-blacklist-manager' ); ?> - 										
+									<?php endif; ?>
+									<strong><?php echo esc_html__( 'Total', 'wc-blacklist-manager' ); ?></strong>
+								</th>
+								<td>
+									<strong><?php echo esc_html( get_option( 'wc_blacklist_sum_block_total', 0 ) ); ?></strong>
+								</td>
+							</tr>
+						</tbody>
+					</table>
+
+					<hr>
+
+					<span class="bm-actions">
+						<a href="<?php echo esc_url( admin_url( 'admin.php?page=wc-blacklist-manager-activity-logs' ) ); ?>"><?php echo esc_html__('See detection log', 'wc-blacklist-manager'); ?></a>
+						<?php if (!$premium_active): ?>
+							<a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Upgrade</a>
+						<?php endif; ?>
+					</span>
+				</div>
+			</div>
+		</div>
+	</div>
 
 	<!-- Search Form -->
 	<form method="get" action="<?php echo esc_url(admin_url('admin.php?page=wc-blacklist-manager')); ?>">

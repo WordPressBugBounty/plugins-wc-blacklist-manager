@@ -61,7 +61,7 @@ if (!defined('ABSPATH')) {
 							</p>
 						<?php endif; ?>
 						<p class="description">
-							<?php echo esc_html__('This feature updates the verification list from completed orders. If the store operates in a single country, the phone number remains unchanged. For multi-country stores, if the phone number has a leading 0, that 0 is removed and the appropriate dial code—based on the order\'s billing country—is added.', 'wc-blacklist-manager'); ?>
+							<?php echo esc_html__('This feature updates the verification list from completed orders. If the phone number already has dial code (example: +1), the phone number remains unchanged. If the phone number has a leading 0, that 0 is removed and the appropriate dial code—based on the order\'s billing country—is added, if not, then just add the dial code.', 'wc-blacklist-manager'); ?>
 						</p>
 					<?php endif; ?>
 				</td>

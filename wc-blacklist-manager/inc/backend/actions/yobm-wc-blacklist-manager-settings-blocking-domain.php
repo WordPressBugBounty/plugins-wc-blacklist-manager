@@ -23,9 +23,13 @@ class WC_Blacklist_Manager_Domain_Blocking_Actions {
 		if ($domain_blocking_action !== 'prevent') {
 			return;
 		}
+
+		$settings_instance = new WC_Blacklist_Manager_Settings();
+		$premium_active = $settings_instance->is_premium_active();
 	
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'wc_blacklist';
+		$table_detection_log = $wpdb->prefix . 'wc_blacklist_detection_log';
 	
 		$billing_email = isset($_POST['billing_email']) ? sanitize_email(wp_unslash($_POST['billing_email'])) : '';
 	
@@ -55,11 +59,38 @@ class WC_Blacklist_Manager_Domain_Blocking_Actions {
 			));
 			wp_cache_set($cache_key, $is_domain_banned, 'wc_blacklist', HOUR_IN_SECONDS);
 		}
+
+		$domain_value = ( $is_domain_banned > 0 ) ? $email_domain : '';
 	
 		if ($is_domain_banned > 0) {
 			$this->add_checkout_notice();
-			$this->send_admin_email('order', '', $billing_email, null);
+
+			$sum_block_domain = get_option('wc_blacklist_sum_block_domain', 0);
+			update_option('wc_blacklist_sum_block_domain', $sum_block_domain + 1);
+			$sum_block_total = get_option('wc_blacklist_sum_block_total', 0);
+			update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
+
+			if ($premium_active) {
+				$timestamp = current_time('mysql');
+				$type      = 'human';
+				$source    = 'woo_checkout';
+				$action    = 'block';
+				$details   = 'blocked_domain_attempt: ' . $domain_value;
+				
+				$wpdb->insert(
+					$table_detection_log,
+					array(
+						'timestamp' => $timestamp,
+						'type'      => $type,
+						'source'    => $source,
+						'action'    => $action,
+						'details'   => $details,
+					)
+				);
+			}
 		}
+
+		WC_Blacklist_Manager_Email_Order::send_email_order_block('', '', '', $domain_value);
 	}	
 
 	public function prevent_domain_registration($errors, $sanitized_user_login, $user_email) {
@@ -72,8 +103,13 @@ class WC_Blacklist_Manager_Domain_Blocking_Actions {
 
 	private function handle_domain_registration($errors, $email) {
 		if (get_option('wc_blacklist_domain_enabled', 0) && get_option('wc_blacklist_domain_registration', 0)) {
+
+			$settings_instance = new WC_Blacklist_Manager_Settings();
+			$premium_active = $settings_instance->is_premium_active();
+			
 			global $wpdb;
 			$table_name = $wpdb->prefix . 'wc_blacklist';
+			$table_detection_log = $wpdb->prefix . 'wc_blacklist_detection_log';
 
 			if (false === strpos($email, '@')) {
 				$errors->add('invalid_email', __('Invalid email address.', 'wc-blacklist-manager'));
@@ -96,66 +132,40 @@ class WC_Blacklist_Manager_Domain_Blocking_Actions {
 				wp_cache_set($cache_key, $is_domain_banned, 'wc_blacklist', HOUR_IN_SECONDS);
 			}
 
+			$domain_value = ( $is_domain_banned > 0 ) ? $email_domain : '';
+
 			if ($is_domain_banned > 0) {
-				$registration_notice = get_option('wc_blacklist_registration_notice', __('You have been blocked from registering. Think it is a mistake? Contact the administrator.', 'wc-blacklist-manager'));
-				$errors->add('domain_blocked', $registration_notice);
-				$this->send_admin_email('registration', '', $email, null);
+				wc_blacklist_add_registration_notice($errors);
+
+				$sum_block_domain = get_option('wc_blacklist_sum_block_domain', 0);
+				update_option('wc_blacklist_sum_block_domain', $sum_block_domain + 1);
+				$sum_block_total = get_option('wc_blacklist_sum_block_total', 0);
+				update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
+
+				if ($premium_active) {
+					$timestamp = current_time('mysql');
+					$type      = 'human';
+					$source    = 'register';
+					$action    = 'block';
+					$details   = 'blocked_domain_attempt: ' . $domain_value;
+					
+					$wpdb->insert(
+						$table_detection_log,
+						array(
+							'timestamp' => $timestamp,
+							'type'      => $type,
+							'source'    => $source,
+							'action'    => $action,
+							'details'   => $details,
+						)
+					);
+				}
 			}
+
+			WC_Blacklist_Manager_Email_Order::send_email_registration_block('', '', '', $domain_value);
 		}
 
 		return $errors;
-	}
-
-	private function send_admin_email($type, $phone, $email, $order_id = null) {
-		if (get_option('wc_blacklist_email_blocking_notification', 'no') !== 'yes') {
-			return;
-		}
-		
-		$admin_email = get_option('admin_email');
-		$additional_emails = get_option('wc_blacklist_additional_emails', '');
-		$subject = __('Blocked User Attempt Notification', 'wc-blacklist-manager');
-		
-		if ($type === 'order') {
-			$template_path = plugin_dir_path(__FILE__) . '../emails/templates/yobm-wc-blacklist-manager-email-template-order-detection-alert.html';
-		} elseif ($type === 'registration') {
-			$template_path = plugin_dir_path(__FILE__) . '../emails/templates/yobm-wc-blacklist-manager-email-template-registration-detection-alert.html';
-		}
-		
-		$template_content = file_get_contents($template_path);
-
-		if ($type === 'order') {
-			$message = __('A blocked user attempted to place an order.', 'wc-blacklist-manager');
-			$suspicious_order_content = __('Prevention details:', 'wc-blacklist-manager') . "<br>";
-			if (!empty($email)) {
-				$suspicious_order_content .= __('Email:', 'wc-blacklist-manager') . " $email<br>";
-			}
-
-			$template_content = str_replace(
-				['{{order_message}}', '{{order_detection_content}}'],
-				[$message, $suspicious_order_content],
-				$template_content
-			);
-		} elseif ($type === 'registration') {
-			$message = __('A blocked user attempted to register an account.', 'wc-blacklist-manager');
-			$suspicious_order_content = __('Prevention details:', 'wc-blacklist-manager') . "<br>";
-			if (!empty($email)) {
-				$suspicious_order_content .= __('Email:', 'wc-blacklist-manager') . " $email<br>";
-			}
-
-			$template_content = str_replace(
-				['{{registration_message}}', '{{registration_detection_content}}'],
-				[$message, $suspicious_order_content],
-				$template_content
-			);
-		}
-
-		$recipients = array_merge([$admin_email], explode(',', $additional_emails));
-		$recipients = array_map('trim', $recipients);
-		$recipients = array_filter($recipients);
-
-		add_filter('wp_mail_content_type', function() { return 'text/html'; });
-		wp_mail($recipients, $subject, $template_content);
-		remove_filter('wp_mail_content_type', function() { return 'text/html'; });
 	}
 }
 

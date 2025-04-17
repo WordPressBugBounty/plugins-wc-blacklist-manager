@@ -13,6 +13,12 @@ class WC_Blacklist_Manager_Notifications {
 	private $default_registration_notice;
 	private $default_vpn_proxy_registration_notice;
 	private $default_blocked_user_notice;
+	private $default_form_notice;
+	private $default_vpn_proxy_form_notice;
+
+	private $default_access_blocked_ip_message;
+	private $default_access_blocked_ip_country_message;
+	private $default_access_blocked_browser_message;
 
 	public function __construct() {
 		add_action('init', [$this, 'set_default_strings']);
@@ -28,6 +34,12 @@ class WC_Blacklist_Manager_Notifications {
 		$this->default_registration_notice = __('You have been blocked from registering. Think it is a mistake? Contact the administrator.', 'wc-blacklist-manager');
 		$this->default_vpn_proxy_registration_notice = __('Registrations from VPNs or Proxies are not allowed. Please disable your VPN or Proxy and try again.', 'wc-blacklist-manager');
 		$this->default_blocked_user_notice = __('Your account has been blocked. Think it is a mistake? Contact the administrator.', 'wc-blacklist-manager');
+		$this->default_form_notice = __('Sorry! You are no longer allowed to submit a form. If you think it is a mistake, please contact support.', 'wc-blacklist-manager');
+		$this->default_vpn_proxy_form_notice = __('Submission from VPNs or Proxies is not allowed. Please disable your VPN or Proxy and try again.', 'wc-blacklist-manager');
+
+		$this->default_access_blocked_ip_message = __('Unfortunately, your access to our website has been restricted.', 'wc-blacklist-manager');
+		$this->default_access_blocked_ip_country_message = __('Access to this site is restricted from your location.', 'wc-blacklist-manager');
+		$this->default_access_blocked_browser_message = __('Access to this site is restricted for users of your browser.', 'wc-blacklist-manager');
 	}
 
 	public function add_notification_submenu() {
@@ -54,18 +66,62 @@ class WC_Blacklist_Manager_Notifications {
 				__('Notifications', 'wc-blacklist-manager'),
 				'read',
 				'wc-blacklist-manager-notifications',
-				[$this, 'render_notification_settings']
+				[$this, 'notifications_page_content']
 			);
 		}
-	}	
-
-	public function render_notification_settings() {
+	}
+	
+	public function notifications_page_content() {
 		$settings_instance = new WC_Blacklist_Manager_Settings();
 		$premium_active = $settings_instance->is_premium_active();
-		$message = $this->handle_form_submission();
-		$data = $this->get_notification_settings();
+
+		$active_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'emails';
+		?>
+		<div class="wrap">
+			<?php if (!$premium_active): ?>
+				<p>Please support us by <a href="https://wordpress.org/support/plugin/wc-blacklist-manager/reviews/#new-post" target="_blank">leaving a review</a> <span style="color: #e26f56;">&#9733;&#9733;&#9733;&#9733;&#9733;</span> to keep updating & improving.</p>
+			<?php endif; ?>
+
+			<h1>
+				<?php echo esc_html__('Notifications', 'wc-blacklist-manager'); ?>
+				<?php if (get_option('yoohw_settings_disable_menu') != 1): ?>
+					<a href="https://yoohw.com/docs/category/woocommerce-blacklist-manager/notifications/" target="_blank" class="button button-secondary" style="display: inline-flex; align-items: center;"><span class="dashicons dashicons-editor-help"></span> Documents</a>
+				<?php endif; ?>
+				<?php if (!$premium_active): ?>
+					<a href="https://yoohw.com/contact-us/" target="_blank" class="button button-secondary"><?php esc_html_e('Support / Suggestion', 'wc-blacklist-manager'); ?></a>
+				<?php endif; ?>
+				<?php if ($premium_active && get_option('yoohw_settings_disable_menu') != 1): ?>
+					<a href="https://yoohw.com/support/" target="_blank" class="button button-secondary">Premium support</a>
+				<?php endif; ?>
+			</h1>
+
+			<h2 class="nav-tab-wrapper">
+				<a href="?page=wc-blacklist-manager-notifications&tab=emails" class="nav-tab <?php echo $active_tab == 'emails' ? 'nav-tab-active' : ''; ?>"><?php echo esc_html__('Emails', 'wc-blacklist-manager-premium'); ?></a>
+				<a href="?page=wc-blacklist-manager-notifications&tab=notices" class="nav-tab <?php echo $active_tab == 'notices' ? 'nav-tab-active' : ''; ?>"><?php echo esc_html__('Notices', 'wc-blacklist-manager-premium'); ?></a>
+			</h2>
+
+			<form method="post" enctype="multipart/form-data" action="">
+				<?php
+				wp_nonce_field('wc_blacklist_settings_action', 'wc_blacklist_settings_nonce');
+
+				if ($active_tab == 'emails') {
+					$this->render_notification_emails();
+				} elseif ($active_tab == 'notices') {
+					$this->render_notifications_notices();
+				}
+				?>
+			</form>
+		</div>
+		<?php
+	}
+
+	public function render_notification_emails() {
+		$settings_instance = new WC_Blacklist_Manager_Settings();
+		$premium_active = $settings_instance->is_premium_active();
+		$message = $this->handle_emails_form_submission();
+		$data = $this->get_notification_emails_settings();
 		$data['message'] = $message;
-		$template_path = plugin_dir_path(__FILE__) . 'views/yobm-wc-blacklist-manager-notifications-form.php';
+		$template_path = plugin_dir_path(__FILE__) . 'views/yobm-wc-blacklist-manager-notifications-emails.php';
 		
 		if (file_exists($template_path)) {
 			include $template_path;
@@ -74,56 +130,119 @@ class WC_Blacklist_Manager_Notifications {
 		}
 	}
 
-	private function handle_form_submission() {
+	public function render_notifications_notices() {
+		$settings_instance = new WC_Blacklist_Manager_Settings();
+		$premium_active = $settings_instance->is_premium_active();
+		$message = $this->handle_notices_form_submission();
+		$data = $this->get_notification_notices_settings();
+		$data['message'] = $message;
+		$template_path = plugin_dir_path(__FILE__) . 'views/yobm-wc-blacklist-manager-notifications-notices.php';
+
+		if (file_exists($template_path)) {
+			include $template_path;
+		} else {
+			echo '<div class="error"><p>Failed to load the settings template.</p></div>';
+		}
+	}
+
+	private function handle_emails_form_submission() {
 		if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['wc_blacklist_email_settings_nonce']) && wp_verify_nonce($_POST['wc_blacklist_email_settings_nonce'], 'wc_blacklist_email_settings_action')) {
-			$this->save_settings();
+			$this->save_emails_settings();
 			return __('Changes saved.', 'wc-blacklist-manager');
 		}
 		return '';
 	}
 
-	private function get_notification_settings() {
+	private function handle_notices_form_submission() {
+		if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['wc_blacklist_email_settings_nonce']) && wp_verify_nonce($_POST['wc_blacklist_email_settings_nonce'], 'wc_blacklist_email_settings_action')) {
+			$this->save_notices_settings();
+			return __('Changes saved.', 'wc-blacklist-manager');
+		}
+		return '';
+	}
+
+	private function get_notification_emails_settings() {
 		return [
+			'sender_name' => get_option('wc_blacklist_sender_name', ''),
+			'sender_address' => get_option('wc_blacklist_sender_address', ''),
+			'email_recipient' => get_option('wc_blacklist_email_recipient', ''),
+			'email_footer_text' => get_option('wc_blacklist_email_footer_text', ''),
 			'email_notification_enabled' => get_option('wc_blacklist_email_notification', 'no'),
 			'email_subject' => get_option('wc_blacklist_email_subject', $this->default_email_subject),
 			'email_message' => get_option('wc_blacklist_email_message', $this->default_email_message),
-			'additional_emails' => get_option('wc_blacklist_additional_emails', ''),
 			'email_blocking_notification_enabled' => get_option('wc_blacklist_email_blocking_notification', 'no'),
+			'email_form_suspect' => get_option('wc_blacklist_email_form_suspect', 'no'),
+			'email_form_block' => get_option('wc_blacklist_email_form_block', 'no'),
+		];
+	}
+
+	private function save_emails_settings() {
+		$sender_name = isset($_POST['wc_blacklist_sender_name']) ? sanitize_text_field($_POST['wc_blacklist_sender_name']) : '';
+		$sender_address = isset($_POST['wc_blacklist_sender_address']) ? sanitize_text_field($_POST['wc_blacklist_sender_address']) : '';
+		$email_recipient = isset($_POST['wc_blacklist_email_recipient']) ? sanitize_text_field($_POST['wc_blacklist_email_recipient']) : '';
+		$email_footer_text = isset($_POST['wc_blacklist_email_footer_text']) ? wp_kses_post($_POST['wc_blacklist_email_footer_text']) : '';
+		$email_notif_enabled = isset($_POST['wc_blacklist_email_notification']) ? 'yes' : 'no';
+		$email_subject = isset($_POST['wc_blacklist_email_subject']) ? sanitize_text_field($_POST['wc_blacklist_email_subject']) : '';
+		$email_message = isset($_POST['wc_blacklist_email_message']) ? wp_kses_post($_POST['wc_blacklist_email_message']) : '';
+		$email_blocking_notif_enabled = isset($_POST['wc_blacklist_email_blocking_notification']) ? 'yes' : 'no';
+		$email_form_suspect = isset($_POST['wc_blacklist_email_form_suspect']) ? 'yes' : 'no';
+		$email_form_block = isset($_POST['wc_blacklist_email_form_block']) ? 'yes' : 'no';
+		
+		update_option('wc_blacklist_sender_name', $sender_name);
+		update_option('wc_blacklist_sender_address', $sender_address);
+		update_option('wc_blacklist_email_recipient', $email_recipient);
+		update_option('wc_blacklist_email_footer_text', $email_footer_text);
+		update_option('wc_blacklist_email_notification', $email_notif_enabled);
+		update_option('wc_blacklist_email_subject', $email_subject);
+		update_option('wc_blacklist_email_message', $email_message);
+		update_option('wc_blacklist_email_blocking_notification', $email_blocking_notif_enabled);
+		update_option('wc_blacklist_email_form_suspect', $email_form_suspect);
+		update_option('wc_blacklist_email_form_block', $email_form_block);
+	}
+
+	private function get_notification_notices_settings() {
+		return [
 			'checkout_notice' => get_option('wc_blacklist_checkout_notice', $this->default_checkout_notice),
 			'vpn_proxy_checkout_notice' => get_option('wc_blacklist_vpn_proxy_checkout_notice', $this->default_vpn_proxy_checkout_notice),
 			'payment_method_notice' => get_option('wc_blacklist_payment_method_notice', $this->default_payment_method_notice),
 			'registration_notice' => get_option('wc_blacklist_registration_notice', $this->default_registration_notice),
 			'vpn_proxy_registration_notice' => get_option('wc_blacklist_vpn_proxy_registration_notice', $this->default_vpn_proxy_registration_notice),
-			'blocked_user_notice' => get_option('wc_blacklist_blocked_user_notice', $this->default_blocked_user_notice)
+			'blocked_user_notice' => get_option('wc_blacklist_blocked_user_notice', $this->default_blocked_user_notice),
+			'form_notice' => get_option('wc_blacklist_form_notice', $this->default_form_notice),
+			'vpn_proxy_form_notice' => get_option('wc_blacklist_vpn_proxy_form_notice', $this->default_vpn_proxy_form_notice),
+
+			'access_blocked_ip' => get_option('wc_blacklist_access_blocked_ip', $this->default_access_blocked_ip_message),
+			'access_blocked_ip_country' => get_option('wc_blacklist_access_blocked_ip_country', $this->default_access_blocked_ip_country_message),
+			'access_blocked_browser' => get_option('wc_blacklist_access_blocked_browser', $this->default_access_blocked_browser_message)
 		];
 	}
 
-	private function save_settings() {
-		$email_notif_enabled = isset($_POST['wc_blacklist_email_notification']) ? 'yes' : 'no';
-		$email_subject = isset($_POST['wc_blacklist_email_subject']) ? sanitize_text_field($_POST['wc_blacklist_email_subject']) : '';
-		$email_message = isset($_POST['wc_blacklist_email_message']) ? wp_kses_post($_POST['wc_blacklist_email_message']) : '';
-		$additional_emails = isset($_POST['wc_blacklist_additional_emails']) ? sanitize_text_field($_POST['wc_blacklist_additional_emails']) : '';
-
-		$email_blocking_notif_enabled = isset($_POST['wc_blacklist_email_blocking_notification']) ? 'yes' : 'no';
-		
+	private function save_notices_settings() {		
 		$checkout_notice = isset($_POST['wc_blacklist_checkout_notice']) && !empty($_POST['wc_blacklist_checkout_notice']) ? sanitize_text_field($_POST['wc_blacklist_checkout_notice']) : $this->default_checkout_notice;
 		$vpn_proxy_checkout_notice = isset($_POST['wc_blacklist_vpn_proxy_checkout_notice']) && !empty($_POST['wc_blacklist_vpn_proxy_checkout_notice']) ? sanitize_text_field($_POST['wc_blacklist_vpn_proxy_checkout_notice']) : $this->default_vpn_proxy_checkout_notice;
 		$payment_method_notice = isset($_POST['wc_blacklist_payment_method_notice']) && !empty($_POST['wc_blacklist_payment_method_notice']) ? sanitize_text_field($_POST['wc_blacklist_payment_method_notice']) : $this->default_payment_method_notice;
 		$registration_notice = isset($_POST['wc_blacklist_registration_notice']) && !empty($_POST['wc_blacklist_registration_notice']) ? sanitize_text_field($_POST['wc_blacklist_registration_notice']) : $this->default_registration_notice;
 		$vpn_proxy_registration_notice = isset($_POST['wc_blacklist_vpn_proxy_registration_notice']) && !empty($_POST['wc_blacklist_vpn_proxy_registration_notice']) ? sanitize_text_field($_POST['wc_blacklist_vpn_proxy_registration_notice']) : $this->default_vpn_proxy_registration_notice;
 		$blocked_user_notice = isset($_POST['wc_blacklist_blocked_user_notice']) && !empty($_POST['wc_blacklist_blocked_user_notice']) ? sanitize_text_field($_POST['wc_blacklist_blocked_user_notice']) : $this->default_blocked_user_notice;
+		$form_notice = isset($_POST['wc_blacklist_form_notice']) && !empty($_POST['wc_blacklist_form_notice']) ? sanitize_text_field($_POST['wc_blacklist_form_notice']) : $this->default_form_notice;
+		$vpn_proxy_form_notice = isset($_POST['wc_blacklist_vpn_proxy_form_notice']) && !empty($_POST['wc_blacklist_vpn_proxy_form_notice']) ? sanitize_text_field($_POST['wc_blacklist_vpn_proxy_form_notice']) : $this->default_vpn_proxy_form_notice;
+
+		$access_blocked_ip = isset($_POST['wc_blacklist_access_blocked_ip']) && !empty($_POST['wc_blacklist_access_blocked_ip']) ? sanitize_text_field($_POST['wc_blacklist_access_blocked_ip']) : $this->default_access_blocked_ip_message;
+		$access_blocked_ip_country = isset($_POST['wc_blacklist_access_blocked_ip_country']) && !empty($_POST['wc_blacklist_access_blocked_ip_country']) ? sanitize_text_field($_POST['wc_blacklist_access_blocked_ip_country']) : $this->default_access_blocked_ip_country_message;
+		$access_blocked_browser = isset($_POST['wc_blacklist_access_blocked_browser']) && !empty($_POST['wc_blacklist_access_blocked_browser']) ? sanitize_text_field($_POST['wc_blacklist_access_blocked_browser']) : $this->default_access_blocked_browser_message;
 	
-		update_option('wc_blacklist_email_notification', $email_notif_enabled);
-		update_option('wc_blacklist_email_subject', $email_subject);
-		update_option('wc_blacklist_email_message', $email_message);
-		update_option('wc_blacklist_additional_emails', $additional_emails);
-		update_option('wc_blacklist_email_blocking_notification', $email_blocking_notif_enabled);
 		update_option('wc_blacklist_checkout_notice', $checkout_notice);
 		update_option('wc_blacklist_vpn_proxy_checkout_notice', $vpn_proxy_checkout_notice);
 		update_option('wc_blacklist_payment_method_notice', $payment_method_notice);
 		update_option('wc_blacklist_registration_notice', $registration_notice);
 		update_option('wc_blacklist_vpn_proxy_registration_notice', $vpn_proxy_registration_notice);
 		update_option('wc_blacklist_blocked_user_notice', $blocked_user_notice);
+		update_option('wc_blacklist_form_notice', $form_notice);
+		update_option('wc_blacklist_vpn_proxy_form_notice', $vpn_proxy_form_notice);
+
+		update_option('wc_blacklist_access_blocked_ip', $access_blocked_ip);
+		update_option('wc_blacklist_access_blocked_ip_country', $access_blocked_ip_country);
+		update_option('wc_blacklist_access_blocked_browser', $access_blocked_browser);
 	}
 }
 

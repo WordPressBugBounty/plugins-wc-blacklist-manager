@@ -95,11 +95,7 @@ class WC_Blacklist_Manager_Button_Add_To_Blacklist {
 	
 		$phone = sanitize_text_field($order->get_billing_phone());
 		$email = sanitize_email($order->get_billing_email());
-		if ($premium_active) {
-			$ip_address = get_post_meta($order->get_id(), '_customer_ip_address', true);
-		} else {
-			$ip_address = sanitize_text_field($order->get_customer_ip_address());
-		}
+		$ip_address = sanitize_text_field($order->get_customer_ip_address());
 	
 		$address_1 = sanitize_text_field($order->get_billing_address_1());
 		$address_2 = sanitize_text_field($order->get_billing_address_2());
@@ -214,11 +210,8 @@ class WC_Blacklist_Manager_Button_Add_To_Blacklist {
 		$order = wc_get_order($order_id);
 		$phone = sanitize_text_field($order->get_billing_phone());
 		$email = sanitize_email($order->get_billing_email());
-		if ($premium_active) {
-			$ip_address = get_post_meta($order->get_id(), '_customer_ip_address', true);
-		} else {
-			$ip_address = sanitize_text_field($order->get_customer_ip_address());
-		}
+		$ip_address = sanitize_text_field($order->get_customer_ip_address());
+
 		$source = sprintf(__('Order ID: %d', 'wc-blacklist-manager'), $order_id);
 	
 		$first_name = sanitize_text_field($order->get_billing_first_name());
@@ -279,7 +272,7 @@ class WC_Blacklist_Manager_Button_Add_To_Blacklist {
 				'customer_address' => $shipping_address,
 				'is_blocked'       => 0,
 				'order_id'         => $order_id,
-				'date_added'       => current_time('mysql', 1)
+				'date_added'       => current_time('mysql')
 			];
 			$wpdb->insert($table_name, $shipping_data);
 			$shipping_blacklist_id = $wpdb->insert_id;

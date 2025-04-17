@@ -31,34 +31,66 @@ class WC_Blacklist_Manager_IP_Blacklisted {
 	}	
 
 	public function check_customer_ip_against_blacklist() {
-		if (!get_option('wc_blacklist_ip_enabled', 0) || get_option('wc_blacklist_ip_action', 'none') !== 'prevent') {
+		if ( ! get_option('wc_blacklist_ip_enabled', 0) || get_option('wc_blacklist_ip_action', 'none') !== 'prevent' ) {
 			return;
 		}
 
+		$settings_instance = new WC_Blacklist_Manager_Settings();
+		$premium_active = $settings_instance->is_premium_active();
+	
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'wc_blacklist';
+		$table_detection_log = $wpdb->prefix . 'wc_blacklist_detection_log';
 		$user_ip = $this->get_the_user_ip();
-
-		if (empty($user_ip)) {
+	
+		if ( empty( $user_ip ) ) {
 			return;
 		}
-
-		$cache_key = 'banned_ip_' . md5($user_ip);
-		$is_banned = wp_cache_get($cache_key, 'wc_blacklist');
-
-		if (false === $is_banned) {
-			$is_banned = !empty($wpdb->get_var($wpdb->prepare(
+	
+		$cache_key = 'banned_ip_' . md5( $user_ip );
+		$is_banned = wp_cache_get( $cache_key, 'wc_blacklist' );
+	
+		if ( false === $is_banned ) {
+			$is_banned = ! empty( $wpdb->get_var( $wpdb->prepare(
 				"SELECT 1 FROM `{$table_name}` WHERE ip_address = %s AND is_blocked = 1 LIMIT 1",
 				$user_ip
-			)));
-			wp_cache_set($cache_key, $is_banned, 'wc_blacklist', HOUR_IN_SECONDS);
+			) ) );
+			wp_cache_set( $cache_key, $is_banned, 'wc_blacklist', HOUR_IN_SECONDS );
 		}
-
-		if ($is_banned > 0) {
+	
+		// If the IP is banned, use the IP; otherwise, set it to an empty string.
+		$ip_value = ( $is_banned > 0 ) ? $user_ip : '';
+	
+		if ( $is_banned > 0 ) {
 			$this->add_checkout_notice();
-			$this->send_admin_email('order', '', '', $user_ip);
+
+			$sum_block_ip = get_option('wc_blacklist_sum_block_ip', 0);
+			update_option('wc_blacklist_sum_block_ip', $sum_block_ip + 1);
+			$sum_block_total = get_option('wc_blacklist_sum_block_total', 0);
+			update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
+
+			if ($premium_active) {
+				$timestamp = current_time('mysql');
+				$type      = 'human';
+				$source    = 'woo_checkout';
+				$action    = 'block';
+				$details   = 'blocked_ip_attempt: ' . $ip_value;
+				
+				$wpdb->insert(
+					$table_detection_log,
+					array(
+						'timestamp' => $timestamp,
+						'type'      => $type,
+						'source'    => $source,
+						'action'    => $action,
+						'details'   => $details,
+					)
+				);
+			}
 		}
-	}
+	
+		WC_Blacklist_Manager_Email_Order::send_email_order_block('', '', $ip_value);
+	}	
 
 	public function prevent_blocked_ip_registration($errors, $sanitized_user_login, $user_email) {
 		return $this->handle_blocked_ip_registration($errors);
@@ -70,8 +102,12 @@ class WC_Blacklist_Manager_IP_Blacklisted {
 
 	private function handle_blocked_ip_registration($errors) {
 		if (get_option('wc_blacklist_ip_enabled', 0) && get_option('wc_blacklist_block_ip_registration', 0)) {
+			$settings_instance = new WC_Blacklist_Manager_Settings();
+			$premium_active = $settings_instance->is_premium_active();
+
 			global $wpdb;
 			$table_name = $wpdb->prefix . 'wc_blacklist';
+			$table_detection_log = $wpdb->prefix . 'wc_blacklist_detection_log';
 			$user_ip = $this->get_the_user_ip();
 
 			if (empty($user_ip)) {
@@ -90,66 +126,40 @@ class WC_Blacklist_Manager_IP_Blacklisted {
 				wp_cache_set($cache_key, $ip_banned, 'wc_blacklist', HOUR_IN_SECONDS);
 			}
 
+			$ip_value = ( $ip_banned > 0 ) ? $user_ip : '';
+
 			if ($ip_banned > 0) {
-				$registration_notice = get_option('wc_blacklist_registration_notice', __('You have been blocked from registering. Think it is a mistake? Contact the administrator.', 'wc-blacklist-manager'));
-				$errors->add('ip_blocked', $registration_notice);
-				$this->send_admin_email('registration', '', '', $user_ip);
+				wc_blacklist_add_registration_notice($errors);
+
+				$sum_block_ip = get_option('wc_blacklist_sum_block_ip', 0);
+				update_option('wc_blacklist_sum_block_ip', $sum_block_ip + 1);
+				$sum_block_total = get_option('wc_blacklist_sum_block_total', 0);
+				update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
+
+				if ($premium_active) {
+					$timestamp = current_time('mysql');
+					$type      = 'human';
+					$source    = 'register';
+					$action    = 'block';
+					$details   = 'blocked_ip_attempt: ' . $ip_value;
+					
+					$wpdb->insert(
+						$table_detection_log,
+						array(
+							'timestamp' => $timestamp,
+							'type'      => $type,
+							'source'    => $source,
+							'action'    => $action,
+							'details'   => $details,
+						)
+					);
+				}
 			}
+
+			WC_Blacklist_Manager_Email_Order::send_email_registration_block('', '', $ip_value);
 		}
 
 		return $errors;
-	}
-
-	private function send_admin_email($type, $phone, $email, $ip) {
-		if (get_option('wc_blacklist_email_blocking_notification', 'no') !== 'yes') {
-			return;
-		}
-		
-		$admin_email = get_option('admin_email');
-		$additional_emails = get_option('wc_blacklist_additional_emails', '');
-		$subject = __('Blocked User Attempt Notification', 'wc-blacklist-manager');
-		
-		if ($type === 'order') {
-			$template_path = plugin_dir_path(__FILE__) . '../emails/templates/yobm-wc-blacklist-manager-email-template-order-detection-alert.html';
-		} elseif ($type === 'registration') {
-			$template_path = plugin_dir_path(__FILE__) . '../emails/templates/yobm-wc-blacklist-manager-email-template-registration-detection-alert.html';
-		}
-		
-		$template_content = file_get_contents($template_path);
-
-		if ($type === 'order') {
-			$message = __('A blocked user attempted to place an order.', 'wc-blacklist-manager');
-			$suspicious_order_content = __('Prevention details:', 'wc-blacklist-manager') . "<br>";
-			if (!empty($ip)) {
-				$suspicious_order_content .= __('IP:', 'wc-blacklist-manager') . " $ip<br>";
-			}
-
-			$template_content = str_replace(
-				['{{order_message}}', '{{order_detection_content}}'],
-				[$message, $suspicious_order_content],
-				$template_content
-			);
-		} elseif ($type === 'registration') {
-			$message = __('A blocked user attempted to register an account.', 'wc-blacklist-manager');
-			$suspicious_order_content = __('Prevention details:', 'wc-blacklist-manager') . "<br>";
-			if (!empty($ip)) {
-				$suspicious_order_content .= __('IP:', 'wc-blacklist-manager') . " $ip<br>";
-			}
-
-			$template_content = str_replace(
-				['{{registration_message}}', '{{registration_detection_content}}'],
-				[$message, $suspicious_order_content],
-				$template_content
-			);
-		}
-
-		$recipients = array_merge([$admin_email], explode(',', $additional_emails));
-		$recipients = array_map('trim', $recipients);
-		$recipients = array_filter($recipients);
-
-		add_filter('wp_mail_content_type', function() { return 'text/html'; });
-		wp_mail($recipients, $subject, $template_content);
-		remove_filter('wp_mail_content_type', function() { return 'text/html'; });
 	}
 }
 

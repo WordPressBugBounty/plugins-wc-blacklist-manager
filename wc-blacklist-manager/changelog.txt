@@ -1,6 +1,23 @@
-=== WooCommerce Blacklist Manager (Free Version) ===
+=== Blacklist Manager (Free Version) ===
 
 == Changelog ==
+
+= 2.0 (Apr 17, 2025) =
+* New: WooCommerce Blacklist Manager is now Blacklist Manager.
+* New: Blacklist supported the forms (Contact Form 7, Gravity Forms, WPForms).
+* New: Prevent submission from the blocked visitors and users.
+* New: Stats overview is now available to see a summary of blacklist entries and detection attempts.
+* New: Added the sender name, address, and recipients for email notifications.
+* Update: Some new things on the panel and pages.
+* Update: Function to send alert email to administrators.
+* Update: Function to display the registration prevention notice.
+* Fix: Duplicated settings submenu.
+* Fix: Duplicated registration prevention notice.
+* Fix: Cannot add the IP address to the blacklist from the order.
+* Fix: Avoid blocking the administrator.
+* Fix: Time zone of inserting suspected order.
+* Improve: Added translation strings to all email notifications.
+* Improve: Optimized and cleaned up.
 
 = 1.4.10 (Mar 24, 2025) =
 * Update: Adding the phone number with dial code into the verification list.

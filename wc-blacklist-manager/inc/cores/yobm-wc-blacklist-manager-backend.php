@@ -12,8 +12,8 @@ class WC_Blacklist_Manager_Backend {
 		$specific_countries = get_option('woocommerce_specific_allowed_countries', []);
 		$skip_country_code = ($allowed_countries_option === 'specific' && count($specific_countries) === 1);
 
-		$settings_instance = new WC_Blacklist_Manager_Settings();
-		$premium_active = $settings_instance->is_premium_active();
+		include_once(ABSPATH . 'wp-admin/includes/plugin.php');
+		$premium_active = (is_plugin_active('wc-blacklist-manager-premium/wc-blacklist-manager-premium.php') && get_option('wc_blacklist_manager_premium_license_status') === 'activated');
 		
 		if ($skip_country_code || !$premium_active) {
 			return;
@@ -63,10 +63,12 @@ class WC_Blacklist_Manager_Backend {
 		include_once plugin_dir_path(__FILE__) . '../backend/yobm-wc-blacklist-manager-button-add-to-blocklist.php';
 		include_once plugin_dir_path(__FILE__) . '../backend/yobm-wc-blacklist-manager-dashboard.php';
 		include_once plugin_dir_path(__FILE__) . '../backend/yobm-wc-blacklist-manager-verifications.php';
+		include_once plugin_dir_path(__FILE__) . '../backend/yobm-wc-blacklist-manager-activity.php';
 		include_once plugin_dir_path(__FILE__) . '../backend/yobm-wc-blacklist-manager-notifications.php';
 		include_once plugin_dir_path(__FILE__) . '../backend/yobm-wc-blacklist-manager-settings.php';
 		include_once plugin_dir_path(__FILE__) . '/api/sms/yobm-wc-blacklist-manager-update-sms-quota.php';
 		include_once plugin_dir_path(__FILE__) . '../backend/yoohw-menu-dashboard.php';
+		include_once plugin_dir_path(__FILE__) . '../backend/actions/sub/yobm-wc-blacklist-manager-function-helper.php';
 	}
 }
 

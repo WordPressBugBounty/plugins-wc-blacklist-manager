@@ -13,14 +13,18 @@ class WC_Blacklist_Manager_Settings {
 	}
 
 	public function add_settings_page() {
-		add_submenu_page(
-			'wc-blacklist-manager',
-			__('Settings', 'wc-blacklist-manager'),
-			__('Settings', 'wc-blacklist-manager'),
-			'manage_options',
-			'wc-blacklist-manager-settings',
-			[$this, 'render_settings_page']
-		);
+		$premium_active = $this->is_premium_active();
+
+		if (!$premium_active && current_user_can('manage_options')) {
+			add_submenu_page(
+				'wc-blacklist-manager',
+				__('Settings', 'wc-blacklist-manager'),
+				__('Settings', 'wc-blacklist-manager'),
+				'manage_options',
+				'wc-blacklist-manager-settings',
+				[$this, 'render_settings_page']
+			);
+		}
 	}
 
 	public function render_settings_page() {
@@ -45,7 +49,8 @@ class WC_Blacklist_Manager_Settings {
 			'blacklist_action' => get_option('wc_blacklist_action', 'none'),
 			'block_user_registration' => get_option('wc_blacklist_block_user_registration', 0),
 			'order_delay' => max(0, get_option('wc_blacklist_order_delay', 0)),
-			'ip_blacklist_enabled' => get_option('wc_blacklist_ip_enabled', 0),
+			'form_blocking_enabled' => get_option('wc_blacklist_form_blocking_enabled', 0),
+			'ip_blacklist_enabled' => get_option('wc_blacklist_ip_enabled', '0'),
 			'ip_blacklist_action' => get_option('wc_blacklist_ip_action', 'none'),
 			'block_ip_registration' => get_option('wc_blacklist_block_ip_registration', 0),
 			'domain_blocking_enabled' => get_option('wc_blacklist_domain_enabled', 0),
@@ -76,7 +81,8 @@ class WC_Blacklist_Manager_Settings {
 			update_option('wc_blacklist_action', $_POST['blacklist_action'] ?? 'none');
 			update_option('wc_blacklist_block_user_registration', isset($_POST['block_user_registration']) ? 1 : 0);
 			update_option('wc_blacklist_order_delay', max(0, intval($_POST['order_delay'])));
-			update_option('wc_blacklist_ip_enabled', isset($_POST['ip_blacklist_enabled']) ? 1 : 0);
+			update_option('wc_blacklist_form_blocking_enabled', isset($_POST['form_blocking_enabled']) ? 1 : 0);
+			update_option('wc_blacklist_ip_enabled', sanitize_text_field($_POST['ip_blacklist_enabled'] ?? '0'));
 			update_option('wc_blacklist_ip_action', sanitize_text_field($_POST['ip_blacklist_action'] ?? 'none'));
 			update_option('wc_blacklist_block_ip_registration', isset($_POST['block_ip_registration']) ? 1 : 0);
 			update_option('wc_blacklist_domain_enabled', isset($_POST['domain_blocking_enabled']) ? 1 : 0);
@@ -94,6 +100,10 @@ class WC_Blacklist_Manager_Settings {
 		include_once plugin_dir_path(__FILE__) . '/actions/yobm-wc-blacklist-manager-settings-blocking-ip.php';
 		include_once plugin_dir_path(__FILE__) . '/actions/yobm-wc-blacklist-manager-settings-blocking-domain.php';
 		include_once plugin_dir_path(__FILE__) . '/actions/yobm-wc-blacklist-manager-settings-blocking-user.php';
+		include_once plugin_dir_path(__FILE__) . '/actions/form/yobm-wc-blacklist-manager-contact-form-7.php';
+		include_once plugin_dir_path(__FILE__) . '/actions/form/yobm-wc-blacklist-manager-gravity-forms.php';
+		include_once plugin_dir_path(__FILE__) . '/actions/form/yobm-wc-blacklist-manager-wp-forms.php';
+		include_once plugin_dir_path(__FILE__) . '/actions/sub/yobm-wc-blacklist-manager-send-email.php';
 	}
 
 	public function is_premium_active() {
