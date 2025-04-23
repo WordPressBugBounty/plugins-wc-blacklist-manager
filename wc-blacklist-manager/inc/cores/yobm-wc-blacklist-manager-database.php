@@ -84,6 +84,8 @@ class WC_Blacklist_Manager_DB {
 	}
 
 	public function install_default_options() {
+		$premium_active = $this->is_premium_active();
+		
 		$default_email_from_name = get_bloginfo('name');
 		if ( false === get_option( 'wc_blacklist_sender_name' ) ) {
 			add_option( 'wc_blacklist_sender_name', $default_email_from_name );
@@ -101,7 +103,14 @@ class WC_Blacklist_Manager_DB {
 
 		$default_email_footer_text = 'This is an automated message. Please do not reply.<br>Blacklist Manager by <a href="https://yoohw.com">YoOhw Studio</a>';
 		if ( false === get_option( 'wc_blacklist_email_footer_text' ) ) {
-			add_option( 'wc_blacklist_email_footer_text', '0' );
+			add_option( 'wc_blacklist_email_footer_text', $default_email_footer_text );
+		}
+
+		if (!$premium_active) {
+			$current_footer_text = get_option( 'wc_blacklist_email_footer_text' );
+			if ( '0' === $current_footer_text ) {
+				update_option( 'wc_blacklist_email_footer_text', $default_email_footer_text );
+			}
 		}
 
 		if ( false === get_option( 'wc_blacklist_sum_block_name' ) ) {
@@ -345,6 +354,14 @@ class WC_Blacklist_Manager_DB {
 			$utc_time = gmdate('Y-m-d H:i:s');
 			add_option('wc_blacklist_manager_first_install_date', $utc_time);
 		}
+	}
+
+	public function is_premium_active() {
+		include_once(ABSPATH . 'wp-admin/includes/plugin.php');
+		$is_plugin_active = is_plugin_active('wc-blacklist-manager-premium/wc-blacklist-manager-premium.php');
+		$is_license_activated = (get_option('wc_blacklist_manager_premium_license_status') === 'activated');
+
+		return $is_plugin_active && $is_license_activated;
 	}
 }
 

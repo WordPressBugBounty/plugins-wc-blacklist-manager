@@ -166,7 +166,7 @@ class WC_Blacklist_Manager_Notifications {
 			'sender_name' => get_option('wc_blacklist_sender_name', ''),
 			'sender_address' => get_option('wc_blacklist_sender_address', ''),
 			'email_recipient' => get_option('wc_blacklist_email_recipient', ''),
-			'email_footer_text' => get_option('wc_blacklist_email_footer_text', ''),
+			'email_footer_text' => get_option('wc_blacklist_email_footer_text', 'This is an automated message. Please do not reply.<br>Blacklist Manager by <a href="https://yoohw.com">YoOhw Studio</a>'),
 			'email_notification_enabled' => get_option('wc_blacklist_email_notification', 'no'),
 			'email_subject' => get_option('wc_blacklist_email_subject', $this->default_email_subject),
 			'email_message' => get_option('wc_blacklist_email_message', $this->default_email_message),
@@ -180,7 +180,7 @@ class WC_Blacklist_Manager_Notifications {
 		$sender_name = isset($_POST['wc_blacklist_sender_name']) ? sanitize_text_field($_POST['wc_blacklist_sender_name']) : '';
 		$sender_address = isset($_POST['wc_blacklist_sender_address']) ? sanitize_text_field($_POST['wc_blacklist_sender_address']) : '';
 		$email_recipient = isset($_POST['wc_blacklist_email_recipient']) ? sanitize_text_field($_POST['wc_blacklist_email_recipient']) : '';
-		$email_footer_text = isset($_POST['wc_blacklist_email_footer_text']) ? wp_kses_post($_POST['wc_blacklist_email_footer_text']) : '';
+		$email_footer_text = isset($_POST['wc_blacklist_email_footer_text']) ? wp_kses_post($_POST['wc_blacklist_email_footer_text']) : 'This is an automated message. Please do not reply.<br>Blacklist Manager by <a href="https://yoohw.com">YoOhw Studio</a>';
 		$email_notif_enabled = isset($_POST['wc_blacklist_email_notification']) ? 'yes' : 'no';
 		$email_subject = isset($_POST['wc_blacklist_email_subject']) ? sanitize_text_field($_POST['wc_blacklist_email_subject']) : '';
 		$email_message = isset($_POST['wc_blacklist_email_message']) ? wp_kses_post($_POST['wc_blacklist_email_message']) : '';

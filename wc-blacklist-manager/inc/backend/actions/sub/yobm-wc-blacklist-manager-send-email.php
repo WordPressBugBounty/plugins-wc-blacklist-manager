@@ -238,30 +238,39 @@ class WC_Blacklist_Manager_Email_Order {
 		return false;
     }
 
-	public static function send_email_registration_block($phone = '', $email = '', $user_ip = '', $domain = '', $disposable_email = '') {
-        // Update our static storage with non-empty values.
-        if (!empty($phone)) {
-            self::$block_data['phone'] = $phone;
-        }
-        if (!empty($email)) {
-            self::$block_data['email'] = $email;
-        }
-        if (!empty($user_ip)) {
-            self::$block_data['user_ip'] = $user_ip;
-        }
-		if (!empty($domain)) {
-            self::$block_data['domain'] = $domain;
-        }
-		if (!empty($disposable_email)) {
-            self::$block_data['disposable_email'] = $disposable_email;
-        }
-
-        // Schedule sending the email once per request.
-        if (!self::$email_scheduled) {
-            add_action('shutdown', array(__CLASS__, 'send_merged_email_registration'));
-            self::$email_scheduled = true;
-        }
-    }
+	public static function send_email_registration_block( $phone = '', $email = '', $user_ip = '', $domain = '', $disposable_email = '' ) {
+		// if all inputs are empty, do nothing
+		if ( empty( $phone ) 
+		  && empty( $email ) 
+		  && empty( $user_ip ) 
+		  && empty( $domain ) 
+		  && empty( $disposable_email ) ) {
+			return;
+		}
+	
+		// Update our static storage with non-empty values.
+		if ( ! empty( $phone ) ) {
+			self::$block_data['phone'] = $phone;
+		}
+		if ( ! empty( $email ) ) {
+			self::$block_data['email'] = $email;
+		}
+		if ( ! empty( $user_ip ) ) {
+			self::$block_data['user_ip'] = $user_ip;
+		}
+		if ( ! empty( $domain ) ) {
+			self::$block_data['domain'] = $domain;
+		}
+		if ( ! empty( $disposable_email ) ) {
+			self::$block_data['disposable_email'] = $disposable_email;
+		}
+	
+		// Schedule sending the email once per request.
+		if ( ! self::$email_scheduled ) {
+			add_action( 'shutdown', [ __CLASS__, 'send_merged_email_registration' ] );
+			self::$email_scheduled = true;
+		}
+	}	
 
 	public static function send_merged_email_registration() {
 		// Retrieve sender and recipient settings.

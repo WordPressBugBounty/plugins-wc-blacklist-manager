@@ -3,7 +3,7 @@
  * Plugin Name: Blacklist Manager
  * Plugin URI: https://wordpress.org/plugins/wc-blacklist-manager
  * Description: Easily helps site owners to avoid unwanted customers and users.
- * Version: 2.0
+ * Version: 2.0.1
  * Author: YoOhw.com
  * Author URI: https://yoohw.com
  * License: GPL v2 or later

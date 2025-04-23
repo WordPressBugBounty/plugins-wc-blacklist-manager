@@ -151,8 +151,6 @@ class WC_Blacklist_Manager_Blocklisted_Actions {
 			)));
 
 			if ($email_blocked) {
-				wc_blacklist_add_registration_notice($errors);
-
 				$sum_block_email = get_option('wc_blacklist_sum_block_email', 0);
 				update_option('wc_blacklist_sum_block_email', $sum_block_email + 1);
 				$sum_block_total = get_option('wc_blacklist_sum_block_total', 0);
@@ -176,6 +174,8 @@ class WC_Blacklist_Manager_Blocklisted_Actions {
 						)
 					);
 				}
+				
+				wc_blacklist_add_registration_notice($errors);
 			} else {
 				$email = '';
 			}

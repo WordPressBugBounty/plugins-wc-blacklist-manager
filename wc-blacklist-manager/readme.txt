@@ -5,7 +5,7 @@ Requires at least: 6.3
 Tested up to: 6.8
 WC tested up to: 9.8
 Requires PHP: 5.6
-Stable tag: 2.0
+Stable tag: 2.0.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -121,7 +121,7 @@ Plugin integrations:
 * [Payment Plugins for Stripe WooCommerce](https://wordpress.org/plugins/woo-stripe-payment/). 
 
 Service integrations:
-* [Google reCaptcha v3/v2](https://www.google.com/recaptcha/about/)
+* [reCaptcha v3/v2](https://www.google.com/recaptcha/about/)
 * [hCaptcha](https://www.hcaptcha.com/)
 * [ip-api](https://ip-api.com/)
 * [IPinfo](https://ipinfo.io/)
@@ -164,6 +164,10 @@ A: The logic of the Blacklist Manager plugin is that to prevent the blocked cust
 A: There is no set limit within the plugin, but practical limitations depend on your server and database performance.
 
 == Changelog ==
+
+= 2.0.1 (Apr 23, 2025) =
+* Fix: Avoid to trigger sending email of registration blocking notifications.
+* Fix: Incorrect email notifications footer.
 
 = 2.0 (Apr 17, 2025) =
 * New: WooCommerce Blacklist Manager is now Blacklist Manager.
