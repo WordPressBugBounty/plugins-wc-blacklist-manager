@@ -90,7 +90,7 @@ class WC_Blacklist_Manager_Domain_Blocking_Actions {
 			}
 		}
 
-		WC_Blacklist_Manager_Email_Order::send_email_order_block('', '', '', $domain_value);
+		WC_Blacklist_Manager_Email::send_email_order_block('', '', '', $domain_value);
 	}	
 
 	public function prevent_domain_registration($errors, $sanitized_user_login, $user_email) {
@@ -162,7 +162,7 @@ class WC_Blacklist_Manager_Domain_Blocking_Actions {
 				}
 			}
 
-			WC_Blacklist_Manager_Email_Order::send_email_registration_block('', '', '', $domain_value);
+			WC_Blacklist_Manager_Email::send_email_registration_block('', '', '', $domain_value);
 		}
 
 		return $errors;

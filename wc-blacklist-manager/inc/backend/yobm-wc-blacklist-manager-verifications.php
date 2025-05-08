@@ -172,6 +172,7 @@ class WC_Blacklist_Manager_Verifications {
 			'email_verification_real_time_validate' => get_option('wc_blacklist_email_verification_real_time_validate', '0'),
 			'phone_verification_enabled' => get_option('wc_blacklist_phone_verification_enabled', '0'),
 			'phone_verification_action' => get_option('wc_blacklist_phone_verification_action', 'all'),
+			'sms_service' => get_option('yoohw_sms_service', 'yo_credits'),
 			'phone_verification_sms_key' => get_option('yoohw_phone_verification_sms_key', ''),
 			'phone_verification_code_length' => $phone_verification_settings['code_length'],
 			'phone_verification_resend' => $phone_verification_settings['resend'],
@@ -218,6 +219,9 @@ class WC_Blacklist_Manager_Verifications {
 			'message' => $message,
 		];
 		$phone_verification_failed_email = isset($_POST['phone_verification_failed_email']) ? '1' : '0';
+		$sms_service = isset($_POST['sms_service']) 
+			? sanitize_text_field(wp_unslash($_POST['sms_service'])) 
+			: 'yo_credits';
 		$phone_verification_real_time_validate = isset($_POST['phone_verification_real_time_validate']) ? '1' : '0';
 		$name_verification_auto_capitalization = isset($_POST['name_verification_auto_capitalization']) ? '1' : '0';
 		$name_verification_real_time_validate = isset($_POST['name_verification_real_time_validate']) ? '1' : '0';
@@ -233,6 +237,7 @@ class WC_Blacklist_Manager_Verifications {
 		update_option('wc_blacklist_phone_verification_action', $phone_verification_action);
 		update_option('wc_blacklist_phone_verification', $phone_verification_settings);
 		update_option('wc_blacklist_phone_verification_failed_email', $phone_verification_failed_email);
+		update_option('yoohw_sms_service', $sms_service);
 		update_option('wc_blacklist_phone_verification_real_time_validate', $phone_verification_real_time_validate);
 		update_option('wc_blacklist_name_verification_auto_capitalization', $name_verification_auto_capitalization);
 		update_option('wc_blacklist_name_verification_real_time_validate', $name_verification_real_time_validate);

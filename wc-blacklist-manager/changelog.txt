@@ -2,6 +2,10 @@
 
 == Changelog ==
 
+= 2.0.2 (May 8, 2025) =
+* Fix: The block email notification option did not work correctly.
+* Improve: Minor improvement.
+
 = 2.0.1 (Apr 23, 2025) =
 * Fix: Avoid to trigger sending email of registration blocking notifications.
 * Fix: Incorrect email notifications footer.

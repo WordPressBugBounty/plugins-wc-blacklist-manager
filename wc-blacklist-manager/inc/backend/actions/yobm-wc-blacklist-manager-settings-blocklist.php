@@ -125,7 +125,7 @@ class WC_Blacklist_Manager_Blocklisted_Actions {
 			wc_add_notice( $checkout_notice, 'error' );
 
 			// Trigger the email with only the blocked values
-			WC_Blacklist_Manager_Email_Order::send_email_order_block( $billing_phone, $billing_email );
+			WC_Blacklist_Manager_Email::send_email_order_block( $billing_phone, $billing_email );
 		}
 	}
 	
@@ -149,12 +149,18 @@ class WC_Blacklist_Manager_Blocklisted_Actions {
 				"SELECT 1 FROM {$table_name} WHERE email_address = %s AND is_blocked = 1 LIMIT 1",
 				$email
 			)));
+			$email_suspected = !empty($wpdb->get_var($wpdb->prepare(
+				"SELECT 1 FROM {$table_name} WHERE email_address = %s AND is_blocked = 0 LIMIT 1",
+				$email
+			)));
 
 			if ($email_blocked) {
 				$sum_block_email = get_option('wc_blacklist_sum_block_email', 0);
 				update_option('wc_blacklist_sum_block_email', $sum_block_email + 1);
 				$sum_block_total = get_option('wc_blacklist_sum_block_total', 0);
 				update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
+
+				WC_Blacklist_Manager_Email::send_email_registration_block( '', $email );
 
 				if ($premium_active) {
 					$timestamp = current_time('mysql');
@@ -176,11 +182,35 @@ class WC_Blacklist_Manager_Blocklisted_Actions {
 				}
 				
 				wc_blacklist_add_registration_notice($errors);
+			} elseif ($email_suspected) {
+				$sum_block_email = get_option('wc_blacklist_sum_block_email', 0);
+				update_option('wc_blacklist_sum_block_email', $sum_block_email + 1);
+				$sum_block_total = get_option('wc_blacklist_sum_block_total', 0);
+				update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
+
+				WC_Blacklist_Manager_Email::send_email_registration_suspect( '', $email );
+
+				if ($premium_active) {
+					$timestamp = current_time('mysql');
+					$type      = 'human';
+					$source    = 'register';
+					$action    = 'suspect';
+					$details   = 'suspected_email_attempt: ' . $email;
+					
+					$wpdb->insert(
+						$table_detection_log,
+						array(
+							'timestamp' => $timestamp,
+							'type'      => $type,
+							'source'    => $source,
+							'action'    => $action,
+							'details'   => $details,
+						)
+					);
+				}
 			} else {
 				$email = '';
 			}
-
-			WC_Blacklist_Manager_Email_Order::send_email_registration_block( '', $email );
 		}
 		return $errors;
 	}

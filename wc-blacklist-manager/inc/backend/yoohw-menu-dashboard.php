@@ -5,9 +5,7 @@ if (!defined('ABSPATH')) {
 }
 
 if (!class_exists('Yo_Ohw_Menu')) {
-	class Yo_Ohw_Menu {
-		private $main_product_id;
-	
+	class Yo_Ohw_Menu {	
 		public function __construct() {
 			global $yo_ohw_menu_added;
 	
@@ -22,7 +20,6 @@ if (!class_exists('Yo_Ohw_Menu')) {
 				$yo_ohw_menu_added = true;
 			}
 			
-			$this->main_product_id = $this->get_main_product_id();
 		}
 	
 		public function add_menu() {
@@ -129,8 +126,14 @@ if (!class_exists('Yo_Ohw_Menu')) {
 		
 				<h2 style="font-size: 20px; font-weight: bold; margin-bottom: 20px;">Our products</h2>
 				<p>All products come with a free version and work together effortlessly.</p>
-				<!-- Empty products container for lazyload -->
-				<div class="products-grid" id="products-grid">
+
+				<h3>For WooCommerce</h3>
+				<div class="products-grid" id="products-grid-woocommerce">
+					<p>Loading products...</p>
+				</div>
+
+				<h3>For WordPress</h3>
+				<div class="products-grid" id="products-grid-wordpress">
 					<p>Loading products...</p>
 				</div>
 			</div>
@@ -141,70 +144,79 @@ if (!class_exists('Yo_Ohw_Menu')) {
 				background: '<?php echo esc_attr($colors['background']); ?>',
 				color: '<?php echo esc_attr($colors['color']); ?>'
 			};
-		
+
 			// Wait for the DOM to load
 			document.addEventListener('DOMContentLoaded', function(){
-				fetch("https://yoohw.com/wp-json/yoohw/v1/products?category=17")
-				.then(function(response) {
-					return response.json();
-				})
-				.then(function(products) {
-					var grid = document.getElementById('products-grid');
-					grid.innerHTML = ''; // clear loading message
-		
-					products.forEach(function(product) {
-						grid.innerHTML += generateProductCard(product, colors);
+
+				// Helper to fetch and render a category into a given grid
+				function loadProducts(categoryId, gridSelector) {
+					var grid = document.querySelector(gridSelector);
+					grid.innerHTML = '<p>Loading products...</p>';
+
+					fetch("https://yoohw.com/wp-json/yoohw/v1/products?category=" + categoryId)
+					.then(function(response) {
+						return response.json();
+					})
+					.then(function(products) {
+						grid.innerHTML = '';
+						products.forEach(function(product) {
+							grid.innerHTML += generateProductCard(product, colors);
+						});
+						// Ensure always 4 columns
+						var additionalCount = 4 - products.length;
+						for (var i = 0; i < additionalCount; i++) {
+							grid.innerHTML += '<div style="box-sizing:border-box; padding:10px; border:1px solid #ddd; border-radius:5px; visibility:hidden;"></div>';
+						}
+					})
+					.catch(function() {
+						grid.innerHTML = '<div class="error"><p>No additional products found.</p></div>';
 					});
-		
-					// Optionally fill empty columns if needed (to always fill 4 columns)
-					var additionalCount = 4 - products.length;
-					for(var i = 0; i < additionalCount; i++){
-						grid.innerHTML += '<div style="box-sizing: border-box; padding: 10px; border: 1px solid #ddd; border-radius: 5px; text-align: center; visibility: hidden;"></div>';
-					}
-				})
-				.catch(function(error) {
-					var grid = document.getElementById('products-grid');
-					grid.innerHTML = '<div class="error"><p>No additional products found.</p></div>';
-				});
+				}
+
+				// Load WooCommerce (category 17)
+				loadProducts(17, '#products-grid-woocommerce');
+
+				// Load WordPress (category 70)
+				loadProducts(70, '#products-grid-wordpress');
+
 			});
-		
+
 			function generateProductCard(product, colors) {
 				var image = '';
 				if (product.images && product.images.length > 0) {
 					image = '<a href="' + product.permalink + '" target="_blank">' +
-								'<img src="' + product.images[0].src + '" alt="' + product.name + '" style="max-width: 100%; height: auto; margin-bottom: 10px;">' +
+								'<img src="' + product.images[0].src + '" alt="' + product.name + '" style="max-width:100%; height:auto; margin-bottom:10px;">' +
 							'</a>';
 				}
-		
+
 				var price_info = getProductPrice(product);
-		
-				return '<div style="box-sizing: border-box; padding: 10px; border: 1px solid #ddd; border-radius: 5px; text-align: center;">' +
-							image +
-							'<h3 style="font-size: 16px; margin-bottom: 10px;">' + product.name + '</h3>' +
-							'<p style="font-size: 14px; margin-bottom: 10px;">Price: ' + price_info + '</p>' +
-							'<a href="' + product.permalink + '" target="_blank" style="display: inline-block; padding: 5px 10px; background-color: ' + colors.background + '; color: ' + colors.color + '; text-decoration: none; border-radius: 5px;">View details</a>' +
-						'</div>';
+
+				return '<div style="box-sizing:border-box; padding:10px 10px 20px; background-color: #fff; border:1px solid #ddd; border-radius:5px; text-align:center;">' +
+						image +
+						'<h3 style="font-size:16px; margin-bottom:10px;">' + product.name + '</h3>' +
+						'<p style="font-size:14px; margin-bottom:10px;">Price: ' + price_info + '</p>' +
+						'<a href="' + product.permalink + '" target="_blank" style="display:inline-block; padding:5px 10px; background-color:' + colors.background + '; color:' + colors.color + '; text-decoration:none; border-radius:5px;">View details</a>' +
+					'</div>';
 			}
-		
+
 			function getProductPrice(product) {
 				var currency = '$';
-				if (product.type === 'variable' || product.type === 'variable-subscription') {
-					return product.price_data ? product.price_data : 'Price unavailable';
-				} else if (product.type === 'subscription') {
+				if (product.type === 'variable' || product.type === 'variable-subscription' || product.type === 'subscription') {
 					return product.price_data ? product.price_data : 'Price unavailable';
 				} else {
 					if (!product.regular_price || product.regular_price == 0) {
 						return 'Free';
 					}
 					if (product.sale_price) {
-						return '<span style="text-decoration: line-through; color: red;">' + currency + product.regular_price + '</span> ' +
-							   '<span style="color: green;">' + currency + product.sale_price + '</span>';
+						return '<span style="text-decoration:line-through; color:red;">' + currency + product.regular_price + '</span> ' +
+							'<span style="color:green;">' + currency + product.sale_price + '</span>';
 					} else {
 						return currency + product.regular_price;
 					}
 				}
 			}
 			</script>
+
 			<?php
 		}		
 	
@@ -233,90 +245,7 @@ if (!class_exists('Yo_Ohw_Menu')) {
 				<a href="https://yoohw.com/contact-us" target="_blank" style="display: inline-block; padding: 10px; background-color: ' . esc_attr($colors['background']) . '; color: ' . esc_attr($colors['color']) . '; text-decoration: none; border-radius: 5px;">Contact us</a></div>';
 				
 		}
-	
-		private function generate_posts_list($posts) {
-			if (empty($posts)) {
-				return '<p>No articles found.</p>';
-			}
-	
-			$html = '<ul>';
-			foreach (array_slice($posts, 0, 2) as $post) {
-				$image = !empty($post['_embedded']['wp:featuredmedia'][0]['source_url']) ? '<img src="' . esc_url($post['_embedded']['wp:featuredmedia'][0]['source_url']) . '" alt="' . esc_attr($post['title']['rendered']) . '">' : '';
-				$html .= '<li>' . $image . '<a href="' . esc_url($post['link']) . '" target="_blank">' . esc_html($post['title']['rendered']) . '</a></li>';
-			}
-			$html .= '</ul>';
-			return $html;
-		}
-	
-		private function generate_product_card($product, $colors) {
-			$price_info = $this->get_product_price($product);
-			$image = !empty($product['images']) ? '<a href="' . esc_url($product['permalink']) . '" target="_blank"><img src="' . esc_url($product['images'][0]['src']) . '" alt="' . esc_attr($product['name']) . '" style="max-width: 100%; height: auto; margin-bottom: 10px;"></a>' : '';
-		
-			return '
-				<div style="box-sizing: border-box; padding: 10px; border: 1px solid #ddd; border-radius: 5px; text-align: center;">
-					' . $image . '
-					<h3 style="font-size: 16px; margin-bottom: 10px;">' . esc_html($product['name']) . '</h3>
-					<p style="font-size: 14px; margin-bottom: 10px;">Price: ' . $price_info . '</p>
-					<a href="' . esc_url($product['permalink']) . '" target="_blank" style="display: inline-block; padding: 5px 10px; background-color: ' . esc_attr($colors['background']) . '; color: ' . esc_attr($colors['color']) . '; text-decoration: none; border-radius: 5px;">View details</a>
-				</div>';
-		}
-		
-		private function get_product_price($product) {
-			$currency = '$'; // Customize if needed
-		
-			if ( in_array($product['type'], ['variable', 'variable-subscription']) ) {
-				return !empty($product['price_data']) ? esc_html($product['price_data']) : 'Price unavailable';
-			} elseif ( $product['type'] === 'subscription' ) {
-				// Use the subscription price string from the API
-				return !empty($product['price_data']) ? esc_html($product['price_data']) : 'Price unavailable';
-			} else {
-				if ( empty($product['regular_price']) || $product['regular_price'] == 0 ) {
-					return 'Free';
-				}
-				if ( !empty($product['sale_price']) ) {
-					return '<span style="text-decoration: line-through; color: red;">' . $currency . esc_html($product['regular_price']) . '</span> <span style="color: green;">' . $currency . esc_html($product['sale_price']) . '</span>';
-				} else {
-					return $currency . esc_html($product['regular_price']);
-				}
-			}
-		}		
-		
-		private function fill_empty_columns($count) {
-			$html = '';
-			for ($i = 0; $i < $count; $i++) {
-				$html .= '<div style="box-sizing: border-box; padding: 10px; border: 1px solid #ddd; border-radius: 5px; text-align: center; visibility: hidden;"></div>';
-			}
-			return $html;
-		}
-	
-		private function get_additional_products() {
-			$category_id = 17; // Use your actual category id
-			// Update the URL to point to the custom API endpoint
-			$response = $this->api_request("https://yoohw.com/wp-json/yoohw/v1/products?category={$category_id}");
-			
-			if (empty($response)) {
-				return [];
-			}
-			
-			// Optionally filter out the main product if needed
-			return array_filter($response, fn($product) => $product['id'] !== $this->main_product_id);
-		}
-	
-		private function api_request($url) {
-			$response = wp_remote_get($url); // No auth header needed if endpoint is public.
-			
-			if (is_wp_error($response)) {
-				return [];
-			}
-			
-			return json_decode(wp_remote_retrieve_body($response), true);
-		}
-	
-		private function get_main_product_id() {
-			return 0; // Default main product ID, adjust as necessary
-		}
 	}
-	
 
 	// Instantiate the class
 	new Yo_Ohw_Menu();

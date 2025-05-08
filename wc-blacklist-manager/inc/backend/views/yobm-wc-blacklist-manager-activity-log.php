@@ -42,7 +42,7 @@ $logs = $wpdb->get_results(
 	<?php endif; ?>
 
 	<h1>
-		<?php echo esc_html__('Detection log', 'wc-blacklist-manager'); ?>
+		<?php echo esc_html__('Activity logs', 'wc-blacklist-manager'); ?>
 		<?php if (get_option('yoohw_settings_disable_menu') != 1): ?>
 			<a href="https://yoohw.com/docs/category/woocommerce-blacklist-manager/activity-logs/" target="_blank" class="button button-secondary" style="display: inline-flex; align-items: center;"><span class="dashicons dashicons-editor-help"></span> Documents</a>
 		<?php endif; ?>

@@ -171,6 +171,8 @@ class WC_Blacklist_Manager_Notifications {
 			'email_subject' => get_option('wc_blacklist_email_subject', $this->default_email_subject),
 			'email_message' => get_option('wc_blacklist_email_message', $this->default_email_message),
 			'email_blocking_notification_enabled' => get_option('wc_blacklist_email_blocking_notification', 'no'),
+			'email_register_suspect' => get_option('wc_blacklist_email_register_suspect', 'no'),
+			'email_register_block' => get_option('wc_blacklist_email_register_block', 'no'),
 			'email_form_suspect' => get_option('wc_blacklist_email_form_suspect', 'no'),
 			'email_form_block' => get_option('wc_blacklist_email_form_block', 'no'),
 		];
@@ -185,6 +187,8 @@ class WC_Blacklist_Manager_Notifications {
 		$email_subject = isset($_POST['wc_blacklist_email_subject']) ? sanitize_text_field($_POST['wc_blacklist_email_subject']) : '';
 		$email_message = isset($_POST['wc_blacklist_email_message']) ? wp_kses_post($_POST['wc_blacklist_email_message']) : '';
 		$email_blocking_notif_enabled = isset($_POST['wc_blacklist_email_blocking_notification']) ? 'yes' : 'no';
+		$email_register_suspect = isset($_POST['wc_blacklist_email_register_suspect']) ? 'yes' : 'no';
+		$email_register_block = isset($_POST['wc_blacklist_email_register_block']) ? 'yes' : 'no';
 		$email_form_suspect = isset($_POST['wc_blacklist_email_form_suspect']) ? 'yes' : 'no';
 		$email_form_block = isset($_POST['wc_blacklist_email_form_block']) ? 'yes' : 'no';
 		
@@ -196,6 +200,8 @@ class WC_Blacklist_Manager_Notifications {
 		update_option('wc_blacklist_email_subject', $email_subject);
 		update_option('wc_blacklist_email_message', $email_message);
 		update_option('wc_blacklist_email_blocking_notification', $email_blocking_notif_enabled);
+		update_option('wc_blacklist_email_register_suspect', $email_register_suspect);
+		update_option('wc_blacklist_email_register_block', $email_register_block);
 		update_option('wc_blacklist_email_form_suspect', $email_form_suspect);
 		update_option('wc_blacklist_email_form_block', $email_form_block);
 	}

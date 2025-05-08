@@ -89,7 +89,7 @@ class WC_Blacklist_Manager_IP_Blacklisted {
 			}
 		}
 	
-		WC_Blacklist_Manager_Email_Order::send_email_order_block('', '', $ip_value);
+		WC_Blacklist_Manager_Email::send_email_order_block('', '', $ip_value);
 	}	
 
 	public function prevent_blocked_ip_registration($errors, $sanitized_user_login, $user_email) {
@@ -126,15 +126,22 @@ class WC_Blacklist_Manager_IP_Blacklisted {
 				wp_cache_set($cache_key, $ip_banned, 'wc_blacklist', HOUR_IN_SECONDS);
 			}
 
-			$ip_value = ( $ip_banned > 0 ) ? $user_ip : '';
+			$ip_suspect = ! empty( $wpdb->get_var( $wpdb->prepare(
+				"SELECT 1 FROM `{$table_name}` WHERE ip_address = %s AND is_blocked = 0 LIMIT 1",
+				$user_ip
+			) ) );
 
-			if ($ip_banned > 0) {
+			$ip_value = $ip_banned || $ip_suspect ? $user_ip : '';
+
+			if ($ip_banned) {
 				wc_blacklist_add_registration_notice($errors);
 
 				$sum_block_ip = get_option('wc_blacklist_sum_block_ip', 0);
 				update_option('wc_blacklist_sum_block_ip', $sum_block_ip + 1);
 				$sum_block_total = get_option('wc_blacklist_sum_block_total', 0);
 				update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
+
+				WC_Blacklist_Manager_Email::send_email_registration_block('', '', $ip_value);
 
 				if ($premium_active) {
 					$timestamp = current_time('mysql');
@@ -154,9 +161,33 @@ class WC_Blacklist_Manager_IP_Blacklisted {
 						)
 					);
 				}
-			}
+			} elseif ( $ip_suspect ) {
+				$sum_block_ip = get_option('wc_blacklist_sum_block_ip', 0);
+				update_option('wc_blacklist_sum_block_ip', $sum_block_ip + 1);
+				$sum_block_total = get_option('wc_blacklist_sum_block_total', 0);
+				update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
 
-			WC_Blacklist_Manager_Email_Order::send_email_registration_block('', '', $ip_value);
+				WC_Blacklist_Manager_Email::send_email_registration_suspect('', '', $ip_value);
+
+				if ($premium_active) {
+					$timestamp = current_time('mysql');
+					$type      = 'human';
+					$source    = 'register';
+					$action    = 'suspect';
+					$details   = 'suspected_ip_attempt: ' . $ip_value;
+					
+					$wpdb->insert(
+						$table_detection_log,
+						array(
+							'timestamp' => $timestamp,
+							'type'      => $type,
+							'source'    => $source,
+							'action'    => $action,
+							'details'   => $details,
+						)
+					);
+				}
+			}
 		}
 
 		return $errors;

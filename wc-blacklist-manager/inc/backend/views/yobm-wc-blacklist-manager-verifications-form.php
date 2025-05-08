@@ -106,20 +106,68 @@ if (!defined('ABSPATH')) {
 					<p class="description"><?php echo esc_html__('Add {site_name}, {code} where you want them to appear.', 'wc-blacklist-manager'); ?></p>
 				</td>
 			</tr>
-			<tr id="phone_verification_failed_email_row" style="<?php echo (!empty($data['phone_verification_enabled'])) ? '' : 'display: none;'; ?>">
+			<?php if ($premium_active): ?>
+				<tr>
+					<th scope="row">
+						<span class="dashicons dashicons-admin-site"></span>
+						<label for="sms_service"><?php echo esc_html__('SMS service', 'wc-blacklist-manager'); ?></label>
+					</th>
+					<td>
+						<select id="sms_service" name="sms_service">
+							<option value="yo_credits" <?php selected($data['sms_service'], 'yo_credits'); ?>><?php esc_html_e( 'Yo Credits', 'wc-blacklist-manager' ); ?></option>
+							<option value="twilio" <?php selected($data['sms_service'], 'twilio'); ?>>Twilio</option>
+							<option value="textmagic" <?php selected($data['sms_service'], 'textmagic'); ?>>Textmagic</option>
+						</select>
+						<p id="sms_service_description" style="<?php echo ($data['sms_service'] !== 'yo_credits') ? '' : 'display: none;'; ?>" class="description">
+							<?php
+							/* translators: %1$s: opening <a> tag to the integrations tab, %2$s: closing </a> tag */
+							printf(
+								wp_kses(
+									__( 'Go to %1$sIntegrations%2$s to set up the service. If you do not see your favorite service here, please let us know.', 'wc-blacklist-manager' ),
+									[
+										'a' => [
+											'href'   => [],
+											'target' => [],
+										],
+									]
+								),
+								'<a href="' . esc_url( admin_url( 'admin.php?page=wc-blacklist-manager-settings&tab=integrations' ) ) . '" target="_blank">',
+								'</a>'
+							);
+							// Contact link
+							echo ' ';
+							?>
+							<a href="<?php echo esc_url( 'https://yoohw.com/contact-us' ); ?>" target="_blank">
+								<?php esc_html_e( 'Contact us', 'wc-blacklist-manager' ); ?>
+							</a>
+						</p>
+					</td>
+				</tr>
+			<?php endif; ?>
+			<?php if (!$premium_active): ?>
+				<tr>
+					<th scope="row">
+						<span class="dashicons dashicons-admin-site"></span>
+						<label for="sms_service"><?php echo esc_html__('SMS service', 'wc-blacklist-manager'); ?></label>
+					</th>
+					<td>
+						<select id="sms_service" name="sms_service">
+							<option value="" disabled <?php echo $data['sms_service'] !== 'yo_credits' ? 'selected' : ''; ?>>
+								<?php esc_html_e( 'Unknown', 'wc-blacklist-manager' ); ?>
+							</option>
+							<option value="yo_credits" <?php selected( $data['sms_service'], 'yo_credits' ); ?>>
+								<?php esc_html_e( 'Yo Credits', 'wc-blacklist-manager' ); ?>
+							</option>
+							<option disabled>Twilio</option>
+							<option disabled>Textmagic</option>
+						</select>
+						<p class="description"><?php echo esc_html__('Go premium to unlock other popular SMS services', 'wc-blacklist-manager'); ?> <a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Upgrade</a>
+					</td>
+				</tr>
+			<?php endif; ?>
+			<tr id="phone_verification_sms_key_row" style="<?php echo ($data['sms_service'] === 'yo_credits') ? '' : 'display: none;'; ?>">
 				<th scope="row">
-					<label for="phone_verification_failed_email" class="label_child"><?php echo esc_html__('Failed verification notify', 'wc-blacklist-manager'); ?></label>
-				</th>
-				<td>
-					<input type="checkbox" id="phone_verification_failed_email" name="phone_verification_failed_email" value="1" <?php checked(!empty($data['phone_verification_failed_email'])); ?>>
-					<label for="phone_verification_failed_email"><?php echo esc_html__('Enable the email notification to admin if it has failed sending verification code', 'wc-blacklist-manager'); ?></label>
-					<p class="description"><?php echo esc_html__('You can add the additional email in the "Recipient(s)" option in the "Notifications" menu.', 'wc-blacklist-manager'); ?></p>
-				</td>
-			</tr>
-			<tr>
-				<th scope="row">
-					<span class="dashicons dashicons-admin-site"></span>
-					<label for="phone_verification_sms_key"><?php echo esc_html__('Yo Credits key', 'wc-blacklist-manager'); ?></label>
+					<label for="phone_verification_sms_key" class="label_child"><?php echo esc_html__('Yo Credits key', 'wc-blacklist-manager'); ?></label>
 				</th>
 				<td>
 					<input type="text" id="phone_verification_sms_key" name="phone_verification_sms_key" value="<?php echo esc_attr($data['phone_verification_sms_key'] ?? ''); ?>" readonly>
@@ -141,10 +189,9 @@ if (!defined('ABSPATH')) {
 					</p>
 				</td>
 			</tr>
-			<tr>
+			<tr id="phone_verification_sms_quota_row" style="<?php echo ($data['sms_service'] === 'yo_credits') ? '' : 'display: none;'; ?>">
 				<th scope="row">
-					<span class="dashicons dashicons-admin-site"></span>
-					<label for="phone_verification_sms_quota"><?php echo esc_html__('Credit quota', 'wc-blacklist-manager'); ?></label>
+					<label for="phone_verification_sms_quota" class="label_child"><?php echo esc_html__('Quota', 'wc-blacklist-manager'); ?></label>
 				</th>
 				<td>
 					<?php
@@ -172,6 +219,16 @@ if (!defined('ABSPATH')) {
 						<?php endif; ?>
 					</p>
 					<p><a href="https://yoohw.com/product/sms-credits/" target="_blank" class="button button-secondary"><?php echo esc_html__('Purchase Yo Credits', 'wc-blacklist-manager'); ?></a></p>
+				</td>
+			</tr>
+			<tr id="phone_verification_failed_email_row" style="<?php echo ($data['sms_service'] === 'yo_credits') ? '' : 'display: none;'; ?>">
+				<th scope="row">
+					<label for="phone_verification_failed_email" class="label_child"><?php echo esc_html__('Failed verification notify', 'wc-blacklist-manager'); ?></label>
+				</th>
+				<td>
+					<input type="checkbox" id="phone_verification_failed_email" name="phone_verification_failed_email" value="1" <?php checked(!empty($data['phone_verification_failed_email'])); ?>>
+					<label for="phone_verification_failed_email"><?php echo esc_html__('Enable the email notification to admin if it has failed sending verification code', 'wc-blacklist-manager'); ?></label>
+					<p class="description"><?php echo esc_html__('You can add the additional email in the "Recipient(s)" option in the "Notifications" menu.', 'wc-blacklist-manager'); ?></p>
 				</td>
 			</tr>
 			<?php if ($premium_active): ?>
@@ -333,8 +390,12 @@ if (!defined('ABSPATH')) {
 			document.addEventListener('DOMContentLoaded', function () {
 				var emailVerificationCheckbox = document.getElementById('email_verification_enabled');
 				var phoneVerificationCheckbox = document.getElementById('phone_verification_enabled');
+				var smsService = document.getElementById('sms_service');
 				var phoneVerificationRealtimeValidateCheckbox = document.getElementById('phone_verification_real_time_validate');
 				var nameVerificationRealtimeValidateCheckbox = document.getElementById('name_verification_real_time_validate');
+
+				var phoneVerificationSmsKeyRow = document.getElementById('phone_verification_sms_key_row');
+				var phoneVerificationSmsQuotaRow = document.getElementById('phone_verification_sms_quota_row');
 
 				if (emailVerificationCheckbox) {
 					emailVerificationCheckbox.addEventListener('change', function () {
@@ -357,6 +418,7 @@ if (!defined('ABSPATH')) {
 				var emailVerificationContentRow = document.getElementById('email_verification_email_content_row');
 				var phoneVerificationActionRow = document.getElementById('phone_verification_action_row');
 				var phoneVerificationSmsSettingsRow = document.getElementById('phone_verification_sms_settings_row');
+				var smsServiceDescriptionRow = document.getElementById('sms_service_description');
 				var phoneVerificationFailedEmailRow = document.getElementById('phone_verification_failed_email_row');
 				var phoneVerificationFormatValidateRow = document.getElementById('phone_verification_format_validate_row');
 				var nameVerificationFormatValidateRow = document.getElementById('name_verification_format_validate_row');
@@ -376,7 +438,14 @@ if (!defined('ABSPATH')) {
 					var isChecked = this.checked;
 					toggleDisplay(phoneVerificationActionRow, isChecked);
 					toggleDisplay(phoneVerificationSmsSettingsRow, isChecked);
-					toggleDisplay(phoneVerificationFailedEmailRow, isChecked);
+				});
+
+				smsService.addEventListener('change', function () {
+					toggleDisplay(phoneVerificationSmsKeyRow, this.value === 'yo_credits');
+					toggleDisplay(phoneVerificationSmsQuotaRow, this.value === 'yo_credits');
+					toggleDisplay(phoneVerificationFailedEmailRow, this.value === 'yo_credits');
+					toggleDisplay(smsServiceDescriptionRow, this.value !== 'yo_credits');
+					
 				});
 
 				if (phoneVerificationRealtimeValidateCheckbox) {
@@ -401,7 +470,7 @@ if (!defined('ABSPATH')) {
 				if (smsKeyInput.value) {
 					generateKeyButton.style.display = 'none';
 					copyKeyButton.style.display = 'inline-block';
-					smsKeyMessage.textContent = 'Use this key when you purchase Yo credits.';
+					smsKeyMessage.textContent = 'Use this key when you purchase Yo Credits.';
 				} else {
 					generateKeyButton.style.display = 'inline-block';
 					copyKeyButton.style.display = 'none';
@@ -435,7 +504,7 @@ if (!defined('ABSPATH')) {
 							generateKeyButton.style.display = 'none';
 							copyKeyButton.style.display = 'inline-block';
 							// Update the description
-							smsKeyMessage.textContent = '<?php echo esc_js(__('Use this key when you purchase Yo credits.', 'wc-blacklist-manager')); ?>';
+							smsKeyMessage.textContent = '<?php echo esc_js(__('Use this key when you purchase Yo Credits.', 'wc-blacklist-manager')); ?>';
 							alert(response.data.message);
 						} else {
 							var errorMsg = response && response.data && response.data.message 

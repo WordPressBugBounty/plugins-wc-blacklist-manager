@@ -140,6 +140,18 @@ class WC_Blacklist_Manager_DB {
 		if ( false === get_option( 'wc_blacklist_sum_block_total' ) ) {
 			add_option( 'wc_blacklist_sum_block_total', '0' );
 		}
+
+		if ( false === get_option( 'wc_blacklist_email_notification' ) ) {
+			add_option( 'wc_blacklist_email_notification', 'yes' );
+		}
+
+		if ( false === get_option( 'wc_blacklist_email_register_suspect' ) ) {
+			add_option( 'wc_blacklist_email_register_suspect', 'yes' );
+		}
+
+		if ( false === get_option( 'wc_blacklist_email_form_suspect' ) ) {
+			add_option( 'wc_blacklist_email_form_suspect', 'yes' );
+		}
 	}
 
 	public function install_count_options() {

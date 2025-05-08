@@ -84,7 +84,7 @@ if (!defined('ABSPATH')) {
 					</th>
 					<td>
 						<input type="checkbox" id="form_blocking_enabled" name="form_blocking_enabled" value="1" <?php checked($settings['form_blocking_enabled']); ?>>
-						<label for="form_blocking_enabled"><?php echo esc_html__('Enable the blacklist (suspects and blocklist) for phone and email fields', 'wc-blacklist-manager'); ?></label>
+						<label for="form_blocking_enabled"><?php echo esc_html__('Enable the blacklist (suspects and blocklist) for Contact Forms 7, Gravity Forms, and WPForms', 'wc-blacklist-manager'); ?></label>
 						<p class="description"><?php echo esc_html__('Notify the admin if a suspected phone or email is submitting, and prevent submitting if they were blocked.', 'wc-blacklist-manager'); ?></p>
 					</td>
 				</tr>

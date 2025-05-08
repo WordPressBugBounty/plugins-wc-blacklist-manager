@@ -4,7 +4,7 @@ if (!defined('ABSPATH')) {
 	exit;
 }
 
-class WC_Blacklist_Manager_Email_Order {
+class WC_Blacklist_Manager_Email {
 	public function send_email_order_suspect($order_id, $customer_name, $phone, $email, $user_ip, $customer_address, $shipping_address, $order_edit_url) {
 		// Retrieve sender and recipient settings.
 		$sender_name    = get_option( 'wc_blacklist_sender_name' );
@@ -118,6 +118,10 @@ class WC_Blacklist_Manager_Email_Order {
 		$disposable_phone = '', 
 		$disposable_email = ''
 		) {
+		if ( 'yes' !== get_option( 'wc_blacklist_email_blocking_notification', 'no' ) ) {
+			return;
+		}
+		
         // Update our static storage with non-empty values.
         if (!empty($phone)) {
             self::$block_data['phone'] = $phone;
@@ -238,8 +242,94 @@ class WC_Blacklist_Manager_Email_Order {
 		return false;
     }
 
+	public static function send_email_registration_suspect( $phone = '', $email = '', $user_ip = '' ) {
+		$settings_instance = new WC_Blacklist_Manager_Settings();
+		$premium_active = $settings_instance->is_premium_active();
+
+		if ( !$premium_active || 'yes' !== get_option( 'wc_blacklist_email_register_suspect', 'no' ) ) {
+			return;
+		}
+
+		if ( empty( $phone ) 
+		  && empty( $email ) 
+		  && empty( $user_ip ) ) {
+			return;
+		}
+	
+		// Update our static storage with non-empty values.
+		if ( ! empty( $phone ) ) {
+			self::$block_data['phone'] = $phone;
+		}
+		if ( ! empty( $email ) ) {
+			self::$block_data['email'] = $email;
+		}
+		if ( ! empty( $user_ip ) ) {
+			self::$block_data['user_ip'] = $user_ip;
+		}
+	
+		// Schedule sending the email once per request.
+		if ( ! self::$email_scheduled ) {
+			add_action( 'shutdown', [ __CLASS__, 'send_merged_email_suspect_registration' ] );
+			self::$email_scheduled = true;
+		}
+	}	
+
+	public static function send_merged_email_suspect_registration() {
+		$sender_name    = get_option( 'wc_blacklist_sender_name' );
+		$sender_address = get_option( 'wc_blacklist_sender_address' );
+		$recipient      = get_option( 'wc_blacklist_email_recipient' );
+		$footer_text    = get_option( 'wc_blacklist_email_footer_text' );
+		
+		$subject = __( 'Suspected user registration detected', 'wc-blacklist-manager' );
+
+        $content = __( 'A visitor has registered an account with suspected data:', 'wc-blacklist-manager' ) . '<br><br>';
+        if (!empty(self::$block_data['phone'])) {
+            $content .= '• ' . sprintf(__('Suspected phone: %s', 'wc-blacklist-manager'), esc_html(self::$block_data['phone'])) . '<br>';
+        }
+        if (!empty(self::$block_data['email'])) {
+            $content .= '• ' . sprintf(__('Suspected email: %s', 'wc-blacklist-manager'), esc_html(self::$block_data['email'])) . '<br>';
+        }
+        if (!empty(self::$block_data['user_ip'])) {
+            $content .= '• ' . sprintf(__('Suspected IP: %s', 'wc-blacklist-manager'), esc_html(self::$block_data['user_ip'])) . '<br>';
+        }
+
+        if (empty($content)) {
+            return;
+        }
+
+        // Load the HTML email template.
+		$template_path = plugin_dir_path( __FILE__ ) . '../../emails/templates/default.html';
+		if ( file_exists( $template_path ) ) {
+			$template = file_get_contents( $template_path );
+	
+			// Replace template placeholders.
+			$heading = __( 'Suspicious registration!', 'wc-blacklist-manager' );
+			$message = str_replace(
+				array( '{{heading}}', '{{content}}', '{{footer}}' ),
+				array( $heading, $content, $footer_text ),
+				$template
+			);
+	
+			// Configure email headers.
+			$headers = array(
+				'Content-Type: text/html; charset=UTF-8',
+				'From: ' . $sender_name . ' <' . $sender_address . '>',
+			);
+	
+			// Send the email.
+			return wp_mail( $recipient, $subject, $message, $headers );
+		}
+		return false;
+    }
+
 	public static function send_email_registration_block( $phone = '', $email = '', $user_ip = '', $domain = '', $disposable_email = '' ) {
-		// if all inputs are empty, do nothing
+		$settings_instance = new WC_Blacklist_Manager_Settings();
+		$premium_active = $settings_instance->is_premium_active();
+
+		if ( !$premium_active || 'yes' !== get_option( 'wc_blacklist_email_register_block', 'no' ) ) {
+			return;
+		}
+
 		if ( empty( $phone ) 
 		  && empty( $email ) 
 		  && empty( $user_ip ) 

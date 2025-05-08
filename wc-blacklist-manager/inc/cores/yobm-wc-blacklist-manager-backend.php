@@ -30,7 +30,10 @@ class WC_Blacklist_Manager_Backend {
 		wp_enqueue_script( 'yobm-dashboard-form', plugin_dir_url( __FILE__ ) . '../../js/yobm-wc-blacklist-manager-dashboard-phone-dial-code.js', array(), '1.0.0', true );
 
 		$country_code = 'us';
-		$response = wp_remote_get( 'http://ip-api.com/json' );
+
+		$ip       = get_real_customer_ip();
+		$response = wp_remote_get( 'http://ip-api.com/json/' . $ip );
+	
 		if ( ! is_wp_error( $response ) ) {
 			$body = wp_remote_retrieve_body( $response );
 			$data = json_decode( $body, true );

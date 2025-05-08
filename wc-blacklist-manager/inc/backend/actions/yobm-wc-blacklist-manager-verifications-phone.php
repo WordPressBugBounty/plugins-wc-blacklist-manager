@@ -222,7 +222,14 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 	
 		wp_schedule_single_event($timestamp + $this->verification_expiration_seconds, 'wc_blacklist_manager_cleanup_verification_code', [$user_id, $phone]);
 	
-		$this->send_verification_sms($phone, $verification_code);
+		$service = get_option( 'yoohw_sms_service', 'yo_credits' );
+		if ( $service === 'yo_credits' ) {
+			$this->send_verification_sms($phone, $verification_code);
+		} elseif ( $service === 'twilio' ) {
+			WC_Blacklist_Manager_Premium_Verifications_Service::send_verification_sms_twilio($phone, $verification_code);
+		} elseif ($service === 'textmagic') {
+			WC_Blacklist_Manager_Premium_Verifications_Service::send_verification_sms_textmagic($phone, $verification_code);
+		}
 	}
 
 	private function send_verification_sms( $phone, $verification_code ) {
@@ -532,7 +539,7 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 	
 		$error_message = isset( $response_data['message'] ) ? $response_data['message'] : 'Unknown error occurred while sending SMS.';
 	
-		$template_path = trailingslashit( plugin_dir_path( __FILE__ ) ) . '../emails/templates/yobm-wc-blacklist-manager-email-template-phone-verificaiton-failed.html';
+		$template_path = trailingslashit( plugin_dir_path( __FILE__ ) ) . '../emails/templates/sms-failed.html';
 	
 		if ( file_exists( $template_path ) ) {
 			$html_template = file_get_contents( $template_path );

@@ -1,36 +1,38 @@
-=== Blacklist Manager - Anti-Fraud / Verification for WooCommerce, Contact Form 7, Gravity, WPForms ===
+=== Blacklist Manager – WooCommerce Anti-Fraud & Spam Prevention (Contact Form 7, Gravity Forms, WPForms) ===
 Contributors: yoohw, baonguyen0310
-Tags: blacklist customers, block ip, fraud prevention, woocommerce anti fraud, Prevent fake orders
+Tags: blacklist customers, spam prevention, fraud prevention, woocommerce anti fraud, Prevent fake orders
 Requires at least: 6.3
 Tested up to: 6.8
 WC tested up to: 9.8
 Requires PHP: 5.6
-Stable tag: 2.0.1
+Stable tag: 2.0.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Easily helps site owners to avoid unwanted customers and users.
+An anti-fraud and spam prevention plugin for WooCommerce and WordPress forms.
 
 == Description ==
 
-Blacklist Manager is a powerful security tool for WordPress that helps protect your site from fraudulent activity and spam submissions. Originally built for WooCommerce, it now extends its protection to popular form plugins including Contact Form 7, Gravity Forms, and WPForms.
+Blacklist Manager is a powerful anti-fraud and spam-prevention plugin for WooCommerce and WordPress forms. It blocks fraudulent orders, fake registrations, and spam form submissions by banning IPs, email addresses, and phone numbers at checkout or on contact forms. With real-time blacklist checks, you can stop chargebacks, unwanted sign-ups, and abusive bots before they hit your store. 
 
 Easily blacklist phone numbers, email addresses, IP addresses, and email domains to block unwanted users from placing orders, submitting forms, canceling transactions, or registering accounts. Whether you're running an online store or collecting leads through forms, Blacklist Manager adds a critical layer of defense to your site.
+
+Originally built for WooCommerce, it now extends its protection to popular form plugins including Contact Form 7, Gravity Forms, and WPForms.
 
 [Premium version](https://yoohw.com/product/woocommerce-blacklist-manager-premium/) | [Documentation](https://yoohw.com/docs/category/woocommerce-blacklist-manager/) | [Support](https://yoohw.com/support/)  | [Demo](https://sandbox.yoohw.com/create-sandbox-user/)
 
 == Features ==
 
-* **Blacklist Management**: Suspects, Blocklist for Phone number, Email address, IP address and Domain.
-* **Friendly Controller**: Easily add the phone number, email address, ip address from the Edit Order page; multi ip addresses/domains addition into blocking list.
+* **Real-Time Blacklist Blocking**: Instantly block customers by IP, email, or phone number during checkout or form submission.
+* **Easy Blacklist Management**: Easily add the phone number, email address, ip address from the order page; multi ip addresses/domains addition into blocking list.
 * **Multi Notifications**: Email, alert and error notices for both admin and users are customizable.
-* **Prevent Ordering**: Option to prevent the customer place an order if their email/phone/ip/domain is on the Blocklist.
+* **WooCommerce Order Protection**: Prevent fake orders, duplicate orders, and fraudulent transactions.
 * **Prevent Registration**: Option to prevent registration if the email/ip/domain is on the Blocklist.
-* **Prevent Submission**: Block form submissions from Contact Form 7, Gravity Forms, and WPForms if the phone number or email address is on the Blocklist.
+* **Form Spam Shield**: Integrates with Contact Form 7, Gravity Forms, WPForms—blocks blacklist matches on all major WordPress forms.
 * **Timed Cancellation**: Option to cancel the order if the email/phone is on the Blocklist in the delay of time.
 * **Email Verification**: Customers are required to verify their email by entering a code sent to them during checkout to complete their order.
 * **Phone Verification**: Customers must verify their phone number by entering an SMS code received during checkout before proceeding with their order.
-* **User Blocking**: When the order has been placed by a user and has been added to the Blocklist, then the user is also set as blocked
+* **User Blocking**: When the order has been placed by a user and has been added to the Blocklist, then the user is also set as blocked.
 
 == Premium Features ==
 
@@ -39,7 +41,7 @@ Building on the robust features of the free version, the premium version offers 
 **Advanced Blocking**
 
 * **Customer Name Blocking**: Adds the first and last name of the customer to the blocklist.
-* **Address Blacklisting**: Block orders from specific addresses listed in your blocklist.
+* **Address Blacklisting**: Block orders from specific billing and shipping addresses listed in your blocklist.
 * **Prevent Submission**: Block form submissions from Contact Form 7, Gravity Forms, and WPForms if the IP address is on the Blocklist.
 * **Prevent VPN & Proxy Submission**: Automatically block form submissions and registrations if the visitor is using a Proxy server or VPN connection.
 * **IP Access Prevention**: Stop users from accessing your website from IP countries that you have selected.
@@ -72,18 +74,19 @@ With intelligent validation logic, the plugin checks for:
 
 * **Name Validation**: Detects invalid characters, excessive spaces, repeated characters, and ensures adherence to your custom length rules.
 * **Email Validation**: Confirms that email addresses are correctly formatted and free from common typos or invalid domains.
-* **Phone Validation**: Verifies phone numbers against predefined formats and country codes, with optional integration for SMS-based verification.
+* **Phone Validation**: Verifies phone numbers against predefined formats and country codes, with optional integration for SMS-based verification with the popular services Twilio and Textmagic.
 
 This real-time validation not only improves the user experience by providing instant feedback but also ensures that your customer database remains accurate and clean.
 
-**Prevent Orders from Bots**
+**Prevent Orders and Access from Bots**
 
-This solution secures your WooCommerce checkout with a combination of Google reCAPTCHA v3, v2, hCaptcha and an invisible honeypot trap to block bot-generated orders. Key features include:
+Protect every corner of your website and WooCommerce store with our comprehensive bot-blocking solution, now with expanded coverage for user authentication flows. Key features include:
 
-* **Advanced bot detection**: Uses AI-driven behavioral analysis and hidden honeypot fields to stop spam.
-* **Seamless user experience**: Invisible security layers ensure a frictionless checkout for legitimate users.
-* **API protection**: Safeguards the checkout process from bots attempting to place orders via API access.
-* **Efficient and lightweight**: Protects your store without impacting performance.
+* **Advanced bot detection**: AI-driven behavioral analysis stops spam bots in checkout, login, and registration forms alike.
+* **Seamless user experience**: Invisible security layers—Google reCAPTCHA v3, v2, Cloudflare Turnstile, and hCaptcha—ensure legitimate customers sail through checkout, login, and signup without friction.
+* **Expanded form protection**: Require CAPTCHA challenges on login and registration pages to block automated account creation and credential stuffing attacks.
+* **API protection**: Safeguards your checkout, login, and registration endpoints from bots abusing your REST API.
+* **Efficient and lightweight**: Delivers enterprise-grade security across all forms without slowing down your store.
 
 **Blacklist Connection for Multiple Sites**
 
@@ -122,15 +125,16 @@ Plugin integrations:
 
 Service integrations:
 * [reCaptcha v3/v2](https://www.google.com/recaptcha/about/)
+* [Cloudflare](https://www.cloudflare.com/)
 * [hCaptcha](https://www.hcaptcha.com/)
 * [ip-api](https://ip-api.com/)
-* [IPinfo](https://ipinfo.io/)
 * [Usercheck](https://www.usercheck.com/)
 * [ZeroBounce](https://www.zerobounce.net?ref=owqwzgy) 
 * [NumCheckr](https://numcheckr.com/)
 * [Google Maps Platform](https://mapsplatform.google.com/)
 * [Yo Credits](https://yoohw.com/product/sms-credits/)
-* [Cloudflare](https://www.cloudflare.com/)
+* [Twilio](https://www.twilio.com/)
+* [Textmagic](https://www.textmagic.com/)
 
 **Premium Support**
 
@@ -143,6 +147,13 @@ Service integrations:
 
 With these premium features and dedicated support, the Blacklist Manager Premium plugin provides unparalleled security and efficiency, giving you peace of mind and allowing you to focus on growing your business.
 
+== Use Cases ==
+
+* Stop fraudulent WooCommerce orders and prevent chargebacks.
+* Block spam submissions on registration or contact forms.
+* Enforce email/phone verification at checkout.
+* Maintain a dynamic blacklist across your entire WordPress site.
+
 == Installation ==
 
 1. **Upload Plugin**: Download the plugin and upload it to your WordPress site under `wp-content/plugins`.
@@ -154,16 +165,26 @@ With these premium features and dedicated support, the Blacklist Manager Premium
 **Q: Do I need to configure any settings after installation?**  
 A: Yes, additional configuration is needed for the plugin to work as your expectation. Go to menu Blacklist Manager > Settings.
 
-**Q: Why is there a Suspects list for?**
+**Q: What is the purpose of the ‘Suspects’ list?**
 A: You don't want to lose customers carelessly, do you? That's why there should be the Suspects list, for you to marked the customers and suspect them a while before you decide to block them or not.
 
 **Q: Can this plugin prevent the customer to checkout through a separate payment page such as Paypal, Stripe etc..?**
 A: The logic of the Blacklist Manager plugin is that to prevent the blocked customer can checkout through your website, the payment gateways have nothing to do with that. So, the answer is absolutely YES.
 
+**Q: Can this plugin stop contact form spam?**
+A: Yes, Blacklist Manager integrates with Contact Form 7, Gravity Forms, and WPForms to block form submissions from blacklisted emails or phone numbers.
+
 **Q: Is there a limit to the number of entries I can add to the blacklist?**  
 A: There is no set limit within the plugin, but practical limitations depend on your server and database performance.
 
+**Q: Does Blacklist Manager slow down my site?**
+A: No, the plugin is optimized for performance. It performs blacklist checks efficiently and only at appropriate times (like form submission or checkout), so it won’t noticeably impact your site speed.
+
 == Changelog ==
+
+= 2.0.2 (May 8, 2025) =
+* Fix: The block email notification option did not work correctly.
+* Improve: Minor improvement.
 
 = 2.0.1 (Apr 23, 2025) =
 * Fix: Avoid to trigger sending email of registration blocking notifications.
