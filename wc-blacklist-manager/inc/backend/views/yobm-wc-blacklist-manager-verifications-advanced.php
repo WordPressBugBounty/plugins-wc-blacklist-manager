@@ -9,7 +9,7 @@ if (!defined('ABSPATH')) {
 
 	<form method="post" action="">
 		<?php if (!$premium_active): ?>
-			<h2 class='premium-text'><?php echo esc_html__('Tools', 'wc-blacklist-manager'); ?> <a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Upgrade</a></h2>
+			<h2 class='premium-text'><?php echo esc_html__('Tools', 'wc-blacklist-manager'); ?> <a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a></h2>
 		<?php endif; ?>
 
 		<?php if ($premium_active): ?>

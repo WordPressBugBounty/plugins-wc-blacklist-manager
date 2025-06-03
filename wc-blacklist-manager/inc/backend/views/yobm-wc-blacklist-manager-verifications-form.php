@@ -57,7 +57,7 @@ if (!defined('ABSPATH')) {
 					</th>
 					<td>
 						<input type="checkbox" disabled>
-						<label class="premium-text"><?php echo esc_html__('Enable real-time automatic email address validation on the register and checkout pages', 'wc-blacklist-manager'); ?></label> <a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Upgrade</a>
+						<label class="premium-text"><?php echo esc_html__('Enable real-time automatic email address validation on the register and checkout pages', 'wc-blacklist-manager'); ?></label> <a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a>
 						<p class="premium-text"><?php echo esc_html__('Avoid bounces, spam complaints, spam traps, or wrong types in the email address field by mistake.', 'wc-blacklist-manager'); ?> <a href="https://yoohw.com/docs/woocommerce-blacklist-manager/verifications/email-verification/#real-time-validation" target="_blank"><?php echo esc_html__('Know more', 'wc-blacklist-manager'); ?></a></p>
 					</td>
 				</tr>
@@ -161,7 +161,7 @@ if (!defined('ABSPATH')) {
 							<option disabled>Twilio</option>
 							<option disabled>Textmagic</option>
 						</select>
-						<p class="description"><?php echo esc_html__('Go premium to unlock other popular SMS services', 'wc-blacklist-manager'); ?> <a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Upgrade</a>
+						<p class="description"><?php echo esc_html__('Go premium to unlock other popular SMS services', 'wc-blacklist-manager'); ?> <a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a>
 					</td>
 				</tr>
 			<?php endif; ?>
@@ -262,7 +262,7 @@ if (!defined('ABSPATH')) {
 					</th>
 					<td>
 						<input type="checkbox" disabled>
-						<label class="premium-text"><?php echo esc_html__('Enable real-time automatic phone number format validation on the checkout page', 'wc-blacklist-manager'); ?></label> <a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Upgrade</a>
+						<label class="premium-text"><?php echo esc_html__('Enable real-time automatic phone number format validation on the checkout page', 'wc-blacklist-manager'); ?></label> <a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a>
 						<p class="premium-text"><?php echo esc_html__('Avoid wrong types by mistake, automatically corrected in the phone number field.', 'wc-blacklist-manager'); ?> <a href="https://yoohw.com/docs/woocommerce-blacklist-manager/verifications/phone-verification/#real-time-validation" target="_blank"><?php echo esc_html__('Know more', 'wc-blacklist-manager'); ?></a></p>
 					</td>
 				</tr>
@@ -287,7 +287,7 @@ if (!defined('ABSPATH')) {
 		<?php endif; ?>
 
 		<?php if (!$premium_active): ?>
-			<h2 class="premium-text"><?php echo esc_html__('Name verification', 'wc-blacklist-manager'); ?> <a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Upgrade</a></h2>
+			<h2 class="premium-text"><?php echo esc_html__('Name verification', 'wc-blacklist-manager'); ?> <a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a></h2>
 		<?php endif; ?>
 
 		<table class="form-table">
@@ -333,7 +333,7 @@ if (!defined('ABSPATH')) {
 					</th>
 					<td>
 						<input type="checkbox" disabled>
-						<label class="premium-text"><?php echo esc_html__('Enable automatic capitalization of the customer first and last name', 'wc-blacklist-manager'); ?></label> <a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Upgrade</a>
+						<label class="premium-text"><?php echo esc_html__('Enable automatic capitalization of the customer first and last name', 'wc-blacklist-manager'); ?></label> <a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a>
 						<p class="premium-text"><?php echo esc_html__('It will be auto-capitalized on the customer name on the checkout and edit account pages.', 'wc-blacklist-manager'); ?> <a href="https://yoohw.com/docs/woocommerce-blacklist-manager/verifications/name-verification" target="_blank"><?php echo esc_html__('Know more', 'wc-blacklist-manager'); ?></a></p>
 					</td>
 				</tr>
@@ -344,7 +344,7 @@ if (!defined('ABSPATH')) {
 					</th>
 					<td>
 						<input type="checkbox" disabled>
-						<label class="premium-text"><?php echo esc_html__('Enable real-time automatic customer name format validation on the checkout page', 'wc-blacklist-manager'); ?></label> <a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Upgrade</a>
+						<label class="premium-text"><?php echo esc_html__('Enable real-time automatic customer name format validation on the checkout page', 'wc-blacklist-manager'); ?></label> <a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a>
 						<p class="premium-text"><?php echo esc_html__('Avoid meaningless, spammy names in the first and last name fields.', 'wc-blacklist-manager'); ?> <a href="https://yoohw.com/docs/woocommerce-blacklist-manager/verifications/name-verification/#real-time-validation" target="_blank"><?php echo esc_html__('Know more', 'wc-blacklist-manager'); ?></a></p>
 					</td>
 				</tr>

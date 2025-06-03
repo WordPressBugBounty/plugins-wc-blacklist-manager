@@ -64,27 +64,22 @@ class WC_Blacklist_Manager_Notices {
 		$user_id = get_current_user_id();
 	  
 		// Check if user is administrator and notice hasn't been dismissed
-		if (current_user_can('administrator') && get_user_meta($user_id, 'wc_blacklist_manager_ads_notice_dismissed_17425', true) !== 'yes') {
+		if (!$premium_active && current_user_can('administrator') && get_user_meta($user_id, 'wc_blacklist_manager_ads_notice_dismissed_17425', true) !== 'yes') {
 		    echo '<div class="notice notice-info yobm-ads is-dismissible">
-				  <p>WooCommerce Blacklist Manager is now <b>Blacklist Manager</b> — a more powerful and flexible solution to protect your entire WordPress site.</p>
+				  <p>🔒 Unlock Premium Protection!</b></p>
 					
-				  <p>We’ve expanded beyond WooCommerce! The plugin now also supports:<br>
-					✅ Contact Form 7<br>
-					✅ Gravity Forms<br>
-					✅ WPForms
-					</p>
+				  <p>Get advanced automatic blacklist rules, real-time updates, and VIP support.</p>
 
-					<p>Enjoy the same reliable blacklist protections — now across your forms and not just at checkout. Thanks for growing with us!
-					</p>
-				  <p><a href="#" onclick="WC_Blacklist_Manager_Admin_Notice.dismissAdsNotice()" class="button-secondary">Dismiss</a> <a href="https://yoohw.com/product/woocommerce-blacklist-manager-premium/" class="button-primary">Go Premium!</a></p>
+				  <p><a href="#" onclick="WC_Blacklist_Manager_Admin_Notice.dismissAdsNotice()" class="button-secondary">Dismiss</a> <a href="https://yoohw.com/product/woocommerce-blacklist-manager-premium/" class="button-primary">👉 Upgrade Today</a></p>
 			    </div>';
 		}
 
-		if (!$premium_active && current_user_can('administrator') && get_user_meta($user_id, 'wc_blacklist_manager_ads_notice_dismissed_7325', true) !== 'yes') {
-			echo '<div class="notice notice-info yobm-ads is-dismissible" style="display: none;">
-					<p><strong>New Feature: Blacklist Connection!</strong> Unite your store blacklists into one powerful network for improved fraud defense. <a href="https://yoohw.com/docs/woocommerce-blacklist-manager/settings/connection/" target="_blank"><strong>Learn More</strong></a><br>
-					Ideal for multi-store owners and agencies managing numerous client sites—save time and boost security.</p>
-					<p><a href="#" onclick="WC_Blacklist_Manager_Admin_Notice.dismissAdsNotice()" style="margin-right: 10px;">Dismiss</a> <a href="https://yoohw.com/product/woocommerce-blacklist-manager-premium/" target="_blank" class="button button-primary">Go Premium Now</a></p>
+		if (!$premium_active && current_user_can('administrator') && get_user_meta($user_id, 'wc_blacklist_manager_ads_notice_dismissed_3625', true) !== 'yes') {
+			echo '<div class="notice notice-info yobm-ads is-dismissible">
+					<p>🔔 <strong>June Exclusive: Get 1 Year Free of WooCommerce Advanced Account Premium!</strong> ⏳<br>
+					🚀 Upgrade to <strong>Blacklist Manager Premium</strong> this June and receive 1 year free of WooCommerce Advanced Account Premium — limited-time offer!</p>
+					<p><a href="#" onclick="WC_Blacklist_Manager_Admin_Notice.dismissAdsNotice()" style="margin-right: 10px;">Dismiss</a> 
+					<a href="https://yoohw.com/product/woocommerce-blacklist-manager-premium/" target="_blank" class="button button-primary">Get It Now</a></p>
 				</div>';
 		}
 
@@ -145,7 +140,7 @@ class WC_Blacklist_Manager_Notices {
 			};
 		";
 
-		wp_add_inline_script('jquery-core', $script);
+		wp_add_inline_script('jquery', $script);
 	}
 	
 	public function never_show_notice() {
@@ -164,7 +159,7 @@ class WC_Blacklist_Manager_Notices {
 		check_ajax_referer('dismiss_ads_notice_nonce', 'security');
 		$user_id = get_current_user_id();
 		update_user_meta($user_id, 'wc_blacklist_manager_ads_notice_dismissed_17425', 'yes');
-		update_user_meta($user_id, 'wc_blacklist_manager_ads_notice_dismissed_7325', 'yes');
+		update_user_meta($user_id, 'wc_blacklist_manager_ads_notice_dismissed_3625', 'yes');
 		update_user_meta($user_id, 'wc_blacklist_manager_ads_notice_dismissed_7325_pro', 'yes');
 	}
 }

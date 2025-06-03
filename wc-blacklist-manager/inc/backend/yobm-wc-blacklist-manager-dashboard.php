@@ -55,7 +55,7 @@ class WC_Blacklist_Manager_Dashboard {
 				'wc-blacklist-manager',
 				array($this, 'display_dashboard'),
 				'dashicons-table-col-delete',
-				900
+				998
 			);
 		
 			add_submenu_page(

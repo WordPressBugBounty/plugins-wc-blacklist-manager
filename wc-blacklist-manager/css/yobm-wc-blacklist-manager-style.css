@@ -25,7 +25,7 @@
 
 /* Premium labels */
 .yo-premium {
-    color: red;
+    color: #d63638;
     border: solid 1px;
     border-radius: 10px;
     border-color: #a5a5a5;
@@ -36,21 +36,35 @@
     color: #aaaaaa;
 }
 .premium-label {
+    display: inline-flex;
     font-size: 12px;
     font-weight: 600;
     text-decoration: none;
     color: #ffffff;
-    background-color: #00a32a;
+    background-color: #d63638 !important;
     margin-left: 10px;
     padding: 5px 10px;
     border-radius: 5px;
 }
+.premium-label::before{
+    font-family: 'dashicons';
+    content: "\f160";
+    margin-right: 4px;
+}
+
 .premium-label:hover {
     color: #ffffff;
-    background-color: rgb(26, 156, 26);
+    background-color: rgb(26, 156, 26) !important;
+}
+
+.premium-label:hover::before {
+    content: "\f528";
 }
 
 /* Blocked users */
+th.column-name {
+    width: 15%;
+}
 .user-blocked-row .column-username a {
     display: inline-flex;
     align-items: center;
@@ -60,6 +74,7 @@
     content: '\f153';
     font-size: 18px;
     color: #d63638;
+    margin-right: 4px;
 }
 .user-blocked-row .column-username .row-actions a {
     display: contents;

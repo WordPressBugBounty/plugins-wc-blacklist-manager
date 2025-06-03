@@ -51,7 +51,7 @@ if (!defined('ABSPATH')) {
 						<th scope="row"><label class="premium-text"><?php echo esc_html__( 'Footer text', 'wc-blacklist-manager' ); ?></label></th>
 						<td>
 							<textarea rows="3" class="regular-text" disabled><?php echo esc_textarea($data['email_footer_text']); ?></textarea>
-							<p class="premium-text"><?php echo esc_html__( 'Display on the footer of the email template.', 'wc-blacklist-manager' ); ?><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Upgrade</a></p>
+							<p class="premium-text"><?php echo esc_html__( 'Display on the footer of the email template.', 'wc-blacklist-manager' ); ?><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a></p>
 						</td>
 					</tr>
 				<?php endif; ?>
@@ -110,7 +110,7 @@ if (!defined('ABSPATH')) {
 		<?php endif; ?>
 
 		<?php if (!$premium_active): ?>
-			<h2><span class="premium-text"><span class="dashicons dashicons-email"></span> <?php echo esc_html__( 'Register', 'wc-blacklist-manager' ); ?></span><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Upgrade</a></h2>
+			<h2><span class="premium-text"><span class="dashicons dashicons-email"></span> <?php echo esc_html__( 'Register', 'wc-blacklist-manager' ); ?></span><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a></h2>
 			
 			<table class="form-table">
 				<tbody>
@@ -164,7 +164,7 @@ if (!defined('ABSPATH')) {
 		<?php endif; ?>
 
 		<?php if (!$premium_active): ?>
-			<h2><span class="premium-text"><span class="dashicons dashicons-email"></span> <?php echo esc_html__( 'Form', 'wc-blacklist-manager' ); ?></span><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Upgrade</a></h2>
+			<h2><span class="premium-text"><span class="dashicons dashicons-email"></span> <?php echo esc_html__( 'Form', 'wc-blacklist-manager' ); ?></span><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a></h2>
 			
 			<table class="form-table">
 				<tbody>

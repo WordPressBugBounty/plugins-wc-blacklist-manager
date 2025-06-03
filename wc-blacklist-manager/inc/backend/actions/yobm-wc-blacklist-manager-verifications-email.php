@@ -64,15 +64,7 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 		}
 	}
 
-	public function email_verification() {
-		// Check if 'wc-advanced-accounts' plugin is active
-		if (is_plugin_active('wc-advanced-accounts/wc-advanced-accounts.php') && get_option('yoaa_wc_enable_email_verification') == 'yes' && get_option('wc_blacklist_email_verification_action') == 'all') {
-			// Check if the "Create an account?" checkbox is checked
-			if (!empty($_POST['createaccount'])) {
-				return;
-			}
-		}
-		
+	public function email_verification() {		
 		if (is_checkout() && get_option('wc_blacklist_email_verification_enabled') == '1') {
 			// Get the billing email from the checkout form (sanitize the input)
 			$email = isset($_POST['billing_email']) ? sanitize_email($_POST['billing_email']) : '';
@@ -173,76 +165,110 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 
 	public function verify_email_code() {
 		$ip_address = $_SERVER['REMOTE_ADDR'];
-		$attempts = get_transient("verify_email_attempts_{$ip_address}");
-		
-		if ($attempts >= 5) {
-			wp_send_json_error(['message' => __('Too many attempts. Please try again later.', 'wc-blacklist-manager')]);
+		$attempts   = get_transient( "verify_email_attempts_{$ip_address}" );
+
+		if ( $attempts >= 5 ) {
+			wp_send_json_error( [ 'message' => __( 'Too many attempts. Please try again later.', 'wc-blacklist-manager' ) ] );
 			return;
 		}
-	
-		set_transient("verify_email_attempts_{$ip_address}", $attempts + 1, HOUR_IN_SECONDS);
-		
-		check_ajax_referer('email_verification_nonce', 'security');
-		
-		$submitted_code = isset($_POST['code']) ? sanitize_text_field(trim($_POST['code'])) : '';
-		$user_id = get_current_user_id();
-		
-		if ($user_id === 0) {
-			$stored_code = WC()->session->get($this->verification_code_meta_key);
-			$stored_time = WC()->session->get($this->verification_time_meta_key);
+
+		set_transient( "verify_email_attempts_{$ip_address}", $attempts + 1, HOUR_IN_SECONDS );
+
+		check_ajax_referer( 'email_verification_nonce', 'security' );
+
+		$submitted_code = isset( $_POST['code'] ) ? sanitize_text_field( trim( $_POST['code'] ) ) : '';
+		$user_id        = get_current_user_id();
+
+		if ( $user_id === 0 ) {
+			// Guest (checkout) context: code stored in session
+			$stored_code = WC()->session->get( $this->verification_code_meta_key );
+			$stored_time = WC()->session->get( $this->verification_time_meta_key );
 		} else {
-			$stored_code = get_user_meta($user_id, $this->verification_code_meta_key, true);
-			$stored_time = get_user_meta($user_id, $this->verification_time_meta_key, true);
+			// Logged-in user
+			$stored_code = get_user_meta( $user_id, $this->verification_code_meta_key, true );
+			$stored_time = get_user_meta( $user_id, $this->verification_time_meta_key, true );
 		}
 
-		if (time() - $stored_time > $this->verification_expiration_seconds) {
-			$this->cleanup_expired_code($user_id, '');
-			wp_send_json_error(['message' => __('Code expired. Please request a new one.', 'wc-blacklist-manager')]);
+		// Expiration check
+		if ( time() - $stored_time > $this->verification_expiration_seconds ) {
+			$this->cleanup_expired_code( $user_id, '' );
+			wp_send_json_error( [ 'message' => __( 'Code expired. Please request a new one.', 'wc-blacklist-manager' ) ] );
 			return;
 		}
 
-		if ($submitted_code == $stored_code) {
-			$this->cleanup_expired_code($user_id, '');
+		// Match check
+		if ( $submitted_code == $stored_code ) {
+			// Remove stored code
+			$this->cleanup_expired_code( $user_id, '' );
 
-			// Get and sanitize the selected country code
-			$billing_dial_code = isset($_POST['billing_dial_code']) ? sanitize_text_field($_POST['billing_dial_code']) : '';
+			// --- NEW: mark email_verified in user meta ---
+			if ( $user_id > 0 ) {
+				update_user_meta( $user_id, 'email_verification', 1 );
+			} else {
+				// If you need to handle newly created users at checkout,
+				// you can flag it in session and hook into 'woocommerce_created_customer'
+				WC()->session->set( 'wc_email_verified', true );
+			}
 
-			// Get and sanitize the phone number
-			$billing_phone = isset($_POST['billing_phone']) ? sanitize_text_field($_POST['billing_phone']) : '';
+			// Retrieve & sanitize billing data
+			$billing_dial_code = isset( $_POST['billing_dial_code'] ) ? sanitize_text_field( $_POST['billing_dial_code'] ) : '';
+			$billing_phone     = isset( $_POST['billing_phone'] )      ? sanitize_text_field( $_POST['billing_phone'] )      : '';
 
-			$billing_phone = preg_replace('/[^0-9]/', '', $billing_phone);
-			$billing_phone = ltrim($billing_phone, '0');
+			$billing_phone = preg_replace( '/[^0-9]/', '', $billing_phone );
+			$billing_phone = ltrim( $billing_phone, '0' );
 
-			// Prepend country code if it exists
-			if (!empty($billing_dial_code)) {
+			if ( ! empty( $billing_dial_code ) ) {
 				$billing_phone = $billing_dial_code . $billing_phone;
 			}
 
-			$verification_action = get_option('wc_blacklist_email_verification_action');
+			$verification_action = get_option( 'wc_blacklist_email_verification_action' );
 
 			$billing_details = [
-				'first_name'     => sanitize_text_field($_POST['billing_first_name'] ?? ''),
-				'last_name'      => sanitize_text_field($_POST['billing_last_name'] ?? ''),
-				'address_1'      => sanitize_text_field($_POST['billing_address_1'] ?? ''),
-				'address_2'      => sanitize_text_field($_POST['billing_address_2'] ?? ''),
-				'city'           => sanitize_text_field($_POST['billing_city'] ?? ''),
-				'state'          => sanitize_text_field($_POST['billing_state'] ?? ''),
-				'postcode'       => sanitize_text_field($_POST['billing_postcode'] ?? ''),
-				'country'        => sanitize_text_field($_POST['billing_country'] ?? ''),
-				'email'          => sanitize_email($_POST['billing_email'] ?? ''),
+				'first_name'     => sanitize_text_field( $_POST['billing_first_name'] ?? '' ),
+				'last_name'      => sanitize_text_field( $_POST['billing_last_name']  ?? '' ),
+				'address_1'      => sanitize_text_field( $_POST['billing_address_1']  ?? '' ),
+				'address_2'      => sanitize_text_field( $_POST['billing_address_2']  ?? '' ),
+				'city'           => sanitize_text_field( $_POST['billing_city']       ?? '' ),
+				'state'          => sanitize_text_field( $_POST['billing_state']      ?? '' ),
+				'postcode'       => sanitize_text_field( $_POST['billing_postcode']   ?? '' ),
+				'country'        => sanitize_text_field( $_POST['billing_country']    ?? '' ),
+				'email'          => sanitize_email(   $_POST['billing_email']      ?? '' ),
 				'verified_email' => 1,
 				'phone'          => $billing_phone,
 			];
 
-			$this->add_billing_details_to_whitelist($billing_details);
+			$this->add_billing_details_to_whitelist( $billing_details );
 
-			if ($verification_action === 'suspect') {
-				$this->remove_email_address_from_blacklist($billing_details['email']);
+			if ( $verification_action === 'suspect' ) {
+				$this->remove_email_address_from_blacklist( $billing_details['email'] );
 			}
 
-			wp_send_json_success(['message' => __('Your email has been successfully verified!', 'wc-blacklist-manager')]);
+			$settings_instance = new WC_Blacklist_Manager_Settings();
+			$premium_active    = $settings_instance->is_premium_active();
+
+			global $wpdb;
+			$table_detection_log = $wpdb->prefix . 'wc_blacklist_detection_log';
+			$email               = sanitize_email( $_POST['billing_email'] ?? '' );
+			$sum_block_total     = get_option( 'wc_blacklist_sum_block_total', 0 );
+			update_option( 'wc_blacklist_sum_block_total', $sum_block_total + 1 );
+
+			if ( $premium_active ) {
+				$wpdb->insert(
+					$table_detection_log,
+					[
+						'timestamp' => current_time( 'mysql' ),
+						'type'      => 'human',
+						'source'    => 'woo_checkout',
+						'action'    => 'verify',
+						'details'   => 'verified_email_attempt: ' . $email,
+					]
+				);
+			}
+
+			wp_send_json_success( [ 'message' => __( 'Your email has been successfully verified!', 'wc-blacklist-manager' ) ] );
+
 		} else {
-			wp_send_json_error(['message' => __('Invalid code. Please try again.', 'wc-blacklist-manager')]);
+			wp_send_json_error( [ 'message' => __( 'Invalid code. Please try again.', 'wc-blacklist-manager' ) ] );
 		}
 	}
 

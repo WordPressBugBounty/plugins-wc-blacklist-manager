@@ -342,6 +342,12 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 		if ($submitted_code == $stored_code) {
 			$this->cleanup_expired_code($user_id, '');
 
+			if ( $user_id > 0 ) {
+				update_user_meta( $user_id, 'phone_verification', 1 );
+			} else {
+				WC()->session->set( 'wc_phone_verified', true );
+			}
+
 			// Get and sanitize the selected country code
 			$billing_dial_code = isset($_POST['billing_dial_code']) ? sanitize_text_field($_POST['billing_dial_code']) : '';
 
@@ -356,8 +362,6 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 			} else {
 				$billing_phone = $this->normalize_phone_number_with_country_code( $billing_phone );
 			}
-
-			error_log("Phone (Add to whitelist): $billing_phone");
 
 			$verification_action = get_option('wc_blacklist_phone_verification_action');
 
@@ -379,6 +383,34 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 
 			if ($verification_action === 'suspect') {
 				$this->remove_phone_number_from_blacklist($billing_details['phone']);
+			}
+
+			$settings_instance = new WC_Blacklist_Manager_Settings();
+			$premium_active = $settings_instance->is_premium_active();
+
+			global $wpdb;
+			$table_detection_log = $wpdb->prefix . 'wc_blacklist_detection_log';
+			
+			$sum_block_total = get_option('wc_blacklist_sum_block_total', 0);
+			update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
+
+			if ($premium_active) {
+				$timestamp = current_time('mysql');
+				$type      = 'human';
+				$source    = 'woo_checkout';
+				$action    = 'verify';
+				$details   = 'verified_phone_attempt: ' . $billing_phone;
+				
+				$wpdb->insert(
+					$table_detection_log,
+					array(
+						'timestamp' => $timestamp,
+						'type'      => $type,
+						'source'    => $source,
+						'action'    => $action,
+						'details'   => $details,
+					)
+				);
 			}
 
 			wp_send_json_success(['message' => __('Your phone number has been successfully verified!', 'wc-blacklist-manager')]);

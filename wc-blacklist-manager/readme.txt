@@ -5,7 +5,7 @@ Requires at least: 6.3
 Tested up to: 6.8
 WC tested up to: 9.8
 Requires PHP: 5.6
-Stable tag: 2.0.2
+Stable tag: 2.0.3
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,7 +19,7 @@ Easily blacklist phone numbers, email addresses, IP addresses, and email domains
 
 Originally built for WooCommerce, it now extends its protection to popular form plugins including Contact Form 7, Gravity Forms, and WPForms.
 
-[Premium version](https://yoohw.com/product/woocommerce-blacklist-manager-premium/) | [Documentation](https://yoohw.com/docs/category/woocommerce-blacklist-manager/) | [Support](https://yoohw.com/support/)  | [Demo](https://sandbox.yoohw.com/create-sandbox-user/)
+[Premium version](https://yoohw.com/product/woocommerce-blacklist-manager-premium/) | [Documentation](https://yoohw.com/docs/category/woocommerce-blacklist-manager/) | [Support](https://yoohw.com/support/)  | [Demo](https://sandbox.yoohw.com/demo/yobm_demo.html)
 
 == Features ==
 
@@ -121,7 +121,8 @@ Plugin supported:
 Plugin integrations: 
 * [WooComerce Advanced Account](https://wordpress.org/plugins/wc-advanced-accounts/)
 * [WooCommerce Stripe Gateway](https://wordpress.org/plugins/woocommerce-gateway-stripe/)
-* [Payment Plugins for Stripe WooCommerce](https://wordpress.org/plugins/woo-stripe-payment/). 
+* [Payment Plugins for Stripe WooCommerce](https://wordpress.org/plugins/woo-stripe-payment/)
+* [Mollie Payments for WooCommerce](https://wordpress.org/plugins/mollie-payments-for-woocommerce/)
 
 Service integrations:
 * [reCaptcha v3/v2](https://www.google.com/recaptcha/about/)
@@ -131,7 +132,7 @@ Service integrations:
 * [Usercheck](https://www.usercheck.com/)
 * [ZeroBounce](https://www.zerobounce.net?ref=owqwzgy) 
 * [NumCheckr](https://numcheckr.com/)
-* [Google Maps Platform](https://mapsplatform.google.com/)
+* [Google Maps](https://mapsplatform.google.com/)
 * [Yo Credits](https://yoohw.com/product/sms-credits/)
 * [Twilio](https://www.twilio.com/)
 * [Textmagic](https://www.textmagic.com/)
@@ -181,6 +182,12 @@ A: There is no set limit within the plugin, but practical limitations depend on 
 A: No, the plugin is optimized for performance. It performs blacklist checks efficiently and only at appropriate times (like form submission or checkout), so it won’t noticeably impact your site speed.
 
 == Changelog ==
+
+= 2.0.3 (Jun 3, 2025) =
+* New: Advanced Accounts integration - Prevent registration for the blocked phone number.
+* Update: Advanced Accounts integration - Also verified user when `create account` during verified checkout.
+* Fix: User blocking option in the settings did not work.
+* Improve: User blocking actions in the edit user page.
 
 = 2.0.2 (May 8, 2025) =
 * Fix: The block email notification option did not work correctly.
@@ -238,8 +245,6 @@ A: No, the plugin is optimized for performance. It performs blacklist checks eff
 = 1.4.6 (Jan 1, 2025) =
 * Fix: Blocked name displays in add new order page.
 * Improve: Not prevent a blocked domain if an empty email field is allowed on the checkout page.
-
-HAPPY NEW YEAR!!!
 
 = 1.4.5 (Dec 13, 2024) =
 * Fix: Prevent registration for suspected IP addresses.

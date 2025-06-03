@@ -6,14 +6,24 @@ if (!defined('ABSPATH')) {
 
 class WC_Blacklist_Manager_User_Blocking {
 	public function __construct() {
+		$yoaa_premium_active = in_array('wc-advanced-accounts-premium/wc-advanced-accounts-premium.php', apply_filters('active_plugins', get_option('active_plugins')));
+		$license_status = (get_option('wc_advanced_accounts_premium_license_status') === 'activated');
+		
+		if ($yoaa_premium_active && $license_status) {
+			return;
+		}
+
+		if (get_option('wc_blacklist_enable_user_blocking') !== '1') {
+			return;
+		}
+
 		add_action('wp_login', [$this, 'force_logout_blocked_user'], 10, 2);
 		add_action('init', [$this, 'check_and_force_logout_blocked_user']);
 		add_action('wp_enqueue_scripts', [$this, 'enqueue_blocked_user_script']);
-		add_action('show_user_profile', [$this, 'show_user_blocked_status']);
 		add_action('edit_user_profile', [$this, 'show_user_blocked_status']);
-		add_action('personal_options_update', [$this, 'update_user_blocked_status']);
 		add_action('edit_user_profile_update', [$this, 'update_user_blocked_status']);
 		add_action('admin_head', [$this, 'add_blocked_user_row_class']);
+		add_action('wp_ajax_check_user_blocked_status', [$this, 'check_user_blocked_status']);
 	}
 
 	public function force_logout_blocked_user($user_login, $user) {
@@ -100,10 +110,28 @@ class WC_Blacklist_Manager_User_Blocking {
 					<th><label for="user_blocked"><?php _e('User blocking', 'wc-blacklist-manager'); ?></label></th>
 					<td>
 						<?php if ($is_blocked == '1'): ?>
-							<input type="submit" name="unblock_user" value="<?php _e('Unblock this user', 'wc-blacklist-manager'); ?>" class="button button-secondary" />
+							<input
+								type="submit"
+								name="unblock_user"
+								value="<?php _e('Unblock this user', 'wc-advanced-accounts'); ?>"
+								class="button button-secondary"
+								onclick="
+								window.onbeforeunload = null;
+								jQuery(window).off('beforeunload');
+								"
+							/>
 						<?php else: ?>
 							<?php if ($premium_plugin_active && $license_status == 'activated'): ?>
-								<input type="submit" name="block_user" value="<?php _e('Block this user', 'wc-blacklist-manager'); ?>" class="button red-button" />
+								<input
+									type="submit"
+									name="block_user"
+									value="<?php _e('Block this user', 'wc-advanced-accounts'); ?>"
+									class="button red-button"
+									onclick="
+										window.onbeforeunload = null;
+										jQuery(window).off('beforeunload');
+									"
+								/>
 							<?php else: ?>
 								<span><?php _e('No', 'wc-blacklist-manager'); ?></span>
 							<?php endif; ?>
@@ -134,6 +162,10 @@ class WC_Blacklist_Manager_User_Blocking {
 	}
 
 	public function add_blocked_user_row_class() {
+		global $pagenow;
+		if ( 'users.php' !== $pagenow ) {
+			return;
+		}
 		?>
 		<script>
 			jQuery(document).ready(function($) {
@@ -159,19 +191,17 @@ class WC_Blacklist_Manager_User_Blocking {
 		</script>
 		<?php
 	}
+
+	public function check_user_blocked_status() {
+		$user_id = intval($_POST['user_id']);
+		if (get_user_meta($user_id, 'user_blocked', true) == '1') {
+			echo '1';
+		} else {
+			echo '0';
+		}
+		wp_die();
+	}
 }
 
 // Instantiate the class
 new WC_Blacklist_Manager_User_Blocking();
-
-// Ajax handler to check user blocked status
-add_action('wp_ajax_check_user_blocked_status', 'check_user_blocked_status');
-function check_user_blocked_status() {
-	$user_id = intval($_POST['user_id']);
-	if (get_user_meta($user_id, 'user_blocked', true) == '1') {
-		echo '1';
-	} else {
-		echo '0';
-	}
-	wp_die();
-}

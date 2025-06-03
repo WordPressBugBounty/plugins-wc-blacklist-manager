@@ -2,6 +2,12 @@
 
 == Changelog ==
 
+= 2.0.3 (Jun 3, 2025) =
+* New: Advanced Accounts integration - Prevent registration for the blocked phone number.
+* Update: Advanced Accounts integration - Also verified user when `create account` during verified checkout.
+* Fix: User blocking option in the settings did not work.
+* Improve: User blocking actions in the edit user page.
+
 = 2.0.2 (May 8, 2025) =
 * Fix: The block email notification option did not work correctly.
 * Improve: Minor improvement.
@@ -91,7 +97,6 @@
 * New: Require the new customer to verify email address when checkout.
 * New: Require the new customer to verify phone number when checkout.
 * Improve: Minor improvement.
-
 
 = 1.3.14 (Sep 19, 2024) =
 * Fix: Removed the missing file.

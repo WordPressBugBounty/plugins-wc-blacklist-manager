@@ -130,14 +130,14 @@ class WC_Blacklist_Manager_Blocklisted_Actions {
 	}
 	
 	public function prevent_blocked_email_registration($errors, $sanitized_user_login, $user_email) {
-		return $this->handle_registration_block($errors, $user_email);
+		return $this->handle_registration_block($errors, $sanitized_user_login, $user_email);
 	}
 
 	public function prevent_blocked_email_registration_woocommerce($errors, $username, $email) {
-		return $this->handle_registration_block($errors, $email);
+		return $this->handle_registration_block($errors, $username, $email);
 	}
 
-	private function handle_registration_block($errors, $email) {
+	private function handle_registration_block($errors, $username, $email) {
 		$settings_instance = new WC_Blacklist_Manager_Settings();
 		$premium_active = $settings_instance->is_premium_active();
 
@@ -210,6 +210,85 @@ class WC_Blacklist_Manager_Blocklisted_Actions {
 				}
 			} else {
 				$email = '';
+			}
+
+			if ( is_plugin_active( 'wc-advanced-accounts/wc-advanced-accounts.php' ) 
+				&& get_option( 'yoaa_wc_enable_phone_number_account' ) === 'yes' ) {
+
+				// 1) normalize $phone from $username:
+				if ( preg_match( '/^\d+-\d+$/', $username ) ) {
+					$phone = '+' . str_replace( '-', '', $username );
+				} else {
+					$phone = preg_replace( '/^0/', '', $username );
+				}
+
+				// 2) check block / suspect in DB (strip leading zeros from stored value)
+				$phone_blocked   = ! empty( $wpdb->get_var( $wpdb->prepare(
+					"SELECT 1 
+					FROM {$table_name} 
+					WHERE TRIM(LEADING '0' FROM phone_number) = %s 
+						AND is_blocked = 1 
+					LIMIT 1",
+					$phone
+				) ) );
+
+				$phone_suspected = ! empty( $wpdb->get_var( $wpdb->prepare(
+					"SELECT 1 
+					FROM {$table_name} 
+					WHERE TRIM(LEADING '0' FROM phone_number) = %s 
+						AND is_blocked = 0 
+					LIMIT 1",
+					$phone
+				) ) );
+
+				if ( $phone_blocked ) {
+					$sum_phone = get_option( 'wc_blacklist_sum_block_phone', 0 );
+					update_option( 'wc_blacklist_sum_block_phone', $sum_phone + 1 );
+
+					$sum_total = get_option( 'wc_blacklist_sum_block_total', 0 );
+					update_option( 'wc_blacklist_sum_block_total', $sum_total + 1 );
+
+					// notify user by email
+					WC_Blacklist_Manager_Email::send_email_registration_block( $phone );
+
+					if ( $premium_active ) {
+						$wpdb->insert(
+							$table_detection_log,
+							[
+								'timestamp' => current_time( 'mysql' ),
+								'type'      => 'human',
+								'source'    => 'register',
+								'action'    => 'block',
+								'details'   => 'blocked_phone_attempt: ' . $phone,
+							]
+						);
+					}
+
+					wc_blacklist_add_registration_notice( $errors );
+
+				} elseif ( $phone_suspected ) {
+					$sum_phone = get_option( 'wc_blacklist_sum_block_phone', 0 );
+					update_option( 'wc_blacklist_sum_block_phone', $sum_phone + 1 );
+
+					$sum_total = get_option( 'wc_blacklist_sum_block_total', 0 );
+					update_option( 'wc_blacklist_sum_block_total', $sum_total + 1 );
+
+					// send suspect notification
+					WC_Blacklist_Manager_Email::send_email_registration_suspect( $phone );
+
+					if ( $premium_active ) {
+						$wpdb->insert(
+							$table_detection_log,
+							[
+								'timestamp' => current_time( 'mysql' ),
+								'type'      => 'human',
+								'source'    => 'register',
+								'action'    => 'suspect',
+								'details'   => 'suspected_phone_attempt: ' . $phone,
+							]
+						);
+					}
+				}
 			}
 		}
 		return $errors;

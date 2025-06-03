@@ -284,7 +284,7 @@ $logs = $wpdb->get_results(
 	<?php else : ?>
 		<p>
 			<?php esc_html_e( 'To record and see the detection log, please upgrade to the premium version.', 'wc-blacklist-manager' ); ?>
-			<a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Upgrade</a>
+			<a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a>
 		</p>
 		<div class="tablenav top">
 			<div class="alignleft actions bulkactions">
