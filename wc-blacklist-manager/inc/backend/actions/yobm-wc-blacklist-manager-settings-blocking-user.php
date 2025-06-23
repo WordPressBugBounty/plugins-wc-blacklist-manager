@@ -46,7 +46,7 @@ class WC_Blacklist_Manager_User_Blocking {
 
 			if ($premium_active) {
 				$timestamp = current_time('mysql');
-				$type      = 'human';
+				$type      = 'bot';
 				$source    = 'login';
 				$action    = 'block';
 				$details   = 'blocked_user_attempt: ' . $user->ID;

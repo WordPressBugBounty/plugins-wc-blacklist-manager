@@ -16,7 +16,9 @@ jQuery(document).ready(function($) {
             $.post(block_ajax_object.ajax_url, data, function(response) {
                 var messageHtml = '<div class="notice notice-success is-dismissible"><p>' + response + '</p></div>';
                 $('div.wrap').first().prepend(messageHtml);
-                $('div.notice').delay(5000).slideUp(300);
+                $('div.notice').delay(5000).slideUp(300, function() {
+                    window.location.reload();
+                });
                 $('#block_customer_container').hide();
             });
         }

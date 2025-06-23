@@ -71,22 +71,8 @@ class WC_Blacklist_Manager_Domain_Blocking_Actions {
 			update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
 
 			if ($premium_active) {
-				$timestamp = current_time('mysql');
-				$type      = 'human';
-				$source    = 'woo_checkout';
-				$action    = 'block';
-				$details   = 'blocked_domain_attempt: ' . $domain_value;
-				
-				$wpdb->insert(
-					$table_detection_log,
-					array(
-						'timestamp' => $timestamp,
-						'type'      => $type,
-						'source'    => $source,
-						'action'    => $action,
-						'details'   => $details,
-					)
-				);
+				$reason_domain = 'blocked_domain_attempt: ' . $domain_value;
+				WC_Blacklist_Manager_Premium_Activity_Logs_Insert::checkout_block('', '', '', '', '', '', '', $reason_domain);
 			}
 		}
 
@@ -143,22 +129,8 @@ class WC_Blacklist_Manager_Domain_Blocking_Actions {
 				update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
 
 				if ($premium_active) {
-					$timestamp = current_time('mysql');
-					$type      = 'human';
-					$source    = 'register';
-					$action    = 'block';
-					$details   = 'blocked_domain_attempt: ' . $domain_value;
-					
-					$wpdb->insert(
-						$table_detection_log,
-						array(
-							'timestamp' => $timestamp,
-							'type'      => $type,
-							'source'    => $source,
-							'action'    => $action,
-							'details'   => $details,
-						)
-					);
+					$reason_domain = 'blocked_domain_attempt: ' . $domain_value;
+					WC_Blacklist_Manager_Premium_Activity_Logs_Insert::register_block('', '', '', '', '', $reason_domain);
 				}
 			}
 

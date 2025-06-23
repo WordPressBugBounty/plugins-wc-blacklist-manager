@@ -5,7 +5,7 @@ if (!defined('ABSPATH')) {
 }
 
 class WC_Blacklist_Manager_Button_Add_To_Blocklist {
-	private $version = '1.0.0';
+	private $version = '1.1';
 	private $nonce_key = 'block_ajax_nonce';
 
 	public function __construct() {
@@ -122,7 +122,7 @@ class WC_Blacklist_Manager_Button_Add_To_Blocklist {
 
 		if ($show_block_button) {
 			echo '<div style="margin-top: 12px;" id="block_customer_container">';
-			echo '<button id="block_customer" class="button red-button" title="' . esc_html__('Add to blocklist', 'wc-blacklist-manager') . '"><span class="dashicons dashicons-dismiss"></span></button>';
+			echo '<button id="block_customer" class="button red-button" title="' . esc_html__('Add to blocklist', 'wc-blacklist-manager') . '"><span class="dashicons dashicons-dismiss" style="margin-right: 3px;"></span> ' . esc_html__('Block', 'wc-blacklist-manager') . '</button>';
 			echo '</div>';
 		}
 	}
@@ -280,6 +280,7 @@ class WC_Blacklist_Manager_Button_Add_To_Blocklist {
 	
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'wc_blacklist';
+		$table_detection_log = $wpdb->prefix . 'wc_blacklist_detection_log';
 
 		$settings_instance = new WC_Blacklist_Manager_Settings();
 		$premium_active = $settings_instance->is_premium_active();
@@ -363,8 +364,29 @@ class WC_Blacklist_Manager_Button_Add_To_Blocklist {
 			$order->delete_meta_data('_blacklist_suspect_id');
 			$order->update_meta_data('_blacklist_blocked_id', $blacklist_meta);
 			$order->save();
+
+			if ( $premium_active ) {
+				$current_user = wp_get_current_user();
+				$shop_manager = $current_user->display_name;
+
+				$details = 'blocked_added_to_blocklist_by:' . $shop_manager;
+				$view_json = '';
+
+				$wpdb->insert(
+					$table_detection_log,
+					[
+						'timestamp' => current_time( 'mysql' ),
+						'type'      => 'human',
+						'source'    => 'woo_order_' . $order_id,
+						'action'    => 'block',
+						'details'   => $details,
+						'view'      => $view_json,
+					],
+					[ '%s', '%s', '%s', '%s', '%s', '%s' ]
+				);
+			}
 		} else {
-			echo esc_html__('Customer is not in the blacklist.', 'wc-blacklist-manager');
+			echo esc_html__('Customer is not in the suspects list yet. Please add to the suspects list before block them.', 'wc-blacklist-manager');
 		}
 	
 		wp_die();

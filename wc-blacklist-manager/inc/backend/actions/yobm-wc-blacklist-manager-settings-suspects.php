@@ -6,8 +6,24 @@ if (!defined('ABSPATH')) {
 
 class WC_Blacklist_Manager_Suspected_Email {
 	public function __construct() {
-		add_action('woocommerce_new_order', [$this, 'check_order_and_notify']);
+		add_action( 'woocommerce_checkout_order_processed', [ $this, 'schedule_check_and_notify' ], 10, 1 );
+		add_action( 'wc_blacklist_check_and_notify', [ $this, 'check_order_and_notify' ], 10, 1 );
 	}
+
+	/**
+     * Queue the check/notify into Action Scheduler
+     */
+    public function schedule_check_and_notify( $order_id ) {
+        if ( ! class_exists( 'ActionScheduler' ) ) {
+            return $this->check_order_and_notify( $order_id );
+        }
+
+        // Schedule it to run immediately in the background
+        as_enqueue_async_action(
+            'wc_blacklist_check_and_notify',
+            [ 'order_id' => $order_id ]
+        );
+    }
 
 	public function check_order_and_notify($order_id) {
 		$settings_instance = new WC_Blacklist_Manager_Settings();
@@ -47,6 +63,16 @@ class WC_Blacklist_Manager_Suspected_Email {
 		$shipping_address = implode(', ', $shipping_address_parts);
 	
 		$send_email = false;
+		$reasons = [];
+		$view_data = [
+			'ip_address' => $user_ip,
+			'first_name' => $first_name,
+			'last_name'  => $last_name,
+			'phone'      => $phone,
+			'email'      => $email,
+			'billing'    => $customer_address,
+			'shipping'   => $shipping_address,
+		];
 	
 		// Check for blacklisted phone number
 		if (!empty($phone)) {
@@ -56,30 +82,12 @@ class WC_Blacklist_Manager_Suspected_Email {
 			)));
 			if ($phone_blacklisted) {
 				$send_email = true;
+				$reasons[] = 'suspected_phone_attempt: ' . $phone;
 
 				$sum_block_phone = get_option('wc_blacklist_sum_block_phone', 0);
 				update_option('wc_blacklist_sum_block_phone', $sum_block_phone + 1);
 				$sum_block_total = get_option('wc_blacklist_sum_block_total', 0);
 				update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
-
-				if ($premium_active) {
-					$timestamp = current_time('mysql');
-					$type      = 'human';
-					$source    = 'woo_order_' . $order_id;
-					$action    = 'suspect';
-					$details   = 'suspected_phone_attempt: ' . $phone;
-					
-					$wpdb->insert(
-						$table_detection_log,
-						array(
-							'timestamp' => $timestamp,
-							'type'      => $type,
-							'source'    => $source,
-							'action'    => $action,
-							'details'   => $details,
-						)
-					);
-				}
 			} else {
 				$phone = '';
 			}
@@ -95,30 +103,12 @@ class WC_Blacklist_Manager_Suspected_Email {
 			)));
 			if ($email_blacklisted) {
 				$send_email = true;
+				$reasons[] = 'suspected_email_attempt: ' . $email;
 
 				$sum_block_email = get_option('wc_blacklist_sum_block_email', 0);
 				update_option('wc_blacklist_sum_block_email', $sum_block_email + 1);
 				$sum_block_total = get_option('wc_blacklist_sum_block_total', 0);
 				update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
-
-				if ($premium_active) {
-					$timestamp = current_time('mysql');
-					$type      = 'human';
-					$source    = 'woo_order_' . $order_id;
-					$action    = 'suspect';
-					$details   = 'suspected_email_attempt: ' . $email;
-					
-					$wpdb->insert(
-						$table_detection_log,
-						array(
-							'timestamp' => $timestamp,
-							'type'      => $type,
-							'source'    => $source,
-							'action'    => $action,
-							'details'   => $details,
-						)
-					);
-				}
 			} else {
 				$email = '';
 			}
@@ -136,28 +126,12 @@ class WC_Blacklist_Manager_Suspected_Email {
 			));
 			if ($customer_name_blacklisted) {
 				$send_email = true;
+				$reasons[] = 'suspected_name_attempt: ' . $customer_name;
 
 				$sum_block_name = get_option('wc_blacklist_sum_block_name', 0);
 				update_option('wc_blacklist_sum_block_name', $sum_block_name + 1);
 				$sum_block_total = get_option('wc_blacklist_sum_block_total', 0);
 				update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
-
-				$timestamp = current_time('mysql');
-				$type      = 'human';
-				$source    = 'woo_order_' . $order_id;
-				$action    = 'suspect';
-				$details   = 'suspected_name_attempt: ' . $customer_name;
-				
-				$wpdb->insert(
-					$table_detection_log,
-					array(
-						'timestamp' => $timestamp,
-						'type'      => $type,
-						'source'    => $source,
-						'action'    => $action,
-						'details'   => $details,
-					)
-				);
 			} else {
 				$customer_name = '';
 			}
@@ -173,30 +147,12 @@ class WC_Blacklist_Manager_Suspected_Email {
 			)));
 			if ($ip_blacklisted) {
 				$send_email = true;
+				$reasons[] = 'suspected_ip_attempt: ' . $user_ip;
 
 				$sum_block_ip = get_option('wc_blacklist_sum_block_ip', 0);
 				update_option('wc_blacklist_sum_block_ip', $sum_block_ip + 1);
 				$sum_block_total = get_option('wc_blacklist_sum_block_total', 0);
 				update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
-
-				if ($premium_active) {
-					$timestamp = current_time('mysql');
-					$type      = 'human';
-					$source    = 'woo_order_' . $order_id;
-					$action    = 'suspect';
-					$details   = 'suspected_ip_attempt: ' . $user_ip;
-					
-					$wpdb->insert(
-						$table_detection_log,
-						array(
-							'timestamp' => $timestamp,
-							'type'      => $type,
-							'source'    => $source,
-							'action'    => $action,
-							'details'   => $details,
-						)
-					);
-				}
 			} else {
 				$user_ip = '';
 			}
@@ -212,28 +168,12 @@ class WC_Blacklist_Manager_Suspected_Email {
 			)));
 			if ($address_blacklisted) {
 				$send_email = true;
+				$reasons[] = 'suspected_billing_address_attempt: ' . $customer_address;
 
 				$sum_block_address = get_option('wc_blacklist_sum_block_address', 0);
 				update_option('wc_blacklist_sum_block_address', $sum_block_address + 1);
 				$sum_block_total = get_option('wc_blacklist_sum_block_total', 0);
 				update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
-
-				$timestamp = current_time('mysql');
-				$type      = 'human';
-				$source    = 'woo_order_' . $order_id;
-				$action    = 'suspect';
-				$details   = 'suspected_billing_address_attempt: ' . $customer_address;
-				
-				$wpdb->insert(
-					$table_detection_log,
-					array(
-						'timestamp' => $timestamp,
-						'type'      => $type,
-						'source'    => $source,
-						'action'    => $action,
-						'details'   => $details,
-					)
-				);
 			} else {
 				$customer_address = '';
 			}
@@ -249,33 +189,36 @@ class WC_Blacklist_Manager_Suspected_Email {
 			)));
 			if ($shipping_address_blacklisted) {
 				$send_email = true;
+				$reasons[] = 'suspected_shipping_address_attempt: ' . $shipping_address;
 
 				$sum_block_address = get_option('wc_blacklist_sum_block_address', 0);
 				update_option('wc_blacklist_sum_block_address', $sum_block_address + 1);
 				$sum_block_total = get_option('wc_blacklist_sum_block_total', 0);
 				update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
-
-				$timestamp = current_time('mysql');
-				$type      = 'human';
-				$source    = 'woo_order_' . $order_id;
-				$action    = 'suspect';
-				$details   = 'suspected_shipping_address_attempt: ' . $shipping_address;
-				
-				$wpdb->insert(
-					$table_detection_log,
-					array(
-						'timestamp' => $timestamp,
-						'type'      => $type,
-						'source'    => $source,
-						'action'    => $action,
-						'details'   => $details,
-					)
-				);
 			} else {
 				$shipping_address = '';
 			}
 		} else {
 			$shipping_address = '';
+		}
+
+		// If we have any reasons, insert a single log row:
+		if ( ! empty( $reasons ) && $premium_active ) {
+			$details = implode( ', ', $reasons );
+			$view_json = wp_json_encode( $view_data );
+
+			$wpdb->insert(
+				$table_detection_log,
+				[
+					'timestamp' => current_time( 'mysql' ),
+					'type'      => 'bot',
+					'source'    => 'woo_order_' . $order_id,
+					'action'    => 'suspect',
+					'details'   => $details,
+					'view'      => $view_json,
+				],
+				[ '%s', '%s', '%s', '%s', '%s', '%s' ]
+			);
 		}
 
 		if ($send_email && get_option('wc_blacklist_email_notification', 'no') === 'yes') {

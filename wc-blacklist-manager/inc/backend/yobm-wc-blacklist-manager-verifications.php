@@ -22,9 +22,9 @@ class WC_Blacklist_Manager_Verifications {
 	}
 
 	public function set_verifications_strings() {
-		$this->default_email_subject = __('Verify your email address', 'wc-blacklist-manager');
+		$this->default_email_subject = __('Verify your email address on {site_name}', 'wc-blacklist-manager');
 		$this->default_email_heading = __('Verify your email address', 'wc-blacklist-manager');
-		$this->default_email_message = __('Hi there,<br><br>To complete your checkout process, please verify your email address by entering the following code:<br><br><strong>{code}</strong><br><br>If you did not request this, please ignore this email.<br><br>Thank you.', 'wc-blacklist-manager');
+		$this->default_email_message = __('Hi {first_name} {last_name},<br><br>To complete your checkout process, please verify your email address by entering the following code:<br><br><strong>{code}</strong><br><br>If you did not request this, please ignore this email.<br><br>Thank you.', 'wc-blacklist-manager');
 		$this->default_sms_message = __('{site_name}: Your verification code is {code}', 'wc-blacklist-manager');
 	}
 
@@ -158,7 +158,14 @@ class WC_Blacklist_Manager_Verifications {
 	}
 	
 	private function get_verifications_settings() {
-		// Get the combined phone verification settings
+		// Get the combined verification settings
+		$email_verification_settings = get_option('wc_blacklist_email_verification', [
+			'resend' => 180,
+			'subject' => $this->default_email_subject,
+			'heading' => $this->default_email_heading,
+			'message' => $this->default_email_message,
+		]);
+
 		$phone_verification_settings = get_option('wc_blacklist_phone_verification', [
 			'code_length' => 4,
 			'resend' => 180,
@@ -169,6 +176,10 @@ class WC_Blacklist_Manager_Verifications {
 		return [
 			'email_verification_enabled' => get_option('wc_blacklist_email_verification_enabled', '0'),
 			'email_verification_action' => get_option('wc_blacklist_email_verification_action', 'all'),
+			'email_verification_resend' => $email_verification_settings['resend'],
+			'email_verification_subject' => !empty($email_verification_settings['subject']) ? $email_verification_settings['subject'] : $this->default_email_subject,
+			'email_verification_heading' => !empty($email_verification_settings['heading']) ? $email_verification_settings['heading'] : $this->default_email_heading,
+			'email_verification_message' => !empty($email_verification_settings['message']) ? $email_verification_settings['message'] : $this->default_email_message,
 			'email_verification_real_time_validate' => get_option('wc_blacklist_email_verification_real_time_validate', '0'),
 			'phone_verification_enabled' => get_option('wc_blacklist_phone_verification_enabled', '0'),
 			'phone_verification_action' => get_option('wc_blacklist_phone_verification_action', 'all'),
@@ -191,32 +202,60 @@ class WC_Blacklist_Manager_Verifications {
 		$email_verification_action = isset($_POST['email_verification_action']) 
 			? sanitize_text_field(wp_unslash($_POST['email_verification_action'])) 
 			: 'all';
+		$email_subject = isset($_POST['email_verification_subject']) 
+			? sanitize_text_field(trim(wp_unslash($_POST['email_verification_subject']))) 
+			: '';
+		$email_heading = isset($_POST['email_verification_heading']) 
+			? sanitize_text_field(trim(wp_unslash($_POST['email_verification_heading']))) 
+			: '';		
+		if ( isset( $_POST['email_verification_message'] ) ) {
+			$raw_message = wp_unslash( $_POST['email_verification_message'] );
+			$email_message = wp_kses_post( trim( $raw_message ) );
+		} else {
+			$email_message = '';
+		}
+			
+		if (strpos($email_message, '{code}') === false) {
+			add_settings_error('wc_blacklist_verifications_settings', 'invalid_message', __('The message must contain the {code} placeholder.', 'wc-blacklist-manager'), 'error');
+			return;
+		}
+	
+		$email_subject = !empty($email_subject) ? wp_kses_post($email_subject) : $this->default_email_subject;
+		$email_heading = !empty($email_heading) ? wp_kses_post($email_heading) : $this->default_email_heading;
+		$email_message = !empty($email_message) ? wp_kses_post($email_message) : $this->default_email_message;
+	
+		$email_verification_settings = [
+			'resend' => isset($_POST['email_verification_resend']) ? intval(wp_unslash($_POST['email_verification_resend'])) : 180,
+			'subject' => $email_subject,
+			'heading' => $email_heading,
+			'message' => $email_message,
+		];	
 		$email_verification_real_time_validate = isset($_POST['email_verification_real_time_validate']) ? '1' : '0';
 
 		$phone_verification_enabled = isset($_POST['phone_verification_enabled']) ? '1' : '0';
 		$phone_verification_action = isset($_POST['phone_verification_action']) 
 			? sanitize_text_field(wp_unslash($_POST['phone_verification_action'])) 
 			: 'all';
-		$message = isset($_POST['message']) 
+		$sms_message = isset($_POST['message']) 
 			? sanitize_text_field(trim(wp_unslash($_POST['message']))) 
 			: '';
 	
 		// Check if the message contains the required {code} placeholder
-		if (strpos($message, '{code}') === false) {
+		if (strpos($sms_message, '{code}') === false) {
 			// Display an error notice if {code} is missing
 			add_settings_error('wc_blacklist_verifications_settings', 'invalid_message', __('The message must contain the {code} placeholder.', 'wc-blacklist-manager'), 'error');
 			return; // Stop saving if the validation fails
 		}
 	
 		// Apply wp_kses_post() to allow only safe HTML if needed
-		$message = !empty($message) ? wp_kses_post($message) : $this->default_sms_message;
+		$sms_message = !empty($sms_message) ? wp_kses_post($sms_message) : $this->default_sms_message;
 	
 		// Combine the settings into a single array
 		$phone_verification_settings = [
 			'code_length' => isset($_POST['code_length']) ? intval(wp_unslash($_POST['code_length'])) : 4,
 			'resend' => isset($_POST['resend']) ? intval(wp_unslash($_POST['resend'])) : 180,
 			'limit' => isset($_POST['limit']) ? intval(wp_unslash($_POST['limit'])) : 5,
-			'message' => $message,
+			'message' => $sms_message,
 		];
 		$phone_verification_failed_email = isset($_POST['phone_verification_failed_email']) ? '1' : '0';
 		$sms_service = isset($_POST['sms_service']) 
@@ -230,6 +269,7 @@ class WC_Blacklist_Manager_Verifications {
 		// Save Email Verification Settings
 		update_option('wc_blacklist_email_verification_enabled', $email_verification_enabled);
 		update_option('wc_blacklist_email_verification_action', $email_verification_action);
+		update_option('wc_blacklist_email_verification', $email_verification_settings);
 		update_option('wc_blacklist_email_verification_real_time_validate', $email_verification_real_time_validate);
 	
 		// Save Phone Verification Settings

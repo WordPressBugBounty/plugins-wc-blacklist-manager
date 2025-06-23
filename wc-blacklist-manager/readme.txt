@@ -3,9 +3,9 @@ Contributors: yoohw, baonguyen0310
 Tags: blacklist customers, spam prevention, fraud prevention, woocommerce anti fraud, Prevent fake orders
 Requires at least: 6.3
 Tested up to: 6.8
-WC tested up to: 9.8
+WC tested up to: 9.9
 Requires PHP: 5.6
-Stable tag: 2.0.3
+Stable tag: 2.0.4
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -136,6 +136,7 @@ Service integrations:
 * [Yo Credits](https://yoohw.com/product/sms-credits/)
 * [Twilio](https://www.twilio.com/)
 * [Textmagic](https://www.textmagic.com/)
+* [Blackleaf.io](https://blackleaf.io/)
 
 **Premium Support**
 
@@ -182,6 +183,14 @@ A: There is no set limit within the plugin, but practical limitations depend on 
 A: No, the plugin is optimized for performance. It performs blacklist checks efficiently and only at appropriate times (like form submission or checkout), so it won’t noticeably impact your site speed.
 
 == Changelog ==
+
+= 2.0.4 (Jun 23, 2025) =
+* Update: Added suspect and block button text on the order page.
+* Update: Modified and improved verification scripts.
+* Update: Speed up checkout process.
+* Update: Added Advanced Account Premium plugin integration.
+* Fix: Corrected the billing phone number format in the order data.
+* Improve: Blocked phone number logic.
 
 = 2.0.3 (Jun 3, 2025) =
 * New: Advanced Accounts integration - Prevent registration for the blocked phone number.

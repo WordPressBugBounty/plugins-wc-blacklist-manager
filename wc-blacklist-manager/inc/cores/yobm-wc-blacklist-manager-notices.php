@@ -18,7 +18,51 @@ class WC_Blacklist_Manager_Notices {
 		$this->review_notice();
 		$this->first_time_notice();
 		$this->ads_notice_advanced_accounts_plugin();
+		$this->premium_update_notice(); 
 	}
+
+    /**
+     * Show an error if the Premium plugin is active but below the required version.
+     */
+    public function premium_update_notice() {
+        if ( ! current_user_can( 'administrator' ) ) {
+            return;
+        }
+
+        // load WP functions for plugin checks
+        if ( ! function_exists( 'is_plugin_active' ) ) {
+            require_once ABSPATH . 'wp-admin/includes/plugin.php';
+        }
+        if ( ! function_exists( 'get_plugin_data' ) ) {
+            require_once ABSPATH . 'wp-admin/includes/plugin.php';
+        }
+
+        $plugin_path = 'wc-blacklist-manager-premium/wc-blacklist-manager-premium.php';
+
+        if ( is_plugin_active( $plugin_path ) ) {
+
+            $required_version = '2.0.9';
+
+            // get the plugin’s header data
+            $data = get_plugin_data( WP_PLUGIN_DIR . '/' . $plugin_path );
+            $current = isset( $data['Version'] ) ? $data['Version'] : '1.0';
+
+            if ( version_compare( $current, $required_version, '<' ) ) {
+                /* translators: 1: current version, 2: required version */
+				printf(
+					'<div class="notice notice-error yobm-update">
+						<p><strong>%1$s</strong><br>
+						A newer version of <strong>Blacklist Manager Premium</strong> (version %2$s or higher) is required.<br>
+						Please visit your <a href="%4$s">Plugins page</a> to update to the latest version. If you\'re unable to update directly from your site, you can <a href="%3$s" target="_blank">download it manually from our website</a>.</p>
+					</div>',
+					esc_html( sprintf( __('You’re running v%s', 'wc-blacklist-manager'), $current ) ),
+					esc_html( $required_version ),
+					esc_url( 'https://yoohw.com/my-account/downloads/' ),
+					esc_url( admin_url( 'plugins.php' ) )
+				);
+            }
+        }
+    }	
 
 	public function review_notice() {
 		$user_id = get_current_user_id();
@@ -75,7 +119,7 @@ class WC_Blacklist_Manager_Notices {
 		}
 
 		if (!$premium_active && current_user_can('administrator') && get_user_meta($user_id, 'wc_blacklist_manager_ads_notice_dismissed_3625', true) !== 'yes') {
-			echo '<div class="notice notice-info yobm-ads is-dismissible">
+			echo '<div class="notice notice-info yobm-ads is-dismissible" style="display: none;>
 					<p>🔔 <strong>June Exclusive: Get 1 Year Free of WooCommerce Advanced Account Premium!</strong> ⏳<br>
 					🚀 Upgrade to <strong>Blacklist Manager Premium</strong> this June and receive 1 year free of WooCommerce Advanced Account Premium — limited-time offer!</p>
 					<p><a href="#" onclick="WC_Blacklist_Manager_Admin_Notice.dismissAdsNotice()" style="margin-right: 10px;">Dismiss</a> 

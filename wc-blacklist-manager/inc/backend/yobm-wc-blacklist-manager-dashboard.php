@@ -105,7 +105,7 @@ class WC_Blacklist_Manager_Dashboard {
 		$blocked_data = $this->handle_pagination('blocked', "is_blocked = TRUE AND ((phone_number != '' AND phone_number IS NOT NULL) OR (email_address != '' AND email_address IS NOT NULL) OR (first_name != '' AND first_name IS NOT NULL) OR (last_name != '' AND last_name IS NOT NULL))");
 		$ip_banned_data = $this->handle_pagination('ip_banned', "ip_address IS NOT NULL AND ip_address <> ''");
 		$domain_blocking_data = $this->handle_pagination('domain_blocking', "domain IS NOT NULL AND domain <> ''");
-		$address_blocking_data = $this->handle_pagination('customer_address', "customer_address IS NOT NULL AND customer_address <> ''");
+		$address_blocking_data = $this->handle_pagination('address_blocking', "customer_address IS NOT NULL AND customer_address <> ''");
 	
 		$ip_blacklist_enabled = get_option('wc_blacklist_ip_enabled', false);
 		$domain_blocking_enabled = get_option('wc_blacklist_domain_enabled', false);

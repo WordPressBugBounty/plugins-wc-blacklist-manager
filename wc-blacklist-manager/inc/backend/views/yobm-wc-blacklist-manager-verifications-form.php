@@ -36,6 +36,40 @@ if (!defined('ABSPATH')) {
 					<p class="description"><?php echo wp_kses_post(__('<b>All</b>: Require new customer to verify email address before checkout.<br><b>Suspect</b>: Require the suspected customer to verify email address before checkout.', 'wc-blacklist-manager')); ?></p>
 				</td>
 			</tr>
+			<tr id="phone_verification_email_settings_row" style="<?php echo (!empty($data['email_verification_enabled'])) ? '' : 'display: none;'; ?>">
+				<?php if ($premium_active): ?>
+					<th scope="row">
+						<label for="email_verification_email_settings" class="label_child"><?php echo esc_html__('Email options', 'wc-blacklist-manager'); ?></label>
+					</th>
+					<td>
+						<p><?php echo esc_html__('Resend', 'wc-blacklist-manager'); ?></p>
+						<input type="number" id="email_verification_resend" name="email_verification_resend" value="<?php echo esc_attr($data['email_verification_resend'] ?? 180); ?>" min="30" max="3600"> <?php echo esc_html__('seconds.', 'wc-blacklist-manager'); ?>
+						<p><?php echo esc_html__('Subject', 'wc-blacklist-manager'); ?></p>
+						<input type="text" id="email_verification_subject" name="email_verification_subject" class="regular-text" value="<?php echo esc_attr( $data['email_verification_subject'] ?? $this->default_email_subject ); ?>">
+						<p><?php echo esc_html__('Heading', 'wc-blacklist-manager'); ?></p>
+						<input type="text" id="email_verification_heading" name="email_verification_heading" class="regular-text" value="<?php echo esc_attr( $data['email_verification_heading'] ?? $this->default_email_heading ); ?>">
+						<p><?php echo esc_html__('Content', 'wc-blacklist-manager'); ?></p>
+						<textarea id="email_verification_message" name="email_verification_message" rows="6" class="regular-text"><?php echo esc_textarea(!empty($data['email_verification_message']) ? $data['email_verification_message'] : $this->default_email_message); ?></textarea>
+						<p class="description"><?php echo esc_html__('Add {first_name}, {last_name}, {site_name}, and {code} where you want them to appear. HTML allowed.', 'wc-blacklist-manager'); ?></p>
+					</td>
+				<?php endif; ?>
+				<?php if (!$premium_active): ?>
+					<th scope="row">
+						<label class="label_child premium-text"><?php echo esc_html__('Email options', 'wc-blacklist-manager'); ?></label>
+					</th>
+					<td>
+						<p class="premium-text"><?php echo esc_html__('Resend', 'wc-blacklist-manager'); ?></p>
+						<input type="number" value="<?php echo esc_attr($data['email_verification_resend'] ?? 180); ?>" disabled> <span class="premium-text"><?php echo esc_html__('seconds.', 'wc-blacklist-manager'); ?></span><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a>
+						<p class="premium-text"><?php echo esc_html__('Subject', 'wc-blacklist-manager'); ?></p>
+						<input type="text" class="regular-text" value="<?php echo esc_attr( $data['email_verification_subject'] ?? $this->default_email_subject ); ?>" disabled>
+						<p class="premium-text"><?php echo esc_html__('Heading', 'wc-blacklist-manager'); ?></p>
+						<input type="text" class="regular-text" value="<?php echo esc_attr( $data['email_verification_heading'] ?? $this->default_email_heading ); ?>" disabled>
+						<p class="premium-text"><?php echo esc_html__('Content', 'wc-blacklist-manager'); ?></p>
+						<textarea rows="6" class="regular-text" disabled><?php echo esc_textarea(!empty($data['email_verification_message']) ? $data['email_verification_message'] : $this->default_email_message); ?></textarea>
+						<p class="premium-text"><?php echo esc_html__('Add {first_name}, {last_name}, {site_name}, and {code} where you want them to appear.', 'wc-blacklist-manager'); ?></p>
+					</td>
+				<?php endif; ?>
+			</tr>
 			<?php if ($premium_active): ?>
 				<tr>
 					<th scope="row">
@@ -98,7 +132,7 @@ if (!defined('ABSPATH')) {
 					<p><?php echo esc_html__('Code length', 'wc-blacklist-manager'); ?></p>
 					<input type="number" id="code_length" name="code_length" value="<?php echo esc_attr($data['phone_verification_code_length'] ?? 4); ?>" min="4" max="10"> <?php echo esc_html__('digits.', 'wc-blacklist-manager'); ?>
 					<p><?php echo esc_html__('Resend', 'wc-blacklist-manager'); ?></p>
-					<input type="number" id="resend" name="resend" value="<?php echo esc_attr($data['phone_verification_resend'] ?? 180); ?>" min="60" max="3600"> <?php echo esc_html__('seconds.', 'wc-blacklist-manager'); ?>
+					<input type="number" id="resend" name="resend" value="<?php echo esc_attr($data['phone_verification_resend'] ?? 180); ?>" min="30" max="3600"> <?php echo esc_html__('seconds.', 'wc-blacklist-manager'); ?>
 					<p><?php echo esc_html__('Limit', 'wc-blacklist-manager'); ?></p>
 					<input type="number" id="limit" name="limit" value="<?php echo esc_attr($data['phone_verification_limit'] ?? 5); ?>" min="1" max="10"> <?php echo esc_html__('times.', 'wc-blacklist-manager'); ?>
 					<p><?php echo esc_html__('Message', 'wc-blacklist-manager'); ?></p>
@@ -114,9 +148,10 @@ if (!defined('ABSPATH')) {
 					</th>
 					<td>
 						<select id="sms_service" name="sms_service">
-							<option value="yo_credits" <?php selected($data['sms_service'], 'yo_credits'); ?>><?php esc_html_e( 'Yo Credits', 'wc-blacklist-manager' ); ?></option>
+							<option value="yo_credits" <?php selected($data['sms_service'], 'yo_credits'); ?>>Yo Credits</option>
 							<option value="twilio" <?php selected($data['sms_service'], 'twilio'); ?>>Twilio</option>
 							<option value="textmagic" <?php selected($data['sms_service'], 'textmagic'); ?>>Textmagic</option>
+							<option value="blackleaf" <?php selected($data['sms_service'], 'blackleaf'); ?>>Blackleaf</option>
 						</select>
 						<p id="sms_service_description" style="<?php echo ($data['sms_service'] !== 'yo_credits') ? '' : 'display: none;'; ?>" class="description">
 							<?php
@@ -160,6 +195,7 @@ if (!defined('ABSPATH')) {
 							</option>
 							<option disabled>Twilio</option>
 							<option disabled>Textmagic</option>
+							<option disabled>Blackleaf</option>
 						</select>
 						<p class="description"><?php echo esc_html__('Go premium to unlock other popular SMS services', 'wc-blacklist-manager'); ?> <a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a>
 					</td>
@@ -415,7 +451,7 @@ if (!defined('ABSPATH')) {
 
 				// Rows
 				var emailVerificationActionRow = document.getElementById('email_verification_action_row');
-				var emailVerificationContentRow = document.getElementById('email_verification_email_content_row');
+				var emailVerificationEmailSettingsRow = document.getElementById('phone_verification_email_settings_row');
 				var phoneVerificationActionRow = document.getElementById('phone_verification_action_row');
 				var phoneVerificationSmsSettingsRow = document.getElementById('phone_verification_sms_settings_row');
 				var smsServiceDescriptionRow = document.getElementById('sms_service_description');
@@ -430,7 +466,7 @@ if (!defined('ABSPATH')) {
 				// Email verification checkbox changes
 				emailVerificationCheckbox.addEventListener('change', function () {
 					toggleDisplay(emailVerificationActionRow, this.checked);
-					toggleDisplay(emailVerificationContentRow, this.checked);
+					toggleDisplay(emailVerificationEmailSettingsRow, this.checked);
 				});
 
 				// Phone verification checkbox changes

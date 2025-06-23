@@ -167,7 +167,7 @@ class WC_Blacklist_Manager_Button_Add_To_Blacklist {
 	
 		// Display the button if at least one non-empty field does not exist in the blacklist
 		echo '<div style="margin-top: 12px;" id="add_to_blacklist_container">';
-		echo '<button id="add_to_blacklist" class="button button-secondary icon-button" title="' . esc_html__('Add to the suspects list', 'wc-blacklist-manager') . '"><span class="dashicons dashicons-flag"></span></button>';
+		echo '<button id="add_to_blacklist" class="button button-secondary icon-button" title="' . esc_html__('Add to the suspects list', 'wc-blacklist-manager') . '"><span class="dashicons dashicons-flag" style="margin-right: 3px;"></span> ' . esc_html__('Suspect', 'wc-blacklist-manager') . '</button>';
 		echo '</div>';
 	}	
 
@@ -176,6 +176,7 @@ class WC_Blacklist_Manager_Button_Add_To_Blacklist {
 	
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'wc_blacklist';
+		$table_detection_log = $wpdb->prefix . 'wc_blacklist_detection_log';
 	
 		$allowed_roles = get_option('wc_blacklist_dashboard_permission', []);
 		$user_has_permission = false;
@@ -264,9 +265,80 @@ class WC_Blacklist_Manager_Button_Add_To_Blacklist {
 		if ($premium_active && $address_blocking_enabled && !empty($customer_address)) {
 			$insert_data['customer_address'] = $customer_address;
 		}
+
+		// Insert customer name if premium is active, customer name blocking enabled, and both first and last name are not empty
+		if ($premium_active && $customer_name_blocking_enabled) {
+			if (!empty($first_name) && !empty($last_name)) {
+				$insert_data['first_name'] = $first_name;
+				$insert_data['last_name']  = $last_name;
+			}
+		}		
 	
+		// Merge contact data with the insert data
+		$insert_data = array_merge($contact_data, $insert_data);
+	
+		// Insert a new row if there are fields to insert
+		if (!empty($insert_data)) {
+			$wpdb->insert($table_name, $insert_data);
+			$new_blacklist_id = $wpdb->insert_id;
+
+			if ($premium_active && get_option('wc_blacklist_connection_mode') === 'host') {
+				$customer_domain = '';
+				$is_blocked = 0;
+				
+				$site_url = site_url();
+				$clean_domain = preg_replace( '/^https?:\/\//', '', $site_url );
+				$sources = $clean_domain . '[' . $new_blacklist_id . ']';
+
+				if ( ! wp_next_scheduled( 'wc_blacklist_connection_send_to_subsite', array( $phone, $email, $ip_address, $customer_domain, $is_blocked, $sources, $customer_address, $first_name, $last_name ) ) ) {
+					wp_schedule_single_event( time() + 5, 'wc_blacklist_connection_send_to_subsite', array( $phone, $email, $ip_address, $customer_domain, $is_blocked, $sources, $customer_address, $first_name, $last_name ) );
+				}
+			}
+
+			if ($premium_active && get_option('wc_blacklist_connection_mode') === 'sub') {
+				if ( ! wp_next_scheduled( 'wc_blacklist_connection_send_to_hostsite', array( $new_blacklist_id ) ) ) {
+					wp_schedule_single_event( time() + 5, 'wc_blacklist_connection_send_to_hostsite', array( $new_blacklist_id ) );
+				}
+			}
+	
+			$current_meta = $order->get_meta('_blacklist_suspect_id', true);
+			if (!empty($current_meta)) {
+				$new_meta = $current_meta . ',' . $new_blacklist_id;
+			} else {
+				$new_meta = $new_blacklist_id;
+			}
+	
+			$order->update_meta_data('_blacklist_suspect_id', $new_meta);
+			$order->save();
+	
+			if ( $premium_active ) {
+				$current_user = wp_get_current_user();
+				$shop_manager = $current_user->display_name;
+
+				$details = 'suspected_added_to_suspects_list_by:' . $shop_manager;
+				$view_json = '';
+
+				$wpdb->insert(
+					$table_detection_log,
+					[
+						'timestamp' => current_time( 'mysql' ),
+						'type'      => 'human',
+						'source'    => 'woo_order_' . $order_id,
+						'action'    => 'suspect',
+						'details'   => $details,
+						'view'      => $view_json,
+					],
+					[ '%s', '%s', '%s', '%s', '%s', '%s' ]
+				);
+			}
+			
+			echo esc_html__('The customer\'s details have been added to the suspect list.', 'wc-blacklist-manager');
+		} else {
+			echo esc_html__('No new information to add to the suspect list.', 'wc-blacklist-manager');
+		}
+
 		// Add shipping address to a new row if premium is active, shipping blocking enabled, not empty, and different from customer address
-		if ($premium_active && $shipping_blocking_enabled && !empty($shipping_address) && $shipping_address !== $customer_address) {
+		if ($premium_active && $address_blocking_enabled && $shipping_blocking_enabled && !empty($shipping_address) && $shipping_address !== $customer_address) {
 			$shipping_data = [
 				'sources'          => sprintf(__('Order ID: %d | Shipping', 'wc-blacklist-manager'), $order_id),
 				'customer_address' => $shipping_address,
@@ -310,57 +382,7 @@ class WC_Blacklist_Manager_Button_Add_To_Blacklist {
 	
 			$order->update_meta_data('_blacklist_suspect_id', $new_meta);
 			$order->save();
-		}
-	
-		// Insert customer name if premium is active, customer name blocking enabled, and both first and last name are not empty
-		if ($premium_active && $customer_name_blocking_enabled) {
-			if (!empty($first_name) && !empty($last_name)) {
-				$insert_data['first_name'] = $first_name;
-				$insert_data['last_name']  = $last_name;
-			}
-		}
-	
-		// Merge contact data with the insert data
-		$insert_data = array_merge($contact_data, $insert_data);
-	
-		// Insert a new row if there are fields to insert
-		if (!empty($insert_data)) {
-			$wpdb->insert($table_name, $insert_data);
-			$new_blacklist_id = $wpdb->insert_id;
-
-			if ($premium_active && get_option('wc_blacklist_connection_mode') === 'host') {
-				$customer_domain = '';
-				$is_blocked = 0;
-				
-				$site_url = site_url();
-				$clean_domain = preg_replace( '/^https?:\/\//', '', $site_url );
-				$sources = $clean_domain . '[' . $new_blacklist_id . ']';
-
-				if ( ! wp_next_scheduled( 'wc_blacklist_connection_send_to_subsite', array( $phone, $email, $ip_address, $customer_domain, $is_blocked, $sources, $customer_address, $first_name, $last_name ) ) ) {
-					wp_schedule_single_event( time() + 5, 'wc_blacklist_connection_send_to_subsite', array( $phone, $email, $ip_address, $customer_domain, $is_blocked, $sources, $customer_address, $first_name, $last_name ) );
-				}
-			}
-
-			if ($premium_active && get_option('wc_blacklist_connection_mode') === 'sub') {
-				if ( ! wp_next_scheduled( 'wc_blacklist_connection_send_to_hostsite', array( $new_blacklist_id ) ) ) {
-					wp_schedule_single_event( time() + 5, 'wc_blacklist_connection_send_to_hostsite', array( $new_blacklist_id ) );
-				}
-			}
-	
-			$current_meta = $order->get_meta('_blacklist_suspect_id', true);
-			if (!empty($current_meta)) {
-				$new_meta = $current_meta . ',' . $new_blacklist_id;
-			} else {
-				$new_meta = $new_blacklist_id;
-			}
-	
-			$order->update_meta_data('_blacklist_suspect_id', $new_meta);
-			$order->save();
-	
-			echo esc_html__('The customer\'s details have been added to the suspect list.', 'wc-blacklist-manager');
-		} else {
-			echo esc_html__('No new information to add to the suspect list.', 'wc-blacklist-manager');
-		}
+		}		
 	
 		wp_die();
 	}

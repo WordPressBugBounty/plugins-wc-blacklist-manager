@@ -70,22 +70,8 @@ class WC_Blacklist_Manager_IP_Blacklisted {
 			update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
 
 			if ($premium_active) {
-				$timestamp = current_time('mysql');
-				$type      = 'human';
-				$source    = 'woo_checkout';
-				$action    = 'block';
-				$details   = 'blocked_ip_attempt: ' . $ip_value;
-				
-				$wpdb->insert(
-					$table_detection_log,
-					array(
-						'timestamp' => $timestamp,
-						'type'      => $type,
-						'source'    => $source,
-						'action'    => $action,
-						'details'   => $details,
-					)
-				);
+				$reason_ip = 'blocked_ip_attempt: ' . $ip_value;
+				WC_Blacklist_Manager_Premium_Activity_Logs_Insert::checkout_block('', '', '', $reason_ip);
 			}
 		}
 	
@@ -144,22 +130,8 @@ class WC_Blacklist_Manager_IP_Blacklisted {
 				WC_Blacklist_Manager_Email::send_email_registration_block('', '', $ip_value);
 
 				if ($premium_active) {
-					$timestamp = current_time('mysql');
-					$type      = 'human';
-					$source    = 'register';
-					$action    = 'block';
-					$details   = 'blocked_ip_attempt: ' . $ip_value;
-					
-					$wpdb->insert(
-						$table_detection_log,
-						array(
-							'timestamp' => $timestamp,
-							'type'      => $type,
-							'source'    => $source,
-							'action'    => $action,
-							'details'   => $details,
-						)
-					);
+					$reason_ip = 'blocked_ip_attempt: ' . $ip_value;
+					WC_Blacklist_Manager_Premium_Activity_Logs_Insert::register_block('', '', '', $reason_ip);
 				}
 			} elseif ( $ip_suspect ) {
 				$sum_block_ip = get_option('wc_blacklist_sum_block_ip', 0);
@@ -170,22 +142,8 @@ class WC_Blacklist_Manager_IP_Blacklisted {
 				WC_Blacklist_Manager_Email::send_email_registration_suspect('', '', $ip_value);
 
 				if ($premium_active) {
-					$timestamp = current_time('mysql');
-					$type      = 'human';
-					$source    = 'register';
-					$action    = 'suspect';
-					$details   = 'suspected_ip_attempt: ' . $ip_value;
-					
-					$wpdb->insert(
-						$table_detection_log,
-						array(
-							'timestamp' => $timestamp,
-							'type'      => $type,
-							'source'    => $source,
-							'action'    => $action,
-							'details'   => $details,
-						)
-					);
+					$reason_ip = 'suspected_ip_attempt: ' . $ip_value;
+					WC_Blacklist_Manager_Premium_Activity_Logs_Insert::register_suspect('', '', '', $reason_ip);
 				}
 			}
 		}

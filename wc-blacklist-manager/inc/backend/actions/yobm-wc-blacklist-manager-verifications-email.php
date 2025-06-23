@@ -5,19 +5,27 @@ if (!defined('ABSPATH')) {
 }
 
 class WC_Blacklist_Manager_Verifications_Verify_Email {
-
 	private $whitelist_table;
 	private $blacklist_table;
 	private $verification_code_meta_key = '_email_verification_code';
 	private $verification_time_meta_key = '_email_verification_time';
-	private $resend_cooldown_seconds = 60;
+	private $resend_cooldown_seconds;
 	private $verification_expiration_seconds = 300; 
+	private $default_email_subject;
+	private $default_email_heading;
+	private $default_email_message;
 
 	public function __construct() {
 		global $wpdb;
 		$this->whitelist_table = $wpdb->prefix . 'wc_whitelist';
 		$this->blacklist_table = $wpdb->prefix . 'wc_blacklist';
 
+		$email_settings = get_option( 'wc_blacklist_email_verification', [] );
+        $this->resend_cooldown_seconds = isset( $email_settings['resend'] )
+            ? intval( $email_settings['resend'] )
+            : 180;
+
+		add_action('init', [$this, 'set_verifications_strings']);
 		add_action('wp_enqueue_scripts', [$this, 'enqueue_verification_scripts']);
 		add_action('woocommerce_checkout_process', [$this, 'email_verification'], 20);
 		add_action('wp_ajax_verify_email_code', [$this, 'verify_email_code']);
@@ -30,13 +38,19 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 		add_action('init', [$this, 'initialize_session'], 1);
 	}
 
+	public function set_verifications_strings() {
+		$this->default_email_subject = __('Verify your email address on {site_name}', 'wc-blacklist-manager');
+		$this->default_email_heading = __('Verify your email address', 'wc-blacklist-manager');
+		$this->default_email_message = __('Hi {first_name} {last_name},<br><br>To complete your checkout process, please verify your email address by entering the following code:<br><br><strong>{code}</strong><br><br>If you did not request this, please ignore this email.<br><br>Thank you.', 'wc-blacklist-manager');
+	}
+
 	public function enqueue_verification_scripts() {
 		if (is_checkout() && get_option('wc_blacklist_email_verification_enabled') == '1') {
 			wp_enqueue_script(
 				'yobm-wc-blacklist-manager-verifications-email',
 				plugins_url('/../../../js/yobm-wc-blacklist-manager-verifications-email.js', __FILE__),
 				['jquery'],
-				'1.8.0',
+				'2.0',
 				true 
 			);
 	
@@ -137,31 +151,62 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 		$this->send_verification_email($email, $verification_code);
 	}
 
-	private function send_verification_email($email, $verification_code) {
+	private function send_verification_email( $email, $verification_code ) {
+		$settings_instance = new WC_Blacklist_Manager_Settings();
+		$premium_active    = $settings_instance->is_premium_active();
+
+		$email_settings = get_option( 'wc_blacklist_email_verification', [] );
+
+		$first_name = isset( $_POST['billing_first_name'] )
+			? sanitize_text_field( wp_unslash( $_POST['billing_first_name'] ) )
+			: '';
+		$last_name  = isset( $_POST['billing_last_name'] )
+			? sanitize_text_field( wp_unslash( $_POST['billing_last_name'] ) )
+			: '';
+
 		$mailer = WC()->mailer();
-	
-		$subject = __('Verify your email address', 'wc-blacklist-manager');
-		$heading = __('Verify your email address', 'wc-blacklist-manager');
-	
-		$message = sprintf(
-			/* translators: %s is the verification code */
-			__('Hi there,<br><br>To complete your checkout process, please verify your email address by entering the following code:<br><br><strong>%s</strong><br><br>If you did not request this, please ignore this email.<br><br>Thank you.', 'wc-blacklist-manager'),
-			esc_html($verification_code)
-		);
-	
-		$wrapped_message = $mailer->wrap_message($heading, $message);
-	
-		$email_instance = new WC_Email();
-	
-		$styled_message = $email_instance->style_inline($wrapped_message);
-	
+
+		if ( $premium_active ) {
+
+			$subject  = $email_settings['subject'] ?? $this->default_email_subject;
+			$heading  = $email_settings['heading'] ?? $this->default_email_heading;
+
+			$template = $email_settings['message'] ?? $this->default_email_message;
+
+			$search  = [ '{site_name}', '{code}', '{first_name}', '{last_name}' ];
+			$replace = [
+				get_bloginfo( 'name' ),
+				esc_html( $verification_code ),
+				esc_html( $first_name ),
+				esc_html( $last_name ),
+			];
+
+			$subject  = str_replace( $search, $replace, $subject );
+			$heading  = str_replace( $search, $replace, $heading );
+			$message = str_replace( $search, $replace, $template );
+
+		} else {
+
+			$subject = __( 'Verify your email address', 'wc-blacklist-manager' );
+			$heading = __( 'Verify your email address', 'wc-blacklist-manager' );
+
+			$message = sprintf(
+				__( 'Hi there,<br><br>To complete your checkout process, please verify your email address by entering the following code:<br><br><strong>%s</strong><br><br>If you did not request this, please ignore this email.<br><br>Thank you.', 'wc-blacklist-manager' ),
+				esc_html( $verification_code )
+			);
+		}
+
+		$wrapped = $mailer->wrap_message( $heading, $message );
+		$emailer = new WC_Email();
+		$styled  = $emailer->style_inline( $wrapped );
+
 		$mailer->send(
 			$email,
 			$subject,
-			$styled_message,
-			'Content-Type: text/html; charset=UTF-8'
+			$styled,
+			[ 'Content-Type: text/html; charset=UTF-8' ]
 		);
-	}	
+	}
 
 	public function verify_email_code() {
 		$ip_address = $_SERVER['REMOTE_ADDR'];

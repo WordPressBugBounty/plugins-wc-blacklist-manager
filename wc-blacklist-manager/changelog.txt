@@ -2,6 +2,14 @@
 
 == Changelog ==
 
+= 2.0.4 (Jun 23, 2025) =
+* Update: Added suspect and block button text on the order page.
+* Update: Modified and improved verification scripts.
+* Update: Speed up checkout process.
+* Update: Added Advanced Account Premium plugin integration.
+* Fix: Corrected the billing phone number format in the order data.
+* Improve: Blocked phone number logic.
+
 = 2.0.3 (Jun 3, 2025) =
 * New: Advanced Accounts integration - Prevent registration for the blocked phone number.
 * Update: Advanced Accounts integration - Also verified user when `create account` during verified checkout.

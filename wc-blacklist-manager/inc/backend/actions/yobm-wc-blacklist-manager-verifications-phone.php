@@ -49,7 +49,7 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 				'yobm-wc-blacklist-manager-verifications-phone',
 				plugins_url('/../../../js/yobm-wc-blacklist-manager-verifications-phone.js', __FILE__),
 				['jquery'],
-				'1.9.0', 
+				'2.0', 
 				true  
 			);
 		
@@ -229,6 +229,8 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 			WC_Blacklist_Manager_Premium_Verifications_Service::send_verification_sms_twilio($phone, $verification_code);
 		} elseif ($service === 'textmagic') {
 			WC_Blacklist_Manager_Premium_Verifications_Service::send_verification_sms_textmagic($phone, $verification_code);
+		} elseif ($service === 'blackleaf') {
+			WC_Blacklist_Manager_Premium_Verifications_Service::send_verification_sms_blackleaf($phone, $verification_code);
 		}
 	}
 

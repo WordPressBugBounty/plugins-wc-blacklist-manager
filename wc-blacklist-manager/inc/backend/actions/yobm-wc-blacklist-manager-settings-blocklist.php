@@ -26,15 +26,57 @@ class WC_Blacklist_Manager_Blocklisted_Actions {
 		
 		// Get the billing phone, sanitize it, remove non-digits, and trim leading zeros.
 		$billing_phone = isset($_POST['billing_phone']) ? sanitize_text_field(wp_unslash($_POST['billing_phone'])) : '';
-		$billing_phone = preg_replace('/[^0-9]/', '', $billing_phone);
-		$billing_phone = ltrim($billing_phone, '0');
-		
-		// Prepend the country code if both dial code and phone exist.
-		if ( ! empty( $billing_dial_code ) && ! empty( $billing_phone ) ) {
-			$billing_phone = $billing_dial_code . $billing_phone;
+		if ( strpos( $billing_phone, '+' ) !== 0 ) {
+			$billing_phone = preg_replace( '/[^0-9]/', '', $billing_phone );
+			$billing_phone = ltrim( $billing_phone, '0' );
+
+			if ( ! empty( $billing_dial_code ) && ! empty( $billing_phone ) ) {
+				$billing_phone = $billing_dial_code . $billing_phone;
+			}
 		}
 		
 		$billing_email = isset($_POST['billing_email']) ? sanitize_email(wp_unslash($_POST['billing_email'])) : '';
+
+		if ($premium_active) {
+			$user_ip = $this->get_the_user_ip();
+			$billing_first_name = isset($_POST['billing_first_name']) ? sanitize_text_field(wp_unslash($_POST['billing_first_name'])) : '';
+			$billing_last_name = isset($_POST['billing_last_name']) ? sanitize_text_field(wp_unslash($_POST['billing_last_name'])) : '';
+			
+			// Retrieve and sanitize billing address
+			$billing_address_1 = isset($_POST['billing_address_1']) ? sanitize_text_field(wp_unslash($_POST['billing_address_1'])) : '';
+			$billing_address_2 = isset($_POST['billing_address_2']) ? sanitize_text_field(wp_unslash($_POST['billing_address_2'])) : '';
+			$billing_city = isset($_POST['billing_city']) ? sanitize_text_field(wp_unslash($_POST['billing_city'])) : '';
+			$billing_state = isset($_POST['billing_state']) ? sanitize_text_field(wp_unslash($_POST['billing_state'])) : '';
+			$billing_postcode = isset($_POST['billing_postcode']) ? sanitize_text_field(wp_unslash($_POST['billing_postcode'])) : '';
+			$billing_country = isset($_POST['billing_country']) ? sanitize_text_field(wp_unslash($_POST['billing_country'])) : '';
+		
+			$billing_address_parts = array_filter([$billing_address_1, $billing_address_2, $billing_city, $billing_state, $billing_postcode, $billing_country]);
+			$billing_address = implode(', ', $billing_address_parts);
+		
+			// Retrieve and sanitize shipping address
+			$shipping_address_1 = isset($_POST['shipping_address_1']) ? sanitize_text_field(wp_unslash($_POST['shipping_address_1'])) : '';
+			$shipping_address_2 = isset($_POST['shipping_address_2']) ? sanitize_text_field(wp_unslash($_POST['shipping_address_2'])) : '';
+			$shipping_city = isset($_POST['shipping_city']) ? sanitize_text_field(wp_unslash($_POST['shipping_city'])) : '';
+			$shipping_state = isset($_POST['shipping_state']) ? sanitize_text_field(wp_unslash($_POST['shipping_state'])) : '';
+			$shipping_postcode = isset($_POST['shipping_postcode']) ? sanitize_text_field(wp_unslash($_POST['shipping_postcode'])) : '';
+			$shipping_country = isset($_POST['shipping_country']) ? sanitize_text_field(wp_unslash($_POST['shipping_country'])) : '';
+		
+			$shipping_address_parts = array_filter([$shipping_address_1, $shipping_address_2, $shipping_city, $shipping_state, $shipping_postcode, $shipping_country]);
+			$shipping_address = implode(', ', $shipping_address_parts);
+
+			$view_data = [
+				'ip_address' => $user_ip,
+				'first_name' => $billing_first_name,
+				'last_name'  => $billing_last_name,
+				'phone'      => $billing_phone,
+				'email'      => $billing_email,
+				'billing'    => $billing_address,
+				'shipping'   => $shipping_address,
+			];
+			$view_json = wp_json_encode( $view_data );
+
+			WC_Blacklist_Manager_Premium_Activity_Logs_Insert::checkout_block($view_json);
+		}
 		
 		$blacklist_action = get_option('wc_blacklist_action', 'none');
 		$checkout_notice  = get_option(
@@ -59,22 +101,8 @@ class WC_Blacklist_Manager_Blocklisted_Actions {
 				update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
 
 				if ($premium_active) {
-					$timestamp = current_time('mysql');
-					$type      = 'human';
-					$source    = 'woo_checkout';
-					$action    = 'block';
-					$details   = 'blocked_phone_attempt: ' . $billing_phone;
-					
-					$wpdb->insert(
-						$table_detection_log,
-						array(
-							'timestamp' => $timestamp,
-							'type'      => $type,
-							'source'    => $source,
-							'action'    => $action,
-							'details'   => $details,
-						)
-					);
+					$reason_phone = 'blocked_phone_attempt: ' . $billing_phone;
+					WC_Blacklist_Manager_Premium_Activity_Logs_Insert::checkout_block('', $reason_phone);
 				}
 			} else {
 				$billing_phone = '';
@@ -98,22 +126,8 @@ class WC_Blacklist_Manager_Blocklisted_Actions {
 				update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
 
 				if ($premium_active) {
-					$timestamp = current_time('mysql');
-					$type      = 'human';
-					$source    = 'woo_checkout';
-					$action    = 'block';
-					$details   = 'blocked_email_attempt: ' . $billing_email;
-					
-					$wpdb->insert(
-						$table_detection_log,
-						array(
-							'timestamp' => $timestamp,
-							'type'      => $type,
-							'source'    => $source,
-							'action'    => $action,
-							'details'   => $details,
-						)
-					);
+					$reason_email = 'blocked_email_attempt: ' . $billing_email;
+					WC_Blacklist_Manager_Premium_Activity_Logs_Insert::checkout_block('', '', $reason_email);
 				}
 			} else {
 				$billing_email = '';
@@ -154,6 +168,32 @@ class WC_Blacklist_Manager_Blocklisted_Actions {
 				$email
 			)));
 
+			if ($premium_active) {
+				$user_ip = $this->get_the_user_ip();
+				$phone = '';
+
+				if ( (is_plugin_active( 'wc-advanced-accounts/wc-advanced-accounts.php' ) || is_plugin_active( 'wc-advanced-accounts-premium/wc-advanced-accounts-premium.php' ) )
+				&& get_option( 'yoaa_wc_enable_phone_number_account' ) === 'yes' ) {
+					if ( preg_match( '/^\d+-\d+$/', $username ) ) {
+						$phone = '+' . str_replace( '-', '', $username );
+					} else {
+						$phone = preg_replace( '/^0/', '', $username );
+					}
+				}
+
+				$view_data = [
+					'ip_address' => $user_ip,
+					'email'      => $email,
+				];
+				if ( ! empty( $phone ) ) {
+					$view_data['phone'] = $phone;
+				}
+				$view_json = wp_json_encode( $view_data );
+
+				WC_Blacklist_Manager_Premium_Activity_Logs_Insert::register_block($view_json);
+				WC_Blacklist_Manager_Premium_Activity_Logs_Insert::register_suspect($view_json);
+			}
+
 			if ($email_blocked) {
 				$sum_block_email = get_option('wc_blacklist_sum_block_email', 0);
 				update_option('wc_blacklist_sum_block_email', $sum_block_email + 1);
@@ -163,22 +203,8 @@ class WC_Blacklist_Manager_Blocklisted_Actions {
 				WC_Blacklist_Manager_Email::send_email_registration_block( '', $email );
 
 				if ($premium_active) {
-					$timestamp = current_time('mysql');
-					$type      = 'human';
-					$source    = 'register';
-					$action    = 'block';
-					$details   = 'blocked_email_attempt: ' . $email;
-					
-					$wpdb->insert(
-						$table_detection_log,
-						array(
-							'timestamp' => $timestamp,
-							'type'      => $type,
-							'source'    => $source,
-							'action'    => $action,
-							'details'   => $details,
-						)
-					);
+					$reason_email = 'blocked_email_attempt: ' . $email;
+					WC_Blacklist_Manager_Premium_Activity_Logs_Insert::register_block('', '', $reason_email);
 				}
 				
 				wc_blacklist_add_registration_notice($errors);
@@ -191,28 +217,14 @@ class WC_Blacklist_Manager_Blocklisted_Actions {
 				WC_Blacklist_Manager_Email::send_email_registration_suspect( '', $email );
 
 				if ($premium_active) {
-					$timestamp = current_time('mysql');
-					$type      = 'human';
-					$source    = 'register';
-					$action    = 'suspect';
-					$details   = 'suspected_email_attempt: ' . $email;
-					
-					$wpdb->insert(
-						$table_detection_log,
-						array(
-							'timestamp' => $timestamp,
-							'type'      => $type,
-							'source'    => $source,
-							'action'    => $action,
-							'details'   => $details,
-						)
-					);
+					$reason_email = 'suspected_email_attempt: ' . $email;
+					WC_Blacklist_Manager_Premium_Activity_Logs_Insert::register_suspect('', '', $reason_email);
 				}
 			} else {
 				$email = '';
 			}
 
-			if ( is_plugin_active( 'wc-advanced-accounts/wc-advanced-accounts.php' ) 
+			if ( (is_plugin_active( 'wc-advanced-accounts/wc-advanced-accounts.php' ) || is_plugin_active( 'wc-advanced-accounts-premium/wc-advanced-accounts-premium.php' ) )
 				&& get_option( 'yoaa_wc_enable_phone_number_account' ) === 'yes' ) {
 
 				// 1) normalize $phone from $username:
@@ -244,7 +256,6 @@ class WC_Blacklist_Manager_Blocklisted_Actions {
 				if ( $phone_blocked ) {
 					$sum_phone = get_option( 'wc_blacklist_sum_block_phone', 0 );
 					update_option( 'wc_blacklist_sum_block_phone', $sum_phone + 1 );
-
 					$sum_total = get_option( 'wc_blacklist_sum_block_total', 0 );
 					update_option( 'wc_blacklist_sum_block_total', $sum_total + 1 );
 
@@ -252,16 +263,8 @@ class WC_Blacklist_Manager_Blocklisted_Actions {
 					WC_Blacklist_Manager_Email::send_email_registration_block( $phone );
 
 					if ( $premium_active ) {
-						$wpdb->insert(
-							$table_detection_log,
-							[
-								'timestamp' => current_time( 'mysql' ),
-								'type'      => 'human',
-								'source'    => 'register',
-								'action'    => 'block',
-								'details'   => 'blocked_phone_attempt: ' . $phone,
-							]
-						);
+						$reason_phone = 'blocked_phone_attempt: ' . $phone;
+						WC_Blacklist_Manager_Premium_Activity_Logs_Insert::register_block('', $reason_phone);
 					}
 
 					wc_blacklist_add_registration_notice( $errors );
@@ -269,7 +272,6 @@ class WC_Blacklist_Manager_Blocklisted_Actions {
 				} elseif ( $phone_suspected ) {
 					$sum_phone = get_option( 'wc_blacklist_sum_block_phone', 0 );
 					update_option( 'wc_blacklist_sum_block_phone', $sum_phone + 1 );
-
 					$sum_total = get_option( 'wc_blacklist_sum_block_total', 0 );
 					update_option( 'wc_blacklist_sum_block_total', $sum_total + 1 );
 
@@ -277,16 +279,8 @@ class WC_Blacklist_Manager_Blocklisted_Actions {
 					WC_Blacklist_Manager_Email::send_email_registration_suspect( $phone );
 
 					if ( $premium_active ) {
-						$wpdb->insert(
-							$table_detection_log,
-							[
-								'timestamp' => current_time( 'mysql' ),
-								'type'      => 'human',
-								'source'    => 'register',
-								'action'    => 'suspect',
-								'details'   => 'suspected_phone_attempt: ' . $phone,
-							]
-						);
+						$reason_phone = 'suspected_phone_attempt: ' . $phone;
+						WC_Blacklist_Manager_Premium_Activity_Logs_Insert::register_suspect('', '', $reason_phone);
 					}
 				}
 			}
@@ -332,7 +326,7 @@ class WC_Blacklist_Manager_Blocklisted_Actions {
 
 				if ($premium_active) {
 					$timestamp = current_time('mysql');
-					$type      = 'human';
+					$type      = 'bot';
 					$source    = 'woo_order_' . $order_id;
 					$action    = 'cancel';
 					$details   = 'blocked_phone_attempt: ' . $billing_phone;
@@ -366,7 +360,7 @@ class WC_Blacklist_Manager_Blocklisted_Actions {
 
 				if ($premium_active) {
 					$timestamp = current_time('mysql');
-					$type      = 'human';
+					$type      = 'bot';
 					$source    = 'woo_order_' . $order_id;
 					$action    = 'cancel';
 					$details   = 'blocked_email_attempt: ' . $billing_email;
@@ -400,6 +394,23 @@ class WC_Blacklist_Manager_Blocklisted_Actions {
 		if ($order && !$order->has_status('cancelled')) {
 			$order->update_status('cancelled', __('Order cancelled due to blocklist match.', 'wc-blacklist-manager'));
 		}
+	}
+
+	private function get_the_user_ip() {
+		if (!empty($_SERVER['HTTP_CF_CONNECTING_IP'])) {
+			// Cloudflare connecting IP
+			$ip = $_SERVER['HTTP_CF_CONNECTING_IP'];
+		} elseif (!empty($_SERVER['HTTP_CLIENT_IP'])) {
+			// Client IP
+			$ip = $_SERVER['HTTP_CLIENT_IP'];
+		} elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+			// X-Forwarded-For header
+			$ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
+		} else {
+			// Remote address
+			$ip = $_SERVER['REMOTE_ADDR'];
+		}
+		return sanitize_text_field($ip);
 	}
 }
 

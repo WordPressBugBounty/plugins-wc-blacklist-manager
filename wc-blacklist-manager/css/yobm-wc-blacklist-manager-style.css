@@ -194,11 +194,13 @@ th.column-name {
 
 /* Activity logs */
 .activity-log th, .activity-log td {
-    vertical-align: middle;
+    vertical-align: middle !important;
+    padding: 10px 0 !important;
 }
 
 .activity-log-source {
     display: flex;
+    margin-top: 6px;
 }
 
 .activity-log-source img {

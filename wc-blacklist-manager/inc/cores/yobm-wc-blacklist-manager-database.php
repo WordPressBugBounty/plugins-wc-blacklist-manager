@@ -5,7 +5,6 @@ if (!defined('ABSPATH')) {
 }
 
 class WC_Blacklist_Manager_DB {
-
 	private $blacklist_table_name;
 	private $whitelist_table_name;
 	private $detection_log_table_name;
@@ -21,6 +20,27 @@ class WC_Blacklist_Manager_DB {
 		register_activation_hook(WC_BLACKLIST_MANAGER_PLUGIN_FILE, [$this, 'activate']);
 		add_action('admin_init', [$this, 'check_version']);
 	}
+
+    public function activate() {
+        $this->update_db();
+        $this->set_first_install_date();
+        $this->install_default_options();
+        $this->install_count_options();
+        $this->create_trigger();
+        $this->create_delete_trigger();
+		WC_Blacklist_Manager_Push_Subscription::push_subscription();
+    }
+
+    public function check_version() {
+        if ( get_option('wc_blacklist_manager_version') != $this->version ) {
+            $this->update_db();
+            $this->install_default_options();
+            $this->install_count_options();
+            $this->create_trigger();
+            $this->create_delete_trigger();
+			WC_Blacklist_Manager_Push_Subscription::push_subscription();
+        }
+    }	
 
 	public function update_db() {
 		global $wpdb;
@@ -70,6 +90,7 @@ class WC_Blacklist_Manager_DB {
 				source varchar(255) NOT NULL,
 				action varchar(255) NOT NULL,
 				details text NOT NULL,
+				view text NOT NULL,
 				PRIMARY KEY (id)
 			) $charset_collate;";
 
@@ -340,25 +361,6 @@ class WC_Blacklist_Manager_DB {
             END;
         ";
         $wpdb->query($trigger_sql);
-    }
-
-    public function activate() {
-        $this->update_db();
-        $this->set_first_install_date();
-        $this->install_default_options();
-        $this->install_count_options();
-        $this->create_trigger();
-        $this->create_delete_trigger();
-    }
-
-    public function check_version() {
-        if ( get_option('wc_blacklist_manager_version') != $this->version ) {
-            $this->update_db();
-            $this->install_default_options();
-            $this->install_count_options();
-            $this->create_trigger();
-            $this->create_delete_trigger();
-        }
     }
 
 	private function set_first_install_date() {

@@ -117,10 +117,11 @@ $logs = $wpdb->get_results(
 							<input type="checkbox" id="cb-select-all">
 						</td>
 						<th scope="col" style="width: 14%;"><?php esc_html_e( 'Timestamp', 'wc-blacklist-manager' ); ?></th>
-						<th scope="col" style="width: 10ch;"><?php esc_html_e( 'Type', 'wc-blacklist-manager' ); ?></th>
+						<th scope="col" style="width: 6ch;"><?php esc_html_e( 'Type', 'wc-blacklist-manager' ); ?></th>
 						<th scope="col" style="width: 15ch;"><?php esc_html_e( 'Source', 'wc-blacklist-manager' ); ?></th>
 						<th scope="col" style="width: 10ch;"><?php esc_html_e( 'Action', 'wc-blacklist-manager' ); ?></th>
 						<th scope="col"><?php esc_html_e( 'Details', 'wc-blacklist-manager' ); ?></th>
+						<th scope="col" style="width: 12ch;"><?php esc_html_e( 'View',      'wc-blacklist-manager' ); ?></th>
 					</tr>
 				</thead>
 				<tbody>
@@ -152,59 +153,67 @@ $logs = $wpdb->get_results(
 									?>
 								</td>
 								<td class="activity-log-source">
-									<?php 
-									$source = $log->source;
-									$img_html = '';
-									$text = $source;
-									
-									// Check for our specific prefixes with an underscore separator.
-									if ( preg_match( '/^(woo|cf7|gravity|wpforms)_(.+)$/', $source, $matches ) ) {
-										$prefix = $matches[1];
-										$remainder = $matches[2];
-										
-										// Pick the image according to the prefix.
-										switch ( $prefix ) {
-											case 'woo':
-												$img = 'woo.svg';
-												break;
-											case 'cf7':
-												$img = 'cf7.svg';
-												break;
-											case 'gravity':
-												$img = 'gravity.svg';
-												break;
-											case 'wpforms':
-												$img = 'wpforms.svg';
-												break;
-											default:
-												$img = '';
-												break;
-										}
-										
-										if ( ! empty( $img ) ) {
-											$img_url = plugins_url( '../../../img/' . $img, __FILE__ );
-											$img_html = '<img src="' . esc_url( $img_url ) . '" alt="' . esc_attr( ucfirst( __( $prefix, 'wc-blacklist-manager' ) ) ) . '" width="16">';   
-										}
-										
-										// Remove underscores from the remainder, add spaces and capitalize.
-										$text = ucfirst( str_replace( '_', ' ', $remainder ) );
-										
-									} elseif ( in_array( $source, array( 'access', 'register', 'login', 'checkout', 'submit', 'order' ), true ) ) {
-										// For these specific words, use 'site.svg' and make the text translatable.
-										$img = 'site.svg';
-										$img_url = plugins_url( '../../../img/' . $img, __FILE__ );
-										// Translate the source string.
-										$translated = ucfirst( __( $source, 'wc-blacklist-manager' ) );
-										$img_html = '<img src="' . esc_url( $img_url ) . '" alt="' . esc_attr( $translated ) . '" width="16">';
-										$text = $translated;
-									} else {
-										// Fallback: Replace underscores with spaces and translate the result.
-										$text = ucfirst( __( str_replace( '_', ' ', $source ), 'wc-blacklist-manager' ) );
+								<?php 
+								$source = $log->source;
+								$img_html = '';
+								$text = $source;
+								$link_html = '';
+
+								// Check for our specific prefixes with an underscore separator.
+								if ( preg_match( '/^(woo|cf7|gravity|wpforms)_(.+)$/', $source, $matches ) ) {
+									$prefix = $matches[1];
+									$remainder = $matches[2];
+
+									// Pick the image according to the prefix.
+									switch ( $prefix ) {
+										case 'woo':
+											$img = 'woo.svg';
+											break;
+										case 'cf7':
+											$img = 'cf7.svg';
+											break;
+										case 'gravity':
+											$img = 'gravity.svg';
+											break;
+										case 'wpforms':
+											$img = 'wpforms.svg';
+											break;
+										default:
+											$img = '';
+											break;
 									}
-									
-									// Output the image and the final text.
-									echo $img_html . ' ' . esc_html( $text );
-									?>
+
+									if ( ! empty( $img ) ) {
+										$img_url = plugins_url( '../../../img/' . $img, __FILE__ );
+										$img_html = '<img src="' . esc_url( $img_url ) . '" alt="' . esc_attr( ucfirst( __( $prefix, 'wc-blacklist-manager' ) ) ) . '" width="16">';
+									}
+
+									// Check for specific "woo_order_" pattern and extract order ID
+									if ( $prefix === 'woo' && preg_match( '/^order_(\d+)$/', $remainder, $id_match ) ) {
+										$order_id = absint( $id_match[1] );
+										$edit_url = admin_url( 'post.php?post=' . $order_id . '&action=edit' );
+										$text = 'Order' . '&nbsp;';
+										$link_html = '<a href="' . esc_url( $edit_url ) . '" target="_blank">#' . esc_html( $order_id ) . '</a>';
+									} else {
+										// Regular remainder formatting
+										$text = ucfirst( str_replace( '_', ' ', $remainder ) );
+									}
+
+								} elseif ( in_array( $source, array( 'access', 'register', 'login', 'checkout', 'submit', 'order' ), true ) ) {
+									// For these specific words, use 'site.svg' and make the text translatable.
+									$img = 'site.svg';
+									$img_url = plugins_url( '../../../img/' . $img, __FILE__ );
+									$translated = ucfirst( __( $source, 'wc-blacklist-manager' ) );
+									$img_html = '<img src="' . esc_url( $img_url ) . '" alt="' . esc_attr( $translated ) . '" width="16">';
+									$text = $translated;
+								} else {
+									// Fallback: Replace underscores with spaces and translate the result.
+									$text = ucfirst( __( str_replace( '_', ' ', $source ), 'wc-blacklist-manager' ) );
+								}
+
+								// Output the image, text, and optional link
+								echo $img_html . ' ' . esc_html( $text ) . $link_html;
+								?>
 								</td>
 								<td>
 									<?php 
@@ -212,17 +221,67 @@ $logs = $wpdb->get_results(
 										echo '<span class="bm-status-block">' . esc_html__( 'Block', 'wc-blacklist-manager' ) . '</span>';
 									} elseif ( 'suspect' === $log->action ) {
 										echo '<span class="bm-status-suspect">' . esc_html__( 'Suspect', 'wc-blacklist-manager' ) . '</span>';
-									} else {
+									} elseif ( 'verify' === $log->action ) {
+										echo '<span class="bm-status-verify">' . esc_html__( 'Verify', 'wc-blacklist-manager' ) . '</span>';
+									}  else {
 										echo esc_html( $log->action );
 									}
 									?>
 								</td>
-								<td><?php echo esc_html( $log->details ); ?></td>
+								<td>
+								<?php
+								// 1) Split only on ", " followed by a word and a colon (i.e., key: value pairs)
+								$entries = preg_split( '/,\s(?=\w+:)/', $log->details );
+
+								$cleaned = array();
+								foreach ( $entries as $entry ) {
+									// Split at the first ":"
+									list( $raw_key, $value ) = array_map( 'trim', explode( ':', $entry, 2 ) );
+
+									// Remove prefixes/suffixes
+									$key = str_replace(
+										array( 'suspected_', 'blocked_', 'verified_', '_attempt' ),
+										'',
+										$raw_key
+									);
+
+									// Replace underscores with spaces and capitalize
+									$label = ucfirst( str_replace( '_', ' ', $key ) );
+
+									// Special handling for "user"
+									if ( $key === 'user' && is_numeric( $value ) ) {
+										$user_id = absint( $value );
+										$user = get_userdata( $user_id );
+										if ( $user ) {
+											$user_name = $user->user_login;
+											$edit_url = esc_url( admin_url( "user-edit.php?user_id={$user_id}" ) );
+											$cleaned[] = "{$label}: <a href=\"{$edit_url}\" target=\"_blank\">" . esc_html( $user_name ) . "</a>";
+											continue;
+										}
+									}
+
+									// Reassemble
+									$cleaned[] = "{$label}: " . esc_html( $value );
+								}
+
+								// 3) Output the cleaned, joined string
+								echo implode( ', ', $cleaned );
+								?>
+								</td>
+								<td>
+									<button
+										type="button"
+										class="button show-view-data"
+										data-view='<?php echo esc_attr( $log->view ); ?>'
+									>
+										<?php esc_html_e( 'More info', 'wc-blacklist-manager' ); ?>
+									</button>
+								</td>
 							</tr>
 						<?php endforeach; ?>
 					<?php else : ?>
 						<tr>
-							<td colspan="6"><?php esc_html_e( 'No detection log entries found.', 'wc-blacklist-manager' ); ?></td>
+							<td colspan="7"><?php esc_html_e( 'No detection log entries found.', 'wc-blacklist-manager' ); ?></td>
 						</tr>
 					<?php endif; ?>
 				</tbody>
@@ -281,10 +340,73 @@ $logs = $wpdb->get_results(
 				</div>
 			</div>
 		</form>
+
+		<script>
+		document.addEventListener('DOMContentLoaded', function () {
+			document.querySelectorAll('.show-view-data').forEach(function (btn) {
+				btn.addEventListener('click', function () {
+				const raw = this.getAttribute('data-view') || '{}';
+				let content;
+
+				try {
+					content = JSON.stringify(JSON.parse(raw), null, 2);
+				} catch (e) {
+					content = raw;
+				}
+
+				// Build overlay + popup
+				const overlay = document.createElement('div');
+				overlay.id = 'bm-view-overlay';
+				Object.assign(overlay.style, {
+					position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+					background: 'rgba(0,0,0,0.5)', zIndex: 10000
+				});
+
+				const popup = document.createElement('div');
+				popup.id = 'bm-view-popup';
+				Object.assign(popup.style, {
+					position: 'fixed', top: '50%', left: '50%',
+					transform: 'translate(-50%,-50%)',
+					background: '#fff', padding: '20px',
+					boxShadow: '0 5px 15px rgba(0,0,0,0.3)',
+					maxWidth: '90%', maxHeight: '80%', overflow: 'auto', borderRadius: '8px',
+					zIndex: 10001
+				});
+
+				const pre = document.createElement('pre');
+				pre.style.whiteSpace = 'pre-wrap';
+				pre.textContent = content;
+
+				const closeBtn = document.createElement('button');
+				closeBtn.textContent = '<?php echo esc_js( __( 'Close', 'wc-blacklist-manager' ) ); ?>';
+				Object.assign(closeBtn.style, {
+					marginTop: '10px', padding: '8px 16px',
+					background: '#007cba', color: '#fff', border: 'none',
+					borderRadius: '4px', cursor: 'pointer'
+				});
+
+				closeBtn.addEventListener('click', removePopup);
+				overlay.addEventListener('click', removePopup);
+
+				popup.appendChild(pre);
+				popup.appendChild(closeBtn);
+				document.body.appendChild(overlay);
+				document.body.appendChild(popup);
+
+				function removePopup() {
+					document.body.removeChild(popup);
+					document.body.removeChild(overlay);
+				}
+				});
+			});
+		});
+		</script>
+
 	<?php else : ?>
 		<p>
-			<?php esc_html_e( 'To record and see the detection log, please upgrade to the premium version.', 'wc-blacklist-manager' ); ?>
-			<a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a>
+			To record and see the activity logs, please upgrade to the premium version.
+			<a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a><br>
+			<a href='https://yoohw.com/docs/woocommerce-blacklist-manager/activity-logs/activity-logs/' target='_blank'>Find out how it performs here</a>
 		</p>
 		<div class="tablenav top">
 			<div class="alignleft actions bulkactions">
