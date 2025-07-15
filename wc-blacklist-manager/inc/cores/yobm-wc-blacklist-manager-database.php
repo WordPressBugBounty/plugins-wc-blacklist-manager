@@ -127,11 +127,9 @@ class WC_Blacklist_Manager_DB {
 			add_option( 'wc_blacklist_email_footer_text', $default_email_footer_text );
 		}
 
-		if (!$premium_active) {
-			$current_footer_text = get_option( 'wc_blacklist_email_footer_text' );
-			if ( '0' === $current_footer_text ) {
-				update_option( 'wc_blacklist_email_footer_text', $default_email_footer_text );
-			}
+		$current_footer_text = get_option( 'wc_blacklist_email_footer_text' );
+		if ( '0' === $current_footer_text ) {
+			update_option( 'wc_blacklist_email_footer_text', $default_email_footer_text );
 		}
 
 		if ( false === get_option( 'wc_blacklist_sum_block_name' ) ) {

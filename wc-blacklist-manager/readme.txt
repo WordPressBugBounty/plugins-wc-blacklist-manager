@@ -3,9 +3,9 @@ Contributors: yoohw, baonguyen0310
 Tags: blacklist customers, spam prevention, fraud prevention, woocommerce anti fraud, Prevent fake orders
 Requires at least: 6.3
 Tested up to: 6.8
-WC tested up to: 9.9
-Requires PHP: 5.6
-Stable tag: 2.0.4
+WC tested up to: 10.0
+Requires PHP: 7.0
+Stable tag: 2.0.5
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -27,6 +27,7 @@ Originally built for WooCommerce, it now extends its protection to popular form 
 * **Easy Blacklist Management**: Easily add the phone number, email address, ip address from the order page; multi ip addresses/domains addition into blocking list.
 * **Multi Notifications**: Email, alert and error notices for both admin and users are customizable.
 * **WooCommerce Order Protection**: Prevent fake orders, duplicate orders, and fraudulent transactions.
+* **Comment / Review Blocking**: Automatically block comments and reviews from blacklisted emails.
 * **Prevent Registration**: Option to prevent registration if the email/ip/domain is on the Blocklist.
 * **Form Spam Shield**: Integrates with Contact Form 7, Gravity Forms, WPForms—blocks blacklist matches on all major WordPress forms.
 * **Timed Cancellation**: Option to cancel the order if the email/phone is on the Blocklist in the delay of time.
@@ -42,6 +43,7 @@ Building on the robust features of the free version, the premium version offers 
 
 * **Customer Name Blocking**: Adds the first and last name of the customer to the blocklist.
 * **Address Blacklisting**: Block orders from specific billing and shipping addresses listed in your blocklist.
+* **Block Comment / Review**: Completely block comments and reviews from blacklisted emails, IPs, or domains.
 * **Prevent Submission**: Block form submissions from Contact Form 7, Gravity Forms, and WPForms if the IP address is on the Blocklist.
 * **Prevent VPN & Proxy Submission**: Automatically block form submissions and registrations if the visitor is using a Proxy server or VPN connection.
 * **IP Access Prevention**: Stop users from accessing your website from IP countries that you have selected.
@@ -66,6 +68,20 @@ Fully Automated-Protecting against fraud and unauthorized transactions, hands-fr
 
 [Explore the Automation features](https://yoohw.com/product/woocommerce-blacklist-manager-premium/#automation)
 
+**Powerful Recording Activity Logs**
+
+Gain full visibility into every interaction and decision with Powerful Recording Activity Logs. This feature continuously tracks and documents all blacklist detections and user activities, giving you the transparency and control you need to stay ahead of fraud and suspicious behavior.
+
+With comprehensive logging, the plugin records:
+
+* **Detection Attempts**: Every time a user triggers a blacklist rule—whether by email, phone, IP, or address—it’s logged with a timestamp for easy traceability.
+* **Admin Actions**: Logs when entries are added, edited, removed, or manually overridden by store staff, ensuring accountability across your team.
+* **Checkout Blocks**: Captures blocked checkout attempts along with detailed user input and cart contents, so you always know what was stopped—and why.
+
+By storing detailed activity logs in a structured and searchable format, this feature empowers you to review patterns, strengthen your security rules, and make informed decisions backed by data—all without lifting a finger.
+
+[Learn more about this feature](https://yoohw.com/docs/woocommerce-blacklist-manager/activity-logs/activity-logs/)
+
 **Real-time Automatic Validation**
 
 Our plugin ensures a seamless and error-free checkout experience with Real-time Automatic Validation. This feature automatically validates customer-provided details, including names, email addresses, and phone numbers, as they are entered. By detecting and alerting users of issues such as incomplete or invalid data, it helps to reduce errors and ensure compliance with your data integrity rules.
@@ -82,7 +98,7 @@ This real-time validation not only improves the user experience by providing ins
 
 Protect every corner of your website and WooCommerce store with our comprehensive bot-blocking solution, now with expanded coverage for user authentication flows. Key features include:
 
-* **Advanced bot detection**: AI-driven behavioral analysis stops spam bots in checkout, login, and registration forms alike.
+* **Advanced bot detection**: AI-driven behavioral analysis stops spam bots in checkout, login, registration, and comment forms alike.
 * **Seamless user experience**: Invisible security layers—Google reCAPTCHA v3, v2, Cloudflare Turnstile, and hCaptcha—ensure legitimate customers sail through checkout, login, and signup without friction.
 * **Expanded form protection**: Require CAPTCHA challenges on login and registration pages to block automated account creation and credential stuffing attacks.
 * **API protection**: Safeguards your checkout, login, and registration endpoints from bots abusing your REST API.
@@ -183,6 +199,13 @@ A: There is no set limit within the plugin, but practical limitations depend on 
 A: No, the plugin is optimized for performance. It performs blacklist checks efficiently and only at appropriate times (like form submission or checkout), so it won’t noticeably impact your site speed.
 
 == Changelog ==
+
+= 2.0.5 (July 15, 2025) =
+* New: Prevent blocked user to submit comment and product review.
+* Fix: False blocked notice in the add new order page.
+* Improve: Optimized and combined suspect and block notices in the order page.
+* Improve: Optimized suspect/block action on the order page.
+* Improve: Correct the phone number format before checking blacklist.
 
 = 2.0.4 (Jun 23, 2025) =
 * Update: Added suspect and block button text on the order page.

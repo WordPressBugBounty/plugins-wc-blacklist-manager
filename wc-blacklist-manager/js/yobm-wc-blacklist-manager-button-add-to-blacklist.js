@@ -6,6 +6,7 @@ jQuery(document).ready(function($) {
         var userConfirmed = confirm(blacklist_ajax_object.confirm_message);
 
         if (userConfirmed) {
+            $('#add_to_blacklist').remove();
             var data = {
                 'action': 'add_to_blacklist',
                 'order_id': woocommerce_admin_meta_boxes.post_id,
@@ -18,7 +19,6 @@ jQuery(document).ready(function($) {
                 $('div.notice').delay(3000).slideUp(300, function() {
                     window.location.reload();
                 });
-                $('#add_to_blacklist_container').hide();
             });
         }
     });

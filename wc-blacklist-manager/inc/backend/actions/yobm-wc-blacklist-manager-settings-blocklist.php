@@ -11,6 +11,7 @@ class WC_Blacklist_Manager_Blocklisted_Actions {
 		add_filter('woocommerce_registration_errors', [$this, 'prevent_blocked_email_registration_woocommerce'], 10, 3);
 		add_action('woocommerce_order_status_changed', [$this, 'schedule_order_cancellation'], 10, 4);
 		add_action('wc_blacklist_delayed_order_cancel', [$this, 'delayed_order_cancel']);
+		add_filter('preprocess_comment', [$this, 'prevent_comment'], 10, 1);
 	}
 
 	public function prevent_order() {
@@ -19,7 +20,6 @@ class WC_Blacklist_Manager_Blocklisted_Actions {
 		
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'wc_blacklist';
-		$table_detection_log = $wpdb->prefix . 'wc_blacklist_detection_log';
 		
 		// Get the selected country code if it exists.
 		$billing_dial_code = isset($_POST['billing_dial_code']) ? sanitize_text_field(wp_unslash($_POST['billing_dial_code'])) : '';
@@ -64,6 +64,54 @@ class WC_Blacklist_Manager_Blocklisted_Actions {
 			$shipping_address_parts = array_filter([$shipping_address_1, $shipping_address_2, $shipping_city, $shipping_state, $shipping_postcode, $shipping_country]);
 			$shipping_address = implode(', ', $shipping_address_parts);
 
+			// — pull cart items (product_id => quantity) —
+$items = [];
+if ( WC()->cart && ! WC()->cart->is_empty() ) {
+    foreach ( WC()->cart->get_cart() as $cart_item ) {
+        $product_id  = $cart_item['product_id'];
+        $quantity    = intval( $cart_item['quantity'] );
+        // Unit price as set on the product (before per-item discounts)
+        $unit_price  = floatval( $cart_item['data']->get_price() );
+        // Line total (quantity * unit_price, after discounts)
+        $line_total  = floatval( $cart_item['line_total'] );
+
+        $items[ $product_id ] = [
+            'quantity'   => $quantity,
+            'unit_price' => $unit_price,
+            'line_total' => $line_total,
+        ];
+    }
+}
+
+$fees = [];
+foreach ( WC()->cart->get_fees() as $fee_item ) {
+    $fees[] = [
+        'name'   => $fee_item->name,
+        'amount' => (float) $fee_item->amount,
+    ];
+}
+
+			// — other totals & methods —
+			$subtotal         = WC()->cart->get_subtotal();             // raw subtotal
+			$discount_total   = WC()->cart->get_discount_total();       // raw discount
+			$shipping_total   = WC()->cart->get_shipping_total();       // raw shipping fee
+			$total            = WC()->cart->total;                     // raw order total
+			$chosen_methods   = WC()->session->get( 'chosen_shipping_methods', [] );
+			$shipping_method  = ! empty( $chosen_methods ) 
+								? $chosen_methods[0] 
+								: '';
+			// — cart tax totals —
+			$cart_contents_tax = WC()->cart->get_cart_contents_tax();
+			$shipping_tax      = WC()->cart->get_shipping_tax();
+			$tax_total         = $cart_contents_tax + $shipping_tax;
+
+			$payment_method = '';
+			if ( isset( $_POST['payment_method'] ) ) {
+				$payment_method = sanitize_text_field( wp_unslash( $_POST['payment_method'] ) );
+			} elseif ( WC()->session ) {
+				$payment_method = WC()->session->get( 'chosen_payment_method', '' );
+			}
+								
 			$view_data = [
 				'ip_address' => $user_ip,
 				'first_name' => $billing_first_name,
@@ -73,6 +121,21 @@ class WC_Blacklist_Manager_Blocklisted_Actions {
 				'billing'    => $billing_address,
 				'shipping'   => $shipping_address,
 			];
+			$view_data['cart_items']       = $items;
+			$view_data['fees'] = $fees;
+			$view_data['cart_subtotal']    = $subtotal;
+			$view_data['cart_contents_tax'] = $cart_contents_tax;
+			$view_data['coupons'] = WC()->cart->get_applied_coupons();
+			$view_data['cart_discount']    = $discount_total;
+			$view_data['cart_shipping']    = [
+				'method' => $shipping_method,
+				'fee'    => $shipping_total,
+				'shipping_tax' => $shipping_tax,
+			];
+			$view_data['cart_tax']         = $tax_total;
+			$view_data['cart_total']       = $total;
+			$view_data['payment_method']   = $payment_method;
+			$view_data['currency'] = get_woocommerce_currency();
 			$view_json = wp_json_encode( $view_data );
 
 			WC_Blacklist_Manager_Premium_Activity_Logs_Insert::checkout_block($view_json);
@@ -158,7 +221,6 @@ class WC_Blacklist_Manager_Blocklisted_Actions {
 		global $wpdb;
 		if (get_option('wc_blacklist_block_user_registration', 0)) {
 			$table_name = $wpdb->prefix . 'wc_blacklist';
-			$table_detection_log = $wpdb->prefix . 'wc_blacklist_detection_log';
 			$email_blocked = !empty($wpdb->get_var($wpdb->prepare(
 				"SELECT 1 FROM {$table_name} WHERE email_address = %s AND is_blocked = 1 LIMIT 1",
 				$email
@@ -394,6 +456,102 @@ class WC_Blacklist_Manager_Blocklisted_Actions {
 		if ($order && !$order->has_status('cancelled')) {
 			$order->update_status('cancelled', __('Order cancelled due to blocklist match.', 'wc-blacklist-manager'));
 		}
+	}
+
+	public function prevent_comment( $commentdata ) {
+		if ( get_option( 'wc_blacklist_comment_blocking_enabled', 0 ) !== '1' ) {
+			return $commentdata;
+		}
+		$settings_instance = new WC_Blacklist_Manager_Settings();
+		$premium_active = $settings_instance->is_premium_active();
+		
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'wc_blacklist';
+
+		$author_email = isset( $commentdata['comment_author_email'] )
+			? trim( $commentdata['comment_author_email'] )
+			: '';
+
+		if ( ! empty( $author_email ) && is_email( $author_email ) ) {
+			// Check for a blocked email
+			$is_blocked = (bool) $wpdb->get_var(
+				$wpdb->prepare(
+					"SELECT 1
+					FROM {$table_name}
+					WHERE email_address = %s
+						AND is_blocked     = 1
+					LIMIT 1",
+					$author_email
+				)
+			);
+
+			$is_suspected = (bool) $wpdb->get_var(
+				$wpdb->prepare(
+					"SELECT 1
+					FROM {$table_name}
+					WHERE email_address = %s
+						AND is_blocked     = 0
+					LIMIT 1",
+					$author_email
+				)
+			);
+
+			$user_ip = $this->get_the_user_ip();
+			
+			$view_data = [
+				'ip_address' => $user_ip,
+				'email'      => $author_email,
+			];
+			$view_json = wp_json_encode( $view_data );
+
+			$source = 'comment';
+			if ( ! empty( $commentdata['comment_type'] ) && 'review' === $commentdata['comment_type'] ) {
+				$source = 'woo_review';
+			}
+			
+			if ( $is_blocked ) {
+				$sum_block_email = get_option('wc_blacklist_sum_block_email', 0);
+				update_option('wc_blacklist_sum_block_email', $sum_block_email + 1);
+				$sum_block_total = get_option('wc_blacklist_sum_block_total', 0);
+				update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
+
+				WC_Blacklist_Manager_Email::send_email_comment_block( $author_email );
+
+				if ($premium_active) {
+					$reason_email = 'blocked_email_attempt: ' . $author_email;
+					WC_Blacklist_Manager_Premium_Activity_Logs_Insert::comment_block($view_json, $source, $reason_email);
+				}
+
+				// Get your custom notice; allow a %s placeholder for the email
+				$notice_template = get_option(
+					'wc_blacklist_comment_notice',
+					__('Sorry! You are no longer allowed to submit a comment on our site. If you think it is a mistake, please contact support.', 'wc-blacklist-manager')
+				);
+
+				// Inject the email into the notice
+				$notice = sprintf( wp_kses_post( $notice_template ) );
+
+				wp_die(
+					$notice,
+					__( 'Comment Blocked', 'wc-blacklist-manager' ),
+					[ 'response' => 403 ]
+				);
+			} elseif ( $is_suspected ) {
+				$sum_block_email = get_option('wc_blacklist_sum_block_email', 0);
+				update_option('wc_blacklist_sum_block_email', $sum_block_email + 1);
+				$sum_block_total = get_option('wc_blacklist_sum_block_total', 0);
+				update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
+
+				WC_Blacklist_Manager_Email::send_email_comment_suspect( $author_email );
+
+				if ($premium_active) {
+					$reason_email = 'suspected_email_attempt: ' . $author_email;
+					WC_Blacklist_Manager_Premium_Activity_Logs_Insert::comment_suspect($view_json, $source, $reason_email);
+				}
+			}
+		}
+
+		return $commentdata;
 	}
 
 	private function get_the_user_ip() {

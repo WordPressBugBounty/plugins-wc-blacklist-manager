@@ -3,12 +3,12 @@
  * Plugin Name: Blacklist Manager
  * Plugin URI: https://wordpress.org/plugins/wc-blacklist-manager
  * Description: An anti-fraud and spam prevention plugin for WooCommerce and WordPress forms.
- * Version: 2.0.4
+ * Version: 2.0.5
  * Author: YoOhw.com
  * Author URI: https://yoohw.com
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-3.0.html
- * Requires at least: 5.2
+ * Requires at least: 6.3
  * Requires PHP: 7.0
  * Text Domain: wc-blacklist-manager
  */
@@ -28,7 +28,6 @@ class WC_Blacklist_Manager {
 		define('WC_BLACKLIST_MANAGER_PLUGIN_DIR', plugin_dir_path(__FILE__));
 		define('WC_BLACKLIST_MANAGER_PLUGIN_BASENAME', plugin_basename(__FILE__));
 
-		add_action('init', [$this, 'load_textdomain']);
 		add_action('admin_enqueue_scripts', [$this, 'enqueue_assets']);
 
 		add_filter('plugin_action_links_' . plugin_basename(__FILE__), [$this, 'add_action_links']);
@@ -36,13 +35,9 @@ class WC_Blacklist_Manager {
 		$this->include_files();
 	}
 
-	public function load_textdomain() {
-		load_plugin_textdomain('wc-blacklist-manager', false, basename(dirname(__FILE__)) . '/languages/');
-	}
-
 	public function enqueue_assets($hook_suffix) {
-		$style_ver = '1.2.3';
-		$script_ver = '1.0.4';
+		$style_ver = '1.3';
+		$script_ver = '1.1';
 
 		wp_enqueue_style(
 			'wc-blacklist-style', 
@@ -52,9 +47,7 @@ class WC_Blacklist_Manager {
 		);
 
 		$plugin_pages = [
-			'toplevel_page_wc-blacklist-manager',
-			'wc-blacklist-manager_page_wc-blacklist-manager-notifications',
-			'wc-blacklist-manager_page_wc-blacklist-manager-settings'
+			'toplevel_page_wc-blacklist-manager'
 		];
 
 		if (in_array($hook_suffix, $plugin_pages)) {

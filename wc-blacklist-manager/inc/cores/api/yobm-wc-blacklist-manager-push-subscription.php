@@ -39,7 +39,7 @@ class WC_Blacklist_Manager_Push_Subscription {
 		if ( ! function_exists( 'is_plugin_active' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/plugin.php';
 		}
-		$product_code = is_plugin_active( 'wc-backlist-manager-premium/wc-backlist-manager-premium.php' )
+		$product_code = is_plugin_active( 'wc-blacklist-manager-premium/wc-blacklist-manager-premium.php' )
 			? 'bmp'
 			: 'bm';
 		$products = [ $product_code ];

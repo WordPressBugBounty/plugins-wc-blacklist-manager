@@ -6,6 +6,9 @@ if (!defined('ABSPATH')) {
 
 class WC_Blacklist_Manager_Email {
 	public function send_email_order_suspect($order_id, $customer_name, $phone, $email, $user_ip, $customer_address, $shipping_address, $order_edit_url) {
+		if ( 'yes' !== get_option( 'wc_blacklist_email_notification', 'no' ) ) {
+			return;
+		}
 		// Retrieve sender and recipient settings.
 		$sender_name    = get_option( 'wc_blacklist_sender_name' );
 		$sender_address = get_option( 'wc_blacklist_sender_address' );
@@ -116,7 +119,8 @@ class WC_Blacklist_Manager_Email {
 		$billing = '', 
 		$shipping = '', 
 		$disposable_phone = '', 
-		$disposable_email = ''
+		$disposable_email = '', 
+		$proxy_vpn = ''
 		) {
 		if ( 'yes' !== get_option( 'wc_blacklist_email_blocking_notification', 'no' ) ) {
 			return;
@@ -149,6 +153,9 @@ class WC_Blacklist_Manager_Email {
         }
 		if (!empty($disposable_email)) {
             self::$block_data['disposable_email'] = $disposable_email;
+        }
+		if (!empty($proxy_vpn)) {
+            self::$block_data['proxy_vpn'] = $proxy_vpn;
         }
 
         // Schedule sending the email once per request.
@@ -211,6 +218,9 @@ class WC_Blacklist_Manager_Email {
 		if (!empty(self::$block_data['disposable_email'])) {
             $content .= '• ' . sprintf(__('Disposable email: %s', 'wc-blacklist-manager'), esc_html(self::$block_data['disposable_email'])) . '<br>';
         }
+		if (!empty(self::$block_data['proxy_vpn'])) {
+            $content .= '• ' . sprintf(__('Proxy or VPN: %s', 'wc-blacklist-manager'), esc_html(self::$block_data['proxy_vpn'])) . '<br>';
+        }
 
         // If no suspect data was accumulated, don't send an email.
         if (empty($content)) {
@@ -242,6 +252,9 @@ class WC_Blacklist_Manager_Email {
 		return false;
     }
 
+	// 
+	// RESGITRATION EMAIL
+	//
 	public static function send_email_registration_suspect( $phone = '', $email = '', $user_ip = '' ) {
 		$settings_instance = new WC_Blacklist_Manager_Settings();
 		$premium_active = $settings_instance->is_premium_active();
@@ -322,7 +335,7 @@ class WC_Blacklist_Manager_Email {
 		return false;
     }
 
-	public static function send_email_registration_block( $phone = '', $email = '', $user_ip = '', $domain = '', $disposable_email = '' ) {
+	public static function send_email_registration_block( $phone = '', $email = '', $user_ip = '', $domain = '', $disposable_email = '', $proxy_vpn = '' ) {
 		$settings_instance = new WC_Blacklist_Manager_Settings();
 		$premium_active = $settings_instance->is_premium_active();
 
@@ -334,7 +347,8 @@ class WC_Blacklist_Manager_Email {
 		  && empty( $email ) 
 		  && empty( $user_ip ) 
 		  && empty( $domain ) 
-		  && empty( $disposable_email ) ) {
+		  && empty( $disposable_email )
+		  && empty( $proxy_vpn ) ) {
 			return;
 		}
 	
@@ -354,15 +368,18 @@ class WC_Blacklist_Manager_Email {
 		if ( ! empty( $disposable_email ) ) {
 			self::$block_data['disposable_email'] = $disposable_email;
 		}
+		if ( ! empty( $proxy_vpn ) ) {
+			self::$block_data['proxy_vpn'] = $proxy_vpn;
+		}
 	
 		// Schedule sending the email once per request.
 		if ( ! self::$email_scheduled ) {
-			add_action( 'shutdown', [ __CLASS__, 'send_merged_email_registration' ] );
+			add_action( 'shutdown', [ __CLASS__, 'send_merged_email_block_registration' ] );
 			self::$email_scheduled = true;
 		}
 	}	
 
-	public static function send_merged_email_registration() {
+	public static function send_merged_email_block_registration() {
 		// Retrieve sender and recipient settings.
 		$sender_name    = get_option( 'wc_blacklist_sender_name' );
 		$sender_address = get_option( 'wc_blacklist_sender_address' );
@@ -388,6 +405,9 @@ class WC_Blacklist_Manager_Email {
 		if (!empty(self::$block_data['disposable_email'])) {
             $content .= '• ' . sprintf(__('Disposable email: %s', 'wc-blacklist-manager'), esc_html(self::$block_data['disposable_email'])) . '<br>';
         }
+		if (!empty(self::$block_data['proxy_vpn'])) {
+            $content .= '• ' . sprintf(__('Proxy or VPN: %s', 'wc-blacklist-manager'), esc_html(self::$block_data['proxy_vpn'])) . '<br>';
+        }
 
         // If no suspect data was accumulated, don't send an email.
         if (empty($content)) {
@@ -401,6 +421,179 @@ class WC_Blacklist_Manager_Email {
 	
 			// Replace template placeholders.
 			$heading = __( 'Registration was blocked!', 'wc-blacklist-manager' );
+			$message = str_replace(
+				array( '{{heading}}', '{{content}}', '{{footer}}' ),
+				array( $heading, $content, $footer_text ),
+				$template
+			);
+	
+			// Configure email headers.
+			$headers = array(
+				'Content-Type: text/html; charset=UTF-8',
+				'From: ' . $sender_name . ' <' . $sender_address . '>',
+			);
+	
+			// Send the email.
+			return wp_mail( $recipient, $subject, $message, $headers );
+		}
+		return false;
+    }
+
+	// 
+	// COMMENTATION EMAIL
+	//
+	public static function send_email_comment_suspect( $email = '', $user_ip = '' ) {
+		$settings_instance = new WC_Blacklist_Manager_Settings();
+		$premium_active = $settings_instance->is_premium_active();
+
+		if ( !$premium_active || 'yes' !== get_option( 'wc_blacklist_email_comment_suspect', 'no' ) ) {
+			return;
+		}
+
+		if ( empty( $email ) 
+		  && empty( $user_ip ) ) {
+			return;
+		}
+	
+		// Update our static storage with non-empty values.
+		if ( ! empty( $email ) ) {
+			self::$block_data['email'] = $email;
+		}
+		if ( ! empty( $user_ip ) ) {
+			self::$block_data['user_ip'] = $user_ip;
+		}
+	
+		// Schedule sending the email once per request.
+		if ( ! self::$email_scheduled ) {
+			add_action( 'shutdown', [ __CLASS__, 'send_merged_email_suspect_comment' ] );
+			self::$email_scheduled = true;
+		}
+	}	
+
+	public static function send_merged_email_suspect_comment() {
+		$sender_name    = get_option( 'wc_blacklist_sender_name' );
+		$sender_address = get_option( 'wc_blacklist_sender_address' );
+		$recipient      = get_option( 'wc_blacklist_email_recipient' );
+		$footer_text    = get_option( 'wc_blacklist_email_footer_text' );
+		
+		$subject = __( 'Suspected user commentation detected', 'wc-blacklist-manager' );
+
+        $content = __( 'A user has submited an comment with suspected data:', 'wc-blacklist-manager' ) . '<br><br>';
+        if (!empty(self::$block_data['email'])) {
+            $content .= '• ' . sprintf(__('Suspected email: %s', 'wc-blacklist-manager'), esc_html(self::$block_data['email'])) . '<br>';
+        }
+        if (!empty(self::$block_data['user_ip'])) {
+            $content .= '• ' . sprintf(__('Suspected IP: %s', 'wc-blacklist-manager'), esc_html(self::$block_data['user_ip'])) . '<br>';
+        }
+
+        if (empty($content)) {
+            return;
+        }
+
+        // Load the HTML email template.
+		$template_path = plugin_dir_path( __FILE__ ) . '../../emails/templates/default.html';
+		if ( file_exists( $template_path ) ) {
+			$template = file_get_contents( $template_path );
+	
+			// Replace template placeholders.
+			$heading = __( 'Suspicious commentation!', 'wc-blacklist-manager' );
+			$message = str_replace(
+				array( '{{heading}}', '{{content}}', '{{footer}}' ),
+				array( $heading, $content, $footer_text ),
+				$template
+			);
+	
+			// Configure email headers.
+			$headers = array(
+				'Content-Type: text/html; charset=UTF-8',
+				'From: ' . $sender_name . ' <' . $sender_address . '>',
+			);
+	
+			// Send the email.
+			return wp_mail( $recipient, $subject, $message, $headers );
+		}
+		return false;
+    }
+
+	public static function send_email_comment_block( $email = '', $user_ip = '', $domain = '', $disposable_email = '', $proxy_vpn = '' ) {
+		$settings_instance = new WC_Blacklist_Manager_Settings();
+		$premium_active = $settings_instance->is_premium_active();
+
+		if ( !$premium_active || 'yes' !== get_option( 'wc_blacklist_email_comment_block', 'no' ) ) {
+			return;
+		}
+
+		if ( empty( $email ) 
+		  && empty( $user_ip ) 
+		  && empty( $domain ) 
+		  && empty( $disposable_email )
+		  && empty( $proxy_vpn ) ) {
+			return;
+		}
+	
+		// Update our static storage with non-empty values.
+		if ( ! empty( $email ) ) {
+			self::$block_data['email'] = $email;
+		}
+		if ( ! empty( $user_ip ) ) {
+			self::$block_data['user_ip'] = $user_ip;
+		}
+		if ( ! empty( $domain ) ) {
+			self::$block_data['domain'] = $domain;
+		}
+		if ( ! empty( $disposable_email ) ) {
+			self::$block_data['disposable_email'] = $disposable_email;
+		}
+		if ( ! empty( $proxy_vpn ) ) {
+			self::$block_data['proxy_vpn'] = $proxy_vpn;
+		}
+	
+		// Schedule sending the email once per request.
+		if ( ! self::$email_scheduled ) {
+			add_action( 'shutdown', [ __CLASS__, 'send_merged_email_block_comment' ] );
+			self::$email_scheduled = true;
+		}
+	}	
+
+	public static function send_merged_email_block_comment() {
+		// Retrieve sender and recipient settings.
+		$sender_name    = get_option( 'wc_blacklist_sender_name' );
+		$sender_address = get_option( 'wc_blacklist_sender_address' );
+		$recipient      = get_option( 'wc_blacklist_email_recipient' );
+		$footer_text    = get_option( 'wc_blacklist_email_footer_text' );
+		
+		$subject = __( 'A user commentation has been blocked', 'wc-blacklist-manager' );
+
+        // Build email content based on merged suspect data.
+        $content = __( 'A user tried to submit a comment with blocked data:', 'wc-blacklist-manager' ) . '<br><br>';
+        if (!empty(self::$block_data['email'])) {
+            $content .= '• ' . sprintf(__('Blocked email: %s', 'wc-blacklist-manager'), esc_html(self::$block_data['email'])) . '<br>';
+        }
+        if (!empty(self::$block_data['user_ip'])) {
+            $content .= '• ' . sprintf(__('Blocked IP: %s', 'wc-blacklist-manager'), esc_html(self::$block_data['user_ip'])) . '<br>';
+        }
+		if (!empty(self::$block_data['domain'])) {
+            $content .= '• ' . sprintf(__('Blocked domain: %s', 'wc-blacklist-manager'), esc_html(self::$block_data['domain'])) . '<br>';
+        }
+		if (!empty(self::$block_data['disposable_email'])) {
+            $content .= '• ' . sprintf(__('Disposable email: %s', 'wc-blacklist-manager'), esc_html(self::$block_data['disposable_email'])) . '<br>';
+        }
+		if (!empty(self::$block_data['proxy_vpn'])) {
+            $content .= '• ' . sprintf(__('Proxy or VPN: %s', 'wc-blacklist-manager'), esc_html(self::$block_data['proxy_vpn'])) . '<br>';
+        }
+
+        // If no suspect data was accumulated, don't send an email.
+        if (empty($content)) {
+            return;
+        }
+
+        // Load the HTML email template.
+		$template_path = plugin_dir_path( __FILE__ ) . '../../emails/templates/default.html';
+		if ( file_exists( $template_path ) ) {
+			$template = file_get_contents( $template_path );
+	
+			// Replace template placeholders.
+			$heading = __( 'Commentation was blocked!', 'wc-blacklist-manager' );
 			$message = str_replace(
 				array( '{{heading}}', '{{content}}', '{{footer}}' ),
 				array( $heading, $content, $footer_text ),

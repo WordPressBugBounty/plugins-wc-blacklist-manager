@@ -12,6 +12,7 @@ class WC_Blacklist_Manager_Notifications {
 	private $default_payment_method_notice;
 	private $default_registration_notice;
 	private $default_vpn_proxy_registration_notice;
+	private $default_comment_notice;
 	private $default_blocked_user_notice;
 	private $default_form_notice;
 	private $default_vpn_proxy_form_notice;
@@ -33,6 +34,7 @@ class WC_Blacklist_Manager_Notifications {
 		$this->default_payment_method_notice = __('Payment method you have chosen is not available, please select another and try again.', 'wc-blacklist-manager');
 		$this->default_registration_notice = __('You have been blocked from registering. Think it is a mistake? Contact the administrator.', 'wc-blacklist-manager');
 		$this->default_vpn_proxy_registration_notice = __('Registrations from VPNs or Proxies are not allowed. Please disable your VPN or Proxy and try again.', 'wc-blacklist-manager');
+		$this->default_comment_notice = __('Sorry! You are no longer allowed to submit a comment on our site. If you think it is a mistake, please contact support.', 'wc-blacklist-manager');
 		$this->default_blocked_user_notice = __('Your account has been blocked. Think it is a mistake? Contact the administrator.', 'wc-blacklist-manager');
 		$this->default_form_notice = __('Sorry! You are no longer allowed to submit a form. If you think it is a mistake, please contact support.', 'wc-blacklist-manager');
 		$this->default_vpn_proxy_form_notice = __('Submission from VPNs or Proxies is not allowed. Please disable your VPN or Proxy and try again.', 'wc-blacklist-manager');
@@ -173,6 +175,8 @@ class WC_Blacklist_Manager_Notifications {
 			'email_blocking_notification_enabled' => get_option('wc_blacklist_email_blocking_notification', 'no'),
 			'email_register_suspect' => get_option('wc_blacklist_email_register_suspect', 'no'),
 			'email_register_block' => get_option('wc_blacklist_email_register_block', 'no'),
+			'email_comment_suspect' => get_option('wc_blacklist_email_comment_suspect', 'no'),
+			'email_comment_block' => get_option('wc_blacklist_email_comment_block', 'no'),
 			'email_form_suspect' => get_option('wc_blacklist_email_form_suspect', 'no'),
 			'email_form_block' => get_option('wc_blacklist_email_form_block', 'no'),
 		];
@@ -189,6 +193,8 @@ class WC_Blacklist_Manager_Notifications {
 		$email_blocking_notif_enabled = isset($_POST['wc_blacklist_email_blocking_notification']) ? 'yes' : 'no';
 		$email_register_suspect = isset($_POST['wc_blacklist_email_register_suspect']) ? 'yes' : 'no';
 		$email_register_block = isset($_POST['wc_blacklist_email_register_block']) ? 'yes' : 'no';
+		$email_comment_suspect = isset($_POST['wc_blacklist_email_comment_suspect']) ? 'yes' : 'no';
+		$email_comment_block = isset($_POST['wc_blacklist_email_comment_block']) ? 'yes' : 'no';
 		$email_form_suspect = isset($_POST['wc_blacklist_email_form_suspect']) ? 'yes' : 'no';
 		$email_form_block = isset($_POST['wc_blacklist_email_form_block']) ? 'yes' : 'no';
 		
@@ -202,6 +208,8 @@ class WC_Blacklist_Manager_Notifications {
 		update_option('wc_blacklist_email_blocking_notification', $email_blocking_notif_enabled);
 		update_option('wc_blacklist_email_register_suspect', $email_register_suspect);
 		update_option('wc_blacklist_email_register_block', $email_register_block);
+		update_option('wc_blacklist_email_comment_suspect', $email_comment_suspect);
+		update_option('wc_blacklist_email_comment_block', $email_comment_block);
 		update_option('wc_blacklist_email_form_suspect', $email_form_suspect);
 		update_option('wc_blacklist_email_form_block', $email_form_block);
 	}
@@ -213,6 +221,7 @@ class WC_Blacklist_Manager_Notifications {
 			'payment_method_notice' => get_option('wc_blacklist_payment_method_notice', $this->default_payment_method_notice),
 			'registration_notice' => get_option('wc_blacklist_registration_notice', $this->default_registration_notice),
 			'vpn_proxy_registration_notice' => get_option('wc_blacklist_vpn_proxy_registration_notice', $this->default_vpn_proxy_registration_notice),
+			'comment_notice' => get_option('wc_blacklist_comment_notice', $this->default_comment_notice),
 			'blocked_user_notice' => get_option('wc_blacklist_blocked_user_notice', $this->default_blocked_user_notice),
 			'form_notice' => get_option('wc_blacklist_form_notice', $this->default_form_notice),
 			'vpn_proxy_form_notice' => get_option('wc_blacklist_vpn_proxy_form_notice', $this->default_vpn_proxy_form_notice),
@@ -229,6 +238,7 @@ class WC_Blacklist_Manager_Notifications {
 		$payment_method_notice = isset($_POST['wc_blacklist_payment_method_notice']) && !empty($_POST['wc_blacklist_payment_method_notice']) ? sanitize_text_field($_POST['wc_blacklist_payment_method_notice']) : $this->default_payment_method_notice;
 		$registration_notice = isset($_POST['wc_blacklist_registration_notice']) && !empty($_POST['wc_blacklist_registration_notice']) ? sanitize_text_field($_POST['wc_blacklist_registration_notice']) : $this->default_registration_notice;
 		$vpn_proxy_registration_notice = isset($_POST['wc_blacklist_vpn_proxy_registration_notice']) && !empty($_POST['wc_blacklist_vpn_proxy_registration_notice']) ? sanitize_text_field($_POST['wc_blacklist_vpn_proxy_registration_notice']) : $this->default_vpn_proxy_registration_notice;
+		$comment_notice = isset($_POST['wc_blacklist_comment_notice']) && !empty($_POST['wc_blacklist_comment_notice']) ? sanitize_text_field($_POST['wc_blacklist_comment_notice']) : $this->default_comment_notice;
 		$blocked_user_notice = isset($_POST['wc_blacklist_blocked_user_notice']) && !empty($_POST['wc_blacklist_blocked_user_notice']) ? sanitize_text_field($_POST['wc_blacklist_blocked_user_notice']) : $this->default_blocked_user_notice;
 		$form_notice = isset($_POST['wc_blacklist_form_notice']) && !empty($_POST['wc_blacklist_form_notice']) ? sanitize_text_field($_POST['wc_blacklist_form_notice']) : $this->default_form_notice;
 		$vpn_proxy_form_notice = isset($_POST['wc_blacklist_vpn_proxy_form_notice']) && !empty($_POST['wc_blacklist_vpn_proxy_form_notice']) ? sanitize_text_field($_POST['wc_blacklist_vpn_proxy_form_notice']) : $this->default_vpn_proxy_form_notice;
@@ -242,6 +252,7 @@ class WC_Blacklist_Manager_Notifications {
 		update_option('wc_blacklist_payment_method_notice', $payment_method_notice);
 		update_option('wc_blacklist_registration_notice', $registration_notice);
 		update_option('wc_blacklist_vpn_proxy_registration_notice', $vpn_proxy_registration_notice);
+		update_option('wc_blacklist_comment_notice', $comment_notice);
 		update_option('wc_blacklist_blocked_user_notice', $blocked_user_notice);
 		update_option('wc_blacklist_form_notice', $form_notice);
 		update_option('wc_blacklist_vpn_proxy_form_notice', $vpn_proxy_form_notice);

@@ -23,7 +23,7 @@ if (!defined('ABSPATH')) {
 				<tr>
 					<th scope="row">
 						<span class="dashicons dashicons-cart"></span>
-						<label for="wc_blacklist_checkout_notice"><?php echo esc_html__('Checkout notice', 'wc-blacklist-manager'); ?></label>
+						<label for="wc_blacklist_checkout_notice"><?php echo esc_html__('Checkout', 'wc-blacklist-manager'); ?></label>
 					</th>
 					<td>
 						<textarea id="wc_blacklist_checkout_notice" name="wc_blacklist_checkout_notice" rows="3" class="regular-text"><?php echo esc_textarea($data['checkout_notice']); ?></textarea>
@@ -47,7 +47,7 @@ if (!defined('ABSPATH')) {
 				<tr>
 					<th scope="row">
 						<span class="dashicons dashicons-admin-site"></span>
-						<label for="wc_blacklist_registration_notice"><?php echo esc_html__('Registration notice', 'wc-blacklist-manager'); ?></label>
+						<label for="wc_blacklist_registration_notice"><?php echo esc_html__('Registration', 'wc-blacklist-manager'); ?></label>
 					</th>
 					<td>
 						<p><textarea id="wc_blacklist_registration_notice" name="wc_blacklist_registration_notice" rows="3" class="regular-text"><?php echo esc_textarea($data['registration_notice']); ?></textarea></p>
@@ -65,7 +65,17 @@ if (!defined('ABSPATH')) {
 				<tr>
 					<th scope="row">
 						<span class="dashicons dashicons-admin-site"></span>
-						<label for="wc_blacklist_blocked_user_notice"><?php echo esc_html__('Blocked user notice', 'wc-blacklist-manager'); ?></label>
+						<label for="wc_blacklist_comment_notice"><?php echo esc_html__('Comment / Review', 'wc-blacklist-manager'); ?></label>
+					</th>
+					<td>
+						<textarea id="wc_blacklist_comment_notice" name="wc_blacklist_comment_notice" rows="3" class="regular-text"><?php echo esc_textarea($data['comment_notice']); ?></textarea>
+						<p class="description"><?php echo esc_html__('Enter the notice message to display when a blocked user tries to submit a comment or review.', 'wc-blacklist-manager'); ?></p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">
+						<span class="dashicons dashicons-admin-site"></span>
+						<label for="wc_blacklist_blocked_user_notice"><?php echo esc_html__('Blocked user', 'wc-blacklist-manager'); ?></label>
 					</th>
 					<td>
 						<textarea id="wc_blacklist_blocked_user_notice" name="wc_blacklist_blocked_user_notice" rows="3" class="regular-text"><?php echo esc_textarea($data['blocked_user_notice']); ?></textarea>
@@ -75,7 +85,7 @@ if (!defined('ABSPATH')) {
 				<tr>
 					<th scope="row">
 						<span class="dashicons dashicons-email"></span>
-						<label for="wc_blacklist_form_notice"><?php echo esc_html__('Form notice', 'wc-blacklist-manager'); ?></label>
+						<label for="wc_blacklist_form_notice"><?php echo esc_html__('Form', 'wc-blacklist-manager'); ?></label>
 					</th>
 					<td>
 						<textarea id="wc_blacklist_form_notice" name="wc_blacklist_form_notice" rows="3" class="regular-text"><?php echo esc_textarea($data['form_notice']); ?></textarea>

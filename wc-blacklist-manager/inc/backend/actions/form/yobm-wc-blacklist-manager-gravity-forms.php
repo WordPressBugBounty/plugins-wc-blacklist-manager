@@ -40,19 +40,24 @@ class WC_Blacklist_Manager_Gravity_Forms {
      * @return array Modified validation result.
      */
     public function gf_blacklist_validation($validation_result) {
-        global $wpdb;
         $form = $validation_result['form'];
+
+        if ( ! empty( $form['disable_blacklist'] ) ) {
+            return $validation_result;
+        }
+                
+        global $wpdb;
         $table_name = $wpdb->prefix . 'wc_blacklist';
-        $table_detection_log = $wpdb->prefix . 'wc_blacklist_detection_log';
         $found = false;
 
         $settings_instance = new WC_Blacklist_Manager_Settings();
         $premium_active = $settings_instance->is_premium_active();
-        
+
+        // Retrieve visitor IP.
+        $ip_address = get_real_customer_ip();
+
         // --- IP ADDRESS & PROXY/VPN CHECK ---
         if ($premium_active && get_option('wc_blacklist_ip_enabled') == '1') {
-            // Retrieve visitor IP.
-            $ip_address = get_real_customer_ip();
             if (!empty($ip_address)) {
                 // Check the IP blacklist if enabled.
                 if (get_option('wc_blacklist_block_ip_form') == '1') {
@@ -69,22 +74,8 @@ class WC_Blacklist_Manager_Gravity_Forms {
                         update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
                         
                         if ($premium_active) {
-                            $timestamp = current_time('mysql');
-                            $type      = 'human';
-                            $source    = 'gravity_submit';
-                            $action    = 'block';
-                            $details   = 'blocked_ip_attempt: ' . $ip_address;
-                            
-                            $wpdb->insert(
-                                $table_detection_log,
-                                array(
-                                    'timestamp' => $timestamp,
-                                    'type'      => $type,
-                                    'source'    => $source,
-                                    'action'    => $action,
-                                    'details'   => $details,
-                                )
-                            );
+                            $reason_user_ip   = 'blocked_ip_attempt: ' . $ip_address;
+                            WC_Blacklist_Manager_Premium_Activity_Logs_Insert::gravity_block('', '', '', $reason_user_ip);
                         }
 
                         $found = true;
@@ -99,26 +90,14 @@ class WC_Blacklist_Manager_Gravity_Forms {
                         $body = wp_remote_retrieve_body($response);
                         $data = json_decode($body, true);
                         if (isset($data['status']) && $data['status'] === 'success' && !empty($data['proxy']) && $data['proxy'] == true) {
+                            $sum_block_ip = get_option('wc_blacklist_sum_block_ip', 0);
+                            update_option('wc_blacklist_sum_block_ip', $sum_block_ip + 1);
                             $sum_block_total = get_option('wc_blacklist_sum_block_total', 0);
                             update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
 
                             if ($premium_active) {
-                                $timestamp = current_time('mysql');
-                                $type      = 'human';
-                                $source    = 'gravity_submit';
-                                $action    = 'block';
-                                $details   = 'blocked_proxy_vpn_attempt: ' . $ip_address;
-                                
-                                $wpdb->insert(
-                                    $table_detection_log,
-                                    array(
-                                        'timestamp' => $timestamp,
-                                        'type'      => $type,
-                                        'source'    => $source,
-                                        'action'    => $action,
-                                        'details'   => $details,
-                                    )
-                                );
+                                $reason_proxy_vpn   = 'blocked_proxy_vpn_attempt: ' . $ip_address;
+                                WC_Blacklist_Manager_Premium_Activity_Logs_Insert::gravity_block('', '', '', '', '', '', $reason_proxy_vpn);
                             }
 
                             $found = true;
@@ -156,22 +135,8 @@ class WC_Blacklist_Manager_Gravity_Forms {
                                 update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
 
                                 if ($premium_active) {
-                                    $timestamp = current_time('mysql');
-                                    $type      = 'human';
-                                    $source    = 'gravity_submit';
-                                    $action    = 'block';
-                                    $details   = 'blocked_email_attempt: ' . $value;
-                                    
-                                    $wpdb->insert(
-                                        $table_detection_log,
-                                        array(
-                                            'timestamp' => $timestamp,
-                                            'type'      => $type,
-                                            'source'    => $source,
-                                            'action'    => $action,
-                                            'details'   => $details,
-                                        )
-                                    );
+                                    $reason_email   = 'blocked_email_attempt: ' . $value;
+                                    WC_Blacklist_Manager_Premium_Activity_Logs_Insert::gravity_block('', '', $reason_email);
                                 }
                                 
                                 $found = true;
@@ -195,22 +160,8 @@ class WC_Blacklist_Manager_Gravity_Forms {
                                     update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
 
                                     if ($premium_active) {
-                                        $timestamp = current_time('mysql');
-                                        $type      = 'human';
-                                        $source    = 'gravity_submit';
-                                        $action    = 'block';
-                                        $details   = 'blocked_domain_attempt: ' . $domain;
-                                        
-                                        $wpdb->insert(
-                                            $table_detection_log,
-                                            array(
-                                                'timestamp' => $timestamp,
-                                                'type'      => $type,
-                                                'source'    => $source,
-                                                'action'    => $action,
-                                                'details'   => $details,
-                                            )
-                                        );
+                                        $reason_domain   = 'blocked_domain_attempt: ' . $domain;
+                                        WC_Blacklist_Manager_Premium_Activity_Logs_Insert::gravity_block('', '', '', '', '', $reason_domain);
                                     }
                                     
                                     $found = true;
@@ -218,13 +169,19 @@ class WC_Blacklist_Manager_Gravity_Forms {
                                 }
                             }
                         }
+
+                        $email_value = $value;
                     }
                     // For phone fields:
                     if ($field->type == 'phone' && get_option('wc_blacklist_form_blocking_enabled') == '1') {
+                        $raw_phone = $value;
+                        $digits_only = preg_replace( '/\D+/', '', $raw_phone );
+                        $clean_phone = ltrim( $digits_only, '0' );
+
                         $phone_blacklist = $wpdb->get_var(
                             $wpdb->prepare(
                                 "SELECT 1 FROM {$table_name} WHERE TRIM(LEADING '0' FROM phone_number) = %s AND is_blocked = 1 LIMIT 1",
-                                $value
+                                $clean_phone
                             )
                         );
                         if (!empty($phone_blacklist)) {
@@ -234,27 +191,15 @@ class WC_Blacklist_Manager_Gravity_Forms {
                             update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
 
                             if ($premium_active) {
-                                $timestamp = current_time('mysql');
-                                $type      = 'human';
-                                $source    = 'gravity_submit';
-                                $action    = 'block';
-                                $details   = 'blocked_phone_attempt: ' . $value;
-                                
-                                $wpdb->insert(
-                                    $table_detection_log,
-                                    array(
-                                        'timestamp' => $timestamp,
-                                        'type'      => $type,
-                                        'source'    => $source,
-                                        'action'    => $action,
-                                        'details'   => $details,
-                                    )
-                                );
+                                $reason_phone   = 'blocked_phone_attempt: ' . $value;
+                                WC_Blacklist_Manager_Premium_Activity_Logs_Insert::gravity_block('', $reason_phone);
                             }
                             
                             $found = true;
                             $this->blocked_phones[] = $value;
                         }
+
+                        $phone_value = $value;
                     }
                 }
             }
@@ -263,6 +208,15 @@ class WC_Blacklist_Manager_Gravity_Forms {
         // If any blacklist violation was detected, mark the form as invalid.
         if ($found) {
             $this->blacklist_violation = true;
+
+			$view_data = [
+				'ip_address' => $ip_address,
+				'email'      => $email_value,
+				'phone'      => $phone_value,
+			];
+			$view_json = wp_json_encode( $view_data );
+            WC_Blacklist_Manager_Premium_Activity_Logs_Insert::gravity_block($view_json);
+
             // Clear individual field errors.
             if (isset($validation_result['form']['fields'])) {
                 foreach ($validation_result['form']['fields'] as &$field) {

@@ -137,6 +137,60 @@ if (!defined('ABSPATH')) {
 		<?php endif; ?>
 
 		<?php if ($premium_active): ?>
+			<h2><span class="dashicons dashicons-admin-site"></span> <?php echo esc_html__( 'Comment', 'wc-blacklist-manager' ); ?></h2>
+			
+			<table class="form-table">
+				<tbody>
+					<tr>
+						<th scope="row">
+							<label class="label_child"><?php echo esc_html__( 'Suspect email', 'wc-blacklist-manager' ); ?></label>
+						</th>
+						<td>
+							<input type="checkbox" id="wc_blacklist_email_comment_suspect" name="wc_blacklist_email_comment_suspect" value="yes" <?php checked($data['email_comment_suspect'], 'yes'); ?> />
+							<label for="wc_blacklist_email_comment_suspect"><?php echo esc_html__( 'Send email notification when suspected user submit a comment or review', 'wc-blacklist-manager' ); ?></label>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row">
+							<label class="label_child"><?php echo esc_html__( 'Block email', 'wc-blacklist-manager' ); ?></label>
+						</th>
+						<td>
+							<input type="checkbox" id="wc_blacklist_email_comment_block" name="wc_blacklist_email_comment_block" value="yes" <?php checked($data['email_comment_block'], 'yes'); ?> />
+							<label for="wc_blacklist_email_comment_block"><?php echo esc_html__( 'Send email notification when blocked user try to submit a comment or review', 'wc-blacklist-manager' ); ?></label>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+		<?php endif; ?>
+
+		<?php if (!$premium_active): ?>
+			<h2><span class="premium-text"><span class="dashicons dashicons-email"></span> <?php echo esc_html__( 'Comment', 'wc-blacklist-manager' ); ?></span><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a></h2>
+			
+			<table class="form-table">
+				<tbody>
+					<tr>
+						<th scope="row">
+							<label class="premium-text label_child"><?php echo esc_html__( 'Suspect email', 'wc-blacklist-manager' ); ?></label>
+						</th>
+						<td>
+							<input type="checkbox" disabled/>
+							<label class="premium-text"><?php echo esc_html__( 'Send email notification when suspected user submit a comment or review', 'wc-blacklist-manager' ); ?></label>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row">
+							<label class="premium-text label_child"><?php echo esc_html__( 'Block email', 'wc-blacklist-manager' ); ?></label>
+						</th>
+						<td>
+							<input type="checkbox" disabled/>
+							<label class="premium-text"><?php echo esc_html__( 'Send email notification when blocked user try to submit a comment or review', 'wc-blacklist-manager' ); ?></label>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+		<?php endif; ?>
+
+		<?php if ($premium_active): ?>
 			<h2><span class="dashicons dashicons-email"></span> <?php echo esc_html__( 'Form', 'wc-blacklist-manager' ); ?></h2>
 			
 			<table class="form-table">

@@ -416,33 +416,112 @@ class WC_Blacklist_Manager_Dashboard {
 		exit;
 	}
 	
-	private function handle_delete_action($id) {
-		$nonce = isset($_GET['_wpnonce']) ? sanitize_text_field(wp_unslash($_GET['_wpnonce'])) : '';
+	private function handle_delete_action( $id ) {
+		// 1) security
+		$nonce = isset( $_GET['_wpnonce'] )
+			? sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) )
+			: '';
 
+		if ( ! wp_verify_nonce( $nonce, 'delete_action' ) ) {
+			$message = __( 'Security check failed. Please try again.', 'wc-blacklist-manager' );
+			wp_redirect( add_query_arg( 'delete_message', urlencode( $message ), wp_get_referer() ) );
+			exit;
+		}
+
+		// 2) premium detection & globals
 		$settings_instance = new WC_Blacklist_Manager_Settings();
-		$premium_active = $settings_instance->is_premium_active();
-	
-		if (!wp_verify_nonce($nonce, 'delete_action')) {
-			$message = __('Security check failed. Please try again.', 'wc-blacklist-manager');
-		} else {
-			$this->wpdb->delete($this->table_name, ['id' => $id]);
+		$premium_active    = $settings_instance->is_premium_active();
+		global $wpdb;
+		$table_detection_log = $wpdb->prefix . 'wc_blacklist_detection_log';
 
-			if ($premium_active && get_option('wc_blacklist_connection_mode') === 'host') {
-				$site_url = site_url();
-				$clean_domain = preg_replace( '/^https?:\/\//', '', $site_url );
-				$sources = $clean_domain . '[' . $id . ']';
+		// 3) fetch the row *before* deletion
+		$row = $wpdb->get_row(
+			$wpdb->prepare(
+				"SELECT id, phone_number, email_address, ip_address, domain,
+						is_blocked, sources, customer_address,
+						first_name, last_name, date_added, order_id
+				FROM {$this->table_name}
+				WHERE id = %d",
+				$id
+			),
+			ARRAY_A
+		);
+		$order_id = ! empty( $row['order_id'] ) ? intval( $row['order_id'] ) : 0;
 
-				if ( ! wp_next_scheduled( 'wc_blacklist_connection_remove_to_subsite', array( $sources ) ) ) {
-					wp_schedule_single_event( time() + 5, 'wc_blacklist_connection_remove_to_subsite', array( $sources ) );
+		// 4) delete from main table
+		$wpdb->delete( $this->table_name, [ 'id' => $id ], [ '%d' ] );
+
+		if ( $premium_active ) {
+			// prepare common log fields
+			$current_user = wp_get_current_user();
+			$shop_manager = $current_user->display_name;
+			$details      = 'removed_from_blacklist_by:' . $shop_manager;
+
+			// 5) branch on order_id presence
+			if ( ! empty( $row['order_id'] ) ) {
+				$source    = 'woo_order_' . intval( $row['order_id'] );
+				$view_json = '';
+			} else {
+				$source = 'entry_id_' . intval( $id );
+				// collect only non-empty fields for view
+				$fields    = [
+					'id','phone_number','email_address','ip_address',
+					'domain','is_blocked','sources','customer_address',
+					'first_name','last_name','date_added'
+				];
+				$view_data = [];
+				foreach ( $fields as $f ) {
+					if ( isset( $row[ $f ] ) && '' !== $row[ $f ] ) {
+						$view_data[ $f ] = $row[ $f ];
+					}
 				}
+				$view_json = wp_json_encode( $view_data );
 			}
 
-			$message = __("Entry removed successfully.", "wc-blacklist-manager");
+			// 6) insert into detection log
+			$wpdb->insert(
+				$table_detection_log,
+				[
+					'timestamp' => current_time( 'mysql' ),
+					'type'      => 'human',
+					'source'    => $source,
+					'action'    => 'remove',
+					'details'   => $details,
+					'view'      => $view_json,
+				],
+				[ '%s','%s','%s','%s','%s','%s' ]
+			);
+
+			// 7) host‐mode removal scheduling
+			if ( get_option( 'wc_blacklist_connection_mode' ) === 'host' ) {
+				$site_url     = site_url();
+				$clean_domain = preg_replace( '/^https?:\/\//', '', $site_url );
+				$sources      = $clean_domain . '[' . $id . ']';
+
+				if ( ! wp_next_scheduled( 'wc_blacklist_connection_remove_to_subsite', [ $sources ] ) ) {
+					wp_schedule_single_event(
+						time() + 5,
+						'wc_blacklist_connection_remove_to_subsite',
+						[ $sources ]
+					);
+				}
+			}
 		}
-	
-		wp_redirect(add_query_arg('delete_message', urlencode($message), wp_get_referer()));
+
+        if ( $order_id ) {
+            $order = wc_get_order( $order_id );
+            if ( $order ) {
+                $order->delete_meta_data( '_blacklist_blocked_id' );
+                $order->delete_meta_data( '_blacklist_suspect_id' );
+                $order->save();
+            }
+        }
+
+		// 8) redirect back with success
+		$message = __( 'Entry removed successfully.', 'wc-blacklist-manager' );
+		wp_redirect( add_query_arg( 'delete_message', urlencode( $message ), wp_get_referer() ) );
 		exit;
-	}    
+	}
 
     private function handle_messages() {
         $messages = [];
@@ -569,25 +648,94 @@ class WC_Blacklist_Manager_Dashboard {
 		check_admin_referer('yobm_nonce_action', 'yobm_nonce_field');
 
 		if (isset($_POST['bulk_action']) && $_POST['bulk_action'] === 'delete' && !empty($_POST['entry_ids'])) {
-			$entry_ids = $_POST['entry_ids'];
-			array_walk($entry_ids, function(&$id) {
-				$id = intval($id);
-			});
+			// sanitize & filter
+			$entry_ids = array_map( 'intval', (array) $_POST['entry_ids'] );
+			$entry_ids = array_filter( $entry_ids, fn( $id ) => $id > 0 );
 
-			$entry_ids = array_filter($entry_ids, function($id) {
-				return is_int($id) && $id > 0;
-			});
+			global $wpdb;
+			$table_detection_log = $wpdb->prefix . 'wc_blacklist_detection_log';
 
-			foreach ($entry_ids as $id) {
-				$this->wpdb->delete($this->table_name, ['id' => $id], ['%d']);
+			foreach ( $entry_ids as $id ) {
+				// 1) fetch entire row before deletion
+				$row = $wpdb->get_row(
+					$wpdb->prepare(
+						"SELECT id, phone_number, email_address, ip_address, domain,
+								is_blocked, sources, customer_address,
+								first_name, last_name, date_added, order_id
+						FROM {$this->table_name}
+						WHERE id = %d",
+						$id
+					),
+					ARRAY_A
+				);
+				$order_id = ! empty( $row['order_id'] ) ? intval( $row['order_id'] ) : 0;
 
-				if ($premium_active && get_option('wc_blacklist_connection_mode') === 'host') {
-					$site_url = site_url();
-					$clean_domain = preg_replace( '/^https?:\/\//', '', $site_url );
-					$sources = $clean_domain . '[' . $id . ']';
-	
-					if ( ! wp_next_scheduled( 'wc_blacklist_connection_remove_to_subsite', array( $sources ) ) ) {
-						wp_schedule_single_event( time() + 5, 'wc_blacklist_connection_remove_to_subsite', array( $sources ) );
+				// 2) delete from main blacklist table
+				$this->wpdb->delete( $this->table_name, [ 'id' => $id ], [ '%d' ] );
+
+				if ( $premium_active ) {
+					// 3) prepare common log fields
+					$current_user = wp_get_current_user();
+					$shop_manager = $current_user->display_name;
+					$details      = 'removed_from_blacklist_by:' . $shop_manager;
+
+					// 4) branch on order_id presence
+					if ( ! empty( $row['order_id'] ) ) {
+						$source    = 'woo_order_' . intval( $row['order_id'] );
+						$view_json = '';
+					} else {
+						$source = 'entry_id_' . $id;
+						// pick only non-empty columns for the view payload
+						$fields    = [
+							'id','phone_number','email_address','ip_address',
+							'domain','is_blocked','sources','customer_address',
+							'first_name','last_name','date_added'
+						];
+						$view_data = [];
+						foreach ( $fields as $f ) {
+							if ( isset( $row[ $f ] ) && $row[ $f ] !== '' ) {
+								$view_data[ $f ] = $row[ $f ];
+							}
+						}
+						$view_json = wp_json_encode( $view_data );
+					}
+
+					// 5) insert into detection log
+					$wpdb->insert(
+						$table_detection_log,
+						[
+							'timestamp' => current_time( 'mysql' ),
+							'type'      => 'human',
+							'source'    => $source,
+							'action'    => 'remove',
+							'details'   => $details,
+							'view'      => $view_json,
+						],
+						[ '%s', '%s', '%s', '%s', '%s', '%s' ]
+					);
+
+					// 6) schedule host-mode removal if configured
+					if ( get_option( 'wc_blacklist_connection_mode' ) === 'host' ) {
+						$site_url     = site_url();
+						$clean_domain = preg_replace( '/^https?:\/\//', '', $site_url );
+						$sources      = $clean_domain . '[' . $id . ']';
+
+						if ( ! wp_next_scheduled( 'wc_blacklist_connection_remove_to_subsite', [ $sources ] ) ) {
+							wp_schedule_single_event(
+								time() + 5,
+								'wc_blacklist_connection_remove_to_subsite',
+								[ $sources ]
+							);
+						}
+					}
+				}
+
+				if ( $order_id ) {
+					$order = wc_get_order( $order_id );
+					if ( $order ) {
+						$order->delete_meta_data( '_blacklist_blocked_id' );
+						$order->delete_meta_data( '_blacklist_suspect_id' );
+						$order->save();
 					}
 				}
 			}

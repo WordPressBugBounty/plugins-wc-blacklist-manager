@@ -2,14 +2,14 @@
 # This file is distributed under the GPL v2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Blacklist Manager 2.0.3.1\n"
+"Project-Id-Version: Blacklist Manager 2.0.4.2\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/wc-blacklist-manager\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2025-06-12T12:30:14+00:00\n"
+"POT-Creation-Date: 2025-07-14T02:35:09+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.9.0\n"
 "X-Domain: wc-blacklist-manager\n"
@@ -35,170 +35,220 @@ msgstr ""
 msgid "https://yoohw.com"
 msgstr ""
 
-#: inc/backend/actions/form/yobm-wc-blacklist-manager-contact-form-7.php:373
-#: inc/backend/actions/form/yobm-wc-blacklist-manager-gravity-forms.php:313
-#: inc/backend/actions/form/yobm-wc-blacklist-manager-wp-forms.php:290
-#: inc/backend/yobm-wc-blacklist-manager-notifications.php:37
+#: inc/backend/actions/form/yobm-wc-blacklist-manager-contact-form-7.php:347
+#: inc/backend/actions/form/yobm-wc-blacklist-manager-gravity-forms.php:267
+#: inc/backend/actions/form/yobm-wc-blacklist-manager-wp-forms.php:231
+#: inc/backend/yobm-wc-blacklist-manager-notifications.php:39
 msgid "Sorry! You are no longer allowed to submit a form. If you think it is a mistake, please contact support."
 msgstr ""
 
-#: inc/backend/actions/form/yobm-wc-blacklist-manager-contact-form-7.php:380
-#: inc/backend/actions/form/yobm-wc-blacklist-manager-gravity-forms.php:308
-#: inc/backend/actions/form/yobm-wc-blacklist-manager-wp-forms.php:285
-#: inc/backend/yobm-wc-blacklist-manager-notifications.php:38
+#: inc/backend/actions/form/yobm-wc-blacklist-manager-contact-form-7.php:354
+#: inc/backend/actions/form/yobm-wc-blacklist-manager-gravity-forms.php:262
+#: inc/backend/actions/form/yobm-wc-blacklist-manager-wp-forms.php:226
+#: inc/backend/yobm-wc-blacklist-manager-notifications.php:40
 msgid "Submission from VPNs or Proxies is not allowed. Please disable your VPN or Proxy and try again."
 msgstr ""
 
 #: inc/backend/actions/sub/yobm-wc-blacklist-manager-function-helper.php:14
-#: inc/backend/yobm-wc-blacklist-manager-notifications.php:34
+#: inc/backend/yobm-wc-blacklist-manager-notifications.php:35
 msgid "You have been blocked from registering. Think it is a mistake? Contact the administrator."
 msgstr ""
 
-#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:15
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:18
 msgid "Suspected order placement detected"
 msgstr ""
 
-#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:18
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:21
 msgid "A order placement was attempted with suspicious data:"
 msgstr ""
 
-#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:21
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:24
 msgid "Suspected name: %s"
 msgstr ""
 
-#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:27
-#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:287
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:30
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:300
 msgid "Suspected phone: %s"
 msgstr ""
 
-#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:33
-#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:290
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:36
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:303
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:483
 msgid "Suspected email: %s"
 msgstr ""
 
-#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:39
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:42
 msgid "Suspected IP address: %s"
 msgstr ""
 
-#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:45
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:48
 msgid "Suspected billing address: %s"
 msgstr ""
 
-#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:51
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:54
 msgid "Suspected shipping address: %s"
 msgstr ""
 
-#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:62
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:65
 msgid "Suspicious order: #%s"
 msgstr ""
 
-#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:63
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:66
 msgid "View order"
 msgstr ""
 
-#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:183
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:190
 msgid "An order placement has been blocked"
 msgstr ""
 
-#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:186
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:193
 msgid "A customer tried to place an order with blocked data:"
 msgstr ""
 
-#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:188
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:195
 msgid "Blocked name: %s"
 msgstr ""
 
-#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:191
-#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:377
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:198
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:394
 msgid "Blocked phone: %s"
 msgstr ""
 
-#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:194
-#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:380
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:201
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:397
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:570
 msgid "Blocked email: %s"
 msgstr ""
 
-#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:197
-#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:383
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:204
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:400
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:573
 msgid "Blocked IP: %s"
 msgstr ""
 
-#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:200
-#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:386
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:207
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:403
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:576
 msgid "Blocked domain: %s"
 msgstr ""
 
-#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:203
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:210
 msgid "Blocked billing address: %s"
 msgstr ""
 
-#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:206
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:213
 msgid "Blocked shipping address: %s"
 msgstr ""
 
-#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:209
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:216
 msgid "Disposable phone: %s"
 msgstr ""
 
-#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:212
-#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:389
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:219
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:406
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:579
 msgid "Disposable email: %s"
 msgstr ""
 
-#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:226
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:222
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:409
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:582
+msgid "Proxy or VPN: %s"
+msgstr ""
+
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:236
 msgid "Order was blocked!"
 msgstr ""
 
-#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:283
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:296
 msgid "Suspected user registration detected"
 msgstr ""
 
-#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:285
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:298
 msgid "A visitor has registered an account with suspected data:"
 msgstr ""
 
-#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:293
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:306
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:486
 msgid "Suspected IP: %s"
 msgstr ""
 
-#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:306
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:319
 msgid "Suspicious registration!"
 msgstr ""
 
-#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:372
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:389
 msgid "An account registration has been blocked"
 msgstr ""
 
-#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:375
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:392
 msgid "A visitor tried to register an account with blocked data:"
 msgstr ""
 
-#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:403
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:423
 msgid "Registration was blocked!"
 msgstr ""
 
-#: inc/backend/actions/yobm-wc-blacklist-manager-settings-blocking-domain.php:43
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:479
+msgid "Suspected user commentation detected"
+msgstr ""
+
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:481
+msgid "A user has submited an comment with suspected data:"
+msgstr ""
+
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:499
+msgid "Suspicious commentation!"
+msgstr ""
+
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:565
+msgid "A user commentation has been blocked"
+msgstr ""
+
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:568
+msgid "A user tried to submit a comment with blocked data:"
+msgstr ""
+
+#: inc/backend/actions/sub/yobm-wc-blacklist-manager-send-email.php:596
+msgid "Commentation was blocked!"
+msgstr ""
+
+#: inc/backend/actions/yobm-wc-blacklist-manager-settings-blocking-domain.php:44
 msgid "Invalid email address provided."
 msgstr ""
 
-#: inc/backend/actions/yobm-wc-blacklist-manager-settings-blocking-domain.php:49
+#: inc/backend/actions/yobm-wc-blacklist-manager-settings-blocking-domain.php:50
+#: inc/backend/actions/yobm-wc-blacklist-manager-settings-blocking-domain.php:161
 msgid "Invalid email domain."
 msgstr ""
 
-#: inc/backend/actions/yobm-wc-blacklist-manager-settings-blocking-domain.php:101
+#: inc/backend/actions/yobm-wc-blacklist-manager-settings-blocking-domain.php:102
 msgid "Invalid email address."
 msgstr ""
 
-#: inc/backend/actions/yobm-wc-blacklist-manager-settings-blocking-domain.php:107
+#: inc/backend/actions/yobm-wc-blacklist-manager-settings-blocking-domain.php:108
 msgid "Invalid email domain provided."
 msgstr ""
 
-#: inc/backend/actions/yobm-wc-blacklist-manager-settings-blocking-ip.php:100
+#: inc/backend/actions/yobm-wc-blacklist-manager-settings-blocking-domain.php:191
+#: inc/backend/actions/yobm-wc-blacklist-manager-settings-blocking-ip.php:202
+#: inc/backend/actions/yobm-wc-blacklist-manager-settings-blocklist.php:499
+#: inc/backend/yobm-wc-blacklist-manager-notifications.php:37
+msgid "Sorry! You are no longer allowed to submit a comment on our site. If you think it is a mistake, please contact support."
+msgstr ""
+
+#: inc/backend/actions/yobm-wc-blacklist-manager-settings-blocking-domain.php:198
+#: inc/backend/actions/yobm-wc-blacklist-manager-settings-blocking-ip.php:209
+#: inc/backend/actions/yobm-wc-blacklist-manager-settings-blocklist.php:507
+msgid "Comment Blocked"
+msgstr ""
+
+#: inc/backend/actions/yobm-wc-blacklist-manager-settings-blocking-ip.php:99
 msgid "Error retrieving IP address."
 msgstr ""
 
 #: inc/backend/actions/yobm-wc-blacklist-manager-settings-blocking-user.php:97
-#: inc/backend/yobm-wc-blacklist-manager-notifications.php:36
+#: inc/backend/yobm-wc-blacklist-manager-notifications.php:38
 msgid "Your account has been blocked. Think it is a mistake? Contact the administrator."
 msgstr ""
 
@@ -219,17 +269,17 @@ msgstr ""
 msgid "Cannot block the administrator %s."
 msgstr ""
 
-#: inc/backend/actions/yobm-wc-blacklist-manager-settings-blocklist.php:84
-#: inc/backend/yobm-wc-blacklist-manager-notifications.php:31
-#: inc/backend/yobm-wc-blacklist-manager-notifications.php:259
+#: inc/backend/actions/yobm-wc-blacklist-manager-settings-blocklist.php:118
+#: inc/backend/yobm-wc-blacklist-manager-notifications.php:32
+#: inc/backend/yobm-wc-blacklist-manager-notifications.php:270
 msgid "Sorry! You are no longer allowed to shop with us. If you think it is a mistake, please contact support."
 msgstr ""
 
-#: inc/backend/actions/yobm-wc-blacklist-manager-settings-blocklist.php:387
+#: inc/backend/actions/yobm-wc-blacklist-manager-settings-blocklist.php:420
 msgid "Order cancelled due to blacklist match."
 msgstr ""
 
-#: inc/backend/actions/yobm-wc-blacklist-manager-settings-blocklist.php:395
+#: inc/backend/actions/yobm-wc-blacklist-manager-settings-blocklist.php:428
 msgid "Order cancelled due to blocklist match."
 msgstr ""
 
@@ -257,7 +307,7 @@ msgstr ""
 
 #: inc/backend/actions/yobm-wc-blacklist-manager-verifications-email.php:62
 #: inc/backend/actions/yobm-wc-blacklist-manager-verifications-phone.php:62
-#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:217
+#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:225
 msgid "Verify"
 msgstr ""
 
@@ -377,20 +427,20 @@ msgid "Activity logs"
 msgstr ""
 
 #: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:50
-#: inc/backend/yobm-wc-blacklist-manager-notifications.php:91
+#: inc/backend/yobm-wc-blacklist-manager-notifications.php:93
 #: inc/backend/yobm-wc-blacklist-manager-verifications.php:77
 msgid "Support / Suggestion"
 msgstr ""
 
 #: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:64
-#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:276
-#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:395
-#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:422
+#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:298
+#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:418
+#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:445
 msgid "Bulk actions"
 msgstr ""
 
 #: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:65
-#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:277
+#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:299
 #: inc/backend/views/yobm-wc-blacklist-manager-dashboard-form.php:348
 #: inc/backend/views/yobm-wc-blacklist-manager-dashboard-form.php:445
 #: inc/backend/views/yobm-wc-blacklist-manager-dashboard-form.php:550
@@ -400,9 +450,9 @@ msgid "Delete"
 msgstr ""
 
 #: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:67
-#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:279
-#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:397
-#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:424
+#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:301
+#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:420
+#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:447
 #: inc/backend/views/yobm-wc-blacklist-manager-dashboard-form.php:350
 #: inc/backend/views/yobm-wc-blacklist-manager-dashboard-form.php:447
 #: inc/backend/views/yobm-wc-blacklist-manager-dashboard-form.php:552
@@ -416,52 +466,52 @@ msgid "Are you sure you want to delete the selected detection logs?"
 msgstr ""
 
 #: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:71
-#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:283
+#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:305
 msgid "items"
 msgstr ""
 
 #: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:80
-#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:292
+#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:314
 msgid "First page"
 msgstr ""
 
 #: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:84
-#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:296
+#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:318
 msgid "Previous page"
 msgstr ""
 
 #: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:90
-#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:302
+#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:324
 msgid "Current Page"
 msgstr ""
 
 #: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:92
-#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:304
+#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:326
 msgid " of "
 msgstr ""
 
 #: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:100
-#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:312
+#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:334
 msgid "Next page"
 msgstr ""
 
 #: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:104
-#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:316
+#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:338
 msgid "Last page"
 msgstr ""
 
 #: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:119
-#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:406
+#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:429
 msgid "Timestamp"
 msgstr ""
 
 #: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:120
-#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:407
+#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:430
 msgid "Type"
 msgstr ""
 
 #: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:121
-#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:408
+#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:431
 #: inc/backend/views/yobm-wc-blacklist-manager-dashboard-form.php:363
 #: inc/backend/views/yobm-wc-blacklist-manager-dashboard-form.php:459
 #: inc/backend/views/yobm-wc-blacklist-manager-dashboard-form.php:560
@@ -470,12 +520,12 @@ msgid "Source"
 msgstr ""
 
 #: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:122
-#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:409
+#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:432
 msgid "Action"
 msgstr ""
 
 #: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:123
-#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:410
+#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:433
 msgid "Details"
 msgstr ""
 
@@ -491,29 +541,34 @@ msgstr ""
 msgid "Bot"
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:213
+#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:221
+#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blocklist.php:124
+#: inc/backend/yobm-wc-blacklist-manager-button-add-to-suspects.php:177
 msgid "Block"
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:215
+#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:223
 #: inc/backend/views/yobm-wc-blacklist-manager-dashboard-form.php:106
 #: inc/backend/views/yobm-wc-blacklist-manager-dashboard-form.php:594
 #: inc/backend/views/yobm-wc-blacklist-manager-dashboard-form.php:792
 #: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:34
 #: inc/backend/views/yobm-wc-blacklist-manager-verifications-form.php:122
+#: inc/backend/yobm-wc-blacklist-manager-button-add-to-suspects.php:176
 msgid "Suspect"
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:259
-msgid "More info"
+#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:227
+#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blocklist.php:125
+#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blocklist.php:133
+msgid "Remove"
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:266
-#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:415
+#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:288
+#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:438
 msgid "No detection log entries found."
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:363
+#: inc/backend/views/yobm-wc-blacklist-manager-activity-log.php:385
 msgid "Close"
 msgstr ""
 
@@ -934,6 +989,7 @@ msgid "Display on the footer of the email template."
 msgstr ""
 
 #: inc/backend/views/yobm-wc-blacklist-manager-notifications-emails.php:61
+#: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:26
 msgid "Checkout"
 msgstr ""
 
@@ -942,6 +998,8 @@ msgstr ""
 #: inc/backend/views/yobm-wc-blacklist-manager-notifications-emails.php:119
 #: inc/backend/views/yobm-wc-blacklist-manager-notifications-emails.php:146
 #: inc/backend/views/yobm-wc-blacklist-manager-notifications-emails.php:173
+#: inc/backend/views/yobm-wc-blacklist-manager-notifications-emails.php:200
+#: inc/backend/views/yobm-wc-blacklist-manager-notifications-emails.php:227
 msgid "Suspect email"
 msgstr ""
 
@@ -954,6 +1012,8 @@ msgstr ""
 #: inc/backend/views/yobm-wc-blacklist-manager-notifications-emails.php:128
 #: inc/backend/views/yobm-wc-blacklist-manager-notifications-emails.php:155
 #: inc/backend/views/yobm-wc-blacklist-manager-notifications-emails.php:182
+#: inc/backend/views/yobm-wc-blacklist-manager-notifications-emails.php:209
+#: inc/backend/views/yobm-wc-blacklist-manager-notifications-emails.php:236
 msgid "Block email"
 msgstr ""
 
@@ -978,21 +1038,37 @@ msgstr ""
 
 #: inc/backend/views/yobm-wc-blacklist-manager-notifications-emails.php:140
 #: inc/backend/views/yobm-wc-blacklist-manager-notifications-emails.php:167
-msgid "Form"
+msgid "Comment"
 msgstr ""
 
 #: inc/backend/views/yobm-wc-blacklist-manager-notifications-emails.php:150
 #: inc/backend/views/yobm-wc-blacklist-manager-notifications-emails.php:177
-msgid "Send email notification when suspected visitor submit a form"
+msgid "Send email notification when suspected user submit a comment or review"
 msgstr ""
 
 #: inc/backend/views/yobm-wc-blacklist-manager-notifications-emails.php:159
 #: inc/backend/views/yobm-wc-blacklist-manager-notifications-emails.php:186
-msgid "Send email notification when blocked visitor try to submit a form"
+msgid "Send email notification when blocked user try to submit a comment or review"
 msgstr ""
 
 #: inc/backend/views/yobm-wc-blacklist-manager-notifications-emails.php:194
-#: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:173
+#: inc/backend/views/yobm-wc-blacklist-manager-notifications-emails.php:221
+#: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:88
+msgid "Form"
+msgstr ""
+
+#: inc/backend/views/yobm-wc-blacklist-manager-notifications-emails.php:204
+#: inc/backend/views/yobm-wc-blacklist-manager-notifications-emails.php:231
+msgid "Send email notification when suspected visitor submit a form"
+msgstr ""
+
+#: inc/backend/views/yobm-wc-blacklist-manager-notifications-emails.php:213
+#: inc/backend/views/yobm-wc-blacklist-manager-notifications-emails.php:240
+msgid "Send email notification when blocked visitor try to submit a form"
+msgstr ""
+
+#: inc/backend/views/yobm-wc-blacklist-manager-notifications-emails.php:248
+#: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:183
 msgid "Save Changes"
 msgstr ""
 
@@ -1002,10 +1078,6 @@ msgstr ""
 
 #: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:19
 msgid "Trigger these notices when a user initiates rule-related actions."
-msgstr ""
-
-#: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:26
-msgid "Checkout notice"
 msgstr ""
 
 #: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:30
@@ -1023,7 +1095,7 @@ msgid "Enter the notice message to display when a payment method is not availabl
 msgstr ""
 
 #: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:50
-msgid "Registration notice"
+msgid "Registration"
 msgstr ""
 
 #: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:54
@@ -1036,63 +1108,67 @@ msgid "Enter the notice message to display when a visitor uses Proxy or VPN to r
 msgstr ""
 
 #: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:68
-msgid "Blocked user notice"
+msgid "Comment / Review"
 msgstr ""
 
 #: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:72
-msgid "Enter the notice message to display when a blocked user tries to login or force out."
+msgid "Enter the notice message to display when a blocked user tries to submit a comment or review."
 msgstr ""
 
 #: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:78
-msgid "Form notice"
+msgid "Blocked user"
 msgstr ""
 
 #: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:82
+msgid "Enter the notice message to display when a blocked user tries to login or force out."
+msgstr ""
+
+#: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:92
 msgid "Enter the notice message to display when form submission is blocked."
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:85
-#: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:89
+#: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:95
+#: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:99
 msgid "Enter the notice message to display when a visitor uses Proxy or VPN to submit a form."
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:97
-#: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:135
+#: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:107
+#: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:145
 msgid "Access prevention messages"
-msgstr ""
-
-#: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:99
-#: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:137
-msgid "Messages display for prevented visitors and users."
-msgstr ""
-
-#: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:105
-#: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:143
-msgid "Blocked IP"
 msgstr ""
 
 #: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:109
 #: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:147
+msgid "Messages display for prevented visitors and users."
+msgstr ""
+
+#: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:115
+#: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:153
+msgid "Blocked IP"
+msgstr ""
+
+#: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:119
+#: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:157
 msgid "Enter the message to display for the blocked IP address (on the blocklist)."
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:114
-#: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:152
+#: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:124
+#: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:162
 msgid "Blocked IP country"
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:118
-#: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:156
+#: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:128
+#: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:166
 msgid "Enter the message to display for the blocked IP address based on country."
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:123
-#: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:161
+#: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:133
+#: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:171
 msgid "Blocked browser"
 msgstr ""
 
-#: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:127
-#: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:165
+#: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:137
+#: inc/backend/views/yobm-wc-blacklist-manager-notifications-notices.php:175
 msgid "Enter the message to display for the blocked browser."
 msgstr ""
 
@@ -1463,7 +1539,8 @@ msgid "Auto-adding the customer to the suspect list for these order statuses."
 msgstr ""
 
 #: inc/backend/views/yobm-wc-blacklist-manager-settings-form.php:465
-#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blocklist.php:125
+#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blocklist.php:124
+#: inc/backend/yobm-wc-blacklist-manager-button-add-to-suspects.php:177
 msgid "Add to blocklist"
 msgstr ""
 
@@ -1836,9 +1913,9 @@ msgid "<b>Note</b>: User roles have permission to control the dashboard will hav
 msgstr ""
 
 #: inc/backend/views/yobm-wc-blacklist-manager-settings-form.php:1089
-#: inc/backend/yobm-wc-blacklist-manager-notifications.php:65
-#: inc/backend/yobm-wc-blacklist-manager-notifications.php:66
-#: inc/backend/yobm-wc-blacklist-manager-notifications.php:86
+#: inc/backend/yobm-wc-blacklist-manager-notifications.php:67
+#: inc/backend/yobm-wc-blacklist-manager-notifications.php:68
+#: inc/backend/yobm-wc-blacklist-manager-notifications.php:88
 msgid "Notifications"
 msgstr ""
 
@@ -2339,77 +2416,98 @@ msgstr ""
 msgid "Are you sure you want to block this customer?"
 msgstr ""
 
-#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blocklist.php:239
-#: inc/backend/yobm-wc-blacklist-manager-button-add-to-suspects.php:403
-msgid "phone"
+#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blocklist.php:122
+#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blocklist.php:131
+#: inc/backend/yobm-wc-blacklist-manager-button-add-to-suspects.php:174
+msgid "Blacklist actions"
 msgstr ""
 
-#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blocklist.php:246
-#: inc/backend/yobm-wc-blacklist-manager-button-add-to-suspects.php:410
-msgid "email"
-msgstr ""
-
-#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blocklist.php:253
-#: inc/backend/yobm-wc-blacklist-manager-button-add-to-suspects.php:417
-msgid "IP"
-msgstr ""
-
-#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blocklist.php:260
-#: inc/backend/yobm-wc-blacklist-manager-button-add-to-suspects.php:424
-msgid "customer address"
-msgstr ""
-
-#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blocklist.php:267
-#: inc/backend/yobm-wc-blacklist-manager-button-add-to-suspects.php:433
-msgid "name (%s)"
-msgstr ""
-
-#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blocklist.php:272
-msgid "This order's %s in the blocklist."
-msgstr ""
-
-#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blocklist.php:304
+#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blocklist.php:257
 msgid "You do not have sufficient permissions"
 msgstr ""
 
-#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blocklist.php:309
-#: inc/backend/yobm-wc-blacklist-manager-button-add-to-suspects.php:198
+#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blocklist.php:262
+#: inc/backend/yobm-wc-blacklist-manager-button-add-to-suspects.php:208
 msgid "Invalid order ID."
 msgstr ""
 
-#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blocklist.php:349
-msgid "The customer's details have been moved to the blocklist."
+#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blocklist.php:302
+msgid "Moved to the blocklist successfully."
 msgstr ""
 
-#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blocklist.php:367
-msgid "Customer is not in the blacklist."
+#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blocklist.php:342
+msgid "The customer details have been moved to the blocklist by %s."
+msgstr ""
+
+#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blocklist.php:358
+#: inc/backend/yobm-wc-blacklist-manager-button-add-to-suspects.php:225
+msgid "Order ID: %d"
+msgstr ""
+
+#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blocklist.php:478
+msgid "The customer details have been added to the blocklist by %s."
+msgstr ""
+
+#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blocklist.php:485
+msgid "Added to blocklist successfully."
+msgstr ""
+
+#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blocklist.php:487
+msgid "Nothing to add to the blocklist."
+msgstr ""
+
+#: inc/backend/yobm-wc-blacklist-manager-button-add-to-blocklist.php:493
+#: inc/backend/yobm-wc-blacklist-manager-button-add-to-suspects.php:361
+msgid "Order ID: %d | Shipping"
 msgstr ""
 
 #: inc/backend/yobm-wc-blacklist-manager-button-add-to-suspects.php:60
 msgid "Are you sure you want to add this to the suspects list?"
 msgstr ""
 
-#: inc/backend/yobm-wc-blacklist-manager-button-add-to-suspects.php:170
+#: inc/backend/yobm-wc-blacklist-manager-button-add-to-suspects.php:176
 msgid "Add to the suspects list"
 msgstr ""
 
-#: inc/backend/yobm-wc-blacklist-manager-button-add-to-suspects.php:215
-msgid "Order ID: %d"
+#: inc/backend/yobm-wc-blacklist-manager-button-add-to-suspects.php:346
+msgid "The customer details have been added to the suspects list by %s."
 msgstr ""
 
-#: inc/backend/yobm-wc-blacklist-manager-button-add-to-suspects.php:271
-msgid "Order ID: %d | Shipping"
+#: inc/backend/yobm-wc-blacklist-manager-button-add-to-suspects.php:353
+msgid "Added to suspects list successfully."
 msgstr ""
 
-#: inc/backend/yobm-wc-blacklist-manager-button-add-to-suspects.php:360
-msgid "The customer's details have been added to the suspect list."
+#: inc/backend/yobm-wc-blacklist-manager-button-add-to-suspects.php:355
+msgid "Nothing to add to the suspects list."
 msgstr ""
 
-#: inc/backend/yobm-wc-blacklist-manager-button-add-to-suspects.php:362
-msgid "No new information to add to the suspect list."
+#: inc/backend/yobm-wc-blacklist-manager-button-add-to-suspects.php:467
+msgid "customer name (%s)"
 msgstr ""
 
-#: inc/backend/yobm-wc-blacklist-manager-button-add-to-suspects.php:440
+#: inc/backend/yobm-wc-blacklist-manager-button-add-to-suspects.php:473
+msgid "phone"
+msgstr ""
+
+#: inc/backend/yobm-wc-blacklist-manager-button-add-to-suspects.php:478
+msgid "email"
+msgstr ""
+
+#: inc/backend/yobm-wc-blacklist-manager-button-add-to-suspects.php:483
+msgid "IP"
+msgstr ""
+
+#: inc/backend/yobm-wc-blacklist-manager-button-add-to-suspects.php:488
+msgid "address"
+msgstr ""
+
+#. translators: %s = comma-separated list of blocked fields
+#: inc/backend/yobm-wc-blacklist-manager-button-add-to-suspects.php:495
+msgid "This order's %s in the blocklist."
+msgstr ""
+
+#. translators: %s = comma-separated list of suspect fields
+#: inc/backend/yobm-wc-blacklist-manager-button-add-to-suspects.php:505
 msgid "This order's %s in the suspect list."
 msgstr ""
 
@@ -2419,11 +2517,11 @@ msgstr ""
 
 #: inc/backend/yobm-wc-blacklist-manager-dashboard.php:86
 #: inc/backend/yobm-wc-blacklist-manager-dashboard.php:193
-#: inc/backend/yobm-wc-blacklist-manager-dashboard.php:566
-#: inc/backend/yobm-wc-blacklist-manager-dashboard.php:614
-#: inc/backend/yobm-wc-blacklist-manager-dashboard.php:668
-#: inc/backend/yobm-wc-blacklist-manager-dashboard.php:736
-#: inc/backend/yobm-wc-blacklist-manager-dashboard.php:809
+#: inc/backend/yobm-wc-blacklist-manager-dashboard.php:645
+#: inc/backend/yobm-wc-blacklist-manager-dashboard.php:762
+#: inc/backend/yobm-wc-blacklist-manager-dashboard.php:816
+#: inc/backend/yobm-wc-blacklist-manager-dashboard.php:884
+#: inc/backend/yobm-wc-blacklist-manager-dashboard.php:957
 #: inc/backend/yobm-wc-blacklist-manager-verifications.php:364
 msgid "You do not have sufficient permissions to access this page."
 msgstr ""
@@ -2495,94 +2593,94 @@ msgstr ""
 msgid "Entry moved to blocked list successfully."
 msgstr ""
 
-#: inc/backend/yobm-wc-blacklist-manager-dashboard.php:440
+#: inc/backend/yobm-wc-blacklist-manager-dashboard.php:521
 msgid "Entry removed successfully."
 msgstr ""
 
-#: inc/backend/yobm-wc-blacklist-manager-dashboard.php:621
+#: inc/backend/yobm-wc-blacklist-manager-dashboard.php:769
 msgid "No IP addresses were added. Please provide valid IP addresses."
 msgstr ""
 
-#: inc/backend/yobm-wc-blacklist-manager-dashboard.php:626
+#: inc/backend/yobm-wc-blacklist-manager-dashboard.php:774
 msgid "Submission failed: You can only add up to 50 IP addresses at a time."
 msgstr ""
 
-#: inc/backend/yobm-wc-blacklist-manager-dashboard.php:646
+#: inc/backend/yobm-wc-blacklist-manager-dashboard.php:794
 msgid "One IP address added."
 msgid_plural "%s IP addresses added."
 msgstr[0] ""
 msgstr[1] ""
 
-#: inc/backend/yobm-wc-blacklist-manager-dashboard.php:685
+#: inc/backend/yobm-wc-blacklist-manager-dashboard.php:833
 msgid "No address provided. Please fill in at least one field."
 msgstr ""
 
-#: inc/backend/yobm-wc-blacklist-manager-dashboard.php:717
+#: inc/backend/yobm-wc-blacklist-manager-dashboard.php:865
 msgid "Address added successfully."
 msgstr ""
 
-#: inc/backend/yobm-wc-blacklist-manager-dashboard.php:740
+#: inc/backend/yobm-wc-blacklist-manager-dashboard.php:888
 msgid "Sorry, your nonce did not verify."
 msgstr ""
 
-#: inc/backend/yobm-wc-blacklist-manager-dashboard.php:747
+#: inc/backend/yobm-wc-blacklist-manager-dashboard.php:895
 msgid "No domains were provided."
 msgstr ""
 
-#: inc/backend/yobm-wc-blacklist-manager-dashboard.php:752
+#: inc/backend/yobm-wc-blacklist-manager-dashboard.php:900
 msgid "Submission failed: You can only add up to 50 domains at a time."
 msgstr ""
 
-#: inc/backend/yobm-wc-blacklist-manager-dashboard.php:778
+#: inc/backend/yobm-wc-blacklist-manager-dashboard.php:926
 msgid "One domain added."
 msgid_plural "%s domains added."
 msgstr[0] ""
 msgstr[1] ""
 
-#: inc/backend/yobm-wc-blacklist-manager-dashboard.php:781
+#: inc/backend/yobm-wc-blacklist-manager-dashboard.php:929
 msgid "One domain was not added because it is not in the right format."
 msgid_plural "%s domains were not added because they are not in the right format."
 msgstr[0] ""
 msgstr[1] ""
 
-#: inc/backend/yobm-wc-blacklist-manager-dashboard.php:785
+#: inc/backend/yobm-wc-blacklist-manager-dashboard.php:933
 msgid "No new domains were added."
 msgstr ""
 
-#: inc/backend/yobm-wc-blacklist-manager-notifications.php:29
+#: inc/backend/yobm-wc-blacklist-manager-notifications.php:30
 msgid "WARNING: Order #{order_id} from suspected customer!"
 msgstr ""
 
-#: inc/backend/yobm-wc-blacklist-manager-notifications.php:30
+#: inc/backend/yobm-wc-blacklist-manager-notifications.php:31
 msgid "A customer ({first_name} {last_name}) has placed order #{order_id}. Review it carefully."
 msgstr ""
 
-#: inc/backend/yobm-wc-blacklist-manager-notifications.php:32
+#: inc/backend/yobm-wc-blacklist-manager-notifications.php:33
 msgid "Checkout from VPNs or Proxies is not allowed. Please disable your VPN or Proxy and try again."
 msgstr ""
 
-#: inc/backend/yobm-wc-blacklist-manager-notifications.php:33
+#: inc/backend/yobm-wc-blacklist-manager-notifications.php:34
 msgid "Payment method you have chosen is not available, please select another and try again."
 msgstr ""
 
-#: inc/backend/yobm-wc-blacklist-manager-notifications.php:35
+#: inc/backend/yobm-wc-blacklist-manager-notifications.php:36
 msgid "Registrations from VPNs or Proxies are not allowed. Please disable your VPN or Proxy and try again."
 msgstr ""
 
-#: inc/backend/yobm-wc-blacklist-manager-notifications.php:40
+#: inc/backend/yobm-wc-blacklist-manager-notifications.php:42
 msgid "Unfortunately, your access to our website has been restricted."
 msgstr ""
 
-#: inc/backend/yobm-wc-blacklist-manager-notifications.php:41
+#: inc/backend/yobm-wc-blacklist-manager-notifications.php:43
 msgid "Access to this site is restricted from your location."
 msgstr ""
 
-#: inc/backend/yobm-wc-blacklist-manager-notifications.php:42
+#: inc/backend/yobm-wc-blacklist-manager-notifications.php:44
 msgid "Access to this site is restricted for users of your browser."
 msgstr ""
 
-#: inc/backend/yobm-wc-blacklist-manager-notifications.php:151
-#: inc/backend/yobm-wc-blacklist-manager-notifications.php:159
+#: inc/backend/yobm-wc-blacklist-manager-notifications.php:153
+#: inc/backend/yobm-wc-blacklist-manager-notifications.php:161
 msgid "Changes saved."
 msgstr ""
 
@@ -2644,4 +2742,8 @@ msgstr ""
 
 #: inc/backend/yobm-wc-blacklist-manager-verifications.php:356
 msgid "Failed to save the generated key. Please try again."
+msgstr ""
+
+#: inc/cores/yobm-wc-blacklist-manager-notices.php:58
+msgid "You’re running v%s"
 msgstr ""

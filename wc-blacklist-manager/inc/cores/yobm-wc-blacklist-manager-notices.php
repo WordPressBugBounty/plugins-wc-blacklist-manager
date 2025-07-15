@@ -41,7 +41,7 @@ class WC_Blacklist_Manager_Notices {
 
         if ( is_plugin_active( $plugin_path ) ) {
 
-            $required_version = '2.0.9';
+            $required_version = '2.1.1';
 
             // get the plugin’s header data
             $data = get_plugin_data( WP_PLUGIN_DIR . '/' . $plugin_path );
@@ -108,13 +108,16 @@ class WC_Blacklist_Manager_Notices {
 		$user_id = get_current_user_id();
 	  
 		// Check if user is administrator and notice hasn't been dismissed
-		if (!$premium_active && current_user_can('administrator') && get_user_meta($user_id, 'wc_blacklist_manager_ads_notice_dismissed_17425', true) !== 'yes') {
+		if (!$premium_active && current_user_can('administrator') && get_user_meta($user_id, 'wc_blacklist_manager_ads_notice_dismissed_15725', true) !== 'yes') {
 		    echo '<div class="notice notice-info yobm-ads is-dismissible">
-				  <p>🔒 Unlock Premium Protection!</b></p>
+				  <p><b>🚀 Supercharge Your Store with Premium!</b></p>
 					
-				  <p>Get advanced automatic blacklist rules, real-time updates, and VIP support.</p>
+				  <p>
+					● <b>Activity Logs:</b> Record every detection & attempt in real time. <a href="https://yoohw.com/docs/woocommerce-blacklist-manager/activity-logs/activity-logs/" target="_blank">Learn more</a><br>
+					● <b>Automations:</b> Let rules run hands-free so you can focus on growth.
+				  </p>
 
-				  <p><a href="#" onclick="WC_Blacklist_Manager_Admin_Notice.dismissAdsNotice()" class="button-secondary">Dismiss</a> <a href="https://yoohw.com/product/woocommerce-blacklist-manager-premium/" class="button-primary">👉 Upgrade Today</a></p>
+				  <p><a href="#" onclick="WC_Blacklist_Manager_Admin_Notice.dismissAdsNotice()" class="button-secondary">Dismiss</a> <a href="https://yoohw.com/product/woocommerce-blacklist-manager-premium/" class="button-primary">🌟 Unlock Premium Now</a></p>
 			    </div>';
 		}
 
@@ -202,7 +205,7 @@ class WC_Blacklist_Manager_Notices {
 	public function dismiss_ads_notice() {
 		check_ajax_referer('dismiss_ads_notice_nonce', 'security');
 		$user_id = get_current_user_id();
-		update_user_meta($user_id, 'wc_blacklist_manager_ads_notice_dismissed_17425', 'yes');
+		update_user_meta($user_id, 'wc_blacklist_manager_ads_notice_dismissed_15725', 'yes');
 		update_user_meta($user_id, 'wc_blacklist_manager_ads_notice_dismissed_3625', 'yes');
 		update_user_meta($user_id, 'wc_blacklist_manager_ads_notice_dismissed_7325_pro', 'yes');
 	}

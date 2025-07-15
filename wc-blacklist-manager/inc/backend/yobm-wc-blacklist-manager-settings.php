@@ -49,6 +49,7 @@ class WC_Blacklist_Manager_Settings {
 			'blacklist_action' => get_option('wc_blacklist_action', 'none'),
 			'block_user_registration' => get_option('wc_blacklist_block_user_registration', 0),
 			'order_delay' => max(0, get_option('wc_blacklist_order_delay', 0)),
+			'comment_blocking_enabled' => get_option('wc_blacklist_comment_blocking_enabled', 0),
 			'form_blocking_enabled' => get_option('wc_blacklist_form_blocking_enabled', 0),
 			'ip_blacklist_enabled' => get_option('wc_blacklist_ip_enabled', '0'),
 			'ip_blacklist_action' => get_option('wc_blacklist_ip_action', 'none'),
@@ -81,6 +82,7 @@ class WC_Blacklist_Manager_Settings {
 			update_option('wc_blacklist_action', $_POST['blacklist_action'] ?? 'none');
 			update_option('wc_blacklist_block_user_registration', isset($_POST['block_user_registration']) ? 1 : 0);
 			update_option('wc_blacklist_order_delay', max(0, intval($_POST['order_delay'])));
+			update_option('wc_blacklist_comment_blocking_enabled', isset($_POST['comment_blocking_enabled']) ? 1 : 0);
 			update_option('wc_blacklist_form_blocking_enabled', isset($_POST['form_blocking_enabled']) ? 1 : 0);
 			update_option('wc_blacklist_ip_enabled', sanitize_text_field($_POST['ip_blacklist_enabled'] ?? '0'));
 			update_option('wc_blacklist_ip_action', sanitize_text_field($_POST['ip_blacklist_action'] ?? 'none'));

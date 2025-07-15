@@ -11,6 +11,7 @@ class WC_Blacklist_Manager_Domain_Blocking_Actions {
 		add_action('woocommerce_checkout_process', [$this, 'check_customer_email_domain_against_blacklist']);
 		add_filter('registration_errors', [$this, 'prevent_domain_registration'], 10, 3);
 		add_filter('woocommerce_registration_errors', [$this, 'prevent_domain_registration_woocommerce'], 10, 3);
+		add_filter('preprocess_comment', [$this, 'prevent_comment'], 10, 1);
 	}
 
 	public function check_customer_email_domain_against_blacklist() {
@@ -138,6 +139,69 @@ class WC_Blacklist_Manager_Domain_Blocking_Actions {
 		}
 
 		return $errors;
+	}
+
+	public function prevent_comment( $commentdata ) {
+		$settings_instance = new WC_Blacklist_Manager_Settings();
+		$premium_active = $settings_instance->is_premium_active();
+
+		if ( !$premium_active || get_option( 'wc_blacklist_domain_enabled', 0 ) !== '1' || get_option( 'wc_blacklist_domain_comment', 0 ) !== '1' ) {
+			return $commentdata;
+		}
+		
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'wc_blacklist';
+
+		$author_email = isset( $commentdata['comment_author_email'] )
+			? trim( $commentdata['comment_author_email'] )
+			: '';
+
+		$email_domain = substr(strrchr($author_email, "@"), 1);
+		if (empty($email_domain)) {
+			wc_add_notice(__('Invalid email domain.', 'wc-blacklist-manager'), 'error');
+			return;
+		}
+
+		if ( ! empty( $email_domain ) ) {
+			// Check for a blocked email
+			$is_blocked = (bool) $wpdb->get_var(
+				$wpdb->prepare(
+					"SELECT 1
+					FROM {$table_name}
+					WHERE domain = %s
+						AND is_blocked     = 1
+					LIMIT 1",
+					$email_domain
+				)
+			);
+			
+			if ( $is_blocked ) {
+				$sum_block_domain = get_option('wc_blacklist_sum_block_domain', 0);
+				update_option('wc_blacklist_sum_block_domain', $sum_block_domain + 1);
+				$sum_block_total = get_option('wc_blacklist_sum_block_total', 0);
+				update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
+
+				WC_Blacklist_Manager_Email::send_email_comment_block( '', '', $email_domain );
+
+				$reason_domain = 'blocked_domain_attempt: ' . $email_domain;
+				WC_Blacklist_Manager_Premium_Activity_Logs_Insert::comment_block('', '', '', '', '', $reason_domain);
+
+				$notice_template = get_option(
+					'wc_blacklist_comment_notice',
+					__('Sorry! You are no longer allowed to submit a comment on our site. If you think it is a mistake, please contact support.', 'wc-blacklist-manager')
+				);
+
+				$notice = sprintf( wp_kses_post( $notice_template ) );
+
+				wp_die(
+					$notice,
+					__( 'Comment Blocked', 'wc-blacklist-manager' ),
+					[ 'response' => 403 ]
+				);
+			}
+		}
+
+		return $commentdata;
 	}
 }
 

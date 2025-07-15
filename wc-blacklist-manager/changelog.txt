@@ -2,6 +2,13 @@
 
 == Changelog ==
 
+= 2.0.5 (July 15, 2025) =
+* New: Prevent blocked user to submit comment and product review.
+* Fix: False blocked notice in the add new order page.
+* Improve: Optimized and combined suspect and block notices in the order page.
+* Improve: Optimized suspect/block action on the order page.
+* Improve: Correct the phone number format before checking blacklist.
+
 = 2.0.4 (Jun 23, 2025) =
 * Update: Added suspect and block button text on the order page.
 * Update: Modified and improved verification scripts.

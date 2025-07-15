@@ -121,7 +121,7 @@ $logs = $wpdb->get_results(
 						<th scope="col" style="width: 15ch;"><?php esc_html_e( 'Source', 'wc-blacklist-manager' ); ?></th>
 						<th scope="col" style="width: 10ch;"><?php esc_html_e( 'Action', 'wc-blacklist-manager' ); ?></th>
 						<th scope="col"><?php esc_html_e( 'Details', 'wc-blacklist-manager' ); ?></th>
-						<th scope="col" style="width: 12ch;"><?php esc_html_e( 'View',      'wc-blacklist-manager' ); ?></th>
+						<th scope="col" style="width: 7ch;"><?php esc_html_e( 'View',      'wc-blacklist-manager' ); ?></th>
 					</tr>
 				</thead>
 				<tbody>
@@ -199,7 +199,7 @@ $logs = $wpdb->get_results(
 										$text = ucfirst( str_replace( '_', ' ', $remainder ) );
 									}
 
-								} elseif ( in_array( $source, array( 'access', 'register', 'login', 'checkout', 'submit', 'order' ), true ) ) {
+								} elseif ( in_array( $source, array( 'access', 'register', 'login', 'checkout', 'submit', 'order', 'comment' ), true ) ) {
 									// For these specific words, use 'site.svg' and make the text translatable.
 									$img = 'site.svg';
 									$img_url = plugins_url( '../../../img/' . $img, __FILE__ );
@@ -223,6 +223,8 @@ $logs = $wpdb->get_results(
 										echo '<span class="bm-status-suspect">' . esc_html__( 'Suspect', 'wc-blacklist-manager' ) . '</span>';
 									} elseif ( 'verify' === $log->action ) {
 										echo '<span class="bm-status-verify">' . esc_html__( 'Verify', 'wc-blacklist-manager' ) . '</span>';
+									} elseif ( 'remove' === $log->action ) {
+										echo '<span class="bm-status-verify">' . esc_html__( 'Remove', 'wc-blacklist-manager' ) . '</span>';
 									}  else {
 										echo esc_html( $log->action );
 									}
@@ -269,13 +271,15 @@ $logs = $wpdb->get_results(
 								?>
 								</td>
 								<td>
-									<button
-										type="button"
-										class="button show-view-data"
-										data-view='<?php echo esc_attr( $log->view ); ?>'
-									>
-										<?php esc_html_e( 'More info', 'wc-blacklist-manager' ); ?>
-									</button>
+									<?php if ( ! empty( trim( $log->view ) ) ) : ?>
+										<button
+											type="button"
+											class="button show-view-data icon-button"
+											data-view="<?php echo esc_attr( $log->view ); ?>"
+										>
+											<span class="dashicons dashicons-info-outline"></span>
+										</button>
+									<?php endif; ?>
 								</td>
 							</tr>
 						<?php endforeach; ?>

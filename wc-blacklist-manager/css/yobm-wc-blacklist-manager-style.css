@@ -7,7 +7,7 @@
 .red-button {
     background: #d63638 !important;
     color: white !important;
-    border-color: #d63638 !important;
+    border-color: #b02e31 !important;
     display: inline-flex !important;
     align-items: center;
     justify-content: center;
@@ -19,12 +19,35 @@
 .red-button:active {
     border-color: rgb(192, 1, 1) !important;
 }
-.dashicons-flag, .dashicons-dismiss, .dashicons-trash {
+.dashicons-flag, .dashicons-dismiss, .dashicons-trash, .dasicons-info-outline {
     display: block;
+}
+
+/* Blacklist order action */
+.bm_order_actions {
+    border: 1px solid #c3c4c7;
+    padding: 0 1em;
+}
+.bm_order_actions h3 {
+    margin-top: 1em !important;
+}
+.bm_order_actions .button {
+    margin-right: 3px;
+}
+
+.bm_description {
+    display: inline-flex;
+    font-size: 0.9em;
+    margin-top: 0 !important;
+}
+.bm_description a {
+    text-decoration: none;
 }
 
 /* Premium labels */
 .yo-premium {
+    display: inline-flex;
+    align-items: center;    
     color: #d63638;
     border: solid 1px;
     border-radius: 10px;
@@ -32,8 +55,22 @@
     padding: 12px;
     margin-bottom: 10px;
 }
+form h2 {
+    display: inline-flex;
+    align-items: center;
+}
+form h2 .dashicons {
+    margin-right: 4px;
+}
+h2 .premium-text {
+    display: inline-flex;
+    align-items: center;
+}
 .premium-text {
     color: #aaaaaa;
+}
+.premium-text .dashicons {
+    margin-right: 5px;
 }
 .premium-label {
     display: inline-flex;
@@ -46,7 +83,7 @@
     padding: 5px 10px;
     border-radius: 5px;
 }
-.premium-label::before{
+.premium-label::before {
     font-family: 'dashicons';
     content: "\f160";
     margin-right: 4px;
@@ -56,8 +93,19 @@
     color: #ffffff;
     background-color: rgb(26, 156, 26) !important;
 }
-
 .premium-label:hover::before {
+    content: "\f528";
+}
+
+.yoohw_unlock {
+    display: inline-flex;
+    margin-right: 3px;
+}
+.yoohw_unlock:before {
+    font-family: 'dashicons';
+    content: "\f160";
+}
+.yoohw_unlock:hover::before {
     content: "\f528";
 }
 

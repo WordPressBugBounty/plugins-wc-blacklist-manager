@@ -27,9 +27,7 @@ class WC_Blacklist_Manager_WP_Forms {
 	private $blocked_ip = array();
 
 	public function __construct() {
-		if ( get_option( 'wc_blacklist_form_blocking_enabled' ) == '1' ) {
-			add_action( 'wpforms_process', [ $this, 'wpforms_blacklist_validation_lite' ], 10, 3 );
-		}
+		add_action( 'wpforms_process', [ $this, 'wpforms_blacklist_validation_lite' ], 10, 3 );
 	}
 
 	/**
@@ -55,18 +53,23 @@ class WC_Blacklist_Manager_WP_Forms {
 	* @return array The (possibly modified) fields array.
 	*/
 	public function wpforms_blacklist_validation_lite( $fields, $entry, $form_data ) {
+		// Bail if user has checked "Disable blacklist for this form"
+		if ( ! empty( $form_data['settings']['disable_blacklist'] ) ) {
+			return;
+		}
+		
 		global $wpdb;
 		$form_id    = isset( $form_data['id'] ) ? $form_data['id'] : 0;
 		$table_name = $wpdb->prefix . 'wc_blacklist';
-		$table_detection_log = $wpdb->prefix . 'wc_blacklist_detection_log';
 		$found      = false;
 
 		$settings_instance = new WC_Blacklist_Manager_Settings();
 		$premium_active = $settings_instance->is_premium_active();
 
+		$ip_address = get_real_customer_ip();
+
 		// --- IP ADDRESS & PROXY/VPN CHECK ---
 		if ( $premium_active && get_option( 'wc_blacklist_ip_enabled' ) == '1' ) {
-			$ip_address = get_real_customer_ip();
 			if ( ! empty( $ip_address ) ) {
 				// Check IP in blacklist if enabled.
 				if ( get_option( 'wc_blacklist_block_ip_form' ) == '1' ) {
@@ -81,22 +84,8 @@ class WC_Blacklist_Manager_WP_Forms {
                         update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
                         
                         if ($premium_active) {
-                            $timestamp = current_time('mysql');
-                            $type      = 'human';
-                            $source    = 'wpforms_submit';
-                            $action    = 'block';
-                            $details   = 'blocked_ip_attempt: ' . $ip_address;
-                            
-                            $wpdb->insert(
-                                $table_detection_log,
-                                array(
-                                    'timestamp' => $timestamp,
-                                    'type'      => $type,
-                                    'source'    => $source,
-                                    'action'    => $action,
-                                    'details'   => $details,
-                                )
-                            );
+                            $reason_user_ip   = 'blocked_ip_attempt: ' . $ip_address;
+                            WC_Blacklist_Manager_Premium_Activity_Logs_Insert::wpforms_block('', '', '', $reason_user_ip);
                         }
 
 						$found = true;
@@ -116,22 +105,8 @@ class WC_Blacklist_Manager_WP_Forms {
                             update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
 
                             if ($premium_active) {
-                                $timestamp = current_time('mysql');
-                                $type      = 'human';
-                                $source    = 'wpforms_submit';
-                                $action    = 'block';
-                                $details   = 'blocked_proxy_vpn_attempt: ' . $ip_address;
-                                
-                                $wpdb->insert(
-                                    $table_detection_log,
-                                    array(
-                                        'timestamp' => $timestamp,
-                                        'type'      => $type,
-                                        'source'    => $source,
-                                        'action'    => $action,
-                                        'details'   => $details,
-                                    )
-                                );
+                                $reason_proxy_vpn   = 'blocked_proxy_vpn_attempt: ' . $ip_address;
+                                WC_Blacklist_Manager_Premium_Activity_Logs_Insert::wpforms_block('', '', '', '', '', '', $reason_proxy_vpn);
                             }
 
 							$found = true;
@@ -171,22 +146,8 @@ class WC_Blacklist_Manager_WP_Forms {
 										update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
 
 										if ($premium_active) {
-											$timestamp = current_time('mysql');
-											$type      = 'human';
-											$source    = 'wpforms_submit';
-											$action    = 'block';
-											$details   = 'blocked_email_attempt: ' . $value;
-											
-											$wpdb->insert(
-												$table_detection_log,
-												array(
-													'timestamp' => $timestamp,
-													'type'      => $type,
-													'source'    => $source,
-													'action'    => $action,
-													'details'   => $details,
-												)
-											);
+											$reason_email   = 'blocked_email_attempt: ' . $value;
+											WC_Blacklist_Manager_Premium_Activity_Logs_Insert::wpforms_block('', '', $reason_email);
 										}
 										
 										$found = true;
@@ -209,22 +170,8 @@ class WC_Blacklist_Manager_WP_Forms {
 											update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
 
 											if ($premium_active) {
-												$timestamp = current_time('mysql');
-												$type      = 'human';
-												$source    = 'wpforms_submit';
-												$action    = 'block';
-												$details   = 'blocked_domain_attempt: ' . $domain;
-												
-												$wpdb->insert(
-													$table_detection_log,
-													array(
-														'timestamp' => $timestamp,
-														'type'      => $type,
-														'source'    => $source,
-														'action'    => $action,
-														'details'   => $details,
-													)
-												);
+												$reason_domain   = 'blocked_domain_attempt: ' . $domain;
+												WC_Blacklist_Manager_Premium_Activity_Logs_Insert::wpforms_block('', '', '', '', '', $reason_domain);
 											}
 											
 											$found = true;
@@ -233,12 +180,18 @@ class WC_Blacklist_Manager_WP_Forms {
 										}
 									}
 								}
+
+								$email_value = $value;
 							}
 							// For telephone/phone fields.
 							if ( in_array( $field_type, array( 'tel', 'phone' ), true ) && get_option( 'wc_blacklist_form_blocking_enabled' ) == '1' ) {
+								$raw_phone = $value;
+								$digits_only = preg_replace( '/\D+/', '', $raw_phone );
+								$clean_phone = ltrim( $digits_only, '0' );
+
 								$result = $wpdb->get_var( $wpdb->prepare(
 									"SELECT 1 FROM {$table_name} WHERE TRIM(LEADING '0' FROM phone_number) = %s AND is_blocked = 1 LIMIT 1",
-									$value
+									$clean_phone
 								) );
 								if ( ! empty( $result ) ) {
 									$sum_block_phone = get_option('wc_blacklist_sum_block_phone', 0);
@@ -247,28 +200,16 @@ class WC_Blacklist_Manager_WP_Forms {
 									update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
 
 									if ($premium_active) {
-										$timestamp = current_time('mysql');
-										$type      = 'human';
-										$source    = 'wpforms_submit';
-										$action    = 'block';
-										$details   = 'blocked_phone_attempt: ' . $value;
-										
-										$wpdb->insert(
-											$table_detection_log,
-											array(
-												'timestamp' => $timestamp,
-												'type'      => $type,
-												'source'    => $source,
-												'action'    => $action,
-												'details'   => $details,
-											)
-										);
+										$reason_phone   = 'blocked_phone_attempt: ' . $value;
+										WC_Blacklist_Manager_Premium_Activity_Logs_Insert::wpforms_block('', $reason_phone);
 									}
 									
 									$found = true;
 									$this->blacklist_violation = true;
 									$this->blocked_phones[] = $value;
 								}
+
+								$phone_value = $value;
 							}
 						}
 					}
@@ -292,6 +233,14 @@ class WC_Blacklist_Manager_WP_Forms {
 			}
 			// Set a form-level error message.
 			wpforms()->process->errors[ $form_id ]['header'] = $custom_message;
+
+			$view_data = [
+				'ip_address' => $ip_address,
+				'email'      => $email_value,
+				'phone'      => $phone_value,
+			];
+			$view_json = wp_json_encode( $view_data );
+            WC_Blacklist_Manager_Premium_Activity_Logs_Insert::wpforms_block($view_json);			
 
 			if ($premium_active && get_option('wc_blacklist_email_form_block') == 'yes') {
 				// Trigger the email for the blocked submission.

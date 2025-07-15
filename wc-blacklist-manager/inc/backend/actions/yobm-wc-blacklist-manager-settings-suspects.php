@@ -221,7 +221,7 @@ class WC_Blacklist_Manager_Suspected_Email {
 			);
 		}
 
-		if ($send_email && get_option('wc_blacklist_email_notification', 'no') === 'yes') {
+		if ($send_email) {
 			$email_sender = new WC_Blacklist_Manager_Email();
 			$email_sender->send_email_order_suspect(
 				$order_id,

@@ -11,6 +11,7 @@ class WC_Blacklist_Manager_IP_Blacklisted {
 		add_action('woocommerce_checkout_process', [$this, 'check_customer_ip_against_blacklist']);
 		add_filter('registration_errors', [$this, 'prevent_blocked_ip_registration'], 10, 3);
 		add_filter('woocommerce_registration_errors', [$this, 'prevent_blocked_ip_registration_woocommerce'], 10, 3);
+		add_filter('preprocess_comment', [$this, 'prevent_comment'], 10, 1);
 	}
 
 	private function get_the_user_ip() {
@@ -40,7 +41,6 @@ class WC_Blacklist_Manager_IP_Blacklisted {
 	
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'wc_blacklist';
-		$table_detection_log = $wpdb->prefix . 'wc_blacklist_detection_log';
 		$user_ip = $this->get_the_user_ip();
 	
 		if ( empty( $user_ip ) ) {
@@ -93,7 +93,6 @@ class WC_Blacklist_Manager_IP_Blacklisted {
 
 			global $wpdb;
 			$table_name = $wpdb->prefix . 'wc_blacklist';
-			$table_detection_log = $wpdb->prefix . 'wc_blacklist_detection_log';
 			$user_ip = $this->get_the_user_ip();
 
 			if (empty($user_ip)) {
@@ -149,6 +148,81 @@ class WC_Blacklist_Manager_IP_Blacklisted {
 		}
 
 		return $errors;
+	}
+
+	public function prevent_comment( $commentdata ) {
+		$settings_instance = new WC_Blacklist_Manager_Settings();
+		$premium_active = $settings_instance->is_premium_active();
+		
+		if ( !$premium_active || get_option( 'wc_blacklist_ip_enabled', 0 ) !== '1' || get_option( 'wc_blacklist_block_ip_comment', 0 ) !== '1' ) {
+			return $commentdata;
+		}
+
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'wc_blacklist';
+
+		$user_ip = $this->get_the_user_ip();
+
+		if ( ! empty( $user_ip ) ) {
+			$is_blocked = (bool) $wpdb->get_var(
+				$wpdb->prepare(
+					"SELECT 1
+					FROM {$table_name}
+					WHERE ip_address = %s
+						AND is_blocked     = 1
+					LIMIT 1",
+					$user_ip
+				)
+			);
+
+			$is_suspected = (bool) $wpdb->get_var(
+				$wpdb->prepare(
+					"SELECT 1
+					FROM {$table_name}
+					WHERE ip_address = %s
+						AND is_blocked     = 0
+					LIMIT 1",
+					$user_ip
+				)
+			);
+			
+			if ( $is_blocked ) {
+				$sum_block_ip = get_option('wc_blacklist_sum_block_ip', 0);
+				update_option('wc_blacklist_sum_block_ip', $sum_block_ip + 1);
+				$sum_block_total = get_option('wc_blacklist_sum_block_total', 0);
+				update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
+
+				WC_Blacklist_Manager_Email::send_email_comment_block( '', $user_ip );
+
+				$reason_ip = 'blocked_ip_attempt: ' . $user_ip;
+				WC_Blacklist_Manager_Premium_Activity_Logs_Insert::comment_block('', '', '', $reason_ip);
+
+				$notice_template = get_option(
+					'wc_blacklist_comment_notice',
+					__('Sorry! You are no longer allowed to submit a comment on our site. If you think it is a mistake, please contact support.', 'wc-blacklist-manager')
+				);
+
+				$notice = sprintf( wp_kses_post( $notice_template ) );
+
+				wp_die(
+					$notice,
+					__( 'Comment Blocked', 'wc-blacklist-manager' ),
+					[ 'response' => 403 ]
+				);
+			} elseif ( $is_suspected ) {
+				$sum_block_ip = get_option('wc_blacklist_sum_block_ip', 0);
+				update_option('wc_blacklist_sum_block_ip', $sum_block_ip + 1);
+				$sum_block_total = get_option('wc_blacklist_sum_block_total', 0);
+				update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
+
+				WC_Blacklist_Manager_Email::send_email_comment_suspect( '', $user_ip );
+
+				$reason_ip = 'suspected_ip_attempt: ' . $user_ip;
+				WC_Blacklist_Manager_Premium_Activity_Logs_Insert::comment_suspect('', '', '', $reason_ip);
+			}
+		}
+
+		return $commentdata;
 	}
 }
 

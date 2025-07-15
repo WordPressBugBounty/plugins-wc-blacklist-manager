@@ -408,13 +408,13 @@ if (!defined('ABSPATH')) {
 										<a href="<?php echo esc_url(wp_nonce_url(add_query_arg(['action' => 'block', 'id' => $entry->id]), 'block_action')); ?>" class="button red-button" onclick="return confirm('<?php echo esc_js(__('Are you sure you want to block this entry?', 'wc-blacklist-manager')); ?>')">
 											<span class="dashicons dashicons-dismiss"></span>
 										</a>
-										<a href="<?php echo esc_url(wp_nonce_url(add_query_arg(['action' => 'delete', 'id' => $entry->id]), 'delete_action')); ?>" class="button button-secondary icon-button" onclick="return confirm('<?php echo esc_js(__('Are you sure you want to remove this entry?', 'wc-blacklist-manager')); ?>')"><span class="dashicons dashicons-trash"></span></a>
+										<a href="<?php echo esc_url(wp_nonce_url(add_query_arg(['action' => 'delete', 'id' => $entry->id]), 'delete_action')); ?>" class="button button-secondary icon-button" onclick="return confirm('<?php echo esc_js(__('Are you sure you want to remove this entry?', 'wc-blacklist-manager')); ?>')"><span class="dashicons dashicons-remove"></span></a>
 									</td>
 								</tr>
 							<?php endforeach; ?>
 						<?php else: ?>
 							<tr>
-								<td colspan="7"><?php echo esc_html__('No matching results found.', 'wc-blacklist-manager'); ?></td>
+								<td colspan="6"><?php echo esc_html__('No matching results found.', 'wc-blacklist-manager'); ?></td>
 							</tr>
 						<?php endif; ?>
 					</tbody>
@@ -501,13 +501,13 @@ if (!defined('ABSPATH')) {
 										?>
 									</td>
 									<td>
-										<a href="<?php echo esc_url(wp_nonce_url(add_query_arg(['action' => 'delete', 'id' => $entry->id, 'tab' => 'blocked']), 'delete_action', '_wpnonce')); ?>" class="button button-secondary icon-button" onclick="return confirm('<?php echo esc_js(__('Are you sure you want to remove this entry?', 'wc-blacklist-manager')); ?>')"><span class="dashicons dashicons-trash"></span></a>
+										<a href="<?php echo esc_url(wp_nonce_url(add_query_arg(['action' => 'delete', 'id' => $entry->id, 'tab' => 'blocked']), 'delete_action', '_wpnonce')); ?>" class="button button-secondary icon-button" onclick="return confirm('<?php echo esc_js(__('Are you sure you want to remove this entry?', 'wc-blacklist-manager')); ?>')"><span class="dashicons dashicons-remove"></span></a>
 									</td>
 								</tr>
 							<?php endforeach; ?>
 						<?php else: ?>
 							<tr>
-								<td colspan="7"><?php echo esc_html__('No matching results found.', 'wc-blacklist-manager'); ?></td>
+								<td colspan="6"><?php echo esc_html__('No matching results found.', 'wc-blacklist-manager'); ?></td>
 							</tr>
 						<?php endif; ?>
 					</tbody>
@@ -598,7 +598,7 @@ if (!defined('ABSPATH')) {
 													<span class="dashicons dashicons-dismiss"></span>
 												</a>
 											<?php endif; ?>
-											<a href="<?php echo esc_url(wp_nonce_url(add_query_arg(['action' => 'delete', 'id' => $entry->id]), 'delete_action', '_wpnonce')); ?>" class="button button-secondary icon-button" onclick="return confirm('<?php echo esc_js(__('Are you sure you want to remove this entry?', 'wc-blacklist-manager')); ?>')"><span class="dashicons dashicons-trash"></span></a>
+											<a href="<?php echo esc_url(wp_nonce_url(add_query_arg(['action' => 'delete', 'id' => $entry->id]), 'delete_action', '_wpnonce')); ?>" class="button button-secondary icon-button" onclick="return confirm('<?php echo esc_js(__('Are you sure you want to remove this entry?', 'wc-blacklist-manager')); ?>')"><span class="dashicons dashicons-remove"></span></a>
 										</td>
 									</tr>
 								<?php endforeach; ?>
@@ -796,7 +796,7 @@ if (!defined('ABSPATH')) {
 												<span class="dashicons dashicons-dismiss"></span>
 											</a>
 										<?php endif; ?>
-										<a href="<?php echo esc_url(wp_nonce_url(add_query_arg(['action' => 'delete', 'id' => $entry->id, 'tab' => 'customer-address']), 'delete_action', '_wpnonce')); ?>" class="button button-secondary icon-button" onclick="return confirm('<?php echo esc_js(__('Are you sure you want to remove this entry?', 'wc-blacklist-manager')); ?>')"><span class="dashicons dashicons-trash"></span></a>
+										<a href="<?php echo esc_url(wp_nonce_url(add_query_arg(['action' => 'delete', 'id' => $entry->id, 'tab' => 'customer-address']), 'delete_action', '_wpnonce')); ?>" class="button button-secondary icon-button" onclick="return confirm('<?php echo esc_js(__('Are you sure you want to remove this entry?', 'wc-blacklist-manager')); ?>')"><span class="dashicons dashicons-remove"></span></a>
 									</td>
 								</tr>
 							<?php endforeach; ?>
@@ -880,7 +880,7 @@ if (!defined('ABSPATH')) {
 									<th scope="row" class="check-column"><input type="checkbox" name="entry_ids[]" value="<?php echo esc_attr($entry->id); ?>" /></th>
 									<td><?php echo esc_html($entry->domain); ?></td>
 									<td><?php echo esc_html(date_i18n(get_option('date_format') . ' ' . get_option('time_format'), strtotime($entry->date_added))); ?></td>
-									<td><a href="<?php echo esc_url(wp_nonce_url(add_query_arg(['action' => 'delete', 'id' => $entry->id]), 'delete_action', '_wpnonce')); ?>" class="button button-secondary icon-button" onclick="return confirm('<?php echo esc_js(__('Are you sure you want to remove this entry?', 'wc-blacklist-manager')); ?>')"><span class="dashicons dashicons-trash"></span></a></td>
+									<td><a href="<?php echo esc_url(wp_nonce_url(add_query_arg(['action' => 'delete', 'id' => $entry->id]), 'delete_action', '_wpnonce')); ?>" class="button button-secondary icon-button" onclick="return confirm('<?php echo esc_js(__('Are you sure you want to remove this entry?', 'wc-blacklist-manager')); ?>')"><span class="dashicons dashicons-remove"></span></a></td>
 								</tr>
 							<?php endforeach; ?>
 							<?php if (empty($domain_blocking_entries)): ?>
