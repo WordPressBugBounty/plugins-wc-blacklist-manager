@@ -66,10 +66,10 @@ class WC_Blacklist_Manager_WP_Forms {
 		$settings_instance = new WC_Blacklist_Manager_Settings();
 		$premium_active = $settings_instance->is_premium_active();
 
-		$ip_address = get_real_customer_ip();
-
 		// --- IP ADDRESS & PROXY/VPN CHECK ---
 		if ( $premium_active && get_option( 'wc_blacklist_ip_enabled' ) == '1' ) {
+			$ip_address = get_real_customer_ip();
+			
 			if ( ! empty( $ip_address ) ) {
 				// Check IP in blacklist if enabled.
 				if ( get_option( 'wc_blacklist_block_ip_form' ) == '1' ) {

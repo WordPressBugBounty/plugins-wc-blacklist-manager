@@ -15,6 +15,10 @@ class WC_Blacklist_Manager_Blocklisted_Actions {
 	}
 
 	public function prevent_order() {
+		if ( ! class_exists( 'WooCommerce' ) ) {
+			return;
+		}
+
 		$settings_instance = new WC_Blacklist_Manager_Settings();
 		$premium_active = $settings_instance->is_premium_active();
 		
@@ -64,34 +68,34 @@ class WC_Blacklist_Manager_Blocklisted_Actions {
 			$shipping_address_parts = array_filter([$shipping_address_1, $shipping_address_2, $shipping_city, $shipping_state, $shipping_postcode, $shipping_country]);
 			$shipping_address = implode(', ', $shipping_address_parts);
 
-			// — pull cart items (product_id => quantity) —
-$items = [];
-if ( WC()->cart && ! WC()->cart->is_empty() ) {
-    foreach ( WC()->cart->get_cart() as $cart_item ) {
-        $product_id  = $cart_item['product_id'];
-        $quantity    = intval( $cart_item['quantity'] );
-        // Unit price as set on the product (before per-item discounts)
-        $unit_price  = floatval( $cart_item['data']->get_price() );
-        // Line total (quantity * unit_price, after discounts)
-        $line_total  = floatval( $cart_item['line_total'] );
+			// Pull cart items (product_id => quantity)
+			$items = [];
+			if ( WC()->cart && ! WC()->cart->is_empty() ) {
+				foreach ( WC()->cart->get_cart() as $cart_item ) {
+					$product_id  = $cart_item['product_id'];
+					$quantity    = intval( $cart_item['quantity'] );
+					// Unit price as set on the product (before per-item discounts)
+					$unit_price  = floatval( $cart_item['data']->get_price() );
+					// Line total (quantity * unit_price, after discounts)
+					$line_total  = floatval( $cart_item['line_total'] );
 
-        $items[ $product_id ] = [
-            'quantity'   => $quantity,
-            'unit_price' => $unit_price,
-            'line_total' => $line_total,
-        ];
-    }
-}
+					$items[ $product_id ] = [
+						'quantity'   => $quantity,
+						'unit_price' => $unit_price,
+						'line_total' => $line_total,
+					];
+				}
+			}
 
-$fees = [];
-foreach ( WC()->cart->get_fees() as $fee_item ) {
-    $fees[] = [
-        'name'   => $fee_item->name,
-        'amount' => (float) $fee_item->amount,
-    ];
-}
+			$fees = [];
+			foreach ( WC()->cart->get_fees() as $fee_item ) {
+				$fees[] = [
+					'name'   => $fee_item->name,
+					'amount' => (float) $fee_item->amount,
+				];
+			}
 
-			// — other totals & methods —
+			// Other totals & methods
 			$subtotal         = WC()->cart->get_subtotal();             // raw subtotal
 			$discount_total   = WC()->cart->get_discount_total();       // raw discount
 			$shipping_total   = WC()->cart->get_shipping_total();       // raw shipping fee
@@ -100,7 +104,7 @@ foreach ( WC()->cart->get_fees() as $fee_item ) {
 			$shipping_method  = ! empty( $chosen_methods ) 
 								? $chosen_methods[0] 
 								: '';
-			// — cart tax totals —
+			// Cart tax totals
 			$cart_contents_tax = WC()->cart->get_cart_contents_tax();
 			$shipping_tax      = WC()->cart->get_shipping_tax();
 			$tax_total         = $cart_contents_tax + $shipping_tax;
@@ -211,6 +215,10 @@ foreach ( WC()->cart->get_fees() as $fee_item ) {
 	}
 
 	public function prevent_blocked_email_registration_woocommerce($errors, $username, $email) {
+		if ( ! class_exists( 'WooCommerce' ) ) {
+			return;
+		}
+
 		return $this->handle_registration_block($errors, $username, $email);
 	}
 
@@ -351,6 +359,10 @@ foreach ( WC()->cart->get_fees() as $fee_item ) {
 	}
 
 	public function schedule_order_cancellation($order_id, $old_status, $new_status, $order) {
+		if ( ! class_exists( 'WooCommerce' ) ) {
+			return;
+		}
+		
 		if (!in_array($new_status, array('on-hold', 'processing', 'completed'))) {
 			return;
 		}

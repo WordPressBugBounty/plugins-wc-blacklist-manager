@@ -76,7 +76,6 @@ class WC_Blacklist_Manager_Notifications {
 	public function notifications_page_content() {
 		$settings_instance = new WC_Blacklist_Manager_Settings();
 		$premium_active = $settings_instance->is_premium_active();
-
 		$active_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'emails';
 		?>
 		<div class="wrap">
@@ -98,8 +97,8 @@ class WC_Blacklist_Manager_Notifications {
 			</h1>
 
 			<h2 class="nav-tab-wrapper">
-				<a href="?page=wc-blacklist-manager-notifications&tab=emails" class="nav-tab <?php echo $active_tab == 'emails' ? 'nav-tab-active' : ''; ?>"><?php echo esc_html__('Emails', 'wc-blacklist-manager-premium'); ?></a>
-				<a href="?page=wc-blacklist-manager-notifications&tab=notices" class="nav-tab <?php echo $active_tab == 'notices' ? 'nav-tab-active' : ''; ?>"><?php echo esc_html__('Notices', 'wc-blacklist-manager-premium'); ?></a>
+				<a href="?page=wc-blacklist-manager-notifications&tab=emails" class="nav-tab <?php echo $active_tab == 'emails' ? 'nav-tab-active' : ''; ?>"><?php echo esc_html__('Emails', 'wc-blacklist-manager'); ?></a>
+				<a href="?page=wc-blacklist-manager-notifications&tab=notices" class="nav-tab <?php echo $active_tab == 'notices' ? 'nav-tab-active' : ''; ?>"><?php echo esc_html__('Notices', 'wc-blacklist-manager'); ?></a>
 			</h2>
 
 			<form method="post" enctype="multipart/form-data" action="">
@@ -120,6 +119,8 @@ class WC_Blacklist_Manager_Notifications {
 	public function render_notification_emails() {
 		$settings_instance = new WC_Blacklist_Manager_Settings();
 		$premium_active = $settings_instance->is_premium_active();
+		$woocommerce_active = class_exists( 'WooCommerce' );
+		$form_active = (class_exists( 'WPCF7' ) || class_exists( 'GFCommon' ) || class_exists( 'WPForms\WPForms' ));
 		$message = $this->handle_emails_form_submission();
 		$data = $this->get_notification_emails_settings();
 		$data['message'] = $message;
@@ -135,6 +136,8 @@ class WC_Blacklist_Manager_Notifications {
 	public function render_notifications_notices() {
 		$settings_instance = new WC_Blacklist_Manager_Settings();
 		$premium_active = $settings_instance->is_premium_active();
+		$woocommerce_active = class_exists( 'WooCommerce' );
+		$form_active = (class_exists( 'WPCF7' ) || class_exists( 'GFCommon' ) || class_exists( 'WPForms\WPForms' ));
 		$message = $this->handle_notices_form_submission();
 		$data = $this->get_notification_notices_settings();
 		$data['message'] = $message;

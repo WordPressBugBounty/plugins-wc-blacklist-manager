@@ -225,7 +225,9 @@ $logs = $wpdb->get_results(
 										echo '<span class="bm-status-verify">' . esc_html__( 'Verify', 'wc-blacklist-manager' ) . '</span>';
 									} elseif ( 'remove' === $log->action ) {
 										echo '<span class="bm-status-verify">' . esc_html__( 'Remove', 'wc-blacklist-manager' ) . '</span>';
-									}  else {
+									} elseif ( 'unblock' === $log->action ) {
+										echo '<span class="bm-status-verify">' . esc_html__( 'Unblock', 'wc-blacklist-manager' ) . '</span>';
+									} else {
 										echo esc_html( $log->action );
 									}
 									?>
@@ -407,11 +409,12 @@ $logs = $wpdb->get_results(
 		</script>
 
 	<?php else : ?>
-		<p>
+		<span class="yo-premium" style="margin-top: 20px;">
+			<span class="dashicons dashicons-lock"></span>
 			To record and see the activity logs, please upgrade to the premium version.
 			<a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a><br>
-			<a href='https://yoohw.com/docs/woocommerce-blacklist-manager/activity-logs/activity-logs/' target='_blank'>Find out how it performs here</a>
-		</p>
+	</span>
+	<p><a href='https://yoohw.com/docs/woocommerce-blacklist-manager/activity-logs/activity-logs/' target='_blank'>Find out how it performs here</a></p>
 		<div class="tablenav top">
 			<div class="alignleft actions bulkactions">
 				<select name="action" disabled>

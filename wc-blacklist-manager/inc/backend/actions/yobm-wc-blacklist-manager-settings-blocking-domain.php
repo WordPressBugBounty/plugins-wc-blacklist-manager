@@ -16,7 +16,7 @@ class WC_Blacklist_Manager_Domain_Blocking_Actions {
 
 	public function check_customer_email_domain_against_blacklist() {
 		$domain_blocking_enabled = get_option('wc_blacklist_domain_enabled', 0);
-		if (!$domain_blocking_enabled) {
+		if (! class_exists( 'WooCommerce' ) || !$domain_blocking_enabled) {
 			return;
 		}
 	
@@ -85,6 +85,9 @@ class WC_Blacklist_Manager_Domain_Blocking_Actions {
 	}
 
 	public function prevent_domain_registration_woocommerce($errors, $username, $email) {
+		if ( ! class_exists( 'WooCommerce' ) ) {
+			return;
+		}
 		return $this->handle_domain_registration($errors, $email);
 	}
 

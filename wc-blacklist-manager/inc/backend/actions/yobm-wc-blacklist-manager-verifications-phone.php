@@ -81,6 +81,10 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 	}
 
 	public function phone_verification() {
+		if ( ! class_exists( 'WooCommerce' ) ) {
+			return;
+		}
+		
 		$phone_verified = false;
 	
 		if (is_checkout() && get_option('wc_blacklist_phone_verification_enabled') == '1') {    

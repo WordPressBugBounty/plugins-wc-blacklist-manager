@@ -303,7 +303,6 @@ class WC_Blacklist_Manager_Button_Add_To_Blocklist {
 	
 			// Optionally update the user meta for user blocking if enabled
 			$user_id = $order->get_user_id();
-
 			if ($user_id && get_option('wc_blacklist_enable_user_blocking') == '1') {
 				$user = get_userdata($user_id);
 			
@@ -424,6 +423,17 @@ class WC_Blacklist_Manager_Button_Add_To_Blocklist {
 				$wpdb->insert($table_name, $insert_data);
 				$new_blacklist_id = $wpdb->insert_id;
 
+				// Optionally update the user meta for user blocking if enabled
+				$user_id = $order->get_user_id();
+				$user_blocked = false;
+				if ($user_id && get_option('wc_blacklist_enable_user_blocking') == '1') {
+					$user = get_userdata($user_id);
+				
+					if ($user && !in_array('administrator', (array) $user->roles)) {
+						$user_blocked = update_user_meta($user_id, 'user_blocked', '1');
+					}
+				}
+				
 				if ($premium_active && get_option('wc_blacklist_connection_mode') === 'host') {
 					$customer_domain = '';
 					$is_blocked = 1;
@@ -458,6 +468,10 @@ class WC_Blacklist_Manager_Button_Add_To_Blocklist {
 					$shop_manager = $current_user->display_name;
 
 					$details = 'blocked_added_to_blocklist_by:' . $shop_manager;
+					if ( $user_blocked ) {
+						$details .= ', blocked_user_attempt:' . $user_id;
+					}
+
 					$view_json = '';
 
 					$wpdb->insert(

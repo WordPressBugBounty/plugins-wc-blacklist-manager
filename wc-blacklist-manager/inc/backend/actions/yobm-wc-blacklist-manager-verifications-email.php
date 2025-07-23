@@ -78,7 +78,11 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 		}
 	}
 
-	public function email_verification() {		
+	public function email_verification() {
+		if ( ! class_exists( 'WooCommerce' ) ) {
+			return;
+		}
+		
 		if (is_checkout() && get_option('wc_blacklist_email_verification_enabled') == '1') {
 			// Get the billing email from the checkout form (sanitize the input)
 			$email = isset($_POST['billing_email']) ? sanitize_email($_POST['billing_email']) : '';

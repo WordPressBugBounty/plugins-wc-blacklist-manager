@@ -375,6 +375,13 @@ class WC_Blacklist_Manager_Contact_Form_7 {
      * @param WPCF7_Submission  $submission
      */
     public function log_cf7_submission_data( $contact_form, $submission ) {
+        $settings_instance = new WC_Blacklist_Manager_Settings();
+        $premium_active = $settings_instance->is_premium_active();
+
+        if (!$premium_active) {
+            return;
+        }
+        
         $submission = \WPCF7_Submission::get_instance();
         if ( ! $submission ) {
             return;

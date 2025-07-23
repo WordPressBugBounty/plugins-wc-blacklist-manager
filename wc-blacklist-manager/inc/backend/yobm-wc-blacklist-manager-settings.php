@@ -31,6 +31,8 @@ class WC_Blacklist_Manager_Settings {
 		$this->handle_post_submission();
 		$settings = $this->get_settings();
 		$premium_active = $this->is_premium_active();
+		$woocommerce_active = class_exists( 'WooCommerce' );
+		$form_active = (class_exists( 'WPCF7' ) || class_exists( 'GFCommon' ) || class_exists( 'WPForms\WPForms' ));
 		
 		// Include the view file for settings form
 		$template_path = plugin_dir_path(__FILE__) . 'views/yobm-wc-blacklist-manager-settings-form.php';

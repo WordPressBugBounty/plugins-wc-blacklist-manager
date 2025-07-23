@@ -58,29 +58,31 @@ if (!defined('ABSPATH')) {
 			</tbody>
 		</table>
 
-		<h2><span class="dashicons dashicons-cart"></span> <?php echo esc_html__( 'Checkout', 'wc-blacklist-manager' ); ?></h2>
-		<table class="form-table">
-			<tbody>
-				<tr>
-					<th scope="row">
-						<label class="label_child"><?php echo esc_html__( 'Suspect email', 'wc-blacklist-manager' ); ?></label>
-					</th>
-					<td>
-						<input type="checkbox" id="wc_blacklist_email_notification" name="wc_blacklist_email_notification" value="yes" <?php checked($data['email_notification_enabled'], 'yes'); ?> />
-						<label for="wc_blacklist_email_notification"><?php echo esc_html__( 'Send email notification when an order is placed by a suspected customer', 'wc-blacklist-manager' ); ?></label>
-					</td>
-				</tr>
-				<tr>
-					<th scope="row">
-						<label class="label_child"><?php echo esc_html__( 'Block email', 'wc-blacklist-manager' ); ?></label>
-					</th>
-					<td>
-						<input type="checkbox" id="wc_blacklist_email_blocking_notification" name="wc_blacklist_email_blocking_notification" value="yes" <?php checked($data['email_blocking_notification_enabled'], 'yes'); ?> />
-						<label for="wc_blacklist_email_blocking_notification"><?php echo esc_html__( 'Send email notification when blocked customer try to place an order', 'wc-blacklist-manager' ); ?></label>
-					</td>
-				</tr>
-			</tbody>
-		</table>
+		<?php if ($woocommerce_active): ?>
+			<h2><span class="dashicons dashicons-cart"></span> <?php echo esc_html__( 'Checkout', 'wc-blacklist-manager' ); ?></h2>
+			<table class="form-table">
+				<tbody>
+					<tr>
+						<th scope="row">
+							<label class="label_child"><?php echo esc_html__( 'Suspect email', 'wc-blacklist-manager' ); ?></label>
+						</th>
+						<td>
+							<input type="checkbox" id="wc_blacklist_email_notification" name="wc_blacklist_email_notification" value="yes" <?php checked($data['email_notification_enabled'], 'yes'); ?> />
+							<label for="wc_blacklist_email_notification"><?php echo esc_html__( 'Send email notification when an order is placed by a suspected customer', 'wc-blacklist-manager' ); ?></label>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row">
+							<label class="label_child"><?php echo esc_html__( 'Block email', 'wc-blacklist-manager' ); ?></label>
+						</th>
+						<td>
+							<input type="checkbox" id="wc_blacklist_email_blocking_notification" name="wc_blacklist_email_blocking_notification" value="yes" <?php checked($data['email_blocking_notification_enabled'], 'yes'); ?> />
+							<label for="wc_blacklist_email_blocking_notification"><?php echo esc_html__( 'Send email notification when blocked customer try to place an order', 'wc-blacklist-manager' ); ?></label>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+		<?php endif; ?>
 
 		<?php if ($premium_active): ?>
 			<h2><span class="dashicons dashicons-admin-site"></span> <?php echo esc_html__( 'Register', 'wc-blacklist-manager' ); ?></h2>
@@ -110,7 +112,7 @@ if (!defined('ABSPATH')) {
 		<?php endif; ?>
 
 		<?php if (!$premium_active): ?>
-			<h2><span class="premium-text"><span class="dashicons dashicons-email"></span> <?php echo esc_html__( 'Register', 'wc-blacklist-manager' ); ?></span><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a></h2>
+			<h2><span class="premium-text"><span class="dashicons dashicons-admin-site"></span> <?php echo esc_html__( 'Register', 'wc-blacklist-manager' ); ?></span><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a></h2>
 			
 			<table class="form-table">
 				<tbody>
@@ -164,7 +166,7 @@ if (!defined('ABSPATH')) {
 		<?php endif; ?>
 
 		<?php if (!$premium_active): ?>
-			<h2><span class="premium-text"><span class="dashicons dashicons-email"></span> <?php echo esc_html__( 'Comment', 'wc-blacklist-manager' ); ?></span><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a></h2>
+			<h2><span class="premium-text"><span class="dashicons dashicons-admin-site"></span> <?php echo esc_html__( 'Comment', 'wc-blacklist-manager' ); ?></span><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a></h2>
 			
 			<table class="form-table">
 				<tbody>
@@ -190,7 +192,7 @@ if (!defined('ABSPATH')) {
 			</table>
 		<?php endif; ?>
 
-		<?php if ($premium_active): ?>
+		<?php if ($premium_active && $form_active): ?>
 			<h2><span class="dashicons dashicons-email"></span> <?php echo esc_html__( 'Form', 'wc-blacklist-manager' ); ?></h2>
 			
 			<table class="form-table">
@@ -217,7 +219,7 @@ if (!defined('ABSPATH')) {
 			</table>
 		<?php endif; ?>
 
-		<?php if (!$premium_active): ?>
+		<?php if (!$premium_active && $form_active): ?>
 			<h2><span class="premium-text"><span class="dashicons dashicons-email"></span> <?php echo esc_html__( 'Form', 'wc-blacklist-manager' ); ?></span><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a></h2>
 			
 			<table class="form-table">

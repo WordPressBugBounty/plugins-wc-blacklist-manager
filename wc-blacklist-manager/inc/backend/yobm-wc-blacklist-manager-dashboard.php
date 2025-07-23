@@ -85,6 +85,8 @@ class WC_Blacklist_Manager_Dashboard {
 		if (!$user_has_permission && !current_user_can('manage_options')) {
 			wp_die(__('You do not have sufficient permissions to access this page.', 'wc-blacklist-manager'));
 		}
+
+		$woocommerce_active = class_exists( 'WooCommerce' );
 	
 		$action = isset($_GET['action']) ? sanitize_text_field($_GET['action']) : '';
 		$id = isset($_GET['id']) ? intval($_GET['id']) : 0;

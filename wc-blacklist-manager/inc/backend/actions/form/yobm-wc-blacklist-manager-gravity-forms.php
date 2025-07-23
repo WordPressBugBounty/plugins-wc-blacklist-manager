@@ -53,11 +53,11 @@ class WC_Blacklist_Manager_Gravity_Forms {
         $settings_instance = new WC_Blacklist_Manager_Settings();
         $premium_active = $settings_instance->is_premium_active();
 
-        // Retrieve visitor IP.
-        $ip_address = get_real_customer_ip();
-
         // --- IP ADDRESS & PROXY/VPN CHECK ---
         if ($premium_active && get_option('wc_blacklist_ip_enabled') == '1') {
+            // Retrieve visitor IP.
+            $ip_address = get_real_customer_ip();
+            
             if (!empty($ip_address)) {
                 // Check the IP blacklist if enabled.
                 if (get_option('wc_blacklist_block_ip_form') == '1') {

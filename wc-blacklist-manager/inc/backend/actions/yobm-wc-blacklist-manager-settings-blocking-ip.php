@@ -32,7 +32,7 @@ class WC_Blacklist_Manager_IP_Blacklisted {
 	}	
 
 	public function check_customer_ip_against_blacklist() {
-		if ( ! get_option('wc_blacklist_ip_enabled', 0) || get_option('wc_blacklist_ip_action', 'none') !== 'prevent' ) {
+		if ( ! class_exists( 'WooCommerce' ) || ! get_option('wc_blacklist_ip_enabled', 0) || get_option('wc_blacklist_ip_action', 'none') !== 'prevent' ) {
 			return;
 		}
 
@@ -83,6 +83,10 @@ class WC_Blacklist_Manager_IP_Blacklisted {
 	}
 
 	public function prevent_blocked_ip_registration_woocommerce($errors, $username, $email) {
+		if ( ! class_exists( 'WooCommerce' ) ) {
+			return;
+		}
+		
 		return $this->handle_blocked_ip_registration($errors);
 	}
 

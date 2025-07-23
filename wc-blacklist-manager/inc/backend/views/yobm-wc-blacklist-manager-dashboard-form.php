@@ -327,7 +327,7 @@ if (!defined('ABSPATH')) {
 		<?php if ($ip_blacklist_enabled): ?>
 			<a href="#ip-banned" class="nav-tab" data-tab="ip-banned"><?php echo esc_html__('IP blocking', 'wc-blacklist-manager'); ?></a>
 		<?php endif; ?>
-		<?php if ($premium_active && $customer_address_blocking_enabled): ?>
+		<?php if ($premium_active && $customer_address_blocking_enabled && $woocommerce_active): ?>
 			<a href="#customer-address" class="nav-tab" data-tab="customer-address"><?php echo esc_html__('Address blocking', 'wc-blacklist-manager'); ?></a>
 		<?php endif; ?>        
 		<?php if ($domain_blocking_enabled): ?>
@@ -639,7 +639,7 @@ if (!defined('ABSPATH')) {
 			</script>
 		<?php endif; ?>
 
-		<?php if ($premium_active && $customer_address_blocking_enabled): ?>
+		<?php if ($premium_active && $customer_address_blocking_enabled && $woocommerce_active): ?>
 		<div id="customer-address" class="tab-pane" style="display: none;">
 			<h2><?php echo esc_html__('Address entries', 'wc-blacklist-manager'); ?></h2>
 

@@ -104,7 +104,7 @@ class WC_Blacklist_Manager_User_Blocking {
 			$premium_plugin_active = in_array('wc-blacklist-manager-premium/wc-blacklist-manager-premium.php', apply_filters('active_plugins', get_option('active_plugins')));
 			$license_status = get_option('wc_blacklist_manager_premium_license_status');
 			?>
-			<h3><?php _e('User Blocking Management', 'wc-blacklist-manager'); ?></h3>
+			<h3><?php _e('Blocking management', 'wc-blacklist-manager'); ?></h3>
 			<table class="form-table">
 				<tr>
 					<th><label for="user_blocked"><?php _e('User blocking', 'wc-blacklist-manager'); ?></label></th>
@@ -144,6 +144,12 @@ class WC_Blacklist_Manager_User_Blocking {
 	}
 
 	public function update_user_blocked_status($user_id) {
+		global $wpdb;
+		$table_detection_log = $wpdb->prefix . 'wc_blacklist_detection_log';
+
+		$settings_instance = new WC_Blacklist_Manager_Settings();
+		$premium_active = $settings_instance->is_premium_active();
+
 		if (current_user_can('edit_user', $user_id)) {
 			$user = get_userdata($user_id);
 			if ($user && in_array('administrator', $user->roles)) {
@@ -153,10 +159,38 @@ class WC_Blacklist_Manager_User_Blocking {
 				return;
 			}
 
+			$current_user = wp_get_current_user();
+			$shop_manager = $current_user->display_name;
+			
+			$action = '';
+			$details = '';
 			if (isset($_POST['unblock_user'])) {
-				delete_user_meta($user_id, 'user_blocked');
+				update_user_meta($user_id, 'user_blocked', '0');
+
+				$action = 'unblock';
+				$details = 'by:' . $shop_manager;
 			} elseif (isset($_POST['block_user'])) {
 				update_user_meta($user_id, 'user_blocked', '1');
+
+				$action = 'block';
+				$details = 'by:' . $shop_manager;
+			}
+
+			if ( $premium_active ) {
+				$view_json = '';
+
+				$wpdb->insert(
+					$table_detection_log,
+					[
+						'timestamp' => current_time( 'mysql' ),
+						'type'      => 'human',
+						'source'    => 'user_' . $user_id,
+						'action'    => $action,
+						'details'   => $details,
+						'view'      => $view_json,
+					],
+					[ '%s', '%s', '%s', '%s', '%s', '%s' ]
+				);
 			}
 		}
 	}

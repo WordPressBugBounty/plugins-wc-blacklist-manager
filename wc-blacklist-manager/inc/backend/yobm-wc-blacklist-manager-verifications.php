@@ -32,20 +32,11 @@ class WC_Blacklist_Manager_Verifications {
 		$settings_instance = new WC_Blacklist_Manager_Settings();
 		$premium_active = $settings_instance->is_premium_active();
 
-		$user_has_permission = false;
 		if ($premium_active) {
-			$allowed_roles = get_option('wc_blacklist_settings_permission', []);
-			if (is_array($allowed_roles) && !empty($allowed_roles)) {
-				foreach ($allowed_roles as $role) {
-					if (current_user_can($role)) {
-						$user_has_permission = true;
-						break;
-					}
-				}
-			}
+			return;
 		}
 
-		if (($premium_active && $user_has_permission) || current_user_can('manage_options')) {
+		if (current_user_can('manage_options')) {
 			add_submenu_page(
 				'wc-blacklist-manager',
 				__('Verifications', 'wc-blacklist-manager'),
@@ -60,7 +51,6 @@ class WC_Blacklist_Manager_Verifications {
 	public function verifications_page_content() {
 		$settings_instance = new WC_Blacklist_Manager_Settings();
 		$premium_active = $settings_instance->is_premium_active();
-
 		$active_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'verify';
 		?>
 		<div class="wrap">
@@ -82,8 +72,8 @@ class WC_Blacklist_Manager_Verifications {
 			</h1>
 
 			<h2 class="nav-tab-wrapper">
-				<a href="?page=wc-blacklist-manager-verifications&tab=verify" class="nav-tab <?php echo $active_tab == 'verify' ? 'nav-tab-active' : ''; ?>"><?php echo esc_html__('Verify', 'wc-blacklist-manager-premium'); ?></a>
-				<a href="?page=wc-blacklist-manager-verifications&tab=advanced" class="nav-tab <?php echo $active_tab == 'advanced' ? 'nav-tab-active' : ''; ?>"><?php echo esc_html__('Advanced', 'wc-blacklist-manager-premium'); ?></a>
+				<a href="?page=wc-blacklist-manager-verifications&tab=verify" class="nav-tab <?php echo $active_tab == 'verify' ? 'nav-tab-active' : ''; ?>"><?php echo esc_html__('Verify', 'wc-blacklist-manager'); ?></a>
+				<a href="?page=wc-blacklist-manager-verifications&tab=advanced" class="nav-tab <?php echo $active_tab == 'advanced' ? 'nav-tab-active' : ''; ?>"><?php echo esc_html__('Advanced', 'wc-blacklist-manager'); ?></a>
 			</h2>
 
 			<form method="post" enctype="multipart/form-data" action="">
@@ -104,6 +94,7 @@ class WC_Blacklist_Manager_Verifications {
 	public function render_verifications_settings() {
 		$settings_instance = new WC_Blacklist_Manager_Settings();
 		$premium_active = $settings_instance->is_premium_active();
+		$woocommerce_active = class_exists( 'WooCommerce' );
 		$allowed_countries_option = get_option('woocommerce_allowed_countries', 'all');
 		$specific_countries = get_option('woocommerce_specific_allowed_countries', []);
 		$skip_country_code = ($allowed_countries_option === 'specific' && count($specific_countries) === 1);
@@ -122,6 +113,7 @@ class WC_Blacklist_Manager_Verifications {
 	public function render_verifications_advanced() {
 		$settings_instance = new WC_Blacklist_Manager_Settings();
 		$premium_active = $settings_instance->is_premium_active();
+		$woocommerce_active = class_exists( 'WooCommerce' );
 		$template_path = plugin_dir_path(__FILE__) . 'views/yobm-wc-blacklist-manager-verifications-advanced.php';
 
 		if (file_exists($template_path)) {
@@ -386,7 +378,7 @@ class WC_Blacklist_Manager_Verifications {
 new WC_Blacklist_Manager_Verifications();
 
 add_action('admin_enqueue_scripts', function ($hook) {
-	if (isset($_GET['page']) && $_GET['page'] === 'wc-blacklist-manager-verifications') {
+	if (isset($_GET['page']) && ($_GET['page'] === 'wc-blacklist-manager-verifications' || $_GET['page'] === 'wc-blacklist-manager-settings')) {
 		wp_enqueue_script('thickbox');
 		wp_enqueue_style('thickbox');
 	}
