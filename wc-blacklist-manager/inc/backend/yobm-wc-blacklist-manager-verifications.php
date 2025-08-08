@@ -95,6 +95,10 @@ class WC_Blacklist_Manager_Verifications {
 		$settings_instance = new WC_Blacklist_Manager_Settings();
 		$premium_active = $settings_instance->is_premium_active();
 		$woocommerce_active = class_exists( 'WooCommerce' );
+		$unlock_url = $woocommerce_active
+			? 'https://yoohw.com/product/woocommerce-blacklist-manager-premium/'
+			: 'https://yoohw.com/product/blacklist-manager-premium-for-forms/';
+			
 		$allowed_countries_option = get_option('woocommerce_allowed_countries', 'all');
 		$specific_countries = get_option('woocommerce_specific_allowed_countries', []);
 		$skip_country_code = ($allowed_countries_option === 'specific' && count($specific_countries) === 1);
@@ -114,6 +118,10 @@ class WC_Blacklist_Manager_Verifications {
 		$settings_instance = new WC_Blacklist_Manager_Settings();
 		$premium_active = $settings_instance->is_premium_active();
 		$woocommerce_active = class_exists( 'WooCommerce' );
+		$unlock_url = $woocommerce_active
+			? 'https://yoohw.com/product/woocommerce-blacklist-manager-premium/'
+			: 'https://yoohw.com/product/blacklist-manager-premium-for-forms/';
+			
 		$template_path = plugin_dir_path(__FILE__) . 'views/yobm-wc-blacklist-manager-verifications-advanced.php';
 
 		if (file_exists($template_path)) {
@@ -206,15 +214,15 @@ class WC_Blacklist_Manager_Verifications {
 		} else {
 			$email_message = '';
 		}
-			
-		if (strpos($email_message, '{code}') === false) {
-			add_settings_error('wc_blacklist_verifications_settings', 'invalid_message', __('The message must contain the {code} placeholder.', 'wc-blacklist-manager'), 'error');
-			return;
-		}
 	
 		$email_subject = !empty($email_subject) ? wp_kses_post($email_subject) : $this->default_email_subject;
 		$email_heading = !empty($email_heading) ? wp_kses_post($email_heading) : $this->default_email_heading;
 		$email_message = !empty($email_message) ? wp_kses_post($email_message) : $this->default_email_message;
+
+		if (strpos($email_message, '{code}') === false) {
+			add_settings_error('wc_blacklist_verifications_settings', 'invalid_message', __('The message must contain the {code} placeholder.', 'wc-blacklist-manager'), 'error');
+			return;
+		}
 	
 		$email_verification_settings = [
 			'resend' => isset($_POST['email_verification_resend']) ? intval(wp_unslash($_POST['email_verification_resend'])) : 180,

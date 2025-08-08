@@ -67,7 +67,7 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 				'code_resent_message'       => __('A new code has been sent to your phone.', 'wc-blacklist-manager'),
 				'code_resend_failed_message' => __('Failed to resend the code. Please try again.', 'wc-blacklist-manager'),
 				'resend_limit_reached_message' => __('You have reached the resend limit. Please contact support.', 'wc-blacklist-manager'),
-				'verification_failed_message' => __('Failed to send verification code. Please check your phone number and try again. If the issue persists, contact customer support.', 'wc-blacklist-manager'),
+				'verification_failed_message' => __('We couldn’t send the verification code. This may be because the phone number is incorrect or it\'s a landline, which can\'t receive text messages. Please check the number and try again. If the problem persists, contact customer support for help.', 'wc-blacklist-manager'),
 			]);
 		}
 	}

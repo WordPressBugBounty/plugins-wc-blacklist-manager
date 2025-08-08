@@ -2,6 +2,11 @@
 
 == Changelog ==
 
+= 2.0.7 (Aug 8, 2025) =
+* New: Our new Blacklist Manager Premium for Forms add-on plugin compatibility.
+* Fix: Cannot save the verification settings.
+* Fix: Error when saving settings with only WordPress core.
+
 = 2.0.6 (July 23, 2025) =
 * Update: Optimized the plugin to work seamlessly with WooCommerce, Contact Form 7, Gravity Forms, and WPForms.
 * Fix: Call to undefined function with the Gravity Forms and WPForms.

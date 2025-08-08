@@ -412,7 +412,7 @@ $logs = $wpdb->get_results(
 		<span class="yo-premium" style="margin-top: 20px;">
 			<span class="dashicons dashicons-lock"></span>
 			To record and see the activity logs, please upgrade to the premium version.
-			<a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a><br>
+			<a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a><br>
 	</span>
 	<p><a href='https://yoohw.com/docs/woocommerce-blacklist-manager/activity-logs/activity-logs/' target='_blank'>Find out how it performs here</a></p>
 		<div class="tablenav top">

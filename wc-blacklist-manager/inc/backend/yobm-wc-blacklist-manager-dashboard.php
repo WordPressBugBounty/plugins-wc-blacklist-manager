@@ -86,7 +86,13 @@ class WC_Blacklist_Manager_Dashboard {
 			wp_die(__('You do not have sufficient permissions to access this page.', 'wc-blacklist-manager'));
 		}
 
+		$settings_instance = new WC_Blacklist_Manager_Settings();
+		$premium_active = $settings_instance->is_premium_active();
+		
 		$woocommerce_active = class_exists( 'WooCommerce' );
+		$unlock_url = $woocommerce_active
+			? 'https://yoohw.com/product/woocommerce-blacklist-manager-premium/'
+			: 'https://yoohw.com/product/blacklist-manager-premium-for-forms/';
 	
 		$action = isset($_GET['action']) ? sanitize_text_field($_GET['action']) : '';
 		$id = isset($_GET['id']) ? intval($_GET['id']) : 0;
@@ -111,8 +117,7 @@ class WC_Blacklist_Manager_Dashboard {
 	
 		$ip_blacklist_enabled = get_option('wc_blacklist_ip_enabled', false);
 		$domain_blocking_enabled = get_option('wc_blacklist_domain_enabled', false);
-		$settings_instance = new WC_Blacklist_Manager_Settings();
-		$premium_active = $settings_instance->is_premium_active();
+
 		$customer_address_blocking_enabled = get_option('wc_blacklist_enable_customer_address_blocking', false);
 	
 		$current_page_blacklisted = $blacklisted_data['current_page'];

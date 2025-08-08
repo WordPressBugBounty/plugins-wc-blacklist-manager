@@ -70,7 +70,7 @@ if (!defined('ABSPATH')) {
 						</th>
 						<td>
 							<input type="checkbox" disabled>
-							<label class="premium-text"><?php echo esc_html__('Enable the customer first and last name on the blacklist (suspects and blocklist)', 'wc-blacklist-manager'); ?></label><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a>
+							<label class="premium-text"><?php echo esc_html__('Enable the customer first and last name on the blacklist (suspects and blocklist)', 'wc-blacklist-manager'); ?></label><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a>
 							<p class="premium-text"><?php echo esc_html__('If checked, it will cancel the order or prevent customers from checking out if their first and last name is in the blocklist.', 'wc-blacklist-manager'); ?></p>
 						</td>
 					</tr>
@@ -152,7 +152,7 @@ if (!defined('ABSPATH')) {
 							</p>
 							<p>
 								<input type="checkbox" disabled>
-								<label class="premium-text"><?php echo esc_html__('Prevent customers from checking out if they use Proxy server or VPN', 'wc-blacklist-manager'); ?></label><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a>
+								<label class="premium-text"><?php echo esc_html__('Prevent customers from checking out if they use Proxy server or VPN', 'wc-blacklist-manager'); ?></label><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a>
 							</p>
 						</td>
 					</tr>
@@ -169,7 +169,7 @@ if (!defined('ABSPATH')) {
 						</p>
 						<p>
 							<input type="checkbox" disabled>
-							<label class="premium-text"><?php echo esc_html__('Prevent visitors from registering if they use Proxy server or VPN', 'wc-blacklist-manager'); ?></label><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a>
+							<label class="premium-text"><?php echo esc_html__('Prevent visitors from registering if they use Proxy server or VPN', 'wc-blacklist-manager'); ?></label><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a>
 						</p>
 					</td>
 				</tr>
@@ -181,11 +181,11 @@ if (!defined('ABSPATH')) {
 					<td>
 						<p>
 							<input type="checkbox" disabled>
-							<label for="block_ip_comment" class="premium-text"><?php echo esc_html__('Prevent users from submitting comment and review if their IP address is on the blocklist', 'wc-blacklist-manager'); ?></label><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a>
+							<label for="block_ip_comment" class="premium-text"><?php echo esc_html__('Prevent users from submitting comment and review if their IP address is on the blocklist', 'wc-blacklist-manager'); ?></label><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a>
 						</p>
 						<p>
 							<input type="checkbox" disabled>
-							<label for="block_proxy_vpn_comment" class="premium-text"><?php echo esc_html__('Prevent users from submitting comment and review if they use Proxy server or VPN', 'wc-blacklist-manager'); ?></label><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a>
+							<label for="block_proxy_vpn_comment" class="premium-text"><?php echo esc_html__('Prevent users from submitting comment and review if they use Proxy server or VPN', 'wc-blacklist-manager'); ?></label><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a>
 						</p>
 					</td>
 				</tr>
@@ -198,11 +198,11 @@ if (!defined('ABSPATH')) {
 						<td>
 							<p>
 								<input type="checkbox" disabled>
-								<label for="block_ip_form" class="premium-text"><?php echo esc_html__('Prevent visitors from submitting if their IP address is on the blocklist', 'wc-blacklist-manager'); ?></label><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a>
+								<label for="block_ip_form" class="premium-text"><?php echo esc_html__('Prevent visitors from submitting if their IP address is on the blocklist', 'wc-blacklist-manager'); ?></label><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a>
 							</p>
 							<p>
 								<input type="checkbox" disabled>
-								<label for="block_proxy_vpn_form" class="premium-text"><?php echo esc_html__('Prevent visitors from submitting if they use Proxy server or VPN', 'wc-blacklist-manager'); ?></label><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a>
+								<label for="block_proxy_vpn_form" class="premium-text"><?php echo esc_html__('Prevent visitors from submitting if they use Proxy server or VPN', 'wc-blacklist-manager'); ?></label><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a>
 							</p>
 						</td>
 					</tr>
@@ -215,7 +215,7 @@ if (!defined('ABSPATH')) {
 					</th>
 					<td>
 						<input type="checkbox" disabled>
-						<label class="premium-text"><?php echo esc_html__('Enable preventing visitors from accessing your site based on IP country', 'wc-blacklist-manager'); ?></label><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a>
+						<label class="premium-text"><?php echo esc_html__('Enable preventing visitors from accessing your site based on IP country', 'wc-blacklist-manager'); ?></label><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a>
 					</td>
 				</tr>
 				<tr>
@@ -247,7 +247,7 @@ if (!defined('ABSPATH')) {
 						</th>
 						<td>
 							<input type="checkbox" disabled>
-							<label class="premium-text"><?php echo esc_html__('Enable the ability to check the IP address details on the edit order page', 'wc-blacklist-manager'); ?></label><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a>
+							<label class="premium-text"><?php echo esc_html__('Enable the ability to check the IP address details on the edit order page', 'wc-blacklist-manager'); ?></label><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a>
 							<p class="premium-text"><?php echo esc_html__('You will be able to click on customer IP on the edit order page and see the IP details in the popup.', 'wc-blacklist-manager'); ?> <a href="https://yoohw.com/docs/woocommerce-blacklist-manager/blacklist-management/orders/#ip-details" target="_blank"><?php echo esc_html__('Learn more', 'wc-blacklist-manager'); ?></a></p>
 						</td>
 					</tr>
@@ -255,7 +255,7 @@ if (!defined('ABSPATH')) {
 			</table>
 
 			<?php if ($woocommerce_active): ?>
-				<h2><span class="premium-text"><?php echo esc_html__('Address', 'wc-blacklist-manager'); ?></span><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a></h2>
+				<h2><span class="premium-text"><?php echo esc_html__('Address', 'wc-blacklist-manager'); ?></span><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a></h2>
 
 				<table class="form-table">
 					<tr>
@@ -335,7 +335,7 @@ if (!defined('ABSPATH')) {
 					</th>
 					<td>
 						<input type="checkbox" disabled>
-						<label for="domain_comment" class="premium-text"><?php echo esc_html__('Prevent users from submitting comment and review if their email domain is on the blocklist', 'wc-blacklist-manager'); ?></label><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a>
+						<label for="domain_comment" class="premium-text"><?php echo esc_html__('Prevent users from submitting comment and review if their email domain is on the blocklist', 'wc-blacklist-manager'); ?></label><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a>
 					</td>
 				</tr>
 				<?php if ($form_active): ?>
@@ -346,7 +346,7 @@ if (!defined('ABSPATH')) {
 						</th>
 						<td>
 							<input type="checkbox" disabled>
-							<label class="premium-text"><?php echo esc_html__('Prevent visitors from submitting if their email domain is on the blocklist', 'wc-blacklist-manager'); ?></label><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a>
+							<label class="premium-text"><?php echo esc_html__('Prevent visitors from submitting if their email domain is on the blocklist', 'wc-blacklist-manager'); ?></label><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a>
 						</td>
 					</tr>
 				<?php endif; ?>
@@ -364,12 +364,29 @@ if (!defined('ABSPATH')) {
 						<td>
 							<input type="checkbox" id="enable_user_blocking" name="enable_user_blocking" value="1" <?php checked($settings['enable_user_blocking']); ?>>
 							<label for="enable_user_blocking"><?php echo esc_html__('Block user when add to blocklist the order placed by that user', 'wc-blacklist-manager'); ?></label>
+							<p class="premium-text"><?php echo esc_html__('Users can be blocked or unblocked through different methods.', 'wc-blacklist-manager-premium'); ?><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a></p>
+						</td>
+					</tr>
+				</table>
+			<?php else: ?>
+				<h2><span class="premium-text"><?php echo esc_html__('User', 'wc-blacklist-manager'); ?></span><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a></h2>
+
+				<table class="form-table">
+					<tr>
+						<th scope="row">
+							<span class="dashicons dashicons-admin-site premium-text"></span>
+							<label class="premium-text"><?php echo esc_html__('User blocking', 'wc-blacklist-manager'); ?></label>
+						</th>
+						<td>
+							<input type="checkbox" disabled>
+							<label class="premium-text"><?php echo esc_html__('Enable user blocking', 'wc-blacklist-manager'); ?></label><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a>
+							<p class="premium-text"><?php echo esc_html__('Users can be blocked or unblocked through different methods.', 'wc-blacklist-manager-premium'); ?> <a href="https://yoohw.com/docs/woocommerce-blacklist-manager/blacklist-management/user-blocking/" target="_blank"><?php echo esc_html__('Learn more', 'wc-blacklist-manager-premium'); ?></a></p>
 						</td>
 					</tr>
 				</table>
 			<?php endif; ?>
 
-			<h2><span class="premium-text"><?php echo esc_html__('Additional', 'wc-blacklist-manager'); ?></span><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a></h2>
+			<h2><span class="premium-text"><?php echo esc_html__('Additional', 'wc-blacklist-manager'); ?></span><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a></h2>
 
 			<table class="form-table">
 				<tr>
@@ -377,7 +394,7 @@ if (!defined('ABSPATH')) {
 						<label class="premium-text"><?php esc_html_e('Browser blocking', 'wc-blacklist-manager'); ?></label>
 					</th>
 					<td>
-						<input type="text" class="regular-text" disabled/> <a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a>
+						<input type="text" class="regular-text" disabled/> <a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a>
 						<p class="premium-text"><?php echo esc_html__('The users cannot access your site if using these browsers.', 'wc-blacklist-manager'); ?></p>
 					</td>
 				</tr>
@@ -444,7 +461,7 @@ if (!defined('ABSPATH')) {
 	<?php if ($woocommerce_active): ?>
 		<div id="tab-content-automation" class="tab-content" style="display:none;">
 			<div class="wrap">
-				<span class="yo-premium"><i class="dashicons dashicons-lock"></i> Fully Automated-Protecting against fraud and unauthorized transactions <a href="https://yoohw.com/product/woocommerce-blacklist-manager-premium/" target="_blank" class="premium-label">Unlock</a></span>
+				<span class="yo-premium"><i class="dashicons dashicons-lock"></i> Fully Automated-Protecting against fraud and unauthorized transactions <a href="<?php echo esc_url( $unlock_url ); ?>" target="_blank" class="premium-label">Unlock</a></span>
 
 				<p class="premium-text"><?php echo esc_html__('This feature is automatically doing the rules actions if the customer details or action match with their rules. Know about the actions:', 'wc-blacklist-manager'); ?></p>
 		
@@ -457,7 +474,7 @@ if (!defined('ABSPATH')) {
 
 				<p class="premium-text"><?php echo esc_html__('Note that the automated actions only trigger after an order was placed.', 'wc-blacklist-manager'); ?></p>
 
-				<h2><span class="premium-text"><?php echo esc_html__('Orders', 'wc-blacklist-manager'); ?></span><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a></h2>
+				<h2><span class="premium-text"><?php echo esc_html__('Orders', 'wc-blacklist-manager'); ?></span><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a></h2>
 
 				<table class="form-table">
 					<!-- Phone/Email vs Address -->
@@ -552,9 +569,21 @@ if (!defined('ABSPATH')) {
 					</tr>
 				</table>
 
-				<h2><span class="premium-text"><?php echo esc_html__('IP addresses', 'wc-blacklist-manager'); ?></span><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a></h2>
+				<h2><span class="premium-text"><?php echo esc_html__('IP addresses', 'wc-blacklist-manager'); ?></span><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a></h2>
 
 				<table class="form-table">
+					<!-- Hosting IP -->
+					<tr>
+						<th scope="row">
+							<label class="premium-text"><?php echo esc_html__('Hosting IP', 'wc-blacklist-manager'); ?></label>
+						</th>
+						<td>
+							<input type="checkbox" disabled>
+							<label class="premium-text"><?php echo esc_html__('Action if the order placed through the hosting IP', 'wc-blacklist-manager'); ?></label>
+							<p class="premium-text"><?php echo esc_html__('The order has been placed by the IP that belongs to a cloud or data center provider.', 'wc-blacklist-manager'); ?></p>
+						</td>
+					</tr>
+
 					<!-- Using proxy or VPN -->
 					<tr>
 						<th scope="row">
@@ -592,7 +621,7 @@ if (!defined('ABSPATH')) {
 					</tr>
 				</table>
 
-				<h2><span class="premium-text"><?php echo esc_html__('Payment gateways', 'wc-blacklist-manager'); ?></span><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a></h2>
+				<h2><span class="premium-text"><?php echo esc_html__('Payment gateways', 'wc-blacklist-manager'); ?></span><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a></h2>
 
 				<table class="form-table">
 					<!-- Card vs Billing country -->
@@ -632,7 +661,7 @@ if (!defined('ABSPATH')) {
 					</tr>
 				</table>
 
-				<h2><span class="premium-text"><?php echo esc_html__('Additional options', 'wc-blacklist-manager'); ?></span><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a></h2>
+				<h2><span class="premium-text"><?php echo esc_html__('Additional options', 'wc-blacklist-manager'); ?></span><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a></h2>
 
 				<table class="form-table">
 					<tr>
@@ -663,9 +692,9 @@ if (!defined('ABSPATH')) {
 
 		<div id="tab-content-scoring" class="tab-content" style="display:none;">
 			<div class="wrap">
-				<span class="yo-premium"><i class="dashicons dashicons-lock"></i> This feature is able to let you focus hands-free on growing your business <a href="https://yoohw.com/product/woocommerce-blacklist-manager-premium/" target="_blank" class="premium-label">Unlock</a></span>
+				<span class="yo-premium"><i class="dashicons dashicons-lock"></i> This feature is able to let you focus hands-free on growing your business <a href="<?php echo esc_url( $unlock_url ); ?>" target="_blank" class="premium-label">Unlock</a></span>
 
-				<h2><span class="premium-text"><?php echo esc_html__('Risk order scoring', 'wc-blacklist-manager'); ?></span><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a></h2>
+				<h2><span class="premium-text"><?php echo esc_html__('Risk order scoring', 'wc-blacklist-manager'); ?></span><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a></h2>
 
 				<table class="form-table">
 					<tr>
@@ -680,7 +709,7 @@ if (!defined('ABSPATH')) {
 					</tr>
 				</table>
 
-				<h2><span class="premium-text"><?php echo esc_html__('Score rule', 'wc-blacklist-manager'); ?></span><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a></h2>
+				<h2><span class="premium-text"><?php echo esc_html__('Score rule', 'wc-blacklist-manager'); ?></span><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a></h2>
 
 				<p class="premium-text"><?php echo esc_html__('Each score rule will be displayed based on the automation option set as "Treat as score".', 'wc-blacklist-manager'); ?></p>
 
@@ -750,6 +779,18 @@ if (!defined('ABSPATH')) {
 					<tr>
 						<th scope="row">
 							<label class="premium-text"><?php echo esc_html__('Order attempts', 'wc-blacklist-manager'); ?></label>
+						</th>
+						<td>
+							<select disabled>
+								<option>5</option>
+							</select>
+						</td>
+					</tr>
+
+					<!-- Using proxy or VPN -->
+					<tr>
+						<th scope="row">
+							<label class="premium-text"><?php echo esc_html__('Hosting IP', 'wc-blacklist-manager'); ?></label>
 						</th>
 						<td>
 							<select disabled>
@@ -841,7 +882,7 @@ if (!defined('ABSPATH')) {
 					</tr>					
 				</table>
 
-				<h2><span class="premium-text"><?php echo esc_html__('Risk score thresholds', 'wc-blacklist-manager'); ?></span><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a></h2>
+				<h2><span class="premium-text"><?php echo esc_html__('Risk score thresholds', 'wc-blacklist-manager'); ?></span><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a></h2>
 
 				<p class="premium-text"><?php echo esc_html__('When a new order has been placed, the risk score will be calculated and trigger the action that follows these thresholds.', 'wc-blacklist-manager'); ?></p>
 
@@ -916,9 +957,9 @@ if (!defined('ABSPATH')) {
 
 	<div id="tab-content-integrations" class="tab-content" style="display:none;">
 		<div class="wrap">
-			<span class="yo-premium"><i class="dashicons dashicons-lock"></i> Power up with the finest third-party services to deliver the highest level of protection for your business <a href="https://yoohw.com/product/woocommerce-blacklist-manager-premium/" target="_blank" class="premium-label">Unlock</a></span>
+			<span class="yo-premium"><i class="dashicons dashicons-lock"></i> Power up with the finest third-party services to deliver the highest level of protection for your business <a href="<?php echo esc_url( $unlock_url ); ?>" target="_blank" class="premium-label">Unlock</a></span>
 
-			<h2 class="premium-text"><?php esc_html_e('Anti-bots by CAPTCHA', 'wc-blacklist-manager'); ?><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a></h2>
+			<h2 class="premium-text"><?php esc_html_e('Anti-bots by CAPTCHA', 'wc-blacklist-manager'); ?><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a></h2>
 			<p class="premium-text"><?php esc_html_e('Prevent the bots from spamming orders on your site.', 'wc-blacklist-manager'); ?></p>
 			
 			<table class="form-table">
@@ -1006,7 +1047,7 @@ if (!defined('ABSPATH')) {
 				</tr>
 			</table>
 
-			<h2><span class="premium-text"><?php echo esc_html__('Google API', 'wc-blacklist-manager'); ?></span><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a></h2>
+			<h2><span class="premium-text"><?php echo esc_html__('Google API', 'wc-blacklist-manager'); ?></span><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a></h2>
 			
 			<table class="form-table">
 				<tr valign="top">
@@ -1040,7 +1081,7 @@ if (!defined('ABSPATH')) {
 				</tr>
 			</table>
 
-			<h2 class="premium-text"><?php esc_html_e('Usercheck', 'wc-blacklist-manager'); ?><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a></h2>
+			<h2 class="premium-text"><?php esc_html_e('Usercheck', 'wc-blacklist-manager'); ?><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a></h2>
 	
 			<table class="form-table">
 				<tr valign="top">
@@ -1065,7 +1106,7 @@ if (!defined('ABSPATH')) {
 				</tr>
 			</table>
 
-			<h2 class="premium-text"><?php esc_html_e('ZeroBounce', 'wc-blacklist-manager'); ?><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a></h2>
+			<h2 class="premium-text"><?php esc_html_e('ZeroBounce', 'wc-blacklist-manager'); ?><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a></h2>
 			
 			<table class="form-table">
 				<tr valign="top">
@@ -1080,7 +1121,7 @@ if (!defined('ABSPATH')) {
 				</tr>
 			</table>
 
-			<h2><span class="premium-text"><?php echo esc_html__('NumCheckr', 'wc-blacklist-manager'); ?></span><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a></h2>
+			<h2><span class="premium-text"><?php echo esc_html__('NumCheckr', 'wc-blacklist-manager'); ?></span><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a></h2>
 			
 			<table class="form-table">
 				<tr valign="top">
@@ -1113,9 +1154,9 @@ if (!defined('ABSPATH')) {
 	<?php if ($woocommerce_active): ?>
 		<div id="tab-content-payments" class="tab-content" style="display:none;">
 			<div class="wrap">
-				<span class="yo-premium"><i class="dashicons dashicons-lock"></i> Disable payment gateways for Suspects list, integrates with the Stripe gateways <a href="https://yoohw.com/product/woocommerce-blacklist-manager-premium/" target="_blank" class="premium-label">Unlock</a></span>
+				<span class="yo-premium"><i class="dashicons dashicons-lock"></i> Disable payment gateways for Suspects list, integrates with the Stripe gateways <a href="<?php echo esc_url( $unlock_url ); ?>" target="_blank" class="premium-label">Unlock</a></span>
 
-				<h2><span class="premium-text"><?php echo esc_html__('Payment methods', 'wc-blacklist-manager'); ?></span><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a></h2>
+				<h2><span class="premium-text"><?php echo esc_html__('Payment methods', 'wc-blacklist-manager'); ?></span><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a></h2>
 
 				<table class="form-table">
 					<tr valign="top">
@@ -1143,7 +1184,7 @@ if (!defined('ABSPATH')) {
 					</tr>
 				</table>
 
-				<h2><span class="premium-text"><?php echo esc_html__('Stripe gateway', 'wc-blacklist-manager'); ?></span><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a></h2>
+				<h2><span class="premium-text"><?php echo esc_html__('Stripe gateway', 'wc-blacklist-manager'); ?></span><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a></h2>
 				
 				<table class="form-table">
 					<tr valign="top">
@@ -1157,7 +1198,7 @@ if (!defined('ABSPATH')) {
 					</tr>
 				</table>
 
-				<h2><span class="premium-text"><?php echo esc_html__('Country settings', 'wc-blacklist-manager'); ?></span><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a></h2>
+				<h2><span class="premium-text"><?php echo esc_html__('Country settings', 'wc-blacklist-manager'); ?></span><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a></h2>
 
 				<table class="form-table">
 					<tr valign="top">
@@ -1180,9 +1221,9 @@ if (!defined('ABSPATH')) {
 
 	<div id="tab-content-permission" class="tab-content" style="display:none;">
 		<div class="wrap">
-			<span class="yo-premium"><i class="dashicons dashicons-lock"></i> Opening to set the permission to help manage and easy teamwork <a href="https://yoohw.com/product/woocommerce-blacklist-manager-premium/" target="_blank" class="premium-label">Unlock</a></span>
+			<span class="yo-premium"><i class="dashicons dashicons-lock"></i> Opening to set the permission to help manage and easy teamwork <a href="<?php echo esc_url( $unlock_url ); ?>" target="_blank" class="premium-label">Unlock</a></span>
 
-			<h2><span class="premium-text"><?php echo esc_html__('Blacklist manager permission', 'wc-blacklist-manager'); ?></span><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a></h2>
+			<h2><span class="premium-text"><?php echo esc_html__('Blacklist manager permission', 'wc-blacklist-manager'); ?></span><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a></h2>
 			
 			<table class="form-table">
 				<tr valign="top">
@@ -1218,7 +1259,8 @@ if (!defined('ABSPATH')) {
 				</tr>
 				<tr valign="top">
 					<th scope="row">
-						<label class="premium-text"><?php esc_html_e('Verifications & Settings', 'wc-blacklist-manager'); ?></label>
+						<label class="premium-text"><?php esc_html_e('Activity logs', 'wc-blacklist-manager'); ?></label><br>
+						<label class="premium-text"><?php esc_html_e('Settings', 'wc-blacklist-manager'); ?></label>
 					</th>
 					<td>
 						<?php foreach ($settings['roles'] as $role_key => $role_name): ?>
@@ -1238,9 +1280,9 @@ if (!defined('ABSPATH')) {
 	</div>
 	<div id="tab-content-tools" class="tab-content" style="display:none;">
 		<div class="wrap">
-			<span class="yo-premium"><i class="dashicons dashicons-lock"></i> Easily manage your blacklist data with our Import/Export feature <a href="https://yoohw.com/product/woocommerce-blacklist-manager-premium/" target="_blank" class="premium-label">Unlock</a></span>
+			<span class="yo-premium"><i class="dashicons dashicons-lock"></i> Easily manage your blacklist data with our Import/Export feature <a href="<?php echo esc_url( $unlock_url ); ?>" target="_blank" class="premium-label">Unlock</a></span>
 
-			<h2><span class="premium-text"><?php echo esc_html__('Import / Export', 'wc-blacklist-manager'); ?></span><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a></h2>
+			<h2><span class="premium-text"><?php echo esc_html__('Import / Export', 'wc-blacklist-manager'); ?></span><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a></h2>
 			
 			<p class="premium-text"><?php esc_html_e('Import or export blacklist entries from the data.', 'wc-blacklist-manager'); ?></p>
 
@@ -1285,7 +1327,7 @@ if (!defined('ABSPATH')) {
 				</tr>
 			</table>
 
-			<h2><span class="premium-text"><?php esc_html_e('Logs settings', 'wc-blacklist-manager'); ?></span><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a></h2>
+			<h2><span class="premium-text"><?php esc_html_e('Logs settings', 'wc-blacklist-manager'); ?></span><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a></h2>
 			<p class="premium-text"><?php esc_html_e('Tracks system events for monitoring and troubleshooting.', 'wc-blacklist-manager'); ?></p>
 
 			<!-- Logging Settings Form -->
@@ -1310,9 +1352,9 @@ if (!defined('ABSPATH')) {
 	</div>
 	<div id="tab-content-connection" class="tab-content" style="display:none;">
 		<div class="wrap">
-			<span class="yo-premium"><i class="dashicons dashicons-lock"></i> Connect multiple stores' blacklists together for a more robust and effective solution <a href="https://yoohw.com/product/woocommerce-blacklist-manager-premium/" target="_blank" class="premium-label">Unlock</a></span>
+			<span class="yo-premium"><i class="dashicons dashicons-lock"></i> Connect multiple stores' blacklists together for a more robust and effective solution <a href="<?php echo esc_url( $unlock_url ); ?>" target="_blank" class="premium-label">Unlock</a></span>
 
-			<h2><span class="premium-text"><?php echo esc_html__('Blacklist connection', 'wc-blacklist-manager'); ?></span><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a></h2>
+			<h2><span class="premium-text"><?php echo esc_html__('Blacklist connection', 'wc-blacklist-manager'); ?></span><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a></h2>
 	
 			<table class="form-table">
 				<tr>
@@ -1353,7 +1395,7 @@ if (!defined('ABSPATH')) {
 				</tr>
 			</table>
 
-			<h2><span class="premium-text"><?php echo esc_html__('Sub site connection', 'wc-blacklist-manager'); ?></span><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a></h2>
+			<h2><span class="premium-text"><?php echo esc_html__('Sub site connection', 'wc-blacklist-manager'); ?></span><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a></h2>
 
 			<table class="form-table">
 				<tr>

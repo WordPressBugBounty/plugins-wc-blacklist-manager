@@ -33,6 +33,10 @@ class WC_Blacklist_Manager_Settings {
 		$premium_active = $this->is_premium_active();
 		$woocommerce_active = class_exists( 'WooCommerce' );
 		$form_active = (class_exists( 'WPCF7' ) || class_exists( 'GFCommon' ) || class_exists( 'WPForms\WPForms' ));
+
+		$unlock_url = $woocommerce_active
+			? 'https://yoohw.com/product/woocommerce-blacklist-manager-premium/'
+			: 'https://yoohw.com/product/blacklist-manager-premium-for-forms/';
 		
 		// Include the view file for settings form
 		$template_path = plugin_dir_path(__FILE__) . 'views/yobm-wc-blacklist-manager-settings-form.php';
@@ -83,7 +87,8 @@ class WC_Blacklist_Manager_Settings {
 		if ($_SERVER['REQUEST_METHOD'] === 'POST' && check_admin_referer('wc_blacklist_settings_action', 'wc_blacklist_settings_nonce')) {
 			update_option('wc_blacklist_action', $_POST['blacklist_action'] ?? 'none');
 			update_option('wc_blacklist_block_user_registration', isset($_POST['block_user_registration']) ? 1 : 0);
-			update_option('wc_blacklist_order_delay', max(0, intval($_POST['order_delay'])));
+			$order_delay = intval( wp_unslash( $_POST['order_delay'] ?? 0 ) );
+			update_option( 'wc_blacklist_order_delay', max( 0, $order_delay ) );
 			update_option('wc_blacklist_comment_blocking_enabled', isset($_POST['comment_blocking_enabled']) ? 1 : 0);
 			update_option('wc_blacklist_form_blocking_enabled', isset($_POST['form_blocking_enabled']) ? 1 : 0);
 			update_option('wc_blacklist_ip_enabled', sanitize_text_field($_POST['ip_blacklist_enabled'] ?? '0'));
@@ -111,11 +116,15 @@ class WC_Blacklist_Manager_Settings {
 	}
 
 	public function is_premium_active() {
-		include_once(ABSPATH . 'wp-admin/includes/plugin.php');
-		$is_plugin_active = is_plugin_active('wc-blacklist-manager-premium/wc-blacklist-manager-premium.php');
-		$is_license_activated = (get_option('wc_blacklist_manager_premium_license_status') === 'activated');
+		include_once( ABSPATH . 'wp-admin/includes/plugin.php' );
 
-		return $is_plugin_active && $is_license_activated;
+		$main_active = is_plugin_active( 'wc-blacklist-manager-premium/wc-blacklist-manager-premium.php' )
+			&& get_option( 'wc_blacklist_manager_premium_license_status' ) === 'activated';
+
+		$forms_active = is_plugin_active( 'blacklist-manager-premium-for-forms/blacklist-manager-premium-for-forms.php' )
+			&& get_option( 'blacklist_manager_premium_for_forms_license_status' ) === 'activated';
+
+		return $main_active || $forms_active;
 	}
 }
 

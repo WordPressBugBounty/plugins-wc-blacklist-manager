@@ -39,9 +39,13 @@ class WC_Blacklist_Manager_Push_Subscription {
 		if ( ! function_exists( 'is_plugin_active' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/plugin.php';
 		}
-		$product_code = is_plugin_active( 'wc-blacklist-manager-premium/wc-blacklist-manager-premium.php' )
-			? 'bmp'
-			: 'bm';
+        if ( is_plugin_active( 'blacklist-manager-premium-for-forms/blacklist-manager-premium-for-forms.php' ) ) {
+            $product_code = 'bmpff';
+        } elseif ( is_plugin_active( 'wc-blacklist-manager-premium/wc-blacklist-manager-premium.php' ) ) {
+            $product_code = 'bmp';
+        } else {
+            $product_code = 'bm';
+        }
 		$products = [ $product_code ];
 
         // 4) Country

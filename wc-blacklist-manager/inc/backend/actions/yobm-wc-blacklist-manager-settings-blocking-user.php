@@ -101,8 +101,8 @@ class WC_Blacklist_Manager_User_Blocking {
 	public function show_user_blocked_status($user) {
 		if (current_user_can('edit_user', $user->ID)) {
 			$is_blocked = get_user_meta($user->ID, 'user_blocked', true);
-			$premium_plugin_active = in_array('wc-blacklist-manager-premium/wc-blacklist-manager-premium.php', apply_filters('active_plugins', get_option('active_plugins')));
-			$license_status = get_option('wc_blacklist_manager_premium_license_status');
+			$settings_instance = new WC_Blacklist_Manager_Settings();
+			$premium_active = $settings_instance->is_premium_active();
 			?>
 			<h3><?php _e('Blocking management', 'wc-blacklist-manager'); ?></h3>
 			<table class="form-table">
@@ -121,7 +121,7 @@ class WC_Blacklist_Manager_User_Blocking {
 								"
 							/>
 						<?php else: ?>
-							<?php if ($premium_plugin_active && $license_status == 'activated'): ?>
+							<?php if ($premium_active): ?>
 								<input
 									type="submit"
 									name="block_user"

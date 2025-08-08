@@ -41,6 +41,11 @@ class WC_Blacklist_Manager_Activity_Log {
     public function activity_log_page_content() {
         $settings_instance = new WC_Blacklist_Manager_Settings();
         $premium_active = $settings_instance->is_premium_active();
+        $woocommerce_active = class_exists( 'WooCommerce' );
+		$unlock_url = $woocommerce_active
+			? 'https://yoohw.com/product/woocommerce-blacklist-manager-premium/'
+			: 'https://yoohw.com/product/blacklist-manager-premium-for-forms/';
+            
         $message = $this->handle_form_submission();
         $template_path = plugin_dir_path(__FILE__) . 'views/yobm-wc-blacklist-manager-activity-log.php';
 

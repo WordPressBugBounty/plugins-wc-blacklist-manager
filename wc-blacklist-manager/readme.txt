@@ -5,7 +5,7 @@ Requires at least: 6.3
 Tested up to: 6.8
 WC tested up to: 10.0
 Requires PHP: 7.0
-Stable tag: 2.0.6
+Stable tag: 2.0.7
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,7 +19,9 @@ Easily blacklist phone numbers, email addresses, IP addresses, and email domains
 
 Originally built for WooCommerce, it now extends its protection to popular form plugins including Contact Form 7, Gravity Forms, and WPForms.
 
-[Premium version](https://yoohw.com/product/woocommerce-blacklist-manager-premium/) | [Documentation](https://yoohw.com/docs/category/woocommerce-blacklist-manager/) | [Support](https://yoohw.com/support/)  | [Demo](https://sandbox.yoohw.com/demo/yobm_demo.html)
+[Premium version](https://yoohw.com/product/woocommerce-blacklist-manager-premium/) | [Premium for Forms](https://yoohw.com/product/blacklist-manager-premium-for-forms/)
+
+[Documentation](https://yoohw.com/docs/category/woocommerce-blacklist-manager/) | [Support](https://yoohw.com/support/)  | [Demo](https://sandbox.yoohw.com/demo/yobm_demo.html)
 
 == Features ==
 
@@ -199,6 +201,11 @@ A: There is no set limit within the plugin, but practical limitations depend on 
 A: No, the plugin is optimized for performance. It performs blacklist checks efficiently and only at appropriate times (like form submission or checkout), so it won’t noticeably impact your site speed.
 
 == Changelog ==
+
+= 2.0.7 (Aug 8, 2025) =
+* New: Our new Blacklist Manager Premium for Forms add-on plugin compatibility.
+* Fix: Cannot save the verification settings.
+* Fix: Error when saving settings with only WordPress core.
 
 = 2.0.6 (July 23, 2025) =
 * Update: Optimized the plugin to work seamlessly with WooCommerce, Contact Form 7, Gravity Forms, and WPForms.

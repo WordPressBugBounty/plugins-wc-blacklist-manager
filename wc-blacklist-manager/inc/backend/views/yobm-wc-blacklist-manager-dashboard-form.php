@@ -292,7 +292,7 @@ if (!defined('ABSPATH')) {
 					<span class="bm-actions">
 						<a href="<?php echo esc_url( admin_url( 'admin.php?page=wc-blacklist-manager-activity-logs' ) ); ?>"><?php echo esc_html__('See detection log', 'wc-blacklist-manager'); ?></a>
 						<?php if (!$premium_active): ?>
-							<a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a>
+							<a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a>
 						<?php endif; ?>
 					</span>
 				</div>

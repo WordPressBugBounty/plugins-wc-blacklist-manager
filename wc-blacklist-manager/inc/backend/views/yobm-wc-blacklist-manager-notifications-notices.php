@@ -38,10 +38,10 @@ if (!defined('ABSPATH')) {
 							<?php endif; ?>
 							<?php if (!$premium_active): ?>
 								<p><textarea rows="3" class="regular-text" disabled><?php echo esc_textarea($data['vpn_proxy_checkout_notice']); ?></textarea></p>
-								<p class="premium-text"><?php echo esc_html__('Enter the notice message to display when a customer uses Proxy or VPN to checkout.', 'wc-blacklist-manager'); ?><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a></p>
+								<p class="premium-text"><?php echo esc_html__('Enter the notice message to display when a customer uses Proxy or VPN to checkout.', 'wc-blacklist-manager'); ?><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a></p>
 
 								<p><textarea rows="3" class="regular-text" disabled><?php echo esc_textarea($data['payment_method_notice']); ?></textarea></p>
-								<p class="premium-text"><?php echo esc_html__('Enter the notice message to display when a payment method is not available for a suspected customer.', 'wc-blacklist-manager'); ?><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a></p>
+								<p class="premium-text"><?php echo esc_html__('Enter the notice message to display when a payment method is not available for a suspected customer.', 'wc-blacklist-manager'); ?><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a></p>
 							<?php endif; ?>
 						</td>
 					</tr>
@@ -60,7 +60,7 @@ if (!defined('ABSPATH')) {
 						<?php endif; ?>
 						<?php if (!$premium_active): ?>
 							<p><textarea rows="3" class="regular-text" disabled><?php echo esc_textarea($data['vpn_proxy_registration_notice']); ?></textarea></p>
-							<p class="premium-text"><?php echo esc_html__('Enter the notice message to display when a visitor uses Proxy or VPN to register an account.', 'wc-blacklist-manager'); ?><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a></p>
+							<p class="premium-text"><?php echo esc_html__('Enter the notice message to display when a visitor uses Proxy or VPN to register an account.', 'wc-blacklist-manager'); ?><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a></p>
 						<?php endif; ?>
 					</td>
 				</tr>
@@ -82,7 +82,7 @@ if (!defined('ABSPATH')) {
 					</th>
 					<td>
 						<textarea rows="3" class="regular-text" disabled><?php echo esc_textarea($data['blocked_user_notice']); ?></textarea>
-						<p class="premium-text"><?php echo esc_html__('Enter the notice message to display when a blocked user tries to login or force out.', 'wc-blacklist-manager'); ?><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a></p>
+						<p class="premium-text"><?php echo esc_html__('Enter the notice message to display when a blocked user tries to login or force out.', 'wc-blacklist-manager'); ?><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a></p>
 					</td>
 				</tr>
 				<?php else: ?>
@@ -112,7 +112,7 @@ if (!defined('ABSPATH')) {
 							<?php endif; ?>
 							<?php if (!$premium_active): ?>
 								<p><textarea rows="3" class="regular-text" disabled><?php echo esc_textarea($data['vpn_proxy_form_notice']); ?></textarea></p>
-								<p class="premium-text"><?php echo esc_html__('Enter the notice message to display when a visitor uses Proxy or VPN to submit a form.', 'wc-blacklist-manager'); ?><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a></p>
+								<p class="premium-text"><?php echo esc_html__('Enter the notice message to display when a visitor uses Proxy or VPN to submit a form.', 'wc-blacklist-manager'); ?><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a></p>
 							<?php endif; ?>
 						</td>
 					</tr>
@@ -159,7 +159,7 @@ if (!defined('ABSPATH')) {
 		<?php endif; ?>
 
 		<?php if (!$premium_active): ?>
-			<h2><span class='premium-text'><?php echo esc_html__( 'Access prevention messages', 'wc-blacklist-manager' ); ?><span><a href='https://yoohw.com/product/woocommerce-blacklist-manager-premium/' target='_blank' class='premium-label'>Unlock</a></h2>
+			<h2><span class='premium-text'><?php echo esc_html__( 'Access prevention messages', 'wc-blacklist-manager' ); ?><span><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a></h2>
 
 			<p class="premium-text"><?php echo esc_html__('Messages display for prevented visitors and users.', 'wc-blacklist-manager'); ?></p>
 

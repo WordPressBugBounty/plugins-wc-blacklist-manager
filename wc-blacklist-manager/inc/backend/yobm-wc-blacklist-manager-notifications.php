@@ -120,6 +120,10 @@ class WC_Blacklist_Manager_Notifications {
 		$settings_instance = new WC_Blacklist_Manager_Settings();
 		$premium_active = $settings_instance->is_premium_active();
 		$woocommerce_active = class_exists( 'WooCommerce' );
+		$unlock_url = $woocommerce_active
+			? 'https://yoohw.com/product/woocommerce-blacklist-manager-premium/'
+			: 'https://yoohw.com/product/blacklist-manager-premium-for-forms/';
+
 		$form_active = (class_exists( 'WPCF7' ) || class_exists( 'GFCommon' ) || class_exists( 'WPForms\WPForms' ));
 		$message = $this->handle_emails_form_submission();
 		$data = $this->get_notification_emails_settings();
@@ -137,6 +141,10 @@ class WC_Blacklist_Manager_Notifications {
 		$settings_instance = new WC_Blacklist_Manager_Settings();
 		$premium_active = $settings_instance->is_premium_active();
 		$woocommerce_active = class_exists( 'WooCommerce' );
+		$unlock_url = $woocommerce_active
+			? 'https://yoohw.com/product/woocommerce-blacklist-manager-premium/'
+			: 'https://yoohw.com/product/blacklist-manager-premium-for-forms/';
+			
 		$form_active = (class_exists( 'WPCF7' ) || class_exists( 'GFCommon' ) || class_exists( 'WPForms\WPForms' ));
 		$message = $this->handle_notices_form_submission();
 		$data = $this->get_notification_notices_settings();
