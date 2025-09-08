@@ -3,7 +3,7 @@
  * Plugin Name: Blacklist Manager
  * Plugin URI: https://wordpress.org/plugins/wc-blacklist-manager
  * Description: An anti-fraud and spam prevention plugin for WooCommerce and WordPress forms.
- * Version: 2.0.7
+ * Version: 2.0.8
  * Author: YoOhw.com
  * Author URI: https://yoohw.com
  * License: GPL v2 or later
@@ -28,40 +28,9 @@ class WC_Blacklist_Manager {
 		define('WC_BLACKLIST_MANAGER_PLUGIN_DIR', plugin_dir_path(__FILE__));
 		define('WC_BLACKLIST_MANAGER_PLUGIN_BASENAME', plugin_basename(__FILE__));
 
-		add_action('admin_enqueue_scripts', [$this, 'enqueue_assets']);
-
 		add_filter('plugin_action_links_' . plugin_basename(__FILE__), [$this, 'add_action_links']);
 
 		$this->include_files();
-	}
-
-	public function enqueue_assets($hook_suffix) {
-		$style_ver = '1.4';
-		$script_ver = '1.1';
-
-		wp_enqueue_style(
-			'wc-blacklist-style', 
-			plugin_dir_url(__FILE__) . 'css/yobm-wc-blacklist-manager-style.css', 
-			[], 
-			$style_ver
-		);
-
-		$plugin_pages = [
-			'toplevel_page_wc-blacklist-manager'
-		];
-
-		if (in_array($hook_suffix, $plugin_pages)) {
-			wp_enqueue_script(
-				'wc-blacklist-script', 
-				plugin_dir_url(__FILE__) . 'js/yobm-wc-blacklist-manager-dashboard.js', 
-				['jquery'], 
-				$script_ver, 
-				true
-			);
-
-			$inline_script = 'var messageTimeout = 3000;';
-			wp_add_inline_script('wc-blacklist-script', $inline_script);
-		}
 	}
 
 	private function include_files() {

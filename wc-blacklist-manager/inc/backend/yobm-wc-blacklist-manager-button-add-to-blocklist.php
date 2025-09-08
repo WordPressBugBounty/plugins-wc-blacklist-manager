@@ -15,19 +15,10 @@ class WC_Blacklist_Manager_Button_Add_To_Blocklist {
 	}
 
 	public function enqueue_script() {
-		$allowed_roles = get_option('wc_blacklist_dashboard_permission', []);
-		$user_has_permission = false;
+		$settings_instance = new WC_Blacklist_Manager_Settings();
+		$premium_active = $settings_instance->is_premium_active();
 
-		if (is_array($allowed_roles) && !empty($allowed_roles)) {
-			foreach ($allowed_roles as $role) {
-				if (current_user_can($role)) {
-					$user_has_permission = true;
-					break;
-				}
-			}
-		}
-
-		if (!$user_has_permission && !current_user_can('manage_options')) {
+		if (!$premium_active && !current_user_can('manage_options')) {
 			return;
 		}
 
@@ -64,27 +55,7 @@ class WC_Blacklist_Manager_Button_Add_To_Blocklist {
 		$settings_instance = new WC_Blacklist_Manager_Settings();
 		$premium_active = $settings_instance->is_premium_active();
 
-		if ($premium_active) {
-			return;
-		}
-		
-		$allowed_roles = get_option('wc_blacklist_dashboard_permission', []);
-		$user_has_permission = false;
-
-		if (is_array($allowed_roles) && !empty($allowed_roles)) {
-			foreach ($allowed_roles as $role) {
-				if (current_user_can($role)) {
-					$user_has_permission = true;
-					break;
-				}
-			}
-		}
-
-		if (!$premium_active && !current_user_can('manage_options')) {
-			return;
-		}
-		
-		if (!$user_has_permission && !current_user_can('manage_options')) {
+		if ($premium_active || !current_user_can('manage_options')) {
 			return;
 		}
 

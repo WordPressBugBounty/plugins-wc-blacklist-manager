@@ -2,6 +2,11 @@
 
 == Changelog ==
 
+= 2.0.8 (Sep 8, 2025) =
+* Fix: White page when the WooCommerce is inactivated.
+* Improve: Optimized the blacklist actions functions.
+* Improve: The plugin's CSS only runs on the necessary pages.
+
 = 2.0.7 (Aug 8, 2025) =
 * New: Our new Blacklist Manager Premium for Forms add-on plugin compatibility.
 * Fix: Cannot save the verification settings.

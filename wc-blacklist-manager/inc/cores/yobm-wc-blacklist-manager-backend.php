@@ -6,6 +6,7 @@ if (!defined('ABSPATH')) {
 
 class WC_Blacklist_Manager_Backend {
 	public function __construct() {
+		add_action('admin_enqueue_scripts', [$this, 'enqueue_assets']);
 		$this->includes();
 
 		$allowed_countries_option = get_option('woocommerce_allowed_countries', 'all');
@@ -20,6 +21,58 @@ class WC_Blacklist_Manager_Backend {
 		}
 
 		add_action('admin_enqueue_scripts', [$this, 'enqueue_scripts']);
+	}
+
+	public function enqueue_assets( $hook_suffix ) {
+		$style_ver  = '1.4';
+		$script_ver = '1.1';
+
+		// Determine current admin screen context
+		$screen     = function_exists('get_current_screen') ? get_current_screen() : null;
+		$screen_id  = $screen ? $screen->id : '';
+		$post_type  = $screen ? $screen->post_type : '';
+		$page_param = isset($_GET['page']) ? sanitize_key($_GET['page']) : '';
+
+		// 1) Your plugin page + any "children" views under ?page=wc-blacklist-manager
+		$is_plugin_pages =
+			( $page_param && strpos( $page_param, 'wc-blacklist-manager' ) === 0 ) ||
+			( $screen_id  && strpos( $screen_id,  'wc-blacklist-manager' ) !== false ) ||
+			( $hook_suffix && strpos( $hook_suffix, 'wc-blacklist-manager' ) !== false );
+
+		// 2) WooCommerce Orders (both legacy posts UI and HPOS Orders screen)
+		$is_wc_orders = (
+			$screen_id === 'edit-shop_order' ||
+			$screen_id === 'woocommerce_page_wc-orders' ||
+			$post_type  === 'shop_order'
+		);
+
+		// 3) Users list + edit user + own profile
+		$is_user_screens = in_array( $screen_id, array( 'users', 'user-edit', 'profile' ), true );
+
+		$should_enqueue_style = ( $is_plugin_pages || $is_wc_orders || $is_user_screens );
+
+		if ( $should_enqueue_style ) {
+			wp_enqueue_style(
+				'wc-blacklist-style',
+				plugin_dir_url( __FILE__ ) . '../../css/yobm-wc-blacklist-manager-style.css',
+				array(),
+				$style_ver
+			);
+		}
+
+		// Keep your JS only on the plugin's own dashboard page (as before)
+		$plugin_pages = array( 'toplevel_page_wc-blacklist-manager' );
+		if ( in_array( $hook_suffix, $plugin_pages, true ) ) {
+			wp_enqueue_script(
+				'wc-blacklist-script',
+				plugin_dir_url( __FILE__ ) . '../../js/yobm-wc-blacklist-manager-dashboard.js',
+				array( 'jquery' ),
+				$script_ver,
+				true
+			);
+
+			wp_add_inline_script( 'wc-blacklist-script', 'var messageTimeout = 3000;' );
+		}
 	}
 
 	public function enqueue_scripts( $hook ) {

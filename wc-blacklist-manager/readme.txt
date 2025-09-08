@@ -1,23 +1,23 @@
-=== Blacklist Manager – WooCommerce Anti-Fraud & Spam Prevention (Contact Form 7, Gravity Forms, WPForms) ===
+=== Blacklist Manager – WooCommerce Anti-Fraud & Checkout Verification & Spam Prevention (Contact Form 7, Gravity Forms, WPForms) ===
 Contributors: yoohw, baonguyen0310
 Tags: blacklist customers, spam prevention, fraud prevention, woocommerce anti fraud, Prevent fake orders
 Requires at least: 6.3
 Tested up to: 6.8
-WC tested up to: 10.0
+WC tested up to: 10.1
 Requires PHP: 7.0
-Stable tag: 2.0.7
+Stable tag: 2.0.8
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-An anti-fraud and spam prevention plugin for WooCommerce and WordPress forms.
+Anti-fraud, checkout verification and spam prevention plugin for WooCommerce and WordPress forms.
 
 == Description ==
 
-Blacklist Manager is a powerful anti-fraud and spam-prevention plugin for WooCommerce and WordPress forms. It blocks fraudulent orders, fake registrations, and spam form submissions by banning IPs, email addresses, and phone numbers at checkout or on contact forms. With real-time blacklist checks, you can stop chargebacks, unwanted sign-ups, and abusive bots before they hit your store. 
+**Blacklist Manager** is a powerful anti-fraud and spam-prevention plugin for **WooCommerce** and **WordPress** forms. WooCommerce Anti-Fraud & Checkout Verification & Spam Prevention blocks fraudulent orders, fake registrations, and spam form submissions by banning **IPs**, **email addresses**, and **phone numbers** at checkout or on contact forms. With **real-time blacklist** checks, you can **stop chargebacks**, **unwanted sign-ups**, and **abusive bots** before they hit your store. 
 
-Easily blacklist phone numbers, email addresses, IP addresses, and email domains to block unwanted users from placing orders, submitting forms, canceling transactions, or registering accounts. Whether you're running an online store or collecting leads through forms, Blacklist Manager adds a critical layer of defense to your site.
+Easily blacklist **phone numbers**, **email addresses**, **IP addresses**, and **email domains** to block **unwanted users** from placing orders, submitting forms, canceling transactions, or registering accounts. Whether you're running an online store or collecting leads through forms, **Blacklist Manager** adds a critical layer of defense to your site.
 
-Originally built for WooCommerce, it now extends its protection to popular form plugins including Contact Form 7, Gravity Forms, and WPForms.
+Originally built for WooCommerce, it now extends its protection to popular form plugins including **Contact Form 7**, **Gravity Forms**, and **WPForms**.
 
 [Premium version](https://yoohw.com/product/woocommerce-blacklist-manager-premium/) | [Premium for Forms](https://yoohw.com/product/blacklist-manager-premium-for-forms/)
 
@@ -201,6 +201,11 @@ A: There is no set limit within the plugin, but practical limitations depend on 
 A: No, the plugin is optimized for performance. It performs blacklist checks efficiently and only at appropriate times (like form submission or checkout), so it won’t noticeably impact your site speed.
 
 == Changelog ==
+
+= 2.0.8 (Sep 8, 2025) =
+* Fix: White page when the WooCommerce is inactivated.
+* Improve: Optimized the blacklist actions functions.
+* Improve: The plugin's CSS only runs on the necessary pages.
 
 = 2.0.7 (Aug 8, 2025) =
 * New: Our new Blacklist Manager Premium for Forms add-on plugin compatibility.

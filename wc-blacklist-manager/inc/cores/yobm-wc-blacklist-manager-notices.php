@@ -109,7 +109,7 @@ class WC_Blacklist_Manager_Notices {
 		$user_id = get_current_user_id();
 	  
 		// Check if user is administrator and notice hasn't been dismissed
-		if (!$premium_active && $woocommerce_active && current_user_can('administrator') && get_user_meta($user_id, 'wc_blacklist_manager_ads_notice_dismissed_7825', true) !== 'yes') {
+		if (!$premium_active && $woocommerce_active && current_user_can('administrator') && get_user_meta($user_id, 'wc_blacklist_manager_ads_notice_dismissed_8925', true) !== 'yes') {
 		    echo '<div class="notice notice-info yobm-ads is-dismissible">
 				  <p><b>🚀 Blacklist Manager Premium — Total Fraud & Spam Defence for WooCommerce</b></p>
 					
@@ -207,7 +207,7 @@ class WC_Blacklist_Manager_Notices {
 	public function dismiss_ads_notice() {
 		check_ajax_referer('dismiss_ads_notice_nonce', 'security');
 		$user_id = get_current_user_id();
-		update_user_meta($user_id, 'wc_blacklist_manager_ads_notice_dismissed_7825', 'yes');
+		update_user_meta($user_id, 'wc_blacklist_manager_ads_notice_dismissed_8925', 'yes');
 		update_user_meta($user_id, 'wc_blacklist_manager_for_forms_ads_notice_dismissed_7825', 'yes');
 		update_user_meta($user_id, 'wc_blacklist_manager_ads_notice_dismissed_7325_pro', 'yes');
 	}
