@@ -2,6 +2,14 @@
 
 == Changelog ==
 
+= 2.1 (Sep 13, 2025) =
+* New: Added blocking reasons and description on the order page.
+* New: Supported the WooCommerce block-based checkout page.
+* Update: Checking shipping phone (if available) against the blacklist.
+* Update: Optimized the logic of the blacklist manual add new form in the dashboard.
+* Fix: The verifications feature was not running because returns too early.
+* Improve: Some minor improvements.
+
 = 2.0.8 (Sep 8, 2025) =
 * Fix: White page when the WooCommerce is inactivated.
 * Improve: Optimized the blacklist actions functions.

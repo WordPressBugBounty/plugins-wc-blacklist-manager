@@ -5,7 +5,7 @@ Requires at least: 6.3
 Tested up to: 6.8
 WC tested up to: 10.1
 Requires PHP: 7.0
-Stable tag: 2.0.8
+Stable tag: 2.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -201,6 +201,14 @@ A: There is no set limit within the plugin, but practical limitations depend on 
 A: No, the plugin is optimized for performance. It performs blacklist checks efficiently and only at appropriate times (like form submission or checkout), so it won’t noticeably impact your site speed.
 
 == Changelog ==
+
+= 2.1 (Sep 13, 2025) =
+* New: Added blocking reasons and description on the order page.
+* New: Supported the WooCommerce block-based checkout page.
+* Update: Checking shipping phone (if available) against the blacklist.
+* Update: Optimized the logic of the blacklist manual add new form in the dashboard.
+* Fix: The verifications feature was not running because returns too early.
+* Improve: Some minor improvements.
 
 = 2.0.8 (Sep 8, 2025) =
 * Fix: White page when the WooCommerce is inactivated.

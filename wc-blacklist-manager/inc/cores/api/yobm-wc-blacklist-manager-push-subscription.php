@@ -74,3 +74,4 @@ class WC_Blacklist_Manager_Push_Subscription {
 }
 
 require_once plugin_dir_path( __FILE__ ) . 'yogb/yogb-register.php';
+require_once plugin_dir_path( __FILE__ ) . 'yogb/yogb-reports.php';

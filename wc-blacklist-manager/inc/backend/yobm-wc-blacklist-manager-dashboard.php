@@ -144,6 +144,19 @@ class WC_Blacklist_Manager_Dashboard {
 		$total_items_address_blocking = $address_blocking_data['total_items'];
 		$total_pages_address_blocking = $address_blocking_data['total_pages'];
 		$address_blocking_entries = $address_blocking_data['entries'];
+
+		$show_name_col = ($premium_active && get_option('wc_blacklist_customer_name_blocking_enabled', '0') === '1');
+		$show_reason_col = $premium_active;
+		$colspan_blocklist = 6 + ($show_name_col ? 1 : 0) + ($show_reason_col ? 1 : 0);
+		$colspan_ip = 6 + ($show_reason_col ? 1 : 0);
+		$reason_map = [
+			'stolen_card'   => __('Stolen card', 'wc-blacklist-manager'),
+			'chargeback'    => __('Chargeback', 'wc-blacklist-manager'),
+			'fraud_network' => __('Fraud network', 'wc-blacklist-manager'),
+			'spam'          => __('Spam', 'wc-blacklist-manager'),
+			'policy_abuse'  => __('Policy abuse', 'wc-blacklist-manager'),
+			'other'         => __('Other', 'wc-blacklist-manager'),
+		];
 	
 		include 'views/yobm-wc-blacklist-manager-dashboard-form.php';
 
@@ -182,9 +195,9 @@ class WC_Blacklist_Manager_Dashboard {
 	
 	public function handle_form_submission() {
 		$settings_instance = new WC_Blacklist_Manager_Settings();
-		$premium_active = $settings_instance->is_premium_active();
+		$premium_active    = $settings_instance->is_premium_active();
 
-		$allowed_roles = get_option('wc_blacklist_dashboard_permission', []);
+		$allowed_roles       = get_option('wc_blacklist_dashboard_permission', []);
 		$user_has_permission = false;
 
 		if (is_array($allowed_roles) && !empty($allowed_roles)) {
@@ -199,145 +212,73 @@ class WC_Blacklist_Manager_Dashboard {
 		if (!$user_has_permission && !current_user_can('manage_options')) {
 			wp_die(__('You do not have sufficient permissions to access this page.', 'wc-blacklist-manager'));
 		}
-	
+
 		if (isset($_POST['submit']) && check_admin_referer('add_suspect_action_nonce', 'add_suspect_action_nonce_field')) {
-			$new_first_name = isset($_POST['new_first_name']) ? sanitize_text_field($_POST['new_first_name']) : '';
-			$new_last_name = isset($_POST['new_last_name']) ? sanitize_text_field($_POST['new_last_name']) : '';
-			$new_phone_number = isset($_POST['new_phone_number']) ? sanitize_text_field($_POST['new_phone_number']) : '';
-			$new_email_address = isset($_POST['new_email_address']) ? sanitize_email($_POST['new_email_address']) : '';
-			$status = isset($_POST['status']) ? sanitize_text_field($_POST['status']) : 'suspect';
-	
+			// Sanitize inputs (use wp_unslash to handle slashes added by WP)
+			$new_first_name   = isset($_POST['new_first_name'])   ? sanitize_text_field( wp_unslash($_POST['new_first_name']) )   : '';
+			$new_last_name    = isset($_POST['new_last_name'])    ? sanitize_text_field( wp_unslash($_POST['new_last_name']) )    : '';
+			$new_phone_number = isset($_POST['new_phone_number']) ? sanitize_text_field( wp_unslash($_POST['new_phone_number']) ) : '';
+			$new_email_address= isset($_POST['new_email_address'])? sanitize_email( wp_unslash($_POST['new_email_address']) )      : '';
+			$status           = isset($_POST['status'])           ? sanitize_text_field( wp_unslash($_POST['status']) )            : 'suspect';
+
 			$is_blocked = ($status === 'blocked') ? 1 : 0;
-	
-			if (!empty($new_first_name) && !empty($new_last_name) && empty($new_phone_number) && empty($new_email_address)) {
-				// First name and last name only
-				$entry_exists = $this->wpdb->get_var($this->wpdb->prepare("SELECT id FROM {$this->table_name} WHERE first_name = %s AND last_name = %s", $new_first_name, $new_last_name));
-	
-				if (!$entry_exists) {
-					$this->wpdb->insert($this->table_name, [
-						'first_name' => $new_first_name,
-						'last_name' => $new_last_name,
-						'date_added' => current_time('mysql'),
-						'sources' => 'manual',
-						'is_blocked' => $is_blocked
-					]);
-					$message = __("Customer name has been added to the suspected list.", "wc-blacklist-manager");
-				} else {
-					$this->wpdb->update($this->table_name, ['is_blocked' => $is_blocked], ['id' => $entry_exists]);
-					$message = __("Customer name already exists in the suspected list. Status updated.", "wc-blacklist-manager");
-				}
-			} elseif (!empty($new_phone_number) && empty($new_email_address)) {
-				// Phone number only
-				$entry_exists = $this->wpdb->get_var($this->wpdb->prepare("SELECT id FROM {$this->table_name} WHERE phone_number = %s", $new_phone_number));
-	
-				if (!$entry_exists) {
-					$this->wpdb->insert($this->table_name, [
-						'first_name' => $new_first_name,
-						'last_name' => $new_last_name,
-						'phone_number' => $new_phone_number,
-						'date_added' => current_time('mysql'),
-						'sources' => 'manual',
-						'is_blocked' => $is_blocked
-					]);
-					$message = __("Phone number has been added to the suspected list.", "wc-blacklist-manager");
-				} else {
-					$this->wpdb->update($this->table_name, ['is_blocked' => $is_blocked], ['id' => $entry_exists]);
-					$message = __("Phone number already exists in the suspected list. Status updated.", "wc-blacklist-manager");
-				}
-			} elseif (empty($new_phone_number) && !empty($new_email_address)) {
-				// Email address only
-				$entry_exists = $this->wpdb->get_var($this->wpdb->prepare("SELECT id FROM {$this->table_name} WHERE email_address = %s", $new_email_address));
-	
-				if (!$entry_exists) {
-					$this->wpdb->insert($this->table_name, [
-						'first_name' => $new_first_name,
-						'last_name' => $new_last_name,
-						'email_address' => $new_email_address,
-						'date_added' => current_time('mysql'),
-						'sources' => 'manual',
-						'is_blocked' => $is_blocked
-					]);
-					$message = __("Email address has been added to the suspected list.", "wc-blacklist-manager");
-				} else {
-					$this->wpdb->update($this->table_name, ['is_blocked' => $is_blocked], ['id' => $entry_exists]);
-					$message = __("Email address already exists in the suspected list. Status updated.", "wc-blacklist-manager");
-				}
-			} elseif (!empty($new_phone_number) && !empty($new_email_address)) {
-				// Both phone number and email address
-				$sql = $this->wpdb->prepare(
-					"SELECT id, phone_number, email_address FROM {$this->table_name} WHERE phone_number = %s OR email_address = %s",
-					$new_phone_number, $new_email_address
-				);
-				$results = $this->wpdb->get_results($sql);
-	
-				$phone_exists = $email_exists = false;
-				foreach ($results as $result) {
-					if ($result->phone_number === $new_phone_number) {
-						$phone_exists = $result;
-					}
-					if ($result->email_address === $new_email_address) {
-						$email_exists = $result;
-					}
-				}
-	
-				if ($phone_exists && $email_exists) {
-					if (isset($phone_exists->email_address) && isset($email_exists->phone_number)) {
-						$message = __("Phone number and email address already exist in the suspected list.", "wc-blacklist-manager");
-					} elseif (isset($phone_exists->email_address)) {
-						$this->wpdb->update($this->table_name, ['phone_number' => $new_phone_number, 'is_blocked' => $is_blocked], ['id' => $email_exists->id]);
-						$this->wpdb->delete($this->table_name, ['id' => $phone_exists->id]);
-						$message = __("Phone number and email address have been merged into one row in the suspected list.", "wc-blacklist-manager");
-					} elseif (isset($email_exists->phone_number)) {
-						$this->wpdb->update($this->table_name, ['email_address' => $new_email_address, 'is_blocked' => $is_blocked], ['id' => $phone_exists->id]);
-						$this->wpdb->delete($this->table_name, ['id' => $email_exists->id]);
-						$message = __("Phone number and email address have been merged into one row in the suspected list.", "wc-blacklist-manager");
-					} else {
-						$this->wpdb->update($this->table_name, [
-							'first_name' => $new_first_name,
-							'last_name' => $new_last_name,
-							'phone_number' => $new_phone_number,
-							'email_address' => $new_email_address,
-							'sources' => 'manual',
-							'is_blocked' => $is_blocked
-						], ['id' => $phone_exists->id]);
-						$message = __("Phone number and email address have been merged into one row in the suspected list.", "wc-blacklist-manager");
-					}
-				} else {
-					$this->wpdb->insert($this->table_name, [
-						'first_name' => $new_first_name,
-						'last_name' => $new_last_name,
-						'phone_number' => $new_phone_number,
-						'email_address' => $new_email_address,
-						'date_added' => current_time('mysql'),
-						'sources' => 'manual',
-						'is_blocked' => $is_blocked
-					]);
-					$message = __("Phone number and email address have been added to the suspected list.", "wc-blacklist-manager");
-				}
-			} elseif (!empty($new_first_name) || !empty($new_last_name)) {
-				$message = __("Both First name and Last name are required.", "wc-blacklist-manager");
-			} else {
+
+			// If absolutely nothing was provided, bail gracefully
+			if (
+				$new_first_name === '' &&
+				$new_last_name === ''  &&
+				$new_phone_number === '' &&
+				$new_email_address === ''
+			) {
 				$message = __("There is nothing to add.", "wc-blacklist-manager");
+				$message = esc_html($message);
+				wp_redirect(add_query_arg(['add_suspect_message' => urlencode($message), 'status' => urlencode($status)], wp_get_referer()));
+				exit;
 			}
 
+			// Build a single insert payload
+			$data = [
+				'first_name'    => $new_first_name,
+				'last_name'     => $new_last_name,
+				'phone_number'  => $new_phone_number,
+				'email_address' => $new_email_address,
+				'date_added'    => current_time('mysql'),
+				'sources'       => 'manual',
+				'is_blocked'    => (int) $is_blocked,
+			];
+
+			// Premium: normalized email (only if email provided)
+			if ($premium_active && !empty($new_email_address)) {
+				$normalized_email        = yobmp_normalize_email($new_email_address);
+				$data['normalized_email']= $normalized_email;
+			}
+
+			$this->wpdb->insert($this->table_name, $data);
 			$new_insert_id = $this->wpdb->insert_id;
 
-			if ( ! empty( $new_first_name ) || ! empty( $new_last_name ) || ! empty( $new_phone_number ) || ! empty( $new_email_address ) ) {
-				if ($premium_active && get_option('wc_blacklist_connection_mode') === 'host') {
-					$ip_address = '';
-					$customer_domain = '';
-					$customer_address = '';
-					
-					$site_url = site_url();
-					$clean_domain = preg_replace( '/^https?:\/\//', '', $site_url );
-					$sources = $clean_domain . '[' . $new_insert_id . ']';
-		
-					if ( ! wp_next_scheduled( 'wc_blacklist_connection_send_to_subsite', array( $new_phone_number, $new_email_address, $ip_address, $customer_domain, $is_blocked, $sources, $customer_address, $new_first_name, $new_last_name ) ) ) {
-						wp_schedule_single_event( time() + 5, 'wc_blacklist_connection_send_to_subsite', array( $new_phone_number, $new_email_address, $ip_address, $customer_domain, $is_blocked, $sources, $customer_address, $new_first_name, $new_last_name ) );
-					}
+			// Optional: push to subsites (host mode), same as your original logic
+			if ($premium_active && get_option('wc_blacklist_connection_mode') === 'host') {
+				$ip_address       = '';
+				$customer_domain  = '';
+				$customer_address = '';
+
+				$site_url    = site_url();
+				$clean_domain= preg_replace('/^https?:\/\//', '', $site_url);
+				$sources     = $clean_domain . '[' . $new_insert_id . ']';
+
+				if ( ! wp_next_scheduled(
+					'wc_blacklist_connection_send_to_subsite',
+					[ $new_phone_number, $new_email_address, $ip_address, $customer_domain, $is_blocked, $sources, $customer_address, $new_first_name, $new_last_name ]
+				) ) {
+					wp_schedule_single_event(
+						time() + 5,
+						'wc_blacklist_connection_send_to_subsite',
+						[ $new_phone_number, $new_email_address, $ip_address, $customer_domain, $is_blocked, $sources, $customer_address, $new_first_name, $new_last_name ]
+					);
 				}
 			}
-	
+
+			$message = __("Entry has been added to the suspected list.", "wc-blacklist-manager");
 			$message = esc_html($message);
 			wp_redirect(add_query_arg(['add_suspect_message' => urlencode($message), 'status' => urlencode($status)], wp_get_referer()));
 			exit;

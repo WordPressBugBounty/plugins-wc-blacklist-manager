@@ -233,6 +233,10 @@ class WC_Blacklist_Manager_Button_Add_To_Blacklist {
 		// Insert email address if not empty
 		if (!empty($email)) {
 			$insert_data['email_address'] = $email;
+			if ($premium_active) {
+				$normalized_email = yobmp_normalize_email( $email );
+				$insert_data['normalized_email'] = $normalized_email;
+			}
 		}
 	
 		// Insert IP address if enabled and not empty

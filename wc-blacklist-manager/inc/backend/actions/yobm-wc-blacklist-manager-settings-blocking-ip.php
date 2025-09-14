@@ -9,6 +9,7 @@ class WC_Blacklist_Manager_IP_Blacklisted {
 	
 	public function __construct() {
 		add_action('woocommerce_checkout_process', [$this, 'check_customer_ip_against_blacklist']);
+		add_action('woocommerce_store_api_checkout_order_processed', [$this, 'check_customer_ip_against_blacklist_blocks'], 10, 1);
 		add_filter('registration_errors', [$this, 'prevent_blocked_ip_registration'], 10, 3);
 		add_filter('woocommerce_registration_errors', [$this, 'prevent_blocked_ip_registration_woocommerce'], 10, 3);
 		add_filter('preprocess_comment', [$this, 'prevent_comment'], 10, 1);
@@ -76,7 +77,77 @@ class WC_Blacklist_Manager_IP_Blacklisted {
 		}
 	
 		WC_Blacklist_Manager_Email::send_email_order_block('', '', $ip_value);
-	}	
+	}
+
+	public function check_customer_ip_against_blacklist_blocks( \WC_Order $order ) {
+		if ( ! class_exists( 'WooCommerce' ) 
+			|| ! get_option( 'wc_blacklist_ip_enabled', 0 ) 
+			|| get_option( 'wc_blacklist_ip_action', 'none' ) !== 'prevent'
+			|| ! $order instanceof \WC_Order
+		) {
+			return;
+		}
+
+		$settings_instance = new WC_Blacklist_Manager_Settings();
+		$premium_active    = $settings_instance->is_premium_active();
+
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'wc_blacklist';
+		$user_ip    = $this->get_the_user_ip();
+
+		if ( empty( $user_ip ) ) {
+			return;
+		}
+
+		// Use WP cache to reduce repeated lookups.
+		$cache_key = 'banned_ip_' . md5( $user_ip );
+		$is_banned = wp_cache_get( $cache_key, 'wc_blacklist' );
+
+		if ( false === $is_banned ) {
+			$is_banned = ! empty(
+				$wpdb->get_var(
+					$wpdb->prepare(
+						"SELECT 1 FROM {$table_name} WHERE ip_address = %s AND is_blocked = 1 LIMIT 1",
+						$user_ip
+					)
+				)
+			);
+			wp_cache_set( $cache_key, $is_banned, 'wc_blacklist', HOUR_IN_SECONDS );
+		}
+
+		if ( $is_banned ) {
+			// Totals counters
+			update_option( 'wc_blacklist_sum_block_ip', (int) get_option( 'wc_blacklist_sum_block_ip', 0 ) + 1 );
+			update_option( 'wc_blacklist_sum_block_total', (int) get_option( 'wc_blacklist_sum_block_total', 0 ) + 1 );
+
+			if ( $premium_active ) {
+				$reason_ip = 'blocked_ip_attempt: ' . $user_ip;
+				WC_Blacklist_Manager_Premium_Activity_Logs_Insert::checkout_block( '', '', '', $reason_ip );
+			}
+
+			// Notify
+			WC_Blacklist_Manager_Email::send_email_order_block( '', '', $user_ip );
+
+			// Show error in Checkout Block
+			$checkout_notice = get_option(
+				'wc_blacklist_checkout_notice',
+				__( 'Sorry! You are no longer allowed to shop with us. If you think it is a mistake, please contact support.', 'wc-blacklist-manager' )
+			);
+
+			if ( class_exists( '\Automattic\WooCommerce\StoreApi\Exceptions\RouteException' ) ) {
+				wc_release_stock_for_order( $order );                                  // free holds
+				$order->get_data_store()->release_held_coupons( $order );              // free coupon holds :contentReference[oaicite:2]{index=2}
+				$order->delete( true ); 
+				throw new \Automattic\WooCommerce\StoreApi\Exceptions\RouteException(
+					'wc_blacklist_blocked_ip',
+					wp_strip_all_tags( $checkout_notice ),
+					400
+				);
+			} else {
+				throw new \Exception( wp_strip_all_tags( $checkout_notice ) );
+			}
+		}
+	}
 
 	public function prevent_blocked_ip_registration($errors, $sanitized_user_login, $user_email) {
 		return $this->handle_blocked_ip_registration($errors);

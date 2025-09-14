@@ -5,7 +5,7 @@ if (!defined('ABSPATH')) {
 }
 
 class WC_Blacklist_Manager_Button_Add_To_Blocklist {
-	private $version = '1.2';
+	private $version = '2.0';
 	private $nonce_key = 'block_ajax_nonce';
 
 	public function __construct() {
@@ -42,12 +42,31 @@ class WC_Blacklist_Manager_Button_Add_To_Blocklist {
 		wp_enqueue_script('block-ajax-script', $escaped_script_url, ['jquery'], null, true);
 
 		$nonce = wp_create_nonce($this->nonce_key);
-		$escaped_nonce = esc_attr($nonce);
 
 		wp_localize_script('block-ajax-script', 'block_ajax_object', [
-			'ajax_url' => admin_url('admin-ajax.php'),
-			'nonce' => $escaped_nonce,
-			'confirm_message' => esc_html__('Are you sure you want to block this customer?', 'wc-blacklist-manager')
+			'ajax_url'        => admin_url('admin-ajax.php'),
+			'nonce'           => $nonce,
+		]);
+
+		wp_localize_script('block-ajax-script', 'block_ajax_reasons', [
+			'reasons' => [
+				'stolen_card'   => __('Stolen card', 'wc-blacklist-manager'),
+				'chargeback'    => __('Chargeback', 'wc-blacklist-manager'),
+				'fraud_network' => __('Fraud network', 'wc-blacklist-manager'),
+				'spam'          => __('Spam', 'wc-blacklist-manager'),
+				'policy_abuse'  => __('Policy abuse', 'wc-blacklist-manager'),
+				'other'         => __('Other', 'wc-blacklist-manager'),
+			],
+			'labels' => [
+				'modal_title'       => __('Block customer', 'wc-blacklist-manager'),
+				'reason_label'      => __('Reason', 'wc-blacklist-manager'),
+				'select_reason'     => __('Select a reason...', 'wc-blacklist-manager'),
+				'description_label' => __('Description', 'wc-blacklist-manager'),
+				'required_reason'   => __('Please select a reason.', 'wc-blacklist-manager'),
+				'required_desc'     => __('Please enter a description for “Other”.', 'wc-blacklist-manager'),
+				'cancel'            => __('Cancel', 'wc-blacklist-manager'),
+				'confirm'           => __('Confirm block', 'wc-blacklist-manager'),
+			],
 		]);
 	}
 
@@ -106,6 +125,42 @@ class WC_Blacklist_Manager_Button_Add_To_Blocklist {
 			echo '<p class="bm_description"><a href="https://yoohw.com/product/woocommerce-blacklist-manager-premium/" target="_blank" title="Upgrade Premium"><span class="yoohw_unlock">' . 'Unlock' . '</span></a> to power up the blacklist actions.' . '</p>';
 			echo '</div>';
 		}
+
+		// Simple inline modal (hidden by default)
+		echo '
+		<style>
+			.bm-modal-backdrop { display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:100000; }
+			.bm-modal { position:fixed; z-index:100001; inset:auto; top:10%; left:50%; transform:translateX(-50%); width:520px; max-width:90vw; background:#fff; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,.2); }
+			.bm-modal header { padding:14px 16px; border-bottom:1px solid #e5e5e5; font-weight:600; }
+			.bm-modal .bm-body { padding:16px; }
+			.bm-modal .bm-field { margin-bottom:12px; }
+			.bm-modal label { display:block; margin-bottom:6px; font-weight:600; }
+			.bm-modal select, .bm-modal textarea { width:100%; }
+			.bm-modal footer { display:flex; gap:8px; justify-content:flex-end; padding:12px 16px; border-top:1px solid #e5e5e5; background:#fafafa; border-radius:0 0 10px 10px; }
+		</style>
+
+		<div class="bm-modal-backdrop" id="bmModalBackdrop"></div>
+			<div class="bm-modal" id="bmModal" style="display:none;">
+			<header><span id="bmModalTitle"></span></header>
+			<div class="bm-body">
+				<div class="bm-field">
+					<label for="bm_reason" id="bmReasonLabel"></label>
+					<select id="bm_reason">
+						<!-- options injected by JS -->
+					</select>
+				</div>
+				<div class="bm-field">
+					<label for="bm_description" id="bmDescLabel"></label>
+					<textarea id="bm_description" rows="4"></textarea>
+				</div>
+				<div class="bm-field bm-error" id="bmError" style="display:none;color:#b32d2e;"></div>
+			</div>
+			<footer>
+				<button type="button" class="button" id="bmCancel"></button>
+				<button type="button" class="button button-primary" id="bmConfirm"></button>
+			</footer>
+		</div>
+		';
 	}
 
 	private function should_show_block_button($phone, $email, $ip_address, $customer_address, $shipping_address, $full_name) {
@@ -208,26 +263,34 @@ class WC_Blacklist_Manager_Button_Add_To_Blocklist {
 		$settings_instance = new WC_Blacklist_Manager_Settings();
 		$premium_active = $settings_instance->is_premium_active();
 	
-		$allowed_roles = get_option('wc_blacklist_dashboard_permission', []);
-		$user_has_permission = false;
-	
-		if (is_array($allowed_roles) && !empty($allowed_roles)) {
-			foreach ($allowed_roles as $role) {
-				if (current_user_can($role)) {
-					$user_has_permission = true;
-					break;
-				}
-			}
-		}
-	
-		if (!$user_has_permission && !current_user_can('manage_options')) {
+		if (!current_user_can('manage_options')) {
 			return;
 		}
-	
-		if (!current_user_can('edit_posts')) {
-			wp_die(esc_html__('You do not have sufficient permissions', 'wc-blacklist-manager'));
+
+		// --- Read + sanitize reason/description ---
+		$allowed_reasons = [ 'stolen_card', 'chargeback', 'fraud_network', 'spam', 'policy_abuse', 'other' ];
+		$reason_code_raw = isset($_POST['reason_code']) ? wp_unslash($_POST['reason_code']) : '';
+		$reason_code     = sanitize_key($reason_code_raw);
+		if ( ! in_array($reason_code, $allowed_reasons, true) ) {
+			$reason_code = 'other';
 		}
+		$description = isset($_POST['description']) ? sanitize_textarea_field( wp_unslash($_POST['description']) ) : '';
+
+		// Optional: map to human label for notes/logs
+		$reason_labels = [
+			'stolen_card'   => __('Stolen card', 'wc-blacklist-manager'),
+			'chargeback'    => __('Chargeback', 'wc-blacklist-manager'),
+			'fraud_network' => __('Fraud network', 'wc-blacklist-manager'),
+			'spam'          => __('Spam', 'wc-blacklist-manager'),
+			'policy_abuse'  => __('Policy abuse', 'wc-blacklist-manager'),
+			'other'         => __('Other', 'wc-blacklist-manager'),
+		];
+		$reason_label = isset($reason_labels[$reason_code]) ? $reason_labels[$reason_code] : $reason_code;
 	
+		if ( $reason_code === 'other' && $description === '' ) {
+			wp_die( esc_html__('Please provide a description for “Other”.', 'wc-blacklist-manager') );
+		}
+
 		$order_id = isset($_POST['order_id']) ? intval($_POST['order_id']) : 0;
 		if ($order_id <= 0) {
 			echo esc_html__('Invalid order ID.', 'wc-blacklist-manager');
@@ -238,6 +301,9 @@ class WC_Blacklist_Manager_Button_Add_To_Blocklist {
 	
 		// Get the blacklist suspect IDs from order meta
 		$blacklist_meta = $order->get_meta('_blacklist_suspect_id', true);
+
+		$current_user = wp_get_current_user();
+		$shop_manager = $current_user && $current_user->exists() ? $current_user->display_name : __('System', 'wc-blacklist-manager');
 	
 		if (!empty($blacklist_meta)) {
 			// Explode the meta value to get an array of IDs (ensuring they're integers)
@@ -247,8 +313,14 @@ class WC_Blacklist_Manager_Button_Add_To_Blocklist {
 			foreach ($blacklist_ids as $bid) {
 				$wpdb->update(
 					$table_name,
-					['is_blocked' => 1],
-					['id' => $bid]
+					[
+						'is_blocked'   => 1,
+						'reason_code'  => $reason_code,
+						'description'  => $description,
+					],
+					[ 'id' => $bid ],
+					[ '%d', '%s', '%s' ],
+					[ '%d' ]
 				);
 
 				if ($premium_active && get_option('wc_blacklist_connection_mode') === 'host') {
@@ -285,14 +357,31 @@ class WC_Blacklist_Manager_Button_Add_To_Blocklist {
 			// Delete the suspect meta and add blocked meta with the previous value
 			$order->delete_meta_data('_blacklist_suspect_id');
 			$order->update_meta_data('_blacklist_blocked_id', $blacklist_meta);
+
+			$note_desc = $description !== '' ? ' — ' . $description : '';
+			$order->add_order_note(
+				sprintf(
+					/* translators: 1: manager name, 2: reason label, 3: optional description */
+					esc_html__('Moved to blocklist by %1$s. Reason: %2$s%3$s', 'wc-blacklist-manager'),
+					$shop_manager,
+					$reason_label,
+					$note_desc
+				),
+				false
+			);
+
 			$order->save();
 
-			if ( $premium_active ) {
-				$current_user = wp_get_current_user();
-				$shop_manager = $current_user->display_name;
+			if ( YOGB_BM_Client::is_ready() ) {
+				YOGB_BM_Client::queue_report_from_order( $order, $reason_code, $description );
+			}
 
+			if ( $premium_active ) {
 				$details = 'blocked_added_to_blocklist_by:' . $shop_manager;
-				$view_json = '';
+				$view_json = wp_json_encode( [
+					'reason_code' => $reason_code,
+					'description' => $description,
+				] );
 
 				$wpdb->insert(
 					$table_detection_log,
@@ -305,14 +394,6 @@ class WC_Blacklist_Manager_Button_Add_To_Blocklist {
 						'view'      => $view_json,
 					],
 					[ '%s', '%s', '%s', '%s', '%s', '%s' ]
-				);
-
-				$order->add_order_note(
-					sprintf(
-						esc_html__('The customer details have been moved to the blocklist by %s.', 'wc-blacklist-manager'),
-						$shop_manager
-					),
-					false
 				);
 			}
 		} else {
@@ -353,6 +434,8 @@ class WC_Blacklist_Manager_Button_Add_To_Blocklist {
 				'sources'    => $source,
 				'is_blocked' => 1,
 				'order_id'   => $order_id,
+				'reason_code'  => $reason_code,
+				'description'  => $description,
 				'date_added' => current_time('mysql', 1)
 			];
 		
@@ -366,6 +449,10 @@ class WC_Blacklist_Manager_Button_Add_To_Blocklist {
 			// Insert email address if not empty
 			if (!empty($email)) {
 				$insert_data['email_address'] = $email;
+				if ($premium_active) {
+					$normalized_email = yobmp_normalize_email( $email );
+					$insert_data['normalized_email'] = $normalized_email;
+				}
 			}
 		
 			// Insert IP address if enabled and not empty
@@ -432,7 +519,24 @@ class WC_Blacklist_Manager_Button_Add_To_Blocklist {
 				}
 		
 				$order->update_meta_data('_blacklist_blocked_id', $new_meta);
+
+				$note_desc = $description !== '' ? ' — ' . $description : '';
+				$order->add_order_note(
+					sprintf(
+						/* translators: 1: manager name, 2: reason label, 3: optional description */
+						esc_html__('Added to blocklist by %1$s. Reason: %2$s%3$s', 'wc-blacklist-manager'),
+						$shop_manager,
+						$reason_label,
+						$note_desc
+					),
+					false
+				);
+				
 				$order->save();
+
+				if ( YOGB_BM_Client::is_ready() ) {
+					YOGB_BM_Client::queue_report_from_order( $order, $reason_code, $description );
+				}
 		
 				if ( $premium_active ) {
 					$current_user = wp_get_current_user();
@@ -443,7 +547,10 @@ class WC_Blacklist_Manager_Button_Add_To_Blocklist {
 						$details .= ', blocked_user_attempt:' . $user_id;
 					}
 
-					$view_json = '';
+					$view_json = wp_json_encode([
+						'reason_code' => $reason_code,
+						'description' => $description,
+					]);
 
 					$wpdb->insert(
 						$table_detection_log,
@@ -456,14 +563,6 @@ class WC_Blacklist_Manager_Button_Add_To_Blocklist {
 							'view'      => $view_json,
 						],
 						[ '%s', '%s', '%s', '%s', '%s', '%s' ]
-					);
-
-					$order->add_order_note(
-						sprintf(
-							esc_html__('The customer details have been added to the blocklist by %s.', 'wc-blacklist-manager'),
-							$shop_manager
-						),
-						false
 					);
 				}
 				

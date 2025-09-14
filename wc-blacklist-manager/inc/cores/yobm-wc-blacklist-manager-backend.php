@@ -24,8 +24,8 @@ class WC_Blacklist_Manager_Backend {
 	}
 
 	public function enqueue_assets( $hook_suffix ) {
-		$style_ver  = '1.4';
-		$script_ver = '1.1';
+		$style_ver  = '1.5';
+		$script_ver = '1.2';
 
 		// Determine current admin screen context
 		$screen     = function_exists('get_current_screen') ? get_current_screen() : null;

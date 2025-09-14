@@ -9,6 +9,7 @@ class WC_Blacklist_Manager_Domain_Blocking_Actions {
 	
 	public function __construct() {
 		add_action('woocommerce_checkout_process', [$this, 'check_customer_email_domain_against_blacklist']);
+		add_action('woocommerce_store_api_checkout_order_processed', [$this, 'check_customer_email_domain_against_blacklist_blocks'], 10, 1);
 		add_filter('registration_errors', [$this, 'prevent_domain_registration'], 10, 3);
 		add_filter('woocommerce_registration_errors', [$this, 'prevent_domain_registration_woocommerce'], 10, 3);
 		add_filter('preprocess_comment', [$this, 'prevent_comment'], 10, 1);
@@ -123,7 +124,140 @@ class WC_Blacklist_Manager_Domain_Blocking_Actions {
 		}
 
 		WC_Blacklist_Manager_Email::send_email_order_block('', '', '', $domain_value);
-	}	
+	}
+
+	public function check_customer_email_domain_against_blacklist_blocks( \WC_Order $order ) {
+		if ( ! class_exists( 'WooCommerce' ) || ! ( $order instanceof \WC_Order ) ) {
+			return;
+		}
+
+		// Feature toggle
+		$domain_blocking_enabled = get_option( 'wc_blacklist_domain_enabled', 0 );
+		if ( ! $domain_blocking_enabled ) {
+			return;
+		}
+		$domain_blocking_action = get_option( 'wc_blacklist_domain_action', 'none' );
+		if ( 'prevent' !== $domain_blocking_action ) {
+			return;
+		}
+
+		$settings_instance = new WC_Blacklist_Manager_Settings();
+		$premium_active    = $settings_instance->is_premium_active();
+
+		global $wpdb;
+		$table_name         = $wpdb->prefix . 'wc_blacklist';
+		$billing_email      = sanitize_email( (string) $order->get_billing_email() );
+
+		// Allow checkout if no/invalid email (let other validators handle format errors)
+		if ( empty( $billing_email ) || ! is_email( $billing_email ) ) {
+			return;
+		}
+
+		// Extract the domain part (after "@")
+		$pos = strrpos( $billing_email, '@' );
+		if ( false === $pos ) {
+			return;
+		}
+		$email_domain = substr( $billing_email, $pos + 1 );
+		if ( empty( $email_domain ) ) {
+			return;
+		}
+
+		// --- Exact domain lookup with caching ---
+		$cache_key        = 'banned_domain_' . md5( $email_domain );
+		$is_domain_banned = wp_cache_get( $cache_key, 'wc_blacklist' );
+		if ( false === $is_domain_banned ) {
+			$is_domain_banned = $wpdb->get_var(
+				$wpdb->prepare(
+					"SELECT 1 FROM {$table_name} WHERE domain = %s LIMIT 1",
+					$email_domain
+				)
+			);
+			wp_cache_set( $cache_key, $is_domain_banned, 'wc_blacklist', HOUR_IN_SECONDS );
+		}
+		$is_domain_banned = ! empty( $is_domain_banned );
+
+		// --- Premium: TLD list match (supports array or comma-separated string; auto-dot prefixes) ---
+		$tld_hit = '';
+		if ( $premium_active ) {
+			$blocked_tlds = get_option( 'wc_blacklist_domain_top_level', [] );
+
+			// Normalize input: allow serialized array or comma-separated string
+			if ( is_string( $blocked_tlds ) ) {
+				$blocked_tlds = array_filter( array_map( 'trim', explode( ',', $blocked_tlds ) ) );
+			}
+			$normalized = [];
+			foreach ( (array) $blocked_tlds as $tld ) {
+				$t = strtolower( trim( (string) $tld ) );
+				if ( '' === $t ) { continue; }
+				if ( $t[0] !== '.' ) { $t = '.' . $t; } // force leading dot
+				// only keep simple suffix patterns like .xyz, .co.uk, .example.co
+				if ( preg_match( '/^\.[a-z0-9][a-z0-9\-\.]*$/', $t ) ) {
+					$normalized[ $t ] = true;
+				}
+			}
+			$blocked_tlds = array_keys( $normalized );
+
+			if ( ! empty( $blocked_tlds ) && strpos( $email_domain, '.' ) !== false ) {
+				$labels     = array_reverse( explode( '.', strtolower( $email_domain ) ) );
+				$candidates = [];
+				// .tld
+				if ( isset( $labels[0] ) ) { $candidates[] = '.' . $labels[0]; }
+				// .sld.tld
+				if ( isset( $labels[1] ) ) { $candidates[] = '.' . $labels[1] . '.' . $labels[0]; }
+				// .thld.sld.tld (up to 3 labels deep)
+				if ( isset( $labels[2] ) ) { $candidates[] = '.' . $labels[2] . '.' . $labels[1] . '.' . $labels[0]; }
+
+				foreach ( $candidates as $cand ) {
+					if ( in_array( $cand, $blocked_tlds, true ) ) {
+						$tld_hit = $cand;
+						break;
+					}
+				}
+			}
+		}
+
+		// If block hit: update counters, log, notify, and throw to stop checkout
+		if ( $is_domain_banned || '' !== $tld_hit ) {
+			update_option( 'wc_blacklist_sum_block_domain', (int) get_option( 'wc_blacklist_sum_block_domain', 0 ) + 1 );
+			update_option( 'wc_blacklist_sum_block_total',  (int) get_option( 'wc_blacklist_sum_block_total', 0 ) + 1 );
+
+			if ( $premium_active ) {
+				$reasons = '';
+				if ( $is_domain_banned ) {
+					$reasons = 'blocked_domain_attempt: ' . $email_domain;
+				}
+				if ( '' !== $tld_hit ) {
+					$reasons = 'blocked_tld_attempt: ' . $tld_hit;
+				}
+				WC_Blacklist_Manager_Premium_Activity_Logs_Insert::checkout_block(
+					'', '', '', '', '', '', '', $reasons
+				);
+			}
+
+			// Notify (fourth param is domain per your signature)
+			WC_Blacklist_Manager_Email::send_email_order_block( '', '', '', $email_domain );
+
+			// Block with an error message visible in the Checkout Block UI
+			$checkout_notice = get_option(
+				'wc_blacklist_checkout_notice',
+				__( 'Sorry! You are no longer allowed to shop with us. If you think it is a mistake, please contact support.', 'wc-blacklist-manager' )
+			);
+
+			if ( class_exists( '\Automattic\WooCommerce\StoreApi\Exceptions\RouteException' ) ) {
+				wc_release_stock_for_order( $order );                                  // free holds
+				$order->get_data_store()->release_held_coupons( $order );              // free coupon holds :contentReference[oaicite:2]{index=2}
+				$order->delete( true ); 
+				throw new \Automattic\WooCommerce\StoreApi\Exceptions\RouteException(
+					'wc_blacklist_blocked_domain',
+					wp_strip_all_tags( $checkout_notice ),
+					400
+				);
+			} else {
+				throw new \Exception( wp_strip_all_tags( $checkout_notice ) );
+			}
+		}
+	}
 
 	public function prevent_domain_registration($errors, $sanitized_user_login, $user_email) {
 		return $this->handle_domain_registration($errors, $user_email);

@@ -7,6 +7,7 @@ if (!defined('ABSPATH')) {
 class WC_Blacklist_Manager_Blocklisted_Actions {
 	public function __construct() {
 		add_action('woocommerce_checkout_process', [$this, 'prevent_order']);
+		add_action('woocommerce_store_api_checkout_order_processed', [$this, 'prevent_order_for_blocks'], 10, 1);
 		add_filter('registration_errors', [$this, 'prevent_blocked_email_registration'], 10, 3);
 		add_filter('woocommerce_registration_errors', [$this, 'prevent_blocked_email_registration_woocommerce'], 10, 3);
 		add_action('woocommerce_order_status_changed', [$this, 'schedule_order_cancellation'], 10, 4);
@@ -27,6 +28,7 @@ class WC_Blacklist_Manager_Blocklisted_Actions {
 		
 		// Get the selected country code if it exists.
 		$billing_dial_code = isset($_POST['billing_dial_code']) ? sanitize_text_field(wp_unslash($_POST['billing_dial_code'])) : '';
+		$shipping_dial_code = isset($_POST['shipping_dial_code']) ? sanitize_text_field( wp_unslash( $_POST['shipping_dial_code'] ) ) : '';
 		
 		// Get the billing phone, sanitize it, remove non-digits, and trim leading zeros.
 		$billing_phone = isset($_POST['billing_phone']) ? sanitize_text_field(wp_unslash($_POST['billing_phone'])) : '';
@@ -36,6 +38,17 @@ class WC_Blacklist_Manager_Blocklisted_Actions {
 
 			if ( ! empty( $billing_dial_code ) && ! empty( $billing_phone ) ) {
 				$billing_phone = $billing_dial_code . $billing_phone;
+			}
+		}
+
+		// Get the shipping phone, sanitize it, remove non-digits, and trim leading zeros.
+		$shipping_phone = isset($_POST['shipping_phone']) ? sanitize_text_field( wp_unslash( $_POST['shipping_phone'] ) ) : '';
+		if ( $shipping_phone !== '' && strpos( $shipping_phone, '+' ) !== 0 ) {
+			$shipping_phone = preg_replace( '/[^0-9]/', '', $shipping_phone );
+			$shipping_phone = ltrim( $shipping_phone, '0' );
+
+			if ( ! empty( $shipping_dial_code ) && ! empty( $shipping_phone ) ) {
+				$shipping_phone = $shipping_dial_code . $shipping_phone;
 			}
 		}
 		
@@ -115,30 +128,33 @@ class WC_Blacklist_Manager_Blocklisted_Actions {
 			} elseif ( WC()->session ) {
 				$payment_method = WC()->session->get( 'chosen_payment_method', '' );
 			}
-								
+						
 			$view_data = [
 				'ip_address' => $user_ip,
 				'first_name' => $billing_first_name,
 				'last_name'  => $billing_last_name,
 				'phone'      => $billing_phone,
-				'email'      => $billing_email,
-				'billing'    => $billing_address,
-				'shipping'   => $shipping_address,
 			];
-			$view_data['cart_items']       = $items;
+			if ( ! empty( $shipping_phone ) ) {
+				$view_data['shipping_phone'] = $shipping_phone;
+			}
+			$view_data['email']             = $billing_email;
+			$view_data['billing']           = $billing_address;
+			$view_data['shipping']          = $shipping_address;
+			$view_data['cart_items']        = $items;
 			$view_data['fees'] = $fees;
-			$view_data['cart_subtotal']    = $subtotal;
+			$view_data['cart_subtotal']     = $subtotal;
 			$view_data['cart_contents_tax'] = $cart_contents_tax;
-			$view_data['coupons'] = WC()->cart->get_applied_coupons();
-			$view_data['cart_discount']    = $discount_total;
-			$view_data['cart_shipping']    = [
+			$view_data['coupons']           = WC()->cart->get_applied_coupons();
+			$view_data['cart_discount']     = $discount_total;
+			$view_data['cart_shipping']     = [
 				'method' => $shipping_method,
 				'fee'    => $shipping_total,
 				'shipping_tax' => $shipping_tax,
 			];
-			$view_data['cart_tax']         = $tax_total;
-			$view_data['cart_total']       = $total;
-			$view_data['payment_method']   = $payment_method;
+			$view_data['cart_tax']          = $tax_total;
+			$view_data['cart_total']        = $total;
+			$view_data['payment_method']    = $payment_method;
 			$view_data['currency'] = get_woocommerce_currency();
 			$view_json = wp_json_encode( $view_data );
 
@@ -153,36 +169,76 @@ class WC_Blacklist_Manager_Blocklisted_Actions {
 	
 		// Check if the phone is blocked.
 		$is_phone_blocked = false;
-		if ( ! empty( $billing_phone ) ) {
-			$result_phone = $wpdb->get_var( $wpdb->prepare(
-				"SELECT 1 FROM {$table_name} WHERE TRIM(LEADING '0' FROM phone_number) = %s AND is_blocked = 1 LIMIT 1",
-				$billing_phone
-			) );
-			$is_phone_blocked = ! empty( $result_phone );
-			
-			// If the phone is not blocked, clear the variable.
-			if ( $is_phone_blocked ) {
-				$sum_block_phone = get_option('wc_blacklist_sum_block_phone', 0);
-				update_option('wc_blacklist_sum_block_phone', $sum_block_phone + 1);
-				$sum_block_total = get_option('wc_blacklist_sum_block_total', 0);
-				update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
+		$blocked_phones   = [];
 
-				if ($premium_active) {
-					$reason_phone = 'blocked_phone_attempt: ' . $billing_phone;
-					WC_Blacklist_Manager_Premium_Activity_Logs_Insert::checkout_block('', $reason_phone);
+		if ( ! empty( $billing_phone ) || ! empty( $shipping_phone ) ) {
+
+			// Avoid double-checking when the phones are identical.
+			$phones_to_check = [];
+			if ( ! empty( $billing_phone ) ) {
+				$phones_to_check['billing'] = $billing_phone;
+			}
+			if ( ! empty( $shipping_phone ) && $shipping_phone !== $billing_phone ) {
+				$phones_to_check['shipping'] = $shipping_phone;
+			}
+
+			foreach ( $phones_to_check as $label => $phone_val ) {
+				$hit = $wpdb->get_var( $wpdb->prepare(
+					"SELECT 1 FROM {$table_name} WHERE TRIM(LEADING '0' FROM phone_number) = %s AND is_blocked = 1 LIMIT 1",
+					$phone_val
+				) );
+
+				if ( ! empty( $hit ) ) {
+					$is_phone_blocked = true;
+					$blocked_phones[] = $phone_val;
+
+					// Counters (increment once per blocked number)
+					$sum_block_phone = get_option( 'wc_blacklist_sum_block_phone', 0 );
+					update_option( 'wc_blacklist_sum_block_phone', $sum_block_phone + 1 );
+					$sum_block_total = get_option( 'wc_blacklist_sum_block_total', 0 );
+					update_option( 'wc_blacklist_sum_block_total', $sum_block_total + 1 );
 				}
+			}
+
+			if ( $is_phone_blocked ) {
+				// Premium activity log with both numbers if applicable.
+				if ( $premium_active ) {
+					$reason_phone = 'blocked_phone_attempt: ' . implode( ', ', array_unique( $blocked_phones ) );
+					WC_Blacklist_Manager_Premium_Activity_Logs_Insert::checkout_block( '', $reason_phone );
+				}
+
+				// Keep only blocked values for later email/reporting.
+				$billing_phone  = ( ! empty( $billing_phone )  && in_array( $billing_phone,  $blocked_phones, true ) ) ? $billing_phone  : '';
+				$shipping_phone = ( ! empty( $shipping_phone ) && in_array( $shipping_phone, $blocked_phones, true ) ) ? $shipping_phone : '';
+
 			} else {
-				$billing_phone = '';
+				// Neither number is blocked → clear both to avoid emailing/logging.
+				$billing_phone  = '';
+				$shipping_phone = '';
 			}
 		}
-	
+			
 		// Check if the email is blocked.
 		$is_email_blocked = false;
 		if ( ! empty( $billing_email ) && is_email( $billing_email ) ) {
-			$result_email = $wpdb->get_var( $wpdb->prepare(
-				"SELECT 1 FROM {$table_name} WHERE email_address = %s AND is_blocked = 1 LIMIT 1",
-				$billing_email
-			) );
+			if ($premium_active) {
+				$normalized_email = yobmp_normalize_email( $billing_email );
+
+				$result_email = $wpdb->get_var( $wpdb->prepare(
+					"SELECT 1 FROM {$table_name}
+					WHERE is_blocked = 1
+					AND ( email_address = %s OR normalized_email = %s )
+					LIMIT 1",
+					$billing_email,
+					$normalized_email
+				) );				
+			} else {
+				$result_email = $wpdb->get_var( $wpdb->prepare(
+					"SELECT 1 FROM {$table_name} WHERE email_address = %s AND is_blocked = 1 LIMIT 1",
+					$billing_email
+				) );
+			}
+
 			$is_email_blocked = ! empty( $result_email );
 			
 			// If the email is not blocked, clear the variable.
@@ -206,10 +262,218 @@ class WC_Blacklist_Manager_Blocklisted_Actions {
 			wc_add_notice( $checkout_notice, 'error' );
 
 			// Trigger the email with only the blocked values
-			WC_Blacklist_Manager_Email::send_email_order_block( $billing_phone, $billing_email );
+			$phones_to_email = array_filter( [ $billing_phone, $shipping_phone ] );
+			$blocked_phone_for_email = implode( ', ', array_unique( $phones_to_email ) );
+			WC_Blacklist_Manager_Email::send_email_order_block( $blocked_phone_for_email, $billing_email );
 		}
 	}
-	
+
+	public function prevent_order_for_blocks( \WC_Order $order ) {
+		if ( ! class_exists( 'WooCommerce' ) || ! $order instanceof \WC_Order ) {
+			return;
+		}
+
+		$settings_instance = new WC_Blacklist_Manager_Settings();
+		$premium_active    = $settings_instance->is_premium_active();
+
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'wc_blacklist';
+
+		// 1) Read phone with your normalization rules (supporting a dial code saved as meta).
+		$billing_phone = (string) $order->get_billing_phone();
+		$billing_dial_code = (string) $order->get_meta('billing_dial_code');
+		if ( '' === $billing_dial_code ) {
+			$billing_dial_code = (string) $order->get_meta('_billing_dial_code'); // fallback if you store underscored key
+		}
+
+		if ( strpos( $billing_phone, '+' ) !== 0 ) {
+			$billing_phone = preg_replace( '/[^0-9]/', '', $billing_phone );
+			$billing_phone = ltrim( $billing_phone, '0' );
+			if ( ! empty( $billing_dial_code ) && ! empty( $billing_phone ) ) {
+				$billing_phone = $billing_dial_code . $billing_phone;
+			}
+		}
+
+		// Shipping phone (if your store collects it)
+		$shipping_phone     = (string) $order->get_shipping_phone();
+		$shipping_dial_code = (string) $order->get_meta( 'shipping_dial_code' );
+		if ( '' === $shipping_dial_code ) {
+			$shipping_dial_code = (string) $order->get_meta( '_shipping_dial_code' );
+		}
+
+		if ( '' !== $shipping_phone && strpos( $shipping_phone, '+' ) !== 0 ) {
+			$shipping_phone = preg_replace( '/[^0-9]/', '', $shipping_phone );
+			$shipping_phone = ltrim( $shipping_phone, '0' );
+			if ( ! empty( $shipping_dial_code ) && ! empty( $shipping_phone ) ) {
+				$shipping_phone = $shipping_dial_code . $shipping_phone;
+			}
+		}
+
+		$billing_email = sanitize_email( (string) $order->get_billing_email() );
+
+		// 2) (Premium) Build a snapshot like your classic logger (but from the order).
+		if ( $premium_active ) {
+			$items = [];
+			foreach ( $order->get_items() as $item ) {
+				$product_id = (int) $item->get_product_id();
+				$items[ $product_id ] = [
+					'quantity'   => (int) $item->get_quantity(),
+					'unit_price' => (float) $item->get_subtotal() / max( 1, (int) $item->get_quantity() ),
+					'line_total' => (float) $item->get_total(),
+				];
+			}
+
+			$fees = [];
+			foreach ( $order->get_fees() as $fee ) {
+				$fees[] = [
+					'name'   => $fee->get_name(),
+					'amount' => (float) $fee->get_total(),
+				];
+			}
+
+			$shipping_items = $order->get_items( 'shipping' );
+			$shipping_method_title = '';
+			if ( ! empty( $shipping_items ) ) {
+				$first_shipping = reset( $shipping_items );
+				$shipping_method_title = $first_shipping ? $first_shipping->get_name() : '';
+			}
+
+			$view_data = [
+				'ip_address' => $order->get_customer_ip_address(),
+				'first_name' => $order->get_billing_first_name(),
+				'last_name'  => $order->get_billing_last_name(),
+				'phone'      => $billing_phone,
+			];
+			if ( ! empty( $shipping_phone ) ) {
+				$view_data['shipping_phone'] = $shipping_phone;
+			}
+			$view_data += [
+				'email'             => $billing_email,
+				'billing'           => trim( implode( ', ', array_filter( [
+					$order->get_billing_address_1(),
+					$order->get_billing_address_2(),
+					$order->get_billing_city(),
+					$order->get_billing_state(),
+					$order->get_billing_postcode(),
+					$order->get_billing_country(),
+				] ) ) ),
+				'shipping'          => trim( implode( ', ', array_filter( [
+					$order->get_shipping_address_1(),
+					$order->get_shipping_address_2(),
+					$order->get_shipping_city(),
+					$order->get_shipping_state(),
+					$order->get_shipping_postcode(),
+					$order->get_shipping_country(),
+				] ) ) ),
+				'cart_items'        => $items,
+				'fees'              => $fees,
+				'cart_subtotal'     => (float) $order->get_subtotal(),
+				'cart_contents_tax' => (float) $order->get_cart_tax(),
+				'coupons'           => $order->get_coupon_codes(),
+				'cart_discount'     => (float) $order->get_discount_total(),
+				'cart_shipping'     => [
+					'method'       => $shipping_method_title,
+					'fee'          => (float) $order->get_shipping_total(),
+					'shipping_tax' => (float) $order->get_shipping_tax(),
+				],
+				'cart_tax'          => (float) $order->get_total_tax(),
+				'cart_total'        => (float) $order->get_total(),
+				'payment_method'    => $order->get_payment_method(),
+				'currency'          => $order->get_currency(),
+			];
+
+			WC_Blacklist_Manager_Premium_Activity_Logs_Insert::checkout_block( wp_json_encode( $view_data ) );
+		}
+
+		$blacklist_action = get_option( 'wc_blacklist_action', 'none' );
+		$checkout_notice  = get_option(
+			'wc_blacklist_checkout_notice',
+			__( 'Sorry! You are no longer allowed to shop with us. If you think it is a mistake, please contact support.', 'wc-blacklist-manager' )
+		);
+
+		// 3) Lookups.
+		$is_phone_blocked = false;
+		$blocked_phones   = [];
+		if ( ! empty( $billing_phone ) || ! empty( $shipping_phone ) ) {
+			$phones_to_check = [];
+			if ( ! empty( $billing_phone ) ) {
+				$phones_to_check['billing'] = $billing_phone;
+			}
+			if ( ! empty( $shipping_phone ) && $shipping_phone !== $billing_phone ) {
+				$phones_to_check['shipping'] = $shipping_phone;
+			}
+
+			foreach ( $phones_to_check as $label => $phone_val ) {
+				$hit = $wpdb->get_var( $wpdb->prepare(
+					"SELECT 1 FROM {$table_name} WHERE TRIM(LEADING '0' FROM phone_number) = %s AND is_blocked = 1 LIMIT 1",
+					$phone_val
+				) );
+
+				if ( ! empty( $hit ) ) {
+					$is_phone_blocked = true;
+					$blocked_phones[] = $phone_val;
+
+					// Increment counters once per blocked number (billing, shipping).
+					update_option( 'wc_blacklist_sum_block_phone', (int) get_option( 'wc_blacklist_sum_block_phone', 0 ) + 1 );
+					update_option( 'wc_blacklist_sum_block_total', (int) get_option( 'wc_blacklist_sum_block_total', 0 ) + 1 );
+				}
+			}
+
+			if ( $is_phone_blocked && $premium_active ) {
+				$reason_phone = 'blocked_phone_attempt: ' . implode( ', ', array_unique( $blocked_phones ) );
+				WC_Blacklist_Manager_Premium_Activity_Logs_Insert::checkout_block( '', $reason_phone );
+			}
+
+			// Keep only the blocked values for later email/reporting.
+			$billing_phone  = ( ! empty( $billing_phone )  && in_array( $billing_phone,  $blocked_phones, true ) ) ? $billing_phone  : '';
+			$shipping_phone = ( ! empty( $shipping_phone ) && in_array( $shipping_phone, $blocked_phones, true ) ) ? $shipping_phone : '';
+		}
+
+		$is_email_blocked = false;
+		if ( ! empty( $billing_email ) && is_email( $billing_email ) ) {
+			$result_email = $wpdb->get_var( $wpdb->prepare(
+				"SELECT 1 FROM {$table_name} WHERE email_address = %s AND is_blocked = 1 LIMIT 1",
+				$billing_email
+			) );
+			$is_email_blocked = ! empty( $result_email );
+
+			if ( $is_email_blocked ) {
+				update_option( 'wc_blacklist_sum_block_email', (int) get_option( 'wc_blacklist_sum_block_email', 0 ) + 1 );
+				update_option( 'wc_blacklist_sum_block_total', (int) get_option( 'wc_blacklist_sum_block_total', 0 ) + 1 );
+				if ( $premium_active ) {
+					WC_Blacklist_Manager_Premium_Activity_Logs_Insert::checkout_block( '', '', 'blocked_email_attempt: ' . $billing_email );
+				}
+			} else {
+				$billing_email = '';
+			}
+		}
+
+		// 4) Block & surface an error to the Checkout Block.
+		if ( ( $is_phone_blocked || $is_email_blocked ) && 'prevent' === $blacklist_action ) {
+			// Build a single phone string from whichever numbers are actually blocked.
+			$phones_to_email         = array_filter( [ $billing_phone, $shipping_phone ] );
+			$blocked_phone_for_email = implode( ', ', array_unique( $phones_to_email ) );
+
+			// Fire your notification with only blocked values.
+			WC_Blacklist_Manager_Email::send_email_order_block( $blocked_phone_for_email, $billing_email );
+
+			// For the Checkout Block / Store API, throw an exception so the UI shows the error and prevents placing the order.
+			if ( class_exists( '\Automattic\WooCommerce\StoreApi\Exceptions\RouteException' ) ) {
+				wc_release_stock_for_order( $order );                                  // free holds
+				$order->get_data_store()->release_held_coupons( $order );              // free coupon holds :contentReference[oaicite:2]{index=2}
+				$order->delete( true );   
+				throw new \Automattic\WooCommerce\StoreApi\Exceptions\RouteException(
+					'wc_blacklist_blocked',
+					wp_strip_all_tags( $checkout_notice ),
+					400
+				);
+			} else {
+				// Fallback: generic exception still prevents checkout and shows message in block UI.
+				throw new \Exception( wp_strip_all_tags( $checkout_notice ) );
+			}
+		}
+	}
+		
 	public function prevent_blocked_email_registration($errors, $sanitized_user_login, $user_email) {
 		return $this->handle_registration_block($errors, $sanitized_user_login, $user_email);
 	}

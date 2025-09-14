@@ -55,10 +55,13 @@ class WC_Blacklist_Manager_DB {
 				last_name varchar(255) DEFAULT '' NOT NULL,
 				phone_number varchar(255) DEFAULT '' NOT NULL,
 				email_address varchar(255) DEFAULT '' NOT NULL,
+				normalized_email varchar(320) DEFAULT '' NOT NULL,
 				ip_address varchar(255) DEFAULT '' NOT NULL,
 				domain varchar(255) DEFAULT '' NOT NULL,
 				customer_address text NOT NULL,
 				order_id int(11) DEFAULT NULL,
+				reason_code varchar(100) DEFAULT '' NOT NULL,
+				description text NOT NULL,
 				date_added datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
 				sources text NOT NULL,
 				is_blocked boolean NOT NULL DEFAULT FALSE,
@@ -99,14 +102,14 @@ class WC_Blacklist_Manager_DB {
 			dbDelta($whitelist_sql);
 			dbDelta($detection_log_sql);
 
+			$this->backfill_normalized_emails( $this->blacklist_table_name, 500 );
+
 			// Update the version in the database so the update isn't run again.
 			update_option('wc_blacklist_manager_version', $this->version);
 		}
 	}
 
 	public function install_default_options() {
-		$premium_active = $this->is_premium_active();
-		
 		$default_email_from_name = get_bloginfo('name');
 		if ( false === get_option( 'wc_blacklist_sender_name' ) ) {
 			add_option( 'wc_blacklist_sender_name', $default_email_from_name );
@@ -366,6 +369,114 @@ class WC_Blacklist_Manager_DB {
 			$utc_time = gmdate('Y-m-d H:i:s');
 			add_option('wc_blacklist_manager_first_install_date', $utc_time);
 		}
+	}
+
+	/**
+	 * Backfill normalized_email for legacy rows, but:
+	 * - Skip if within grace period from first install date
+	 * - Run only ONCE per site (wc_blacklist_backfill_done flag)
+	 * - Prevent concurrent runs via a transient lock
+	 */
+	private function backfill_normalized_emails( $table_name = '', $limit = 500 ) {
+		$premium_active = $this->is_premium_active();
+		if (!$premium_active) {
+			return;
+		}
+		
+		global $wpdb;
+
+		// Run-once flag (keep if you already added it)
+		if ( get_option( 'wc_blacklist_backfill_done' ) ) {
+			return 0;
+		}
+
+		// Fresh-install grace window (keep if you already added it)
+		$first_install_raw = get_option( 'wc_blacklist_manager_first_install_date', '' );
+		if ( ! empty( $first_install_raw ) ) {
+			$ts = strtotime( $first_install_raw );
+			if ( $ts !== false ) {
+				$grace = (int) apply_filters( 'wc_blacklist_backfill_grace_period', DAY_IN_SECONDS );
+				if ( $grace > 0 && ( time() - $ts ) < $grace ) {
+					return 0;
+				}
+			}
+		}
+
+		// Resolve table name safely
+		if ( empty( $table_name ) ) {
+			if ( ! empty( $this->blacklist_table_name ) ) {
+				$table_name = $this->blacklist_table_name;
+			} else {
+				$table_name = $wpdb->prefix . 'wc_blacklist';
+			}
+		}
+
+		// Verify table exists
+		$exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $table_name ) );
+		if ( $exists !== $table_name ) {
+			error_log( "[WC Blacklist] backfill_normalized_emails: table not found: {$table_name}" );
+			return 0;
+		}
+
+		// Concurrency lock
+		$lock_key = 'wc_blacklist_backfill_lock';
+		if ( get_transient( $lock_key ) ) {
+			return 0;
+		}
+		set_transient( $lock_key, 1, 10 * MINUTE_IN_SECONDS );
+
+		$updated = 0;
+
+		try {
+			$limit = max( 1, absint( $limit ) );
+
+			// Fetch rows missing normalized_email
+			$rows = $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT id, email_address
+					FROM `{$table_name}`
+					WHERE (normalized_email IS NULL OR normalized_email = '')
+					AND email_address <> ''
+					LIMIT %d",
+					$limit
+				)
+			);
+
+			if ( empty( $rows ) ) {
+				// Nothing to do — mark as done and exit
+				update_option( 'wc_blacklist_backfill_done', current_time( 'mysql' ), false );
+				return 0;
+			}
+
+			foreach ( $rows as $r ) {
+				$norm = yobmp_normalize_email( $r->email_address );
+				$did  = $wpdb->update(
+					$table_name,
+					[ 'normalized_email' => $norm ],
+					[ 'id' => (int) $r->id ],
+					[ '%s' ],
+					[ '%d' ]
+				);
+				if ( $did !== false ) {
+					$updated++;
+				}
+			}
+
+			// If you prefer to mark done only when no rows remain:
+			$remaining = (int) $wpdb->get_var(
+				"SELECT COUNT(*) FROM `{$table_name}`
+				WHERE (normalized_email IS NULL OR normalized_email = '')
+				AND email_address <> ''"
+			);
+			if ( $remaining === 0 ) {
+				update_option( 'wc_blacklist_backfill_done', current_time( 'mysql' ), false );
+			}
+
+		} finally {
+			delete_transient( $lock_key );
+		}
+
+		return $updated;
 	}
 
 	public function is_premium_active() {

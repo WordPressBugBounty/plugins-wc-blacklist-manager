@@ -297,7 +297,7 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 			$billing_country = WC()->session->get('billing_country', '');
 		}
 		
-		$country_code = $this->get_country_code_from_file($billing_country);
+		$country_code = yobm_get_country_code_from_file($billing_country);
 	
 		if ($country_code) {
 			return '+' . $country_code . $phone;
@@ -306,25 +306,6 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 		}
 	}
 	
-	private function get_country_code_from_file( $billing_country ) {
-		$file_path = plugin_dir_path( __FILE__ ) . 'data/phone_country_codes.conf';
-
-		if (file_exists($file_path)) {
-			$file_content = file_get_contents($file_path);
-
-			$lines = explode("\n", $file_content);
-			foreach ($lines as $line) {
-				if (strpos($line, ':') !== false) {
-					list($country, $code) = explode(':', $line);
-					if (trim($country) === $billing_country) {
-						return trim($code);
-					}
-				}
-			}
-		}
-		return null;
-	}
-
 	public function verify_phone_code() {
 		check_ajax_referer('phone_verification_nonce', 'security');
 

@@ -13,10 +13,6 @@ class WC_Blacklist_Manager_Verifications {
 	private $default_sms_message;
 
 	public function __construct() {
-		if (!class_exists( 'WooCommerce' )) {
-			return;
-		}
-		
 		add_action('init', [$this, 'set_verifications_strings']);
 		add_action('admin_menu', [$this, 'add_verifications_submenu']);
 		add_action('wp_ajax_generate_sms_key', [$this, 'handle_generate_sms_key']);

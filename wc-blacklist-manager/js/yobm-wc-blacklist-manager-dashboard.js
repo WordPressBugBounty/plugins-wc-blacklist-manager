@@ -22,6 +22,23 @@ jQuery(document).ready(function($) {
     }
 
     openTab(currentTab);
+
+    // Toggle popup on click
+    $(document).on('click', '.bm-reason-link', function(e){
+        e.preventDefault();
+        var $cell = $(this).closest('.bm-reason-cell');
+        // Close others
+        $('.bm-reason-cell').not($cell).removeClass('active');
+        // Toggle current
+        $cell.toggleClass('active');
+    });
+
+    // Close popup when clicking outside
+    $(document).on('click', function(e){
+        if (!$(e.target).closest('.bm-reason-cell').length) {
+        $('.bm-reason-cell').removeClass('active');
+        }
+    });
 });
 
 

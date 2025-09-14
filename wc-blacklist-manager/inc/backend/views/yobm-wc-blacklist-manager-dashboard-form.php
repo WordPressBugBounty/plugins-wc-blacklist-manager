@@ -304,7 +304,7 @@ if (!defined('ABSPATH')) {
 	<form method="get" action="<?php echo esc_url(admin_url('admin.php?page=wc-blacklist-manager')); ?>">
 		<p class="search-box wcbm-search-box">
 			<label class="screen-reader-text" for="blacklist_search"><?php echo esc_html__('Search Blacklist', 'wc-blacklist-manager'); ?></label>
-			<input type="search" id="blacklist_search" name="blacklist_search" placeholder="<?php echo esc_attr__('Enter to search', 'wc-blacklist-manager'); ?>" value="<?php echo esc_attr($search_query); ?>"/>
+			<input type="search" id="blacklist_search" name="blacklist_search" placeholder="<?php echo esc_attr__('Enter to search...', 'wc-blacklist-manager'); ?>" value="<?php echo esc_attr($search_query); ?>"/>
 			<?php wp_nonce_field('blacklist_search_action', 'blacklist_search_nonce'); ?>
 			<input type="submit" id="search-submit" class="button" value="<?php echo esc_attr__('Search', 'wc-blacklist-manager'); ?>"/>
 			<input type="hidden" name="page" value="wc-blacklist-manager" />
@@ -394,7 +394,8 @@ if (!defined('ABSPATH')) {
 												$order_id = intval($matches[1]);
 												$edit_order_url = admin_url('post.php?post=' . $order_id . '&action=edit');
 												echo sprintf(
-													'Order ID: <a href="%s">%d</a>',
+													'%s: <a href="%s">%d</a>',
+													esc_html__('Order ID', 'wc-blacklist-manager'),
 													esc_url($edit_order_url),
 													esc_html($order_id)
 												);
@@ -444,55 +445,95 @@ if (!defined('ABSPATH')) {
 							<option value=""><?php echo esc_html__('Bulk Actions', 'wc-blacklist-manager'); ?></option>
 							<option value="delete"><?php echo esc_html__('Delete', 'wc-blacklist-manager'); ?></option>
 						</select>
-						<input type="submit" class="button action" value="<?php echo esc_attr__('Apply', 'wc-blacklist-manager'); ?>" onclick="if(document.getElementById('bulk_action_blocked').value === 'delete'){ return confirm('<?php echo esc_js( __( 'Are you sure you want to delete the selected entries?', 'yo-booking' ) ); ?>'); }">					</div>
+						<input type="submit" class="button action" value="<?php echo esc_attr__('Apply', 'wc-blacklist-manager'); ?>" onclick="if(document.getElementById('bulk_action_blocked').value === 'delete'){ return confirm('<?php echo esc_js( __( 'Are you sure you want to delete the selected entries?', 'yo-booking' ) ); ?>'); }">
 					</div>
+				</div>
 				<table class="wp-list-table widefat fixed striped">
 					<thead>
 						<tr>
 							<th style="max-width: 24px;" class="check-column"><input type="checkbox" id="select_all" /></th>
-							<?php if ($premium_active && get_option('wc_blacklist_customer_name_blocking_enabled', '0') === '1'): ?>
+							<?php if ( $show_name_col ): ?>
 								<th style="max-width: 20%;"><?php echo esc_html__('Customer name', 'wc-blacklist-manager'); ?></th>
 							<?php endif; ?>
 							<th style="max-width: 20%;"><?php echo esc_html__('Phone number', 'wc-blacklist-manager'); ?></th>
 							<th style="max-width: 20%;"><?php echo esc_html__('Email address', 'wc-blacklist-manager'); ?></th>
+
+							<?php if ( $show_reason_col ): ?>
+								<th style="max-width: 16%;"><?php echo esc_html__('Reason', 'wc-blacklist-manager'); ?></th>
+							<?php endif; ?>
+
 							<th style="max-width: 20%;"><?php echo esc_html__('Date added', 'wc-blacklist-manager'); ?></th>
 							<th style="max-width: 10%;"><?php echo esc_html__('Source', 'wc-blacklist-manager'); ?></th>
 							<th style="width: 100px;"><?php echo esc_html__('Actions', 'wc-blacklist-manager'); ?></th>
 						</tr>
 					</thead>
 					<tbody>
-						<?php if (count($blocked_entries) > 0): ?>
-							<?php foreach ($blocked_entries as $entry): ?>
+						<?php if ( count($blocked_entries) > 0 ): ?>
+							<?php foreach ( $blocked_entries as $entry ): ?>
 								<?php
 								$display_row = true;
-								if (!$premium_active || get_option('wc_blacklist_customer_name_blocking_enabled', '0') === '0') {
+								if ( ! $show_name_col ) {
 									$display_row = !empty($entry->phone_number) || !empty($entry->email_address);
 								}
-								if (!$display_row) continue;
+								if ( ! $display_row ) { continue; }
+
+								// Resolve reason label
+								$reason_label = '';
+								if ( $show_reason_col && !empty($entry->reason_code) ) {
+									if ( isset($reason_map[$entry->reason_code]) ) {
+										$reason_label = $reason_map[$entry->reason_code];
+									} else {
+										$reason_label = $entry->reason_code; // fallback to raw code
+									}
+								}
 								?>
 								<tr>
-									<th scope="row" class="check-column"><input type="checkbox" name="entry_ids[]" value="<?php echo esc_attr($entry->id); ?>" /></th>
-									<?php if ($premium_active && get_option('wc_blacklist_customer_name_blocking_enabled', '0') === '1'): ?>
-										<td><?php echo esc_html(trim($entry->first_name . ' ' . $entry->last_name)); ?></td>
+									<th scope="row" class="check-column">
+										<input type="checkbox" name="entry_ids[]" value="<?php echo esc_attr($entry->id); ?>" />
+									</th>
+
+									<?php if ( $show_name_col ): ?>
+										<td><?php echo esc_html( trim( ($entry->first_name ?? '') . ' ' . ($entry->last_name ?? '') ) ); ?></td>
 									<?php endif; ?>
+
 									<td><?php echo esc_html($entry->phone_number); ?></td>
 									<td><?php echo esc_html($entry->email_address); ?></td>
-									<td><?php echo esc_html(date_i18n(get_option('date_format') . ' ' . get_option('time_format'), strtotime($entry->date_added))); ?></td>
+
+									<?php if ( $show_reason_col ): ?>
+										<td>
+											<?php if ( $reason_label ): ?>
+												<?php if ( ! empty( $entry->description ) ) : ?>
+													<span class="bm-reason-cell">
+														<a href="#" class="bm-reason-link">
+															<?php echo esc_html( $reason_label ); ?>
+														</a>
+														<span class="bm-reason-popup"><?php echo esc_html( $entry->description ); ?></span>
+													</span>
+												<?php else: ?>
+													<?php echo esc_html( $reason_label ); ?>
+												<?php endif; ?>
+											<?php else: ?>
+												—
+											<?php endif; ?>
+										</td>
+									<?php endif; ?>
+
+									<td><?php echo esc_html( date_i18n( get_option('date_format') . ' ' . get_option('time_format'), strtotime($entry->date_added) ) ); ?></td>
 									<td>
 										<?php
-										if (empty($entry->sources)) {
+										if ( empty($entry->sources) ) {
 											echo esc_html__('Unknown', 'wc-blacklist-manager');
 										} else {
 											$pattern = '/^Order ID: (\d+)$/';
-											if ($entry->sources === 'manual') {
+											if ( $entry->sources === 'manual' ) {
 												echo esc_html__('Manual form', 'wc-blacklist-manager');
-											} elseif (preg_match($pattern, $entry->sources, $matches)) {
+											} elseif ( preg_match($pattern, $entry->sources, $matches) ) {
 												$order_id = intval($matches[1]);
 												$edit_order_url = admin_url('post.php?post=' . $order_id . '&action=edit');
-												echo sprintf(
-													'Order ID: <a href="%s">%d</a>',
-													esc_url($edit_order_url),
-													esc_html($order_id)
+												printf(
+													/* translators: %d: order id */
+													esc_html__('Order ID: %1$s', 'wc-blacklist-manager'),
+													'<a href="' . esc_url($edit_order_url) . '">' . esc_html($order_id) . '</a>'
 												);
 											} else {
 												echo esc_html($entry->sources);
@@ -501,13 +542,19 @@ if (!defined('ABSPATH')) {
 										?>
 									</td>
 									<td>
-										<a href="<?php echo esc_url(wp_nonce_url(add_query_arg(['action' => 'delete', 'id' => $entry->id, 'tab' => 'blocked']), 'delete_action', '_wpnonce')); ?>" class="button button-secondary icon-button" onclick="return confirm('<?php echo esc_js(__('Are you sure you want to remove this entry?', 'wc-blacklist-manager')); ?>')"><span class="dashicons dashicons-remove"></span></a>
+										<a href="<?php echo esc_url( wp_nonce_url( add_query_arg(['action' => 'delete', 'id' => $entry->id, 'tab' => 'blocked']), 'delete_action', '_wpnonce' ) ); ?>"
+										class="button button-secondary icon-button"
+										onclick="return confirm('<?php echo esc_js(__('Are you sure you want to remove this entry?', 'wc-blacklist-manager')); ?>')">
+											<span class="dashicons dashicons-remove"></span>
+										</a>
 									</td>
 								</tr>
 							<?php endforeach; ?>
 						<?php else: ?>
 							<tr>
-								<td colspan="6"><?php echo esc_html__('No matching results found.', 'wc-blacklist-manager'); ?></td>
+								<td colspan="<?php echo (int) $colspan_blocklist; ?>">
+									<?php echo esc_html__('No matching results found.', 'wc-blacklist-manager'); ?>
+								</td>
 							</tr>
 						<?php endif; ?>
 					</tbody>
@@ -549,13 +596,19 @@ if (!defined('ABSPATH')) {
 								<option value=""><?php echo esc_html__('Bulk Actions', 'wc-blacklist-manager'); ?></option>
 								<option value="delete"><?php echo esc_html__('Delete', 'wc-blacklist-manager'); ?></option>
 							</select>
-							<input type="submit" class="button action" value="<?php echo esc_attr__('Apply', 'wc-blacklist-manager'); ?>" onclick="if(document.getElementById('bulk_action_ip_banned').value === 'delete'){ return confirm('<?php echo esc_js( __( 'Are you sure you want to delete the selected entries?', 'yo-booking' ) ); ?>'); }">						</div>
+							<input type="submit" class="button action" value="<?php echo esc_attr__('Apply', 'wc-blacklist-manager'); ?>" onclick="if(document.getElementById('bulk_action_ip_banned').value === 'delete'){ return confirm('<?php echo esc_js( __( 'Are you sure you want to delete the selected entries?', 'yo-booking' ) ); ?>'); }">
 						</div>
+					</div>
 					<table class="wp-list-table widefat fixed striped">
 						<thead>
 							<tr>
 								<th style="max-width: 24px;" class="check-column"><input type="checkbox" id="select_all_ip_banned" /></th>
 								<th style="max-width: 20%;"><?php echo esc_html__('IP address', 'wc-blacklist-manager'); ?></th>
+
+								<?php if ( $show_reason_col ): ?>
+									<th style="max-width: 16%;"><?php echo esc_html__('Reason', 'wc-blacklist-manager'); ?></th>
+								<?php endif; ?>
+
 								<th style="max-width: 20%;"><?php echo esc_html__('Date added', 'wc-blacklist-manager'); ?></th>
 								<th style="max-width: 10%;"><?php echo esc_html__('Source', 'wc-blacklist-manager'); ?></th>
 								<th style="max-width: 10%;"><?php echo esc_html__('Status', 'wc-blacklist-manager'); ?></th>
@@ -563,27 +616,57 @@ if (!defined('ABSPATH')) {
 							</tr>
 						</thead>
 						<tbody>
-							<?php if (count($ip_banned_entries) > 0): ?>
-								<?php foreach ($ip_banned_entries as $entry): ?>
+							<?php if ( count($ip_banned_entries) > 0 ): ?>
+								<?php foreach ( $ip_banned_entries as $entry ): ?>
+									<?php
+									// Resolve reason label
+									$reason_label = '';
+									if ( $show_reason_col && !empty($entry->reason_code) ) {
+										$reason_label = $reason_map[$entry->reason_code] ?? $entry->reason_code;
+									}
+									?>
 									<tr>
-										<th scope="row" class="check-column"><input type="checkbox" name="entry_ids[]" value="<?php echo esc_attr($entry->id); ?>" /></th>
+										<th scope="row" class="check-column">
+											<input type="checkbox" name="entry_ids[]" value="<?php echo esc_attr($entry->id); ?>" />
+										</th>
+
 										<td><?php echo esc_html($entry->ip_address); ?></td>
-										<td><?php echo esc_html(date_i18n(get_option('date_format') . ' ' . get_option('time_format'), strtotime($entry->date_added))); ?></td>
+
+										<?php if ( $show_reason_col ): ?>
+											<td>
+												<?php if ( $reason_label ): ?>
+													<?php if ( ! empty($entry->description) ) : ?>
+														<span class="bm-reason-cell">
+															<a href="#" class="bm-reason-link">
+																<?php echo esc_html( $reason_label ); ?>
+															</a>
+															<span class="bm-reason-popup"><?php echo esc_html( $entry->description ); ?></span>
+														</span>
+													<?php else: ?>
+														<?php echo esc_html( $reason_label ); ?>
+													<?php endif; ?>
+												<?php else: ?>
+													—
+												<?php endif; ?>
+											</td>
+										<?php endif; ?>
+
+										<td><?php echo esc_html( date_i18n( get_option('date_format') . ' ' . get_option('time_format'), strtotime($entry->date_added) ) ); ?></td>
 										<td>
 											<?php
-											if (empty($entry->sources)) {
+											if ( empty($entry->sources) ) {
 												echo esc_html__('Unknown', 'wc-blacklist-manager');
 											} else {
 												$pattern = '/^Order ID: (\d+)$/';
-												if ($entry->sources === 'manual') {
+												if ( $entry->sources === 'manual' ) {
 													echo esc_html__('Manual form', 'wc-blacklist-manager');
-												} elseif (preg_match($pattern, $entry->sources, $matches)) {
+												} elseif ( preg_match($pattern, $entry->sources, $matches) ) {
 													$order_id = intval($matches[1]);
 													$edit_order_url = admin_url('post.php?post=' . $order_id . '&action=edit');
-													echo sprintf(
-														'Order ID: <a href="%s">%d</a>',
-														esc_url($edit_order_url),
-														esc_html($order_id)
+													printf(
+														/* translators: %d: order id */
+														esc_html__('Order ID: %1$s', 'wc-blacklist-manager'),
+														'<a href="' . esc_url($edit_order_url) . '">' . esc_html($order_id) . '</a>'
 													);
 												} else {
 													echo esc_html($entry->sources);
@@ -591,20 +674,28 @@ if (!defined('ABSPATH')) {
 											}
 											?>
 										</td>
-										<td><?php echo esc_html($entry->is_blocked ? __('Blocked', 'wc-blacklist-manager') : __('Suspect', 'wc-blacklist-manager')); ?></td>
+										<td><?php echo esc_html( $entry->is_blocked ? __('Blocked', 'wc-blacklist-manager') : __('Suspect', 'wc-blacklist-manager') ); ?></td>
 										<td>
-											<?php if (!$entry->is_blocked): ?>
-												<a href="<?php echo esc_url(wp_nonce_url(add_query_arg(['action' => 'block', 'id' => $entry->id]), 'block_action')); ?>" class="button red-button" onclick="return confirm('<?php echo esc_js(__('Are you sure you want to block this entry?', 'wc-blacklist-manager')); ?>')">
+											<?php if ( ! $entry->is_blocked ): ?>
+												<a href="<?php echo esc_url( wp_nonce_url( add_query_arg(['action' => 'block', 'id' => $entry->id]), 'block_action' ) ); ?>"
+												class="button red-button"
+												onclick="return confirm('<?php echo esc_js(__('Are you sure you want to block this entry?', 'wc-blacklist-manager')); ?>')">
 													<span class="dashicons dashicons-dismiss"></span>
 												</a>
 											<?php endif; ?>
-											<a href="<?php echo esc_url(wp_nonce_url(add_query_arg(['action' => 'delete', 'id' => $entry->id]), 'delete_action', '_wpnonce')); ?>" class="button button-secondary icon-button" onclick="return confirm('<?php echo esc_js(__('Are you sure you want to remove this entry?', 'wc-blacklist-manager')); ?>')"><span class="dashicons dashicons-remove"></span></a>
+											<a href="<?php echo esc_url( wp_nonce_url( add_query_arg(['action' => 'delete', 'id' => $entry->id]), 'delete_action', '_wpnonce' ) ); ?>"
+											class="button button-secondary icon-button"
+											onclick="return confirm('<?php echo esc_js(__('Are you sure you want to remove this entry?', 'wc-blacklist-manager')); ?>')">
+												<span class="dashicons dashicons-remove"></span>
+											</a>
 										</td>
 									</tr>
 								<?php endforeach; ?>
 							<?php else: ?>
 								<tr>
-									<td colspan="6"><?php echo esc_html__('No IP banned entries found.', 'wc-blacklist-manager'); ?></td>
+									<td colspan="<?php echo (int) $colspan_ip; ?>">
+										<?php echo esc_html__('No IP banned entries found.', 'wc-blacklist-manager'); ?>
+									</td>
 								</tr>
 							<?php endif; ?>
 						</tbody>
@@ -747,13 +838,15 @@ if (!defined('ABSPATH')) {
 							<option value=""><?php echo esc_html__('Bulk Actions', 'wc-blacklist-manager'); ?></option>
 							<option value="delete"><?php echo esc_html__('Delete', 'wc-blacklist-manager'); ?></option>
 						</select>
-						<input type="submit" class="button action" value="<?php echo esc_attr__('Apply', 'wc-blacklist-manager'); ?>" onclick="if(document.getElementById('bulk_action_address').value === 'delete'){ return confirm('<?php echo esc_js( __( 'Are you sure you want to delete the selected entries?', 'yo-booking' ) ); ?>'); }">					</div>
+						<input type="submit" class="button action" value="<?php echo esc_attr__('Apply', 'wc-blacklist-manager'); ?>" onclick="if(document.getElementById('bulk_action_address').value === 'delete'){ return confirm('<?php echo esc_js( __( 'Are you sure you want to delete the selected entries?', 'yo-booking' ) ); ?>'); }">
 					</div>
+				</div>
 				<table class="wp-list-table widefat fixed striped">
 					<thead>
 						<tr>
 							<th style="max-width: 24px;" class="check-column"><input type="checkbox" id="select_all_address" /></th>
-							<th style="width: 40%;"><?php echo esc_html__('Customer address', 'wc-blacklist-manager'); ?></th>
+							<th style="width: 32%;"><?php echo esc_html__('Customer address', 'wc-blacklist-manager'); ?></th>
+							<th style="max-width: 16%;"><?php echo esc_html__('Reason', 'wc-blacklist-manager'); ?></th>
 							<th style="max-width: 20%;"><?php echo esc_html__('Date added', 'wc-blacklist-manager'); ?></th>
 							<th style="max-width: 10%;"><?php echo esc_html__('Source', 'wc-blacklist-manager'); ?></th>
 							<th style="max-width: 10%;"><?php echo esc_html__('Status', 'wc-blacklist-manager'); ?></th>
@@ -761,27 +854,53 @@ if (!defined('ABSPATH')) {
 						</tr>
 					</thead>
 					<tbody>
-						<?php if (count($address_blocking_entries) > 0): ?>
-							<?php foreach ($address_blocking_entries as $entry): ?>
+						<?php if ( count($address_blocking_entries) > 0 ): ?>
+							<?php foreach ( $address_blocking_entries as $entry ): ?>
+								<?php
+								$reason_label = '';
+								if ( !empty($entry->reason_code) ) {
+									$reason_label = $reason_map[$entry->reason_code] ?? $entry->reason_code;
+								}
+								?>
 								<tr>
-									<th scope="row" class="check-column"><input type="checkbox" name="entry_ids[]" value="<?php echo esc_attr($entry->id); ?>" /></th>
+									<th scope="row" class="check-column">
+										<input type="checkbox" name="entry_ids[]" value="<?php echo esc_attr($entry->id); ?>" />
+									</th>
+
 									<td><?php echo esc_html($entry->customer_address); ?></td>
-									<td><?php echo esc_html(date_i18n(get_option('date_format') . ' ' . get_option('time_format'), strtotime($entry->date_added))); ?></td>
+									<td>
+										<?php if ( $reason_label ): ?>
+											<?php if ( ! empty($entry->description) ) : ?>
+												<span class="bm-reason-cell">
+													<a href="#" class="bm-reason-link">
+														<?php echo esc_html( $reason_label ); ?>
+													</a>
+													<span class="bm-reason-popup"><?php echo esc_html( $entry->description ); ?></span>
+												</span>
+											<?php else: ?>
+												<?php echo esc_html( $reason_label ); ?>
+											<?php endif; ?>
+										<?php else: ?>
+											—
+										<?php endif; ?>
+									</td>
+
+									<td><?php echo esc_html( date_i18n( get_option('date_format') . ' ' . get_option('time_format'), strtotime($entry->date_added) ) ); ?></td>
 									<td>
 										<?php
-										if (empty($entry->sources)) {
+										if ( empty($entry->sources) ) {
 											echo esc_html__('Unknown', 'wc-blacklist-manager');
 										} else {
 											$pattern = '/^Order ID: (\d+)$/';
-											if ($entry->sources === 'manual') {
+											if ( $entry->sources === 'manual' ) {
 												echo esc_html__('Manual form', 'wc-blacklist-manager');
-											} elseif (preg_match($pattern, $entry->sources, $matches)) {
+											} elseif ( preg_match($pattern, $entry->sources, $matches) ) {
 												$order_id = intval($matches[1]);
 												$edit_order_url = admin_url('post.php?post=' . $order_id . '&action=edit');
-												echo sprintf(
-													'Order ID: <a href="%s">%d</a>',
-													esc_url($edit_order_url),
-													esc_html($order_id)
+												printf(
+													/* translators: %s: order id link */
+													esc_html__('Order ID: %s', 'wc-blacklist-manager'),
+													'<a href="' . esc_url($edit_order_url) . '">' . esc_html($order_id) . '</a>'
 												);
 											} else {
 												echo esc_html($entry->sources);
@@ -789,20 +908,28 @@ if (!defined('ABSPATH')) {
 										}
 										?>
 									</td>
-									<td><?php echo esc_html($entry->is_blocked ? __('Blocked', 'wc-blacklist-manager') : __('Suspect', 'wc-blacklist-manager')); ?></td>
+									<td><?php echo esc_html( $entry->is_blocked ? __('Blocked', 'wc-blacklist-manager') : __('Suspect', 'wc-blacklist-manager') ); ?></td>
 									<td>
-										<?php if (!$entry->is_blocked): ?>
-											<a href="<?php echo esc_url(wp_nonce_url(add_query_arg(['action' => 'block', 'id' => $entry->id]), 'block_action')); ?>" class="button red-button" onclick="return confirm('<?php echo esc_js(__('Are you sure you want to block this entry?', 'wc-blacklist-manager')); ?>')">
+										<?php if ( ! $entry->is_blocked ): ?>
+											<a href="<?php echo esc_url( wp_nonce_url( add_query_arg(['action' => 'block', 'id' => $entry->id]), 'block_action' ) ); ?>"
+											class="button red-button"
+											onclick="return confirm('<?php echo esc_js(__('Are you sure you want to block this entry?', 'wc-blacklist-manager')); ?>')">
 												<span class="dashicons dashicons-dismiss"></span>
 											</a>
 										<?php endif; ?>
-										<a href="<?php echo esc_url(wp_nonce_url(add_query_arg(['action' => 'delete', 'id' => $entry->id, 'tab' => 'customer-address']), 'delete_action', '_wpnonce')); ?>" class="button button-secondary icon-button" onclick="return confirm('<?php echo esc_js(__('Are you sure you want to remove this entry?', 'wc-blacklist-manager')); ?>')"><span class="dashicons dashicons-remove"></span></a>
+										<a href="<?php echo esc_url( wp_nonce_url( add_query_arg(['action' => 'delete', 'id' => $entry->id, 'tab' => 'customer-address']), 'delete_action', '_wpnonce' ) ); ?>"
+										class="button button-secondary icon-button"
+										onclick="return confirm('<?php echo esc_js(__('Are you sure you want to remove this entry?', 'wc-blacklist-manager')); ?>')">
+											<span class="dashicons dashicons-remove"></span>
+										</a>
 									</td>
 								</tr>
 							<?php endforeach; ?>
 						<?php else: ?>
 							<tr>
-								<td colspan="6"><?php echo esc_html__('No address blocking entries found.', 'wc-blacklist-manager'); ?></td>
+								<td colspan="7">
+									<?php echo esc_html__('No address blocking entries found.', 'wc-blacklist-manager'); ?>
+								</td>
 							</tr>
 						<?php endif; ?>
 					</tbody>

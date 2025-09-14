@@ -1,4 +1,4 @@
-WooCommerce Blacklist Manager
+Blacklist Manager
 
 Copyright 2023 by the contributors
 
@@ -15,11 +15,11 @@ GNU General Public License for more details.
 This program incorporates work covered by the following copyright and
 permission notices:
 
-  WooCommerce Blacklist Manager - Handle your Blacklist with Phone & Email.
+  Blacklist Manager - Handle your Blacklist with Phone & Email.
 
-  WooCommerce Blacklist Manager is Copyright (c) 2023 Yo Ohw
+  Blacklist Manager is Copyright (c) 2023 Yo Ohw
 
-  WooCommerce Blacklist Manager is released under the GPL
+  Blacklist Manager is released under the GPL
 
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 

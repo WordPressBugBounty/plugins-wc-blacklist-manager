@@ -232,6 +232,30 @@ th.column-name {
     margin: 7px 0 !important;
 }
 
+/* Reason Cell */
+.bm-reason-cell {
+  position: relative;
+  display: inline-block;
+}
+.bm-reason-popup {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 9999;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 8px 10px;
+  width: 240px;
+  margin-top: 4px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  white-space: normal;
+}
+.bm-reason-cell.active .bm-reason-popup {
+  display: block;
+}
+
 /* Table */
 #blacklisted .check-column, #blocked .check-column, #ip-banned .check-column, #customer-address .check-column, #domain-blocking .check-column {
     padding: 20px 10px;
