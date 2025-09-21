@@ -383,6 +383,24 @@ class WC_Blacklist_Manager_DB {
 			return;
 		}
 		
+		// Require Premium >= 2.1.7
+		if ( ! function_exists( 'get_plugins' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+		$premium_file = 'wc-blacklist-manager-premium/wc-blacklist-manager-premium.php';
+
+		// If the premium plugin file is missing or we can't read version, do nothing.
+		if ( ! file_exists( WP_PLUGIN_DIR . '/' . $premium_file ) ) {
+			return 0;
+		}
+
+		$all_plugins = get_plugins();
+		$current_version = isset( $all_plugins[ $premium_file ]['Version'] ) ? $all_plugins[ $premium_file ]['Version'] : '';
+
+		if ( empty( $current_version ) || version_compare( $current_version, '2.1.7', '<' ) ) {
+			return 0;
+		}
+		
 		global $wpdb;
 
 		// Run-once flag (keep if you already added it)
