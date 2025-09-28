@@ -3,9 +3,9 @@ Contributors: yoohw, baonguyen0310
 Tags: blacklist customers, spam prevention, fraud prevention, woocommerce anti fraud, Prevent fake orders
 Requires at least: 6.3
 Tested up to: 6.8
-WC tested up to: 10.1
+WC tested up to: 10.2
 Requires PHP: 7.0
-Stable tag: 2.1
+Stable tag: 2.1.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,9 +19,7 @@ Easily blacklist **phone numbers**, **email addresses**, **IP addresses**, and *
 
 Originally built for WooCommerce, it now extends its protection to popular form plugins including **Contact Form 7**, **Gravity Forms**, and **WPForms**.
 
-[Premium version](https://yoohw.com/product/woocommerce-blacklist-manager-premium/) | [Premium for Forms](https://yoohw.com/product/blacklist-manager-premium-for-forms/)
-
-[Documentation](https://yoohw.com/docs/category/woocommerce-blacklist-manager/) | [Support](https://yoohw.com/support/)  | [Demo](https://sandbox.yoohw.com/demo/yobm_demo.html)
+[Premium version](https://yoohw.com/product/woocommerce-blacklist-manager-premium/) | [Premium for Forms](https://yoohw.com/product/blacklist-manager-premium-for-forms/) | [Documentation](https://yoohw.com/docs/category/woocommerce-blacklist-manager/) | [Support](https://yoohw.com/support/)  | [Demo](https://sandbox.yoohw.com/demo/yobm_demo.html)
 
 == Features ==
 
@@ -101,10 +99,18 @@ This real-time validation not only improves the user experience by providing ins
 Protect every corner of your website and WooCommerce store with our comprehensive bot-blocking solution, now with expanded coverage for user authentication flows. Key features include:
 
 * **Advanced bot detection**: AI-driven behavioral analysis stops spam bots in checkout, login, registration, and comment forms alike.
-* **Seamless user experience**: Invisible security layers—Google reCAPTCHA v3, v2, Cloudflare Turnstile, and hCaptcha—ensure legitimate customers sail through checkout, login, and signup without friction.
+* **Seamless user experience**: Invisible security layers—Google Cloudflare Turnstile, reCAPTCHA v3/v2, and hCaptcha—ensure legitimate customers sail through checkout, login, and signup without friction.
 * **Expanded form protection**: Require CAPTCHA challenges on login and registration pages to block automated account creation and credential stuffing attacks.
 * **API protection**: Safeguards your checkout, login, and registration endpoints from bots abusing your REST API.
 * **Efficient and lightweight**: Delivers enterprise-grade security across all forms without slowing down your store.
+
+**Payment Detection & Protection**
+
+Our plugin integrates seamlessly with leading payment gateways—**Stripe, PayPal, and Mollie**—to provide advanced fraud detection and prevention.
+
+With built-in checks, it automatically detects mismatches such as **card country vs. billing country**, flags transactions from **high-risk countries**, and validates payments using **AVS (Address Verification Service)** when available. For Stripe, it leverages the **Stripe Fraud Analysis** results directly within the order screen to help you quickly identify risky transactions. For PayPal, it introduces a **payer email verification requirement** to ensure that the PayPal account holder’s identity matches the order details, reducing the chance of fraudulent use.
+
+These protections add an extra layer of security to your store, helping you block suspicious orders before they result in costly chargebacks.
 
 **Blacklist Connection for Multiple Sites**
 
@@ -130,21 +136,26 @@ Easily manage your blacklist data with our Import/Export feature. Quickly upload
 
 Our premier solution for combating fraud and unauthorized transactions: we've integrated up with the finest third-party services to deliver the highest level of protection for your business. Each service we chose excels in identifying and preventing fraudulent activities. Moreover, these services offer free plans designed to support small and medium-sized businesses, enabling you to focus on growth while safeguarding your transactions.
 
-Plugin supported: 
+= Plugin supported =
+
 * [WooCommerce](https://wordpress.org/plugins/woocommerce/)
 * [Contact Form 7](https://wordpress.org/plugins/contact-form-7/)
 * [Gravity Forms](https://www.gravityforms.com/)
 * [WPForms](https://wordpress.org/plugins/wpforms-lite/)
 
-Plugin integrations: 
+= Plugin integrations =
+
 * [WooComerce Advanced Account](https://wordpress.org/plugins/wc-advanced-accounts/)
 * [WooCommerce Stripe Gateway](https://wordpress.org/plugins/woocommerce-gateway-stripe/)
 * [Payment Plugins for Stripe WooCommerce](https://wordpress.org/plugins/woo-stripe-payment/)
+* [WooCommerce PayPal Payments](https://wordpress.org/plugins/woocommerce-paypal-payments/)
+* [Payment Plugins for PayPal WooCommerce](https://wordpress.org/plugins/pymntpl-paypal-woocommerce/)
 * [Mollie Payments for WooCommerce](https://wordpress.org/plugins/mollie-payments-for-woocommerce/)
 
-Service integrations:
-* [reCaptcha v3/v2](https://www.google.com/recaptcha/about/)
+= Service integrations =
+
 * [Cloudflare](https://www.cloudflare.com/)
+* [reCaptcha v3/v2](https://www.google.com/recaptcha/about/)
 * [hCaptcha](https://www.hcaptcha.com/)
 * [ip-api](https://ip-api.com/)
 * [Usercheck](https://www.usercheck.com/)
@@ -154,7 +165,6 @@ Service integrations:
 * [Yo Credits](https://yoohw.com/product/sms-credits/)
 * [Twilio](https://www.twilio.com/)
 * [Textmagic](https://www.textmagic.com/)
-* [Blackleaf.io](https://blackleaf.io/)
 
 **Premium Support**
 
@@ -166,6 +176,13 @@ Service integrations:
 [Explore the Premium version here](https://yoohw.com/product/woocommerce-blacklist-manager-premium/)
 
 With these premium features and dedicated support, the Blacklist Manager Premium plugin provides unparalleled security and efficiency, giving you peace of mind and allowing you to focus on growing your business.
+
+= Blacklist Manager Community = 
+
+By using this plugin, your store automatically becomes part of the **Blacklist Manager Community**.  
+This community-driven network helps strengthen fraud protection by sharing and consolidating blacklisted data (emails, phone numbers, IP addresses, etc.) across participating stores.  
+
+Your contribution helps create a safer eCommerce ecosystem while protecting your own store more effectively.
 
 == Use Cases ==
 
@@ -188,7 +205,7 @@ A: Yes, additional configuration is needed for the plugin to work as your expect
 **Q: What is the purpose of the ‘Suspects’ list?**
 A: You don't want to lose customers carelessly, do you? That's why there should be the Suspects list, for you to marked the customers and suspect them a while before you decide to block them or not.
 
-**Q: Can this plugin prevent the customer to checkout through a separate payment page such as Paypal, Stripe etc..?**
+**Q: Can this plugin prevent the customer to checkout through a separate payment page such as PayPal, Stripe etc..?**
 A: The logic of the Blacklist Manager plugin is that to prevent the blocked customer can checkout through your website, the payment gateways have nothing to do with that. So, the answer is absolutely YES.
 
 **Q: Can this plugin stop contact form spam?**
@@ -201,6 +218,10 @@ A: There is no set limit within the plugin, but practical limitations depend on 
 A: No, the plugin is optimized for performance. It performs blacklist checks efficiently and only at appropriate times (like form submission or checkout), so it won’t noticeably impact your site speed.
 
 == Changelog ==
+
+= 2.1.1 (Sep 28, 2025) =
+* Improve: Cleaned up old and unnecessary code.
+* Improve: WooCommerce 10.2 compatibility.
 
 = 2.1 (Sep 13, 2025) =
 * New: Added blocking reasons and description on the order page.

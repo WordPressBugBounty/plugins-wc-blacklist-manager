@@ -41,7 +41,7 @@ class WC_Blacklist_Manager_Notices {
 
         if ( is_plugin_active( $plugin_path ) ) {
 
-            $required_version = '2.1.1';
+            $required_version = '2.1.8';
 
             // get the plugin’s header data
             $data = get_plugin_data( WP_PLUGIN_DIR . '/' . $plugin_path );
@@ -214,3 +214,180 @@ class WC_Blacklist_Manager_Notices {
 }
 
 new WC_Blacklist_Manager_Notices();
+
+
+class WC_Blacklist_Manager_Alert {
+
+	const UMETA_DISMISS           = 'yobm_notice_suggest_enable_captcha';
+	const OPTION_LICENSE_STATUS   = 'wc_blacklist_manager_premium_license_status';
+	const OPTION_FAIL_STREAK      = 'yobm_failed_orders_streak';
+	const OPTION_FAIL_STREAK_TIME = 'yobm_failed_orders_streak_times';
+	const FAIL_THRESHOLD          = 4;
+
+	public function __construct() {
+		add_action( 'woocommerce_order_status_changed', [ $this, 'track_order_streak' ], 10, 4 );
+		add_action( 'admin_notices', [ $this, 'display_notices' ] );
+		add_action( 'admin_enqueue_scripts', [ $this, 'conditionally_enqueue_inline_scripts' ] );
+		add_action( 'wp_ajax_notice_suggest_enable_captcha', [ $this, 'never_show_notice' ] );
+	}
+
+	/* ========== Order Tracking ========== */
+
+	public function track_order_streak( $order_id, $old_status, $new_status, $order ) {
+		$streak = (int) get_option( self::OPTION_FAIL_STREAK, 0 );
+		$times  = json_decode( (string) get_option( self::OPTION_FAIL_STREAK_TIME, '[]' ), true );
+		$times  = is_array( $times ) ? $times : [];
+
+		if ( 'failed' === $new_status ) {
+			$streak++;
+			$times[] = time();
+		} elseif ( in_array( $new_status, [ 'processing', 'completed' ], true ) ) {
+			$streak = 0;
+			$times  = [];
+		}
+
+		update_option( self::OPTION_FAIL_STREAK, $streak, false );
+		update_option( self::OPTION_FAIL_STREAK_TIME, wp_json_encode( array_slice( $times, -10 ) ), false );
+	}
+
+	/* ========== Notices ========== */
+
+	public function display_notices() {
+		$this->notice_suggest_enable_captcha();
+	}
+
+	public function notice_suggest_enable_captcha() {
+		if ( ! current_user_can( 'administrator' ) ) {
+			return;
+		}
+
+		// Hide for Premium users whose license is activated.
+		if ( $this->premium_is_activated() ) {
+			return;
+		}
+
+		$user_id = get_current_user_id();
+		$snooze_until = (int) get_user_meta( $user_id, self::UMETA_DISMISS, true );
+		if ( $snooze_until && time() < $snooze_until ) {
+			return; // still snoozed
+		}
+
+		$streak = (int) get_option( self::OPTION_FAIL_STREAK, 0 );
+		if ( $streak < self::FAIL_THRESHOLD ) {
+			return;
+		}
+
+		$times      = json_decode( (string) get_option( self::OPTION_FAIL_STREAK_TIME, '[]' ), true );
+		$times      = is_array( $times ) ? $times : [];
+		$first_time = ! empty( $times ) ? reset( $times ) : 0;
+		$last_time  = ! empty( $times ) ? end( $times )   : 0;
+
+		$window_str = '';
+		if ( $first_time && $last_time ) {
+			$window_str = sprintf(
+				/* translators: 1: first time, 2: last time */
+				__( 'between %1$s and %2$s', 'wc-blacklist-manager' ),
+				esc_html( wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $first_time ) ),
+				esc_html( wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $last_time ) )
+			);
+		}
+
+		$premium_url = esc_url( $this->get_premium_buy_url() );
+
+		$headline   = esc_html__( '⚠️ Unusual spike of failed payments detected', 'wc-blacklist-manager' );
+		$details    = sprintf(
+			esc_html__( '%d failed orders in a row %s.', 'wc-blacklist-manager' ),
+			$streak,
+			$window_str ? esc_html( $window_str ) : ''
+		);
+		$para_text  = esc_html__( 'Bots may be testing stolen cards (CVC/CVV).', 'wc-blacklist-manager' ) . ' '
+			. esc_html__( 'Blacklist Manager Premium blocks card-testing attacks, reduces failed payments, and automatically flags risky activity—keeping your checkout and gateway clean.', 'wc-blacklist-manager' ) . ' '
+			. esc_html__( 'Upgrade now to turn on advanced bot-defense and fraud automation.', 'wc-blacklist-manager' );
+		$cta_label  = esc_html__( 'Upgrade to Premium — protect checkout', 'wc-blacklist-manager' );
+		$premium_url = esc_url( $premium_url ); // ensure sanitized
+
+		echo '<div class="notice notice-error yobmp-notice-captcha is-dismissible" style="border-left-color:#d63638;">'
+			. '<p style="margin-top:8px;margin-bottom:8px;">'
+				. '<strong>' . $headline . ':</strong> ' . $details
+			. '</p>'
+			. '<p style="margin:0 0 10px;">' . $para_text . '</p>'
+			. '<p style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 12px;">'
+				. '<a class="button button-primary" target="_blank" rel="noopener" href="' . $premium_url . '">' . $cta_label . '</a> '
+				. '<a href="#" onclick="YOBM_Admin_Notice.doItLater();return false;">' . esc_html__( 'I’ll do it later', 'wc-blacklist-manager' ) . '</a>'
+			. '</p>'
+		. '</div>';
+	}
+
+	public function conditionally_enqueue_inline_scripts( $hook ) {
+		if ( ! current_user_can( 'administrator' ) ) {
+			return;
+		}
+		if ( $this->premium_is_activated() ) {
+			return;
+		}
+
+		$user_id = get_current_user_id();
+		if ( get_user_meta( $user_id, self::UMETA_DISMISS, true ) === 'yes' ) {
+			return;
+		}
+
+		$streak = (int) get_option( self::OPTION_FAIL_STREAK, 0 );
+		if ( $streak < self::FAIL_THRESHOLD ) {
+			return;
+		}
+
+		$nonce = wp_create_nonce( 'yobm_notice_suggest_enable_captcha' );
+
+		$script = "
+			window.YOBM_Admin_Notice = {
+				doItLater: function() {
+					jQuery.ajax({
+						url: ajaxurl,
+						type: 'POST',
+						data: {
+							action: 'notice_suggest_enable_captcha',
+							security: '{$nonce}'
+						},
+						complete: function() {
+							jQuery('.notice.yobmp-notice-captcha').slideUp(150);
+						}
+					});
+				}
+			};
+		";
+		wp_enqueue_script( 'jquery' );
+		wp_add_inline_script( 'jquery', $script );
+	}
+
+	/* ========== AJAX dismiss ========== */
+
+	public function never_show_notice() {
+		check_ajax_referer( 'yobm_notice_suggest_enable_captcha', 'security' );
+		$user_id = get_current_user_id();
+		update_user_meta( $user_id, self::UMETA_DISMISS, time() + DAY_IN_SECONDS );
+		wp_die();
+	}
+
+	/* ========== Helpers ========== */
+
+	private function premium_is_activated() {
+		if ( ! function_exists( 'is_plugin_active' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+		$premium_active = is_plugin_active( 'wc-blacklist-manager-premium/wc-blacklist-manager-premium.php' );
+		$license_ok     = ( get_option( self::OPTION_LICENSE_STATUS ) === 'activated' );
+		return ( $premium_active && $license_ok );
+	}
+
+	private function get_premium_buy_url() {
+		// Update to your pricing/checkout URL.
+		return 'https://yoohw.com/product/woocommerce-blacklist-manager-premium/';
+	}
+}
+
+add_action( 'plugins_loaded', function () {
+	// Boot only if WooCommerce is active/loaded
+	if ( class_exists( 'WooCommerce' ) || function_exists( 'WC' ) ) {
+		new WC_Blacklist_Manager_Alert();
+	}
+});

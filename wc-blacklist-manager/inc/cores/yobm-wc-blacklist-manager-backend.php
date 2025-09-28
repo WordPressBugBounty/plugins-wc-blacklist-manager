@@ -125,6 +125,7 @@ class WC_Blacklist_Manager_Backend {
 		include_once plugin_dir_path(__FILE__) . '/api/sms/yobm-wc-blacklist-manager-update-sms-quota.php';
 		include_once plugin_dir_path(__FILE__) . '/api/yobm-wc-blacklist-manager-push-subscription.php';
 		include_once plugin_dir_path(__FILE__) . '../backend/yoohw-menu-dashboard.php';
+		include_once plugin_dir_path(__FILE__) . '../backend/yoohw-submenu-settings.php';
 		include_once plugin_dir_path(__FILE__) . '../backend/actions/sub/yobm-wc-blacklist-manager-function-helper.php';
 	}
 }

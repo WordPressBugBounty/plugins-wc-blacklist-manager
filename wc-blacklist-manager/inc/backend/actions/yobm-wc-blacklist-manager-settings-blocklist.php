@@ -281,32 +281,16 @@ class WC_Blacklist_Manager_Blocklisted_Actions {
 
 		// 1) Read phone with your normalization rules (supporting a dial code saved as meta).
 		$billing_phone = (string) $order->get_billing_phone();
-		$billing_dial_code = (string) $order->get_meta('billing_dial_code');
-		if ( '' === $billing_dial_code ) {
-			$billing_dial_code = (string) $order->get_meta('_billing_dial_code'); // fallback if you store underscored key
-		}
-
 		if ( strpos( $billing_phone, '+' ) !== 0 ) {
 			$billing_phone = preg_replace( '/[^0-9]/', '', $billing_phone );
 			$billing_phone = ltrim( $billing_phone, '0' );
-			if ( ! empty( $billing_dial_code ) && ! empty( $billing_phone ) ) {
-				$billing_phone = $billing_dial_code . $billing_phone;
-			}
 		}
 
 		// Shipping phone (if your store collects it)
 		$shipping_phone     = (string) $order->get_shipping_phone();
-		$shipping_dial_code = (string) $order->get_meta( 'shipping_dial_code' );
-		if ( '' === $shipping_dial_code ) {
-			$shipping_dial_code = (string) $order->get_meta( '_shipping_dial_code' );
-		}
-
 		if ( '' !== $shipping_phone && strpos( $shipping_phone, '+' ) !== 0 ) {
 			$shipping_phone = preg_replace( '/[^0-9]/', '', $shipping_phone );
 			$shipping_phone = ltrim( $shipping_phone, '0' );
-			if ( ! empty( $shipping_dial_code ) && ! empty( $shipping_phone ) ) {
-				$shipping_phone = $shipping_dial_code . $shipping_phone;
-			}
 		}
 
 		$billing_email = sanitize_email( (string) $order->get_billing_email() );

@@ -159,7 +159,6 @@ if (!defined('ABSPATH')) {
 								<option value="yo_credits" <?php selected($data['sms_service'], 'yo_credits'); ?>>Yo Credits</option>
 								<option value="twilio" <?php selected($data['sms_service'], 'twilio'); ?>>Twilio</option>
 								<option value="textmagic" <?php selected($data['sms_service'], 'textmagic'); ?>>Textmagic</option>
-								<option value="blackleaf" <?php selected($data['sms_service'], 'blackleaf'); ?>>Blackleaf</option>
 							</select>
 							<p id="sms_service_description" style="<?php echo ($data['sms_service'] !== 'yo_credits') ? '' : 'display: none;'; ?>" class="description">
 								<?php
@@ -203,7 +202,6 @@ if (!defined('ABSPATH')) {
 								</option>
 								<option disabled>Twilio</option>
 								<option disabled>Textmagic</option>
-								<option disabled>Blackleaf</option>
 							</select>
 							<p class="description"><?php echo esc_html__('Go premium to unlock other popular SMS services', 'wc-blacklist-manager'); ?> <a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a>
 						</td>

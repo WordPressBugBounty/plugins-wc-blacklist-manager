@@ -2,6 +2,10 @@
 
 == Changelog ==
 
+= 2.1.1 (Sep 28, 2025) =
+* Improve: Cleaned up old and unnecessary code.
+* Improve: WooCommerce 10.2 compatibility.
+
 = 2.1 (Sep 13, 2025) =
 * New: Added blocking reasons and description on the order page.
 * New: Supported the WooCommerce block-based checkout page.
