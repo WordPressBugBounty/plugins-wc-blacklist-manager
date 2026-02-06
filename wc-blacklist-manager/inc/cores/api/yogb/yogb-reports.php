@@ -1,7 +1,7 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-final class YOGB_BM_Client {
+final class YOGB_BM_Report {
 	// Server REST prefix (keep route part without /wp-json in the signature path)
 	const SERVER_BASE  = 'https://bmc.yoohw.com';
 	const REST_ROUTE   = '/yoohw-gbl/v1';
@@ -17,8 +17,24 @@ final class YOGB_BM_Client {
 
 	// ---- Public API --------------------------------------------------------
 
+	/**
+	 * Excluded WC statuses for reporting (hard-coded).
+	 */
+	private static function is_excluded_order_status( WC_Order $order ) : bool {
+		$status   = (string) $order->get_status(); // without "wc-"
+		$excluded = [ 'pending', 'failed', 'cancelled', 'on-hold' ];
+
+		return in_array( $status, $excluded, true );
+	}
+
 	/** Queue reports for each identity on the order (email, phone, ip, address). */
 	public static function queue_report_from_order( WC_Order $order, string $reason_code, string $description = '' ) : void {
+
+		// Hard gate: do not report excluded (high-noise) statuses.
+		if ( self::is_excluded_order_status( $order ) ) {
+			return;
+		}
+		
 		// Build a deterministic snapshot + hash
 		$snapshot = self::evidence_material_for_order( $order, $reason_code, $description );
 		$ev_hash  = self::compute_evidence_hash( $snapshot );
@@ -31,7 +47,11 @@ final class YOGB_BM_Client {
 
 		foreach ( $payloads as $p ) {
 			$idemp = self::make_idempotency_key_per_identity( $order, $reason_code, $p['identity'] );
-			$envelope = [ 'payload' => $p, 'idempotency' => $idemp ];
+			$envelope = [
+				'payload'     => $p,
+				'idempotency' => $idemp,
+				'order_id'    => (int) $order->get_id(),
+			];
 			$when = time() + 3;
 
 			$key = md5( wp_json_encode( [ $idemp, $p ] ) );
@@ -50,6 +70,8 @@ final class YOGB_BM_Client {
 
 		$payload = $args['payload'] ?? null;
 		$idemp   = $args['idempotency'] ?? '';
+		$order_id = isset( $args['order_id'] ) ? (int) $args['order_id'] : 0;
+
 		if ( ! $payload || ! $idemp ) return;
 
 		$res = self::post_json_signed(
@@ -57,6 +79,29 @@ final class YOGB_BM_Client {
 			$payload,
 			[ 'Idempotency-Key' => $idemp ]
 		);
+
+		// If success, try to store report_id on the order.
+		if ( ! empty( $res['ok'] ) && $order_id > 0 ) {
+			$body = json_decode( $res['body'] ?? '', true );
+
+			if ( is_array( $body ) && ! empty( $body['report_id'] ) ) {
+				$report_id = (string) $body['report_id']; // e.g. "rpt_123"
+
+				$order = wc_get_order( $order_id );
+				if ( $order ) {
+					$existing = $order->get_meta( '_yogb_gbl_report_ids', true );
+					if ( ! is_array( $existing ) ) {
+						$existing = $existing ? [ (string) $existing ] : [];
+					}
+
+					$existing[] = $report_id;
+					$existing   = array_values( array_unique( array_filter( $existing ) ) );
+
+					$order->update_meta_data( '_yogb_gbl_report_ids', $existing );
+					$order->save();
+				}
+			}
+		}
 
 		// Simple backoff on transient errors (5xx/429) – reschedule once
 		if ( empty($res['ok']) && in_array( (int) $res['code'], [429,500,502,503,504], true ) ) {
@@ -69,9 +114,9 @@ final class YOGB_BM_Client {
 		}
 
 		// Optional: log for visibility in debug.log
-		if ( defined('WP_DEBUG') && WP_DEBUG ) {
-			error_log( '[YOGB] report sent code=' . ($res['code'] ?? 0) . ' ok=' . (!empty($res['ok']) ? '1':'0') );
-		}
+		//if ( defined('WP_DEBUG') && WP_DEBUG ) {
+		//	error_log( '[YOGB] report sent code=' . ($res['code'] ?? 0) . ' ok=' . (!empty($res['ok']) ? '1':'0') );
+		//}
 	}
 
 	/** True if we have credentials. */
@@ -79,15 +124,12 @@ final class YOGB_BM_Client {
 		return (bool) get_option( self::OPT_KEY ) && (bool) get_option( self::OPT_SECRET );
 	}
 
-	// ---- Builders ----------------------------------------------------------
-
-	/** Build one payload per identity using your server's schema. */
-	private static function build_payloads_from_order( WC_Order $order, string $reason_code, string $description = '', ?string $evidence_hash = null ) : array {
-		$payloads = [];
-
+	/**
+	 * Build identity list (email, phone, ip, billing + shipping address) from an order.
+	 * Used both for reporting and for /check calls.
+	 */
+	public static function build_identities_from_order( WC_Order $order ) : array {
 		$billing_country = sanitize_text_field( $order->get_billing_country() );
-		$currency        = sanitize_text_field( $order->get_currency() );
-		$total           = (float) $order->get_total();
 		$email           = sanitize_email( $order->get_billing_email() );
 		$phone           = sanitize_text_field( $order->get_billing_phone() );
 		$ip              = sanitize_text_field( $order->get_customer_ip_address() );
@@ -112,23 +154,45 @@ final class YOGB_BM_Client {
 		]);
 		$ship_addr = implode( ', ', $ship_parts );
 
+		// Phone normalization: same behavior as reporting
 		if ( $phone ) {
 			// Only add prefix if it doesn't already start with '+'
-			if ( substr($phone, 0, 1) !== '+' ) {
-				$phone = ltrim($phone, '0');
-				$country_code = yobm_get_country_code_from_file($billing_country); // e.g., "1"
+			if ( substr( $phone, 0, 1 ) !== '+' ) {
+				$phone = ltrim( $phone, '0' );
+				if ( function_exists( 'yobm_get_country_code_from_file' ) && $billing_country ) {
+					$country_code = yobm_get_country_code_from_file( $billing_country ); // e.g., "1"
+				} else {
+					$country_code = '';
+				}
 				$phone = '+' . ( $country_code ? $country_code : '' ) . $phone;
 			}
 		}
 
 		$idents = [];
-		if ( $email )      $idents[] = [ 'type'=>'email',   'value'=>$email ];
-		if ( $phone )      $idents[] = [ 'type'=>'phone',   'value'=>$phone ];
-		if ( $ip )         $idents[] = [ 'type'=>'ip',      'value'=>$ip ];
-		if ( $bill_addr )  $idents[] = [ 'type'=>'address', 'value'=>$bill_addr ];
+		if ( $email )      $idents[] = [ 'type' => 'email',   'value' => $email ];
+		if ( $phone )      $idents[] = [ 'type' => 'phone',   'value' => $phone ];
+		if ( $ip )         $idents[] = [ 'type' => 'ip',      'value' => $ip ];
+		if ( $bill_addr )  $idents[] = [ 'type' => 'address', 'value' => $bill_addr ];
 		if ( $ship_addr && $ship_addr !== $bill_addr ) {
-			$idents[] = [ 'type'=>'address', 'value'=>$ship_addr ];
+			$idents[] = [ 'type' => 'address', 'value' => $ship_addr ];
 		}
+
+		return $idents;
+	}
+
+	// ---- Builders ----------------------------------------------------------
+
+	/** Build one payload per identity using your server's schema. */
+	private static function build_payloads_from_order( WC_Order $order, string $reason_code, string $description = '', ?string $evidence_hash = null ) : array {
+		$payloads = [];
+
+		$billing_country = sanitize_text_field( $order->get_billing_country() );
+		$currency        = sanitize_text_field( $order->get_currency() );
+		$total           = (float) $order->get_total();
+		$ip              = sanitize_text_field( $order->get_customer_ip_address() );
+
+		// Reuse the same identities for both reporting and checking
+		$idents = self::build_identities_from_order( $order );
 
 		$ttl_days = (int) get_option( 'yogb_bm_default_ttl_days', 365 );
 		$ttl_days = max( 1, min( 1095, $ttl_days ) ); // cap to server limits
@@ -143,7 +207,7 @@ final class YOGB_BM_Client {
 				'ip'           => $ip,
 			];
 			if ( $evidence_hash ) {
-				$ctx['evidence_hash'] = $evidence_hash; // ★ include the hash
+				$ctx['evidence_hash'] = $evidence_hash; // include the hash
 			}
 
 			$payloads[] = [
@@ -260,7 +324,7 @@ final class YOGB_BM_Client {
 		}
 
 		if ( ! $already_noted ) {
-			$order->add_order_note( 'BMC evidence hash: ' . $hash, false );
+			$order->add_order_note( 'GBL evidence hash: ' . $hash, false );
 			$order->update_meta_data( '_yogb_evidence_noted', 1 );
 		}
 
@@ -270,18 +334,35 @@ final class YOGB_BM_Client {
 
 	// ---- HTTP (signed) -----------------------------------------------------
 
-	/** POST JSON with HMAC headers to the server. (unchanged except header name fix) */
-	private static function post_json_signed( string $route, array $payload, array $extra_headers = [] ) : array {
-		if ( ! self::is_ready() ) return [ 'ok'=>false, 'code'=>0, 'err'=>'not_ready' ];
+	/** POST JSON with HMAC headers to the server. */
+	public static function post_json_signed( string $route, array $payload, array $extra_headers = [] ) : array {
+		if ( ! self::is_ready() ) {
+			return [
+				'ok'   => false,
+				'code' => 0,
+				'err'  => 'not_ready',
+			];
+		}
 
-		$url      = trailingslashit( self::SERVER_BASE ) . 'wp-json' . $route;
-		$method   = 'POST';
-		$body     = wp_json_encode( $payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
-		$ts       = (string) time();
-		$nonce    = wp_generate_uuid4();
+		// Encode payload safely.
+		$body = wp_json_encode( $payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
+		if ( false === $body ) {
+			return [
+				'ok'   => false,
+				'code' => 0,
+				'err'  => 'json_encode_failed',
+			];
+		}
 
-		$api_key  = (string) get_option( self::OPT_KEY );
-		$secret   = (string) get_option( self::OPT_SECRET );
+		// Build URL: SERVER_BASE should be like 'https://bmc.yoohw.com/'.
+		$url    = trailingslashit( self::SERVER_BASE ) . 'wp-json' . $route;
+		$method = 'POST';
+
+		$ts    = (string) time();
+		$nonce = wp_generate_uuid4();
+
+		$api_key = (string) get_option( self::OPT_KEY );
+		$secret  = (string) get_option( self::OPT_SECRET );
 
 		$canon = implode( "\n", [
 			$method,
@@ -296,28 +377,63 @@ final class YOGB_BM_Client {
 
 		$headers = array_merge( [
 			'Content-Type'        => 'application/json',
-			'User-Agent'          => 'YOGB-BM-Client/' . ( defined('WC_BLACKLIST_MANAGER_VERSION') ? WC_BLACKLIST_MANAGER_VERSION : 'dev' ),
+			'User-Agent'          => 'YOGB-BM-Client/' . ( defined( 'WC_BLACKLIST_MANAGER_VERSION' ) ? WC_BLACKLIST_MANAGER_VERSION : 'dev' ),
 			'X-API-Key'           => $api_key,
 			'X-Request-Timestamp' => $ts,
 			'X-Request-Nonce'     => $nonce,
 			'X-Signature'         => $sig,
 		], $extra_headers );
 
-		$res  = wp_remote_post( $url, [
-			'timeout' => 12,
-			'headers' => $headers,
-			'body'    => $body,
-		] );
+		/**
+		 * Decide timeout based on context:
+		 * - Frontend/checkout/admin: keep this small (e.g. 3s)
+		 * - Cron/background: can afford a bit longer (e.g. 12s)
+		 */
+		$default_timeout = 3;
+		if ( function_exists( 'wp_doing_cron' ) && wp_doing_cron() ) {
+			$default_timeout = 12;
+		}
+
+		// Allow override via filter if needed.
+		$timeout = (int) apply_filters( 'yogb_bm_http_timeout', $default_timeout, $route, $payload );
+
+		$args = [
+			'method'      => 'POST',
+			'timeout'     => max( 1, $timeout ), // never less than 1s
+			'redirection' => 3,
+			'blocking'    => true,
+			'headers'     => $headers,
+			'body'        => $body,
+			// Explicit, even though WP defaults to true.
+			'sslverify'   => true,
+		];
+
+		/**
+		 * Final chance to tweak args (debug proxies, etc).
+		 */
+		$args = apply_filters( 'yogb_bm_http_request_args', $args, $route, $payload );
+
+		$res = wp_remote_post( $url, $args );
 
 		if ( is_wp_error( $res ) ) {
-			return [ 'ok'=>false, 'code'=>0, 'err'=>$res->get_error_message() ];
+			// Timeout / DNS / SSL / connection issues.
+			return [
+				'ok'   => false,
+				'code' => 0,
+				'err'  => $res->get_error_message(),
+			];
 		}
-		$code = (int) wp_remote_retrieve_response_code( $res );
-		$rb   = wp_remote_retrieve_body( $res );
 
-		return [ 'ok' => $code >= 200 && $code < 300, 'code'=>$code, 'body'=>$rb ];
+		$code = (int) wp_remote_retrieve_response_code( $res );
+		$rb   = (string) wp_remote_retrieve_body( $res );
+
+		return [
+			'ok'   => $code >= 200 && $code < 300,
+			'code' => $code,
+			'body' => $rb,
+		];
 	}
 }
 
 // Register the worker
-add_action( YOGB_BM_Client::CRON_HOOK, [ 'YOGB_BM_Client', 'cron_send_report' ] );
+add_action( YOGB_BM_Report::CRON_HOOK, [ 'YOGB_BM_Report', 'cron_send_report' ] );

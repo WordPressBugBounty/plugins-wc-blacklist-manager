@@ -1,0 +1,774 @@
+/* Icons */
+.icon-button {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+}
+.red-button {
+    background: #d63638 !important;
+    color: white !important;
+    border-color: #b02e31 !important;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+}
+.red-button:hover {
+    background: rgb(192, 1, 1) !important;
+    border-color: rgb(192, 1, 1) !important;
+}
+.red-button:active {
+    border-color: rgb(192, 1, 1) !important;
+}
+.dashicons-flag, .dashicons-dismiss, .dashicons-trash, .dasicons-info-outline {
+    display: block;
+}
+
+/* Blacklist order action */
+.bm_order_actions {
+    display: flow-root;
+    border: 1px solid #c3c4c7;
+    padding: 0 1em;
+}
+.bm_order_actions h3 {
+    margin-top: 1em !important;
+}
+.bm_order_actions .button {
+    margin-right: 3px;
+}
+
+.bm_description {
+    display: inline-flex;
+    font-size: 0.9em;
+    margin-top: 0 !important;
+}
+.bm_description a {
+    text-decoration: none;
+}
+/* Block Modal */
+.bm-modal-backdrop {
+    display:none; 
+    position:fixed; 
+    inset:0; 
+    background:rgba(0,0,0,.4); 
+    z-index:100000; 
+}
+.bm-modal { 
+    position:fixed; 
+    z-index:100001; 
+    inset:auto; top:10%; 
+    left:50%; 
+    transform:translateX(-50%); 
+    width:520px; 
+    max-width:90vw; 
+    background:#fff; 
+    border-radius:10px; 
+    box-shadow:0 10px 30px rgba(0,0,0,.2); 
+}
+.bm-modal header { 
+    padding:14px 16px; 
+    border-bottom:1px solid #e5e5e5; 
+    font-weight:600; 
+}
+.bm-modal .bm-body { 
+    padding:16px; 
+}
+.bm-modal .bm-field { 
+    margin-bottom:12px; 
+}
+.bm-modal label { 
+    display:block; 
+    margin-bottom:6px; 
+    font-weight:600; }
+.bm-modal select, 
+.bm-modal textarea { 
+    width:100%; 
+}
+.bm-modal footer { 
+    display:flex; gap:8px; 
+    justify-content:flex-end; 
+    padding:12px 16px; 
+    border-top:1px solid #e5e5e5; 
+    background:#fafafa; 
+    border-radius:0 0 10px 10px; 
+}
+
+
+/* Order risk score metabox */
+.bm-order-risk-meta {
+	font-size: 12px;
+	line-height: 1.5;
+}
+
+.bm-order-risk-meta p {
+	margin: 10px 0;
+}
+
+.bm-order-risk-tier-usage {
+	color: #6b7280;
+}
+
+.bm-order-risk-tier-usage--limit,
+.yogb-tier-limit--reached {
+	color: #d63638; /* WP error red */
+	font-weight: 600;
+}
+
+.bm-decision-badge {
+	display: inline-block;
+	padding: 1px 6px;
+	border-radius: 999px;
+	font-size: 11px;
+	border: 1px solid #e5e7eb;
+	background: #f9fafb;
+	color: #111827;
+}
+
+/* allow / challenge / block */
+.bm-decision-allow {
+	background: #dcfce7;
+	color: #166534;
+	border-color: #bbf7d0;
+}
+
+.bm-decision-challenge {
+	background: #fef3c7;
+	color: #92400e;
+	border-color: #fde68a;
+}
+
+.bm-decision-block {
+	background: #fee2e2;
+	color: #b91c1c;
+	border-color: #fecaca;
+}
+
+.bm-gbl-identities {
+	margin-top: 4px;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.bm-gbl-identity {
+	border-radius: 4px;
+	border: 1px solid #e5e7eb;
+	background: #f9fafb;
+	padding: 4px 6px;
+}
+
+.bm-gbl-identity-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 2px;
+}
+
+.bm-gbl-identity-type {
+	font-size: 11px;
+	font-weight: 600;
+	color: #111827;
+}
+
+/* Highlight identities that are not clean (have reports / score) */
+.bm-gbl-identity--flagged {
+	border-color: #fecaca;
+	background: #fef2f2;
+}
+
+.bm-gbl-identity--flagged .bm-gbl-identity-type {
+	font-weight: 700;
+}
+
+.bm-gbl-identity--flagged .bm-gbl-identity-meta {
+	color: #b91c1c;
+}
+
+.bm-gbl-coverage {
+	margin-top: 10px;
+	font-size: 10px;
+	color: #6b7280;
+}
+
+.bm-order-risk-meta .woocommerce-help-tip {
+    margin: 0 !important;
+    float: right;
+}
+
+/* Premium labels */
+.yo-premium {
+    display: inline-flex;
+    align-items: center;    
+    color: #d63638;
+    border: solid 1px;
+    border-radius: 10px;
+    border-color: #a5a5a5;
+    padding: 12px;
+    margin-bottom: 10px;
+}
+form h2 {
+    display: inline-flex;
+    align-items: center;
+}
+form h2 .dashicons {
+    margin-right: 4px;
+}
+h2 .premium-text {
+    display: inline-flex;
+    align-items: center;
+}
+.premium-text {
+    color: #aaaaaa;
+}
+.premium-text .dashicons {
+    margin-right: 5px;
+}
+.premium-label {
+    display: inline-flex;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    color: #ffffff;
+    background-color: #d63638 !important;
+    margin-left: 10px;
+    padding: 5px 10px;
+    border-radius: 5px;
+}
+.premium-label::before {
+    font-family: 'dashicons';
+    content: "\f160";
+    margin-right: 4px;
+}
+
+.premium-label:hover {
+    color: #ffffff;
+    background-color: rgb(26, 156, 26) !important;
+}
+.premium-label:hover::before {
+    content: "\f528";
+}
+
+.yoohw_unlock {
+    display: inline-flex;
+    margin-right: 3px;
+}
+.yoohw_unlock:before {
+    font-family: 'dashicons';
+    content: "\f160";
+}
+.yoohw_unlock:hover::before {
+    content: "\f528";
+}
+
+/* Blocked users */
+th.column-name {
+    width: 15%;
+}
+.user-blocked-row .column-username a {
+    display: inline-flex;
+    align-items: center;
+}
+.user-blocked-row .column-username a:before {
+    font-family: 'dashicons';
+    content: '\f153';
+    font-size: 18px;
+    color: #d63638;
+    margin-right: 4px;
+}
+.user-blocked-row .column-username .row-actions a {
+    display: contents;
+}
+.user-blocked-row .column-username .row-actions a:before {
+    content: ''; /* Prevent adding icon to row actions */
+}
+
+/* Dashboard */
+.wc-blacklist-container, .summary-child {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px; /* Adjust the spacing between columns as needed */
+    align-items: flex-start; /* Align items at the top */
+}
+
+.wc-blacklist-container > div {
+    flex: 1;
+    min-width: 300px;
+    padding: 0 1.5em 1.5em;
+}
+
+.summary-column {
+    background-color: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 10px;
+    font-size: 13px;
+    margin-bottom: 20px;
+}
+
+.summary-column hr {
+    margin-bottom: 10px;
+}
+
+.summary-column label {
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    line-height: 1.3;
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.summary-column table {
+    margin-top: 5px;
+}
+
+.summary-column th, .summary-column td {
+    padding: 6px 14px 0;
+    text-align: left;
+    font-weight: 400;
+}
+
+.summary-column a {
+    text-decoration: none;
+}
+
+.summary-column .bm-notice {
+    display: flex;
+    align-items: center;
+    font-size: 12px;
+    gap: 6px;
+}
+
+.bm-notice img {
+    margin-right: 5px;
+}
+
+.bm-actions {
+    float: right;
+}
+
+.summary-child > div {
+    flex: 1;
+}
+
+.sum-premium {
+    font-size: 10px;
+    color: #ffffff;
+    background-color: #00a32a;
+    padding: 3px 5px;
+    border-radius: 3px;
+}
+
+.sum-disabled {
+    font-size: 10px;
+    color: #ffffff;
+    background-color: #c3c4c7;
+    padding: 3px 5px;
+    border-radius: 3px;
+}
+
+/* Address addition form */
+.country-state-container {
+    display: flex;
+    margin-bottom: 10px;
+}
+.country-state-container #hide-state-selection, .country-state-container input[type=text] {
+    margin-left: 6px;
+}
+.address-1-2-container, .city-postcode-container {
+    margin-bottom: 6px;
+}
+
+/* Search box */
+.wcbm-search-box {
+    margin: 7px 0 !important;
+}
+
+/* Reason Cell */
+.bm-reason-cell {
+  position: relative;
+  display: inline-block;
+}
+.bm-reason-popup {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 9999;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 8px 10px;
+  width: 240px;
+  margin-top: 4px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  white-space: normal;
+}
+.bm-reason-cell.active .bm-reason-popup {
+  display: block;
+}
+
+/* Table */
+#blacklisted .check-column, #blocked .check-column, #ip-banned .check-column, #customer-address .check-column, #domain-blocking .check-column {
+    padding: 20px 10px;
+    vertical-align: middle;
+}
+#blacklisted td, #blocked td, #ip-banned td, #customer-address td, #domain-blocking td {
+    vertical-align: middle;
+}
+
+/* Activity logs */
+.activity_logs th#timestamp {
+    width: 20ch;
+}
+.activity_logs th#type {
+    width: 6ch;
+}
+.activity_logs th#source {
+    width: 18ch;
+}
+.activity_logs th#action {
+    width: 10ch;
+}
+.activity_logs th#view {
+    width: 7ch;
+}
+
+.activity-log th, .activity-log td {
+    vertical-align: middle !important;
+    padding: 10px 0 !important;
+}
+
+.activity-log-source {
+    display: flex;
+    margin-top: 6px;
+}
+
+.activity-log-source img {
+    margin-right: 5px;
+}
+
+.activity-log-demo th {
+    color: #aaaaaa !important;
+}
+
+.activity-log-demo td {
+    color: #aaaaaa !important;
+}
+
+.activity-log-demo .check-column {
+    padding: 0 14px;
+}
+
+/* Settings */
+.label_child {
+    padding-left: 20px;
+}
+
+.yogb-secret-wrapper {
+	position: relative;
+	display: inline-block;
+}
+
+/* Make room for the icon on the right */
+#yogb_api_secret {
+	padding-right: 32px;
+}
+
+/* Icon button inside the field */
+.yogb-secret-toggle {
+	position: absolute;
+	right: 6px;
+	top: 50%;
+	transform: translateY(-50%);
+	border: 0;
+	background: transparent;
+	padding: 0;
+	margin: 0;
+	cursor: pointer;
+	line-height: 1;
+}
+
+.yogb-secret-toggle .dashicons {
+	font-size: 16px;
+    text-decoration: none;
+	width: 16px;
+	height: 16px;
+}
+
+.yogb-global-connection-warning.notice {
+	padding: 10px 12px;
+	border-left-width: 4px;
+	border-radius: 4px;
+}
+
+.yogb-global-connection-warning p {
+	margin: 4px 0;
+}
+
+.yogb-tier-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 2px 10px;
+	border-radius: 999px;
+	font-size: 11px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.06);
+	background: #f9fafb;
+	color: #111827;
+}
+
+.yogb-tier-badge .yogb-tier-dot {
+	width: 8px;
+	height: 8px;
+	border-radius: 999px;
+	background: #9ca3af; /* default */
+}
+
+/* Free */
+.yogb-tier-badge.yogb-tier-free {
+	background: #f9fafb;
+	color: #374151;
+}
+
+/* Basic */
+.yogb-tier-badge.yogb-tier-basic {
+	background: #e0f2fe;
+	color: #0369a1;
+}
+.yogb-tier-badge.yogb-tier-basic .yogb-tier-dot {
+	background: #0ea5e9;
+}
+
+/* Pro */
+.yogb-tier-badge.yogb-tier-pro {
+	background: #dcfce7;
+	color: #166534;
+}
+.yogb-tier-badge.yogb-tier-pro .yogb-tier-dot {
+	background: #22c55e;
+}
+
+/* Enterprise */
+.yogb-tier-badge.yogb-tier-enterprise {
+	background: #fef3c7;
+	color: #92400e;
+}
+.yogb-tier-badge.yogb-tier-enterprise .yogb-tier-dot {
+	background: #f97316;
+}
+
+.yogb-tier-limit {
+	margin-top: 4px;
+	max-width: 36rem;
+}
+
+.yogb-tier-cta {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 2px 10px;
+	border-radius: 999px;
+	font-size: 11px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	text-decoration: none;
+	border: 1px solid rgba(22, 163, 74, 0.4); /* green-ish outline */
+	background: #ffffff;
+	color: #15803d; /* green text */
+	box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.02);
+	transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, transform 0.05s ease;
+	cursor: pointer;
+}
+
+.yogb-tier-cta::after {
+	content: '↗';
+	margin-left: 4px;
+	font-size: 10px;
+	opacity: 0.8;
+}
+
+.yogb-tier-cta:hover,
+.yogb-tier-cta:focus {
+	background: #dcfce7; /* soft green */
+	color: #166534;
+	box-shadow: 0 0 0 1px rgba(22, 163, 74, 0.5);
+	transform: translateY(-0.5px);
+}
+
+.yogb-tier-cta:active {
+	transform: translateY(0);
+	box-shadow: 0 0 0 1px rgba(22, 163, 74, 0.3);
+}
+
+/* Upload form */
+.yobm-upload-form {
+    background: #f6f7f7;
+    border: 1px solid #c3c4c7;
+    padding: 20px;
+}
+
+/* Connection */
+.subsite-list-demo {
+    width: auto;
+    max-width: 800px;
+}
+
+.subsite-list-demo th {
+    padding: 10px;
+    font-weight: 400;
+    color: #aaaaaa !important;
+}
+
+.subsite-list-demo td {
+    color: #aaaaaa !important;
+}
+
+.subsite-list-demo .column-id {
+    width: 4ch !important;
+}
+
+.subsite-list-demo .column-status {
+    width: 12ch;
+}
+
+.subsite-list-demo .column-actions {
+    width: 8ch;
+}
+
+
+/* Mobile Screens */
+/* Responsive admin form for mobile (matches WP admin breakpoint) */
+@media screen and (max-width: 782px) {
+  /* Make each table row a block "section" */
+  .form-table,
+  .form-table tbody,
+  .form-table tr {
+    display: block;
+    width: 100%;
+  }
+
+  .form-table tr {
+    width: auto;
+    margin: 0 0 16px;
+    border: 1px solid #e2e4e7;
+    border-radius: 8px;
+    padding: 12px;
+    background: #fff;
+  }
+
+  /* Put the label above the field */
+  .form-table th {
+    display: block;
+    width: 100%;
+    padding: 0 0 6px !important;
+    margin: 0;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  /* Field cell becomes a simple block */
+  .form-table td {
+    display: block;
+    width: 100%;
+    padding: 0 !important;
+    margin: 0;
+  }
+
+  /* Inputs/selects span full width */
+  .form-table input[type="text"],
+  .form-table input[type="email"],
+  .form-table input[type="tel"],
+  .form-table select {
+    width: 100% !important;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* First/Last name: stack on mobile */
+  #new_first_name,
+  #new_last_name {
+    width: 100% !important;
+    margin: 0 0 8px;
+  }
+
+  /* Phone holder + hidden fields: keep visible input tidy */
+  .wc-blacklist-container .iti {
+    display: block;
+  }
+
+  /* Submit button full width */
+  .form-table input[type="submit"],
+  .form-table .button.button-primary,
+  .form-table .button.action {
+    width: 100%;
+    box-sizing: border-box;
+    height: 40px;
+  }
+  p.search-box input[type=submit] {margin-bottom:0;}
+
+  /* Tighten the final row (submit) container */
+  .form-table tr:last-child {
+    margin-bottom: 0;
+  }
+
+  .wp-list-table-wrapper,
+  .wp-list-table {
+    width: 100%;
+  }
+
+  /* If you can, wrap the table in a div.wp-list-table-wrapper; if not, this still works on the table itself */
+  .bm_dashboard .wp-list-table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  /* Make header stick while scrolling horizontally (optional) */
+  .bm_dashboard .wp-list-table thead th {
+    position: sticky;
+    top: 0;               /* header sticks to top of scroll container */
+    z-index: 2;
+    background: #f6f7f7;  /* match WP admin */
+  }
+
+  /* Keep the checkbox column narrow */
+  .bm_dashboard .wp-list-table .check-column {
+    width: 44px;
+    min-width: 44px;
+    text-align: center;
+  }
+
+  /* Actions column: keep buttons readable */
+  .bm_dashboard .wp-list-table td:last-child,
+  .bm_dashboard .wp-list-table th:last-child {
+    white-space: nowrap;
+  }
+
+  /* Tighter row spacing on mobile */
+  .bm_dashboard .wp-list-table td, 
+  .bm_dashboard .wp-list-table th {
+    padding: 8px 10px;
+  }
+
+  /* Make action buttons inline and touch-friendly */
+  .bm_dashboard .wp-list-table td a.button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 34px;
+    padding: 0 10px;
+    margin-right: 6px;
+  }
+}
+
+/* Better spacing on desktop for the two name inputs (optional) */
+@media screen and (min-width: 783px) {
+  #new_first_name {
+    margin-right: 8px;
+  }
+}

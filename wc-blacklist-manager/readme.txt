@@ -2,10 +2,10 @@
 Contributors: yoohw, baonguyen0310
 Tags: blacklist customers, spam prevention, fraud prevention, woocommerce anti fraud, Prevent fake orders
 Requires at least: 6.3
-Tested up to: 6.8
-WC tested up to: 10.2
-Requires PHP: 7.0
-Stable tag: 2.1.1
+Tested up to: 6.9
+WC tested up to: 10.4
+Requires PHP: 7.4
+Stable tag: 2.1.7
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,7 +19,7 @@ Easily blacklist **phone numbers**, **email addresses**, **IP addresses**, and *
 
 Originally built for WooCommerce, it now extends its protection to popular form plugins including **Contact Form 7**, **Gravity Forms**, and **WPForms**.
 
-[Premium version](https://yoohw.com/product/woocommerce-blacklist-manager-premium/) | [Premium for Forms](https://yoohw.com/product/blacklist-manager-premium-for-forms/) | [Documentation](https://yoohw.com/docs/category/woocommerce-blacklist-manager/) | [Support](https://yoohw.com/support/)  | [Demo](https://sandbox.yoohw.com/demo/yobm_demo.html)
+[Global Blacklist](https://yoohw.com/global-blacklist-plan/) | [Premium version](https://yoohw.com/product/blacklist-manager-premium/) | [Documentation](https://yoohw.com/docs/category/woocommerce-blacklist-manager/) | [Support](https://yoohw.com/support/)  | [Demo](https://sandbox.yoohw.com/demo/yobm_demo.html)
 
 == Features ==
 
@@ -52,6 +52,12 @@ Building on the robust features of the free version, the premium version offers 
 * **Prevent Disposable Phones**: Block orders and automate adding to the blocklist  if the customer is using a disposable phone number.
 * **Optional Payment Methods**: Disable the payment methods for the customers are in the Suspects list.
 
+**Global Blacklist Decisions**
+
+The Global Blacklist Decisions service helps protect your store by checking customer email, IP, phone, and address against a shared fraud-prevention database. It identifies suspicious or high-risk identities used in fraudulent activity across multiple merchants, giving you real-time warnings before the order is processed. This reduces payment fraud, prevents stolen-card testing, and lowers the risk of chargebacks, helping your business stay safe without slowing down checkout.
+
+[Know more about the Global Blacklist Decisions](https://yoohw.com/global-blacklist-plan/)
+
 **Fully Automation**
 
 Fully Automated-Protecting against fraud and unauthorized transactions, hands-free to focus on growing your E-commerce website!
@@ -64,9 +70,10 @@ Fully Automated-Protecting against fraud and unauthorized transactions, hands-fr
 * **Detect IP coordinates**: Action if the IP coordinates radius does not match the address coordinates radius.
 * **Card country & AVS checks**: High-level checking of the payment card country and billing country is not the same, also AVS.
 * **Set High risk card country**: Manually establishing the list of nations in order to safeguard payments made via your website.
+* **Suspicious PayPal payer**: Detect PayPal accounts that have been linked to multiple customer profiles, use mismatched billing information.
 * **Blacklist based on order statuses**: Set the statues to automatically add the customer to the suspect and blocked list.
 
-[Explore the Automation features](https://yoohw.com/product/woocommerce-blacklist-manager-premium/#automation)
+[Explore the Automation features](https://yoohw.com/docs/woocommerce-blacklist-manager/settings/automation/)
 
 **Powerful Recording Activity Logs**
 
@@ -96,13 +103,15 @@ This real-time validation not only improves the user experience by providing ins
 
 **Prevent Orders and Access from Bots**
 
-Protect every corner of your website and WooCommerce store with our comprehensive bot-blocking solution, now with expanded coverage for user authentication flows. Key features include:
+Protect your WooCommerce store from automated abuse with a layered, invisible anti-bot system designed to stop fake orders without affecting real customers.
 
-* **Advanced bot detection**: AI-driven behavioral analysis stops spam bots in checkout, login, registration, and comment forms alike.
-* **Seamless user experience**: Invisible security layers—Google Cloudflare Turnstile, reCAPTCHA v3/v2, and hCaptcha—ensure legitimate customers sail through checkout, login, and signup without friction.
-* **Expanded form protection**: Require CAPTCHA challenges on login and registration pages to block automated account creation and credential stuffing attacks.
-* **API protection**: Safeguards your checkout, login, and registration endpoints from bots abusing your REST API.
-* **Efficient and lightweight**: Delivers enterprise-grade security across all forms without slowing down your store.
+* **Advanced bot detection**: Blocks automated checkout, login, registration, and comment spam using behavioral and session-based analysis.
+* **Frontend execution proof**: Verifies that checkout requests come from real browsers running JavaScript, not scripted bots.
+* **Session continuity validation**: Detects and blocks bots that skip normal cart and checkout flow.
+* **Browser fingerprint anomaly detection**: Identifies headless browsers, automation tools, and abnormal client behavior using risk-based scoring.
+* **Invisible verification layers**: Seamlessly integrates Google Cloudflare Turnstile, reCAPTCHA v3/v2, and hCaptcha with no friction for legitimate users.
+* **API & Blocks checkout protection**: Secures Classic Checkout, Block-based Checkout, and Store API endpoints from direct bot abuse.
+* **Efficient and lightweight**: Enterprise-grade protection that runs silently without slowing down your store.
 
 **Payment Detection & Protection**
 
@@ -145,7 +154,7 @@ Our premier solution for combating fraud and unauthorized transactions: we've in
 
 = Plugin integrations =
 
-* [WooComerce Advanced Account](https://wordpress.org/plugins/wc-advanced-accounts/)
+* [WooComerce Advanced Accounts](https://wordpress.org/plugins/wc-advanced-accounts/)
 * [WooCommerce Stripe Gateway](https://wordpress.org/plugins/woocommerce-gateway-stripe/)
 * [Payment Plugins for Stripe WooCommerce](https://wordpress.org/plugins/woo-stripe-payment/)
 * [WooCommerce PayPal Payments](https://wordpress.org/plugins/woocommerce-paypal-payments/)
@@ -154,11 +163,12 @@ Our premier solution for combating fraud and unauthorized transactions: we've in
 
 = Service integrations =
 
+* [Global Blacklist](https://yoohw.com/global-blacklist-plan/)
 * [Cloudflare](https://www.cloudflare.com/)
 * [reCaptcha v3/v2](https://www.google.com/recaptcha/about/)
 * [hCaptcha](https://www.hcaptcha.com/)
-* [ip-api](https://ip-api.com/)
-* [Usercheck](https://www.usercheck.com/)
+* [IP-api](https://ip-api.com/)
+* [BigDataCloud](https://www.bigdatacloud.com/)
 * [ZeroBounce](https://www.zerobounce.net?ref=owqwzgy) 
 * [NumCheckr](https://numcheckr.com/)
 * [Google Maps](https://mapsplatform.google.com/)
@@ -218,6 +228,41 @@ A: There is no set limit within the plugin, but practical limitations depend on 
 A: No, the plugin is optimized for performance. It performs blacklist checks efficiently and only at appropriate times (like form submission or checkout), so it won’t noticeably impact your site speed.
 
 == Changelog ==
+
+= 2.1.7 (Jan 10, 2026) =
+* Update: Excluded blocking report from 'pending, failed, cancelled, on-hold' order statuses to Global Blacklist.
+* Improve: Changed some incorrect translation strings.
+
+= 2.1.6 (Dec 12, 2025) =
+* Update: Global Blacklist checks now run asynchronously via Action Scheduler to keep checkout fast and responsive.
+* Update: Changed estimated risk score of Global Blacklist from the percentage to the numeric.
+* Improve: Appears both suspect and block buttons for quicker action at the blacklist actions.
+* Improve: Added the description for each block reason at the blacklist actions.
+* Improve: Return order checking if the site is not connected to the Global Blacklist.
+
+= 2.1.5 (Dec 6, 2025) =
+* New: Flagged identities are now clickable and open a detailed popup showing full risk summaries and report history.
+* Update: Classic shortcode checkout now fully hard-blocks bots via exceptions.
+* Fix: Called `send_email_order_block` even when the identities are not blocked.
+* Improve: Improved admin UX with clearer risk indicators and structured detail display.
+
+= 2.1.4 (Dec 1, 2025) =
+* New: Introduced Global Blacklist integration with full settings panel, including Site Global ID, API key, and Secret key.
+* New: Added tier detection (Free, Basic, Pro, Enterprise) with badge display and monthly usage counter.
+* New: Added “Enable Global Blacklist” activation banner with instant activation action.
+* New: Added Order Risk Score metabox showing order tier, decision (allow, challenge, block), and raw Global Blacklist results.
+* New: Added detailed identity cards (email, phone, IP, address) with risk level, report count, score, and last reported timestamp.
+* Improve: Some minor improvements.
+
+= 2.1.3 (Nov 12, 2025) =
+* Update: The dashboard now performs smoothly on mobile devices.
+* Update: Replaced the activity log table with `WP_List_Table` for better performance, especially on mobile.
+* Update: Added new styles to make the activity log table look nicer.
+
+= 2.1.2 (Oct 28, 2025) =
+* Update: Do not appear the blacklist actions for subscription orders.
+* Fix: Did not add the order note during add the customer to the suspect list.
+* Improve: WooCommerce 10.3 compatibility
 
 = 2.1.1 (Sep 28, 2025) =
 * Improve: Cleaned up old and unnecessary code.

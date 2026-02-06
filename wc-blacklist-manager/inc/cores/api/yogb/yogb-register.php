@@ -5,7 +5,7 @@ if ( ! defined( 'YOGB_BM_ALLOW_NONPROD' ) ) {
     define( 'YOGB_BM_ALLOW_NONPROD', false );
 }
 
-class WC_Blacklist_Manager_Registrar {
+class YOGB_BM_Registrar {
 	/* Storage keys */
 	const OPT_API_KEY     = 'yogb_bm_api_key';
 	const OPT_API_SECRET  = 'yogb_bm_api_secret';
@@ -81,8 +81,16 @@ class WC_Blacklist_Manager_Registrar {
 		}, 10, 3 );
 
 		// Cron worker(s)
-		add_action( self::CRON_HOOK, [ __CLASS__, 'run_registration' ] );
+		add_action( self::CRON_HOOK, function() {
+			YOGB_BM_Registrar::run_registration(true);
+		});
 		add_action( 'wc_bm_run_registration', [ __CLASS__, 'run_registration' ] ); // back-compat
+
+		// Manual retry from settings page.
+		add_action( 'admin_post_yogb_bm_retry_registration', [ __CLASS__, 'handle_manual_retry' ] );
+
+		// Show result notice on settings pages.
+		add_action( 'admin_notices', [ __CLASS__, 'maybe_show_retry_notice' ] );
 	}
 
 	/** Activation */
@@ -91,29 +99,49 @@ class WC_Blacklist_Manager_Registrar {
 		if ( $nonprod && ! YOGB_BM_ALLOW_NONPROD ) {
 			return;
 		}
-		self::schedule_registration();
+		self::schedule_registration( 60 );
 	}
 
-	/** Try to register when keys missing or version changed */
+	/** Try to register when keys missing or version changed (admin context helper) */
 	private static function maybe_register_on_admin() {
 		[ $nonprod, $why ] = self::detect_nonprod();
 		if ( $nonprod && ! YOGB_BM_ALLOW_NONPROD ) {
 			return;
 		}
 
-		$have_keys  = get_option( self::OPT_API_KEY ) && get_option( self::OPT_API_SECRET );
-		$stored_ver = get_option( 'wc_blacklist_manager_version' );
-		$need       = ( ! $have_keys || $stored_ver !== WC_BLACKLIST_MANAGER_VERSION );
+		$api_key     = get_option( self::OPT_API_KEY );
+		$api_secret  = get_option( self::OPT_API_SECRET );
+		$reporter_id = get_option( self::OPT_REPORTER_ID );
 
-		if ( $need ) {
-			self::run_registration(true);
+		$have_full_creds = ( $api_key && $api_secret && $reporter_id );
+		$stored_ver = get_option( 'wc_blacklist_manager_version' );
+		$need = ( ! $have_full_creds || $stored_ver !== WC_BLACKLIST_MANAGER_VERSION );
+
+		if ( ! $need ) {
+			return;
+		}
+
+		// Respect cooldown: if we’re in a backoff window, do not trigger anything now.
+		$cooldown_until = (int) get_option( 'yogb_bm_reg_cooldown_until', 0 );
+		if ( time() < $cooldown_until ) {
+			return;
+		}
+
+		// Only schedule a single event; do NOT run immediately on admin_init.
+		if ( ! wp_next_scheduled( self::CRON_HOOK ) ) {
 			self::schedule_registration();
 		}
 	}
 
-	private static function schedule_registration() {
+	private static function schedule_registration( int $delay = 60 ) {
+		// Don’t schedule if we are in a cooldown window
+		$cooldown_until = (int) get_option( 'yogb_bm_reg_cooldown_until', 0 );
+		if ( time() < $cooldown_until ) {
+			return;
+		}
+
 		if ( ! wp_next_scheduled( self::CRON_HOOK ) ) {
-			wp_schedule_single_event( time() + 5, self::CRON_HOOK );
+			wp_schedule_single_event( time() + max( 10, $delay ), self::CRON_HOOK );
 		}
 	}
 
@@ -134,16 +162,46 @@ class WC_Blacklist_Manager_Registrar {
 	/** Main register flow */
 	public static function run_registration( $quiet = false ) {
 		// Single-flight lock (prevents repeated runs within 60s)
-		if ( get_transient('yogb_bm_reg_lock') ) return;
+		if ( get_transient('yogb_bm_reg_lock') ) {
+			return;
+		}
 		set_transient('yogb_bm_reg_lock', 1, 60);
 
 		$unlock = function() { delete_transient('yogb_bm_reg_lock'); };
 
+		// Global cooldown window (e.g. after server 429)
+		$cooldown_until = (int) get_option( 'yogb_bm_reg_cooldown_until', 0 );
+		if ( time() < $cooldown_until ) {
+			$unlock();
+			return;
+		}
+
+		// Hard cap on number of attempts to avoid infinite retries
+		$attempts = (int) get_option( 'yogb_bm_reg_attempts', 0 );
+		if ( $attempts >= 10 ) { // adjust threshold as you like
+			if ( ! $quiet ) {
+				self::admin_notice_once(
+					'yogb_bm_reg_max_attempts',
+					'Blacklist Manager registration has been paused after multiple failed attempts. Please check your site configuration or contact support.'
+				);
+			}
+			$unlock();
+			return;
+		}
+		update_option( 'yogb_bm_reg_attempts', $attempts + 1, false );
+
 		try {
 			// Already registered?
-			if ( get_option( self::OPT_API_KEY ) && get_option( self::OPT_API_SECRET ) ) {
-				// Clear any backoff on success
-				delete_option('yogb_bm_reg_backoff');
+			$api_key     = get_option( self::OPT_API_KEY );
+			$api_secret  = get_option( self::OPT_API_SECRET );
+			$reporter_id = get_option( self::OPT_REPORTER_ID );
+
+			// Only treat as fully registered if reporter_id is present.
+			if ( $api_key && $api_secret && $reporter_id ) {
+				// Clear backoff & attempts & cooldown on success
+				delete_option( 'yogb_bm_reg_backoff' );
+				delete_option( 'yogb_bm_reg_attempts' );
+				delete_option( 'yogb_bm_reg_cooldown_until' );
 				$unlock();
 				return;
 			}
@@ -162,7 +220,12 @@ class WC_Blacklist_Manager_Registrar {
 			$email      = get_option( 'admin_email' );
 
 			if ( empty( $domain ) || empty( $email ) ) {
-				if ( ! $quiet ) self::admin_notice_once( 'yogb_bm_reg_missing', 'Registration skipped: missing site domain or admin email.' );
+				if ( ! $quiet ) {
+					self::admin_notice_once(
+						'yogb_bm_reg_missing',
+						'Registration skipped: missing site domain or admin email.'
+					);
+				}
 				$unlock();
 				return;
 			}
@@ -188,8 +251,26 @@ class WC_Blacklist_Manager_Registrar {
 				$unlock();
 				return;
 			}
-			if ( (int) wp_remote_retrieve_response_code( $start ) !== 201 ) {
-				self::schedule_registration_with_backoff( $quiet, 'start_code', (string) wp_remote_retrieve_response_code( $start ) );
+
+			$start_code       = (int) wp_remote_retrieve_response_code( $start );
+			$start_retry_after = (int) wp_remote_retrieve_header( $start, 'retry-after' );
+
+			if ( $start_code !== 201 ) {
+				// If server is rate-limiting us, honor Retry-After and set a cooldown.
+				if ( $start_code === 429 ) {
+					self::schedule_registration_with_backoff(
+						$quiet,
+						'start_429',
+						'rate_limited',
+						$start_retry_after
+					);
+				} else {
+					self::schedule_registration_with_backoff(
+						$quiet,
+						'start_code_' . $start_code,
+						'http_' . $start_code
+					);
+				}
 				$unlock();
 				return;
 			}
@@ -226,8 +307,25 @@ class WC_Blacklist_Manager_Registrar {
 				$unlock();
 				return;
 			}
-			if ( (int) wp_remote_retrieve_response_code( $verify ) !== 200 ) {
-				self::schedule_registration_with_backoff( $quiet, 'verify_code', (string) wp_remote_retrieve_response_code( $verify ) );
+
+			$verify_code        = (int) wp_remote_retrieve_response_code( $verify );
+			$verify_retry_after = (int) wp_remote_retrieve_header( $verify, 'retry-after' );
+
+			if ( $verify_code !== 200 ) {
+				if ( $verify_code === 429 ) {
+					self::schedule_registration_with_backoff(
+						$quiet,
+						'verify_429',
+						'rate_limited',
+						$verify_retry_after
+					);
+				} else {
+					self::schedule_registration_with_backoff(
+						$quiet,
+						'verify_code_' . $verify_code,
+						'http_' . $verify_code
+					);
+				}
 				$unlock();
 				return;
 			}
@@ -242,12 +340,21 @@ class WC_Blacklist_Manager_Registrar {
 			// Success — store keys and clear challenge token
 			update_option( self::OPT_API_KEY,    sanitize_text_field( $res['api_key'] ),   false );
 			update_option( self::OPT_API_SECRET, sanitize_text_field( $res['api_secret'] ), false );
-			if ( ! empty( $res['reporter_id'] ) ) update_option( self::OPT_REPORTER_ID, (int) $res['reporter_id'], false );
+			if ( ! empty( $res['reporter_id'] ) ) {
+				update_option( self::OPT_REPORTER_ID, (int) $res['reporter_id'], false );
+			}
 
 			delete_transient( self::TRANSIENT_PREFIX . $challenge_id );
 			delete_option( 'yogb_bm_reg_backoff' );
+			delete_option( 'yogb_bm_reg_cooldown_until' );
+			delete_option( 'yogb_bm_reg_attempts' );
 
-			if ( ! $quiet ) self::admin_notice_once( 'yogb_bm_reg_ok', 'Blacklist Manager registered with the global server successfully.' );
+			if ( ! $quiet ) {
+				self::admin_notice_once(
+					'yogb_bm_reg_ok',
+					'Blacklist Manager registered with the global server successfully.'
+				);
+			}
 
 		} finally {
 			$unlock();
@@ -255,17 +362,98 @@ class WC_Blacklist_Manager_Registrar {
 	}
 
 	/** Exponential backoff + jitter when registration fails. */
-	private static function schedule_registration_with_backoff( bool $quiet, string $code, string $msg = '' ) : void {
+	private static function schedule_registration_with_backoff(
+		bool $quiet,
+		string $code,
+		string $msg = '',
+		int $retry_after = 0
+	) : void {
 		if ( ! $quiet ) {
-			self::admin_notice_once( 'yogb_bm_reg_retry_' . $code, 'Registration will retry soon (' . esc_html($code) . ').' );
+			self::admin_notice_once(
+				'yogb_bm_reg_retry_' . $code,
+				'Registration will retry later (' . esc_html( $code ) . ').'
+			);
 		}
-		$backoff = (int) get_option( 'yogb_bm_reg_backoff', 60 ); // start at 60s
-		$backoff = max( 60, min( $backoff * 2, 6 * HOUR_IN_SECONDS ) ); // cap at 6h
+
+		// If server told us exactly when to back off, honor that.
+		if ( $retry_after > 0 ) {
+			$backoff = max( 60, $retry_after );
+		} else {
+			$backoff = (int) get_option( 'yogb_bm_reg_backoff', 60 ); // start at 60s
+			$backoff = max( 60, min( $backoff * 2, 6 * HOUR_IN_SECONDS ) ); // cap at 6h
+		}
+
 		update_option( 'yogb_bm_reg_backoff', $backoff, false );
 
-		$when = time() + $backoff + wp_rand( 0, 120 ); // jitter
+		// Set a hard cooldown until this time – both cron and admin_init respect it.
+		$cooldown_until = time() + $backoff;
+		update_option( 'yogb_bm_reg_cooldown_until', $cooldown_until, false );
+
+		$when = $cooldown_until + wp_rand( 0, 120 ); // small jitter
 		if ( ! wp_next_scheduled( self::CRON_HOOK ) ) {
 			wp_schedule_single_event( $when, self::CRON_HOOK );
+		}
+	}
+
+	public static function handle_manual_retry() {
+		// Capability check – adjust if you prefer a different capability.
+		if ( ! current_user_can( 'manage_woocommerce' ) && ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You are not allowed to perform this action.', 'wc-blacklist-manager' ) );
+		}
+
+		// Nonce check.
+		if ( ! isset( $_GET['yogb_bm_retry_nonce'] ) ) {
+			wp_die( esc_html__( 'Missing security token.', 'wc-blacklist-manager' ) );
+		}
+
+		if ( ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['yogb_bm_retry_nonce'] ) ), 'yogb_bm_retry_registration' ) ) {
+			wp_die( esc_html__( 'Security check failed.', 'wc-blacklist-manager' ) );
+		}
+
+		// Clear any cooldown / backoff / attempts / lock so manual retry always runs.
+		delete_option( 'yogb_bm_reg_cooldown_until' );
+		delete_option( 'yogb_bm_reg_backoff' );
+		delete_option( 'yogb_bm_reg_attempts' );
+		delete_transient( 'yogb_bm_reg_lock' );
+
+		// Run registration in quiet mode – we’ll show our own notice after redirect.
+		self::run_registration( true );
+
+		// Decide if it was successful: check for full credentials.
+		$api_key     = get_option( self::OPT_API_KEY );
+		$api_secret  = get_option( self::OPT_API_SECRET );
+		$reporter_id = get_option( self::OPT_REPORTER_ID );
+
+		$status = ( $api_key && $api_secret && $reporter_id ) ? 'success' : 'error';
+
+		// Redirect back to the settings screen with a result flag.
+		$redirect = wp_get_referer();
+		if ( ! $redirect ) {
+			// Fallback – adjust to your exact tab/section if needed.
+			$redirect = admin_url( 'admin.php?page=wc-settings' );
+		}
+
+		$redirect = add_query_arg( 'yogb_bm_retry', $status, $redirect );
+
+		wp_safe_redirect( $redirect );
+		exit;
+	}
+
+	public static function maybe_show_retry_notice() {
+		if ( empty( $_GET['yogb_bm_retry'] ) ) {
+			return;
+		}
+
+		$status = sanitize_text_field( wp_unslash( $_GET['yogb_bm_retry'] ) );
+
+		if ( 'success' === $status ) {
+			echo '<div class="notice notice-success is-dismissible"><p>'
+				. esc_html__( 'Global Blacklist registration completed successfully.', 'wc-blacklist-manager' )
+				. '</p></div>';
+		} elseif ( 'error' === $status ) {
+			echo '<div class="notice notice-error is-dismissible"><p>'
+				. esc_html__( 'Global Blacklist registration did not complete. Please check your site domain, HTTPS configuration, and firewall/REST access, or contact support.', 'wc-blacklist-manager' )
+				. '</p></div>';
 		}
 	}
 
@@ -363,4 +551,4 @@ class WC_Blacklist_Manager_Registrar {
 	}
 }
 
-WC_Blacklist_Manager_Registrar::init();
+YOGB_BM_Registrar::init();
