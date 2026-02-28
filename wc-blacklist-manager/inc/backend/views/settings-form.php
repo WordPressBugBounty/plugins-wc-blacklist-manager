@@ -133,7 +133,7 @@ if (!defined('ABSPATH')) {
 							<option value="1" <?php selected($settings['ip_blacklist_enabled'], '1'); ?>><?php echo esc_html__('Limited blocking', 'wc-blacklist-manager'); ?></option>
 							<option value="2" <?php selected($settings['ip_blacklist_enabled'], '2'); ?> disabled><?php echo esc_html__('Prevent access', 'wc-blacklist-manager'); ?></option>
 						</select>
-						<p class="description"><?php echo __('<b>Limited blocking</b>: Still allow the blocked visitors to access your site but prevent their actions.', 'wc-blacklist-manager'); ?><br><?php echo __('<b>Prevent access</b>: Fully prevent the blocked visitors from accessing your site.', 'wc-blacklist-manager'); ?></p>
+						<p class="description"><?php echo esc_html('<b>Limited blocking</b>: Still allow the blocked visitors to access your site but prevent their actions.', 'wc-blacklist-manager'); ?><br><?php echo esc_html('<b>Prevent access</b>: Fully prevent the blocked visitors from accessing your site.', 'wc-blacklist-manager'); ?></p>
 					</td>
 				</tr>
 				<?php if ($woocommerce_active): ?>
@@ -428,17 +428,17 @@ if (!defined('ABSPATH')) {
 			// Translate / prettify label.
 			switch ( $tier ) {
 				case 'basic':
-					$tier_label = __( 'Basic', 'wc-blacklist-manager' );
+					$tier_label = esc_html( 'Basic', 'wc-blacklist-manager' );
 					break;
 				case 'pro':
-					$tier_label = __( 'Pro', 'wc-blacklist-manager' );
+					$tier_label = esc_html( 'Pro', 'wc-blacklist-manager' );
 					break;
 				case 'enterprise':
-					$tier_label = __( 'Enterprise', 'wc-blacklist-manager' );
+					$tier_label = esc_html( 'Enterprise', 'wc-blacklist-manager' );
 					break;
 				case 'free':
 				default:
-					$tier_label = __( 'Free', 'wc-blacklist-manager' );
+					$tier_label = esc_html( 'Free', 'wc-blacklist-manager' );
 					break;
 			}
 
@@ -720,7 +720,7 @@ if (!defined('ABSPATH')) {
 									icon.classList.add('dashicons-hidden');
 								}
 								if (sr) {
-									sr.textContent = '<?php echo esc_js( __( 'Hide secret key', 'wc-blacklist-manager' ) ); ?>';
+									sr.textContent = '<?php echo esc_js( esc_html( 'Hide secret key', 'wc-blacklist-manager' ) ); ?>';
 								}
 							} else {
 								input.type = 'password';
@@ -729,7 +729,7 @@ if (!defined('ABSPATH')) {
 									icon.classList.add('dashicons-visibility');
 								}
 								if (sr) {
-									sr.textContent = '<?php echo esc_js( __( 'Show secret key', 'wc-blacklist-manager' ) ); ?>';
+									sr.textContent = '<?php echo esc_js( esc_html( 'Show secret key', 'wc-blacklist-manager' ) ); ?>';
 								}
 							}
 						});
@@ -751,10 +751,10 @@ if (!defined('ABSPATH')) {
 				<p class="premium-text"><?php echo esc_html__('This feature is automatically doing the rules actions if the customer details or action match with their rules. Know about the actions:', 'wc-blacklist-manager'); ?></p>
 		
 				<p class="premium-text" style="margin-left: 15px;">
-					1. <?php echo __('<strong>Email alert:</strong> Sending the emails to admin to let you know a new order was placed that matched the rule.', 'wc-blacklist-manager'); ?><br>
-					2. <?php echo __('<strong>Add to suspects:</strong> Sending the emails and auto-adding the customers to the <strong>suspects list</strong> if they placed a new order that matched the rule.', 'wc-blacklist-manager'); ?><br>
-					3. <?php echo __('<strong>Add to blocklist:</strong> Sending the emails and auto-adding the customers to the <strong>blocklist</strong> if they placed a new order that matched the rule.', 'wc-blacklist-manager'); ?><br>
-					4. <?php echo __('<strong>Treat as score:</strong> Do no action, but treat the rule as a score that you can manage in the "Scoring" tab.', 'wc-blacklist-manager'); ?><br>
+					1. <?php echo esc_html('<strong>Email alert:</strong> Sending the emails to admin to let you know a new order was placed that matched the rule.', 'wc-blacklist-manager'); ?><br>
+					2. <?php echo esc_html('<strong>Add to suspects:</strong> Sending the emails and auto-adding the customers to the <strong>suspects list</strong> if they placed a new order that matched the rule.', 'wc-blacklist-manager'); ?><br>
+					3. <?php echo esc_html('<strong>Add to blocklist:</strong> Sending the emails and auto-adding the customers to the <strong>blocklist</strong> if they placed a new order that matched the rule.', 'wc-blacklist-manager'); ?><br>
+					4. <?php echo esc_html('<strong>Treat as score:</strong> Do no action, but treat the rule as a score that you can manage in the "Scoring" tab.', 'wc-blacklist-manager'); ?><br>
 				</p>
 
 				<p class="premium-text"><?php echo esc_html__('Note that the automated actions only trigger after an order was placed.', 'wc-blacklist-manager'); ?></p>
@@ -1183,7 +1183,7 @@ if (!defined('ABSPATH')) {
 						</th>
 						<td>
 							<label class="premium-text">0 / 60</label>
-							<p class="premium-text"><?php echo __('You will see this score badge in the order page and new order email notification.', 'wc-blacklist-manager'); ?></p>
+							<p class="premium-text"><?php echo esc_html('You will see this score badge in the order page and new order email notification.', 'wc-blacklist-manager'); ?></p>
 						</td>
 					</tr>
 
@@ -1198,7 +1198,7 @@ if (!defined('ABSPATH')) {
 						</th>
 						<td>
 							<input type="number" class="small-text" disabled> <label class="premium-text">/ 60</label>
-							<p class="premium-text"><?php echo __('You will see this score badge in the order page and new order email notification.', 'wc-blacklist-manager'); ?></p>
+							<p class="premium-text"><?php echo esc_html('You will see this score badge in the order page and new order email notification.', 'wc-blacklist-manager'); ?></p>
 						</td>
 					</tr>
 
@@ -1213,7 +1213,7 @@ if (!defined('ABSPATH')) {
 						</th>
 						<td>
 							<input type="number" class="small-text" disabled> <label class="premium-text">/ 60</label>
-							<p class="premium-text"><?php echo __('Auto-adding the customers to the <strong>suspects list</strong> if they placed a new order that matched this score.', 'wc-blacklist-manager'); ?></p>
+							<p class="premium-text"><?php echo esc_html('Auto-adding the customers to the <strong>suspects list</strong> if they placed a new order that matched this score.', 'wc-blacklist-manager'); ?></p>
 						</td>
 					</tr>
 
@@ -1228,7 +1228,7 @@ if (!defined('ABSPATH')) {
 						</th>
 						<td>
 							<input type="number" class="small-text" disabled> <label class="premium-text">/ 60</label>
-							<p class="premium-text"><?php echo __('Auto-adding the customers to the <strong>blocklist</strong> if they placed a new order that matched this score and auto-cancelling if the "Auto cancel order" (Automation) option is enabled.', 'wc-blacklist-manager'); ?></p>
+							<p class="premium-text"><?php echo esc_html('Auto-adding the customers to the <strong>blocklist</strong> if they placed a new order that matched this score and auto-cancelling if the "Auto cancel order" (Automation) option is enabled.', 'wc-blacklist-manager'); ?></p>
 						</td>
 					</tr>					
 				</table>				
@@ -1525,7 +1525,7 @@ if (!defined('ABSPATH')) {
 							</label>
 							<br>
 						<?php endforeach; ?>
-						<p class="description" style="max-width: 500px; color: #aaaaaa;"><?php echo wp_kses_post( __( '<b>Note</b>: User roles with permission to control the dashboard will also have access to manage the blacklist actions panel on the Order page.', 'wc-blacklist-manager' ) ); ?></p>
+						<p class="description" style="max-width: 500px; color: #aaaaaa;"><?php echo wp_kses_post( esc_html( '<b>Note</b>: User roles with permission to control the dashboard will also have access to manage the blacklist actions panel on the Order page.', 'wc-blacklist-manager' ) ); ?></p>
 					</td>
 				</tr>
 				<tr valign="top">

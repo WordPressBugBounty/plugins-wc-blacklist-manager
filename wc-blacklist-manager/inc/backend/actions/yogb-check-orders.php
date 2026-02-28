@@ -336,7 +336,7 @@ final class YOGB_BM_Check_Orders {
 				'wc-blacklist-manager'
 			);
 			// Throwing a generic Exception here is supported by Store API examples.
-			throw new Exception( $message );
+			throw new Exception( esc_html($message) );
 		}
 	}
 

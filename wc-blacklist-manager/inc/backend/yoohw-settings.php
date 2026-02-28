@@ -78,8 +78,6 @@ if (!class_exists('YoOhw_Settings_Content')) {
             include_once( ABSPATH . 'wp-admin/includes/plugin.php' );
             $main_active = is_plugin_active( 'wc-blacklist-manager-premium/wc-blacklist-manager-premium.php' )
                 && get_option( 'wc_blacklist_manager_premium_license_status' ) === 'activated';
-            $forms_active = is_plugin_active( 'blacklist-manager-premium-for-forms/blacklist-manager-premium-for-forms.php' )
-                && get_option( 'blacklist_manager_premium_for_forms_license_status' ) === 'activated';
 
             // Register options
 			register_setting(
@@ -107,7 +105,7 @@ if (!class_exists('YoOhw_Settings_Content')) {
 				'yoohw_settings_section_logs'
 			);
 
-            if ( $license_status === 'activated' && ($main_active || $forms_active) ) {
+            if ( $license_status === 'activated' && $main_active ) {
 				register_setting(
 					'yoohw_settings_options',
 					'yoohw_settings_disable_menu',

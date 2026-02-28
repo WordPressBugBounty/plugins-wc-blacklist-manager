@@ -132,7 +132,7 @@ class WC_Blacklist_Manager_Domain_Blocking_Actions {
 			// HARD BLOCK: abort WooCommerce checkout immediately.
 			if ( defined( 'WOOCOMMERCE_CHECKOUT' ) && WOOCOMMERCE_CHECKOUT ) {
 				// WC_Checkout::process_checkout() will catch this and return an AJAX failure.
-				throw new \Exception( $checkout_notice );
+				throw new \Exception( esc_html( $checkout_notice ) );
 			}
 
 			// Fallback for any unexpected context (non-standard AJAX, etc.).
@@ -273,11 +273,11 @@ class WC_Blacklist_Manager_Domain_Blocking_Actions {
 				$order->delete( true ); 
 				throw new \Automattic\WooCommerce\StoreApi\Exceptions\RouteException(
 					'wc_blacklist_blocked_domain',
-					wp_strip_all_tags( $checkout_notice ),
+					esc_html( $checkout_notice ),
 					400
 				);
 			} else {
-				throw new \Exception( wp_strip_all_tags( $checkout_notice ) );
+				throw new \Exception( esc_html( $checkout_notice ) );
 			}
 		}
 	}
@@ -496,8 +496,8 @@ class WC_Blacklist_Manager_Domain_Blocking_Actions {
 			$notice = sprintf( wp_kses_post( $notice_template ) );
 
 			wp_die(
-				$notice,
-				__( 'Comment Blocked', 'wc-blacklist-manager' ),
+				esc_html( $notice ),
+				esc_html__( 'Comment Blocked', 'wc-blacklist-manager' ),
 				[ 'response' => 403 ]
 			);
 		}

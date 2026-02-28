@@ -1,6 +1,6 @@
 <?php
 
-if (!defined('ABSPATH')) {
+if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
@@ -15,7 +15,7 @@ if ( ! class_exists( 'YoOhw_News' ) ) {
 
 		protected $plugin_file;
 		protected $plugin_slug;
-		protected $plugin_name  = 'YoOhw Plugin';
+		protected $plugin_name    = 'YoOhw Plugin';
 		protected $plugin_version = '1.0.0';
 
 		public function __construct( $plugin_file ) {
@@ -30,11 +30,11 @@ if ( ! class_exists( 'YoOhw_News' ) ) {
 		}
 
 		/* ------------------------------------------------------------
-		* Setup
-		* ------------------------------------------------------------ */
+		 * Setup
+		 * ------------------------------------------------------------ */
 		public function add_submenu_news() {
-			$count    = $this->get_notice_count();
-			$label    = 'News';
+			$count = $this->get_notice_count();
+			$label = 'News';
 
 			if ( $count > 0 ) {
 				$label .= sprintf(
@@ -64,8 +64,8 @@ if ( ! class_exists( 'YoOhw_News' ) ) {
 		}
 
 		/* ------------------------------------------------------------
-		* Admin page
-		* ------------------------------------------------------------ */
+		 * Admin page
+		 * ------------------------------------------------------------ */
 		public function news_page() {
 			$notices = $this->get_notices();
 			?>
@@ -81,9 +81,13 @@ if ( ! class_exists( 'YoOhw_News' ) ) {
 						$button_text = isset( $notice['button_text'] ) ? wp_strip_all_tags( $notice['button_text'] ) : '';
 						$button_url  = isset( $notice['button_url'] ) ? $notice['button_url'] : '';
 
-						$dismiss_url = add_query_arg(
-							array( 'yoohw_dismiss_notice' => (int) $index ),
-							admin_url( 'admin.php?page=yoohw-news' )
+						$dismiss_url = wp_nonce_url(
+							add_query_arg(
+								[ 'yoohw_dismiss_notice' => (int) $index ],
+								admin_url( 'admin.php?page=yoohw-news' )
+							),
+							'yoohw_dismiss_notice',
+							'yoohw_notice_nonce'
 						);
 						?>
 						<div class="notice notice-<?php echo esc_attr( $type ); ?> yoohw-notice is-dismissible">
@@ -92,9 +96,7 @@ if ( ! class_exists( 'YoOhw_News' ) ) {
 								<?php echo wp_kses_post( $content ); ?>
 							</p>
 							<p>
-								<a href="<?php echo esc_url( $dismiss_url ); ?>" class="button button-secondary">
-									Dismiss
-								</a>
+								<a href="<?php echo esc_url( $dismiss_url ); ?>" class="button button-secondary">Dismiss</a>
 
 								<?php if ( '' !== $button_text && '' !== $button_url ) : ?>
 									<a href="<?php echo esc_url( $button_url ); ?>" class="button button-primary" target="_blank" rel="noopener noreferrer">
@@ -112,8 +114,8 @@ if ( ! class_exists( 'YoOhw_News' ) ) {
 		}
 
 		/* ------------------------------------------------------------
-		* REST API to receive notice
-		* ------------------------------------------------------------ */
+		 * REST API to receive notice
+		 * ------------------------------------------------------------ */
 		public function register_rest_api() {
 			register_rest_route(
 				'yoohw/v1',
@@ -141,7 +143,6 @@ if ( ! class_exists( 'YoOhw_News' ) ) {
 			$button_text = sanitize_text_field( $request->get_param( 'button_text' ) ?: '' );
 			$button_url  = esc_url_raw( $request->get_param( 'button_url' ) ?: '' );
 
-			// create new notice array
 			$new_notice = [
 				'content'     => $content,
 				'type'        => $type,
@@ -152,10 +153,8 @@ if ( ! class_exists( 'YoOhw_News' ) ) {
 
 			$notices = $this->get_notices();
 
-			// prepend new notice
 			array_unshift( $notices, $new_notice );
 
-			// keep only 5 latest
 			$notices = array_slice( $notices, 0, 5 );
 
 			$this->save_notices( $notices );
@@ -164,8 +163,8 @@ if ( ! class_exists( 'YoOhw_News' ) ) {
 		}
 
 		/* ------------------------------------------------------------
-		* Show only latest notice in admin_notices
-		* ------------------------------------------------------------ */
+		 * Show only latest notice in admin_notices
+		 * ------------------------------------------------------------ */
 		public function maybe_show_latest_notice() {
 			if ( ! current_user_can( 'administrator' ) ) {
 				return;
@@ -188,11 +187,22 @@ if ( ! class_exists( 'YoOhw_News' ) ) {
 			$button_text = isset( $latest['button_text'] ) ? wp_strip_all_tags( $latest['button_text'] ) : '';
 			$button_url  = isset( $latest['button_url'] ) ? $latest['button_url'] : '';
 
-			// Dismiss only the latest (index 0) + nonce.
+			// Build the current URL without duplicating /wp-admin/.
+			$scheme      = is_ssl() ? 'https' : 'http';
+			$host        = isset( $_SERVER['HTTP_HOST'] ) ? wp_unslash( $_SERVER['HTTP_HOST'] ) : '';
+			$request_uri = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '';
+
+			$current_url = ( $host && $request_uri )
+				? $scheme . '://' . $host . $request_uri
+				: admin_url( 'index.php' );
+
 			$dismiss_url = wp_nonce_url(
 				add_query_arg(
-					array( 'yoohw_dismiss_notice' => 0 ),
-					admin_url( 'admin.php' )
+					[
+						'yoohw_dismiss_notice' => 0,
+						'yoohw_redirect'       => rawurlencode( $current_url ),
+					],
+					admin_url( 'admin.php?page=yoohw-news' ) // stable handler URL
 				),
 				'yoohw_dismiss_notice',
 				'yoohw_notice_nonce'
@@ -212,19 +222,18 @@ if ( ! class_exists( 'YoOhw_News' ) ) {
 		}
 
 		/* ------------------------------------------------------------
-		* Dismiss: remove one notice by index
-		* ------------------------------------------------------------ */
+		 * Dismiss: remove one notice by index
+		 * ------------------------------------------------------------ */
 		public function maybe_dismiss_notice() {
 			if ( ! current_user_can( 'manage_options' ) ) {
 				return;
 			}
 
 			$index_raw = filter_input( INPUT_GET, 'yoohw_dismiss_notice', FILTER_SANITIZE_NUMBER_INT );
-			$index     = is_scalar( $index_raw ) ? absint( $index_raw ) : 0;
-
 			if ( null === $index_raw ) {
 				return;
 			}
+			$index = is_scalar( $index_raw ) ? absint( $index_raw ) : 0;
 
 			$nonce = filter_input( INPUT_GET, 'yoohw_notice_nonce', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
 			$nonce = is_string( $nonce ) ? sanitize_text_field( $nonce ) : '';
@@ -240,13 +249,35 @@ if ( ! class_exists( 'YoOhw_News' ) ) {
 				$this->save_notices( $notices );
 			}
 
-			wp_safe_redirect( esc_url_raw( remove_query_arg( array( 'yoohw_dismiss_notice', 'yoohw_notice_nonce' ) ) ) );
+			$redirect = isset( $_GET['yoohw_redirect'] )
+				? rawurldecode( sanitize_text_field( wp_unslash( $_GET['yoohw_redirect'] ) ) )
+				: '';
+
+			if ( empty( $redirect ) ) {
+				$redirect = wp_get_referer();
+			}
+
+			if ( empty( $redirect ) ) {
+				$redirect = admin_url( 'index.php' );
+			}
+
+			$redirect = remove_query_arg(
+				[ 'yoohw_dismiss_notice', 'yoohw_notice_nonce', 'yoohw_redirect' ],
+				$redirect
+			);
+
+			// Avoid landing on bare admin.php
+			if ( preg_match( '#/wp-admin/admin\.php/?$#', $redirect ) ) {
+				$redirect = admin_url( 'index.php' );
+			}
+
+			wp_safe_redirect( $redirect );
 			exit;
 		}
 
 		/* ------------------------------------------------------------
-		* Registration with hub (unchanged logic)
-		* ------------------------------------------------------------ */
+		 * Registration with hub (unchanged logic)
+		 * ------------------------------------------------------------ */
 		public function maybe_register_with_hub() {
 			if ( ! $this->is_live_site() ) {
 				return;
@@ -276,7 +307,6 @@ if ( ! class_exists( 'YoOhw_News' ) ) {
 		}
 
 		protected function send_token_to_hub( $token ) {
-			// load headers right before sending
 			$this->load_plugin_header_data();
 
 			$payload = [
@@ -313,10 +343,6 @@ if ( ! class_exists( 'YoOhw_News' ) ) {
 			update_option( self::OPTION_LAST_SYNC, time(), false );
 		}
 
-		/**
-		 * Only used during register.
-		 * Tries current file first, then plugin root.
-		 */
 		protected function load_plugin_header_data() {
 			if ( ! function_exists( 'get_file_data' ) ) {
 				require_once ABSPATH . 'wp-admin/includes/plugin.php';
@@ -331,7 +357,6 @@ if ( ! class_exists( 'YoOhw_News' ) ) {
 				'plugin'
 			);
 
-			// if current file has no headers (because it's in /inc/...), try to guess the root plugin file
 			if ( empty( $headers['Name'] ) || empty( $headers['Version'] ) ) {
 				$root_file = $this->guess_root_plugin_file();
 				if ( $root_file && file_exists( $root_file ) ) {
@@ -350,12 +375,9 @@ if ( ! class_exists( 'YoOhw_News' ) ) {
 			$this->plugin_version = ! empty( $headers['Version'] ) ? $headers['Version'] : $this->plugin_version;
 		}
 
-		/**
-		 * Guess /wp-content/plugins/{folder}/{folder}.php from a deeper path.
-		 */
 		protected function guess_root_plugin_file() {
-			$plugins_dir = wp_normalize_path( WP_PLUGIN_DIR );
-			$given_dir   = wp_normalize_path( dirname( $this->plugin_file ) );
+			$plugins_dir     = wp_normalize_path( WP_PLUGIN_DIR );
+			$given_dir       = wp_normalize_path( dirname( $this->plugin_file ) );
 			$plugin_root_dir = $given_dir;
 
 			while ( $plugin_root_dir && $plugin_root_dir !== $plugins_dir ) {
@@ -370,9 +392,6 @@ if ( ! class_exists( 'YoOhw_News' ) ) {
 			return trailingslashit( $plugin_root_dir ) . $plugin_folder . '.php';
 		}
 
-		/* ------------------------------------------------------------
-		* Helpers: get/save notices
-		* ------------------------------------------------------------ */
 		protected function get_notices() {
 			$notices = get_option( self::OPTION_NOTICES, [] );
 			return is_array( $notices ) ? $notices : [];
@@ -382,25 +401,19 @@ if ( ! class_exists( 'YoOhw_News' ) ) {
 			update_option( self::OPTION_NOTICES, $notices, false );
 		}
 
-		/* ------------------------------------------------------------
-		* Live site check
-		* ------------------------------------------------------------ */
 		protected function is_live_site() {
 			$home = home_url();
 			$host = wp_parse_url( $home, PHP_URL_HOST );
 			if ( ! $host ) {
-				// if we can't detect it, assume live
 				return true;
 			}
 
 			$host = strtolower( $host );
 
-			// 1. Obvious local hosts
 			if ( $host === 'localhost' || $host === '127.0.0.1' ) {
 				return false;
 			}
 
-			// 2. Local/dev TLDs
 			$blocked_tlds = [ '.local', '.test', '.example', '.invalid' ];
 			foreach ( $blocked_tlds as $tld ) {
 				if ( str_ends_with( $host, $tld ) ) {
@@ -408,13 +421,11 @@ if ( ! class_exists( 'YoOhw_News' ) ) {
 				}
 			}
 
-			// 3. Non-standard ports = likely local
 			$port = wp_parse_url( $home, PHP_URL_PORT );
 			if ( ! empty( $port ) && ! in_array( (int) $port, [ 80, 443 ], true ) ) {
 				return false;
 			}
 
-			// everything else (including staging.example.com) is allowed
 			return true;
 		}
 	}

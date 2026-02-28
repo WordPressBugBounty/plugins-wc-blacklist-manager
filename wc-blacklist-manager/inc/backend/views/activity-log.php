@@ -51,6 +51,9 @@ $logs = $wpdb->get_results(
 		<?php endif; ?>
 		<?php if ($premium_active && get_option('yoohw_settings_disable_menu') != 1): ?>
 			<a href="https://yoohw.com/support/" target="_blank" class="button button-secondary">Premium support</a>
+			<a href="<?php echo esc_url( admin_url( 'admin.php?page=wc-blacklist-manager-settings&tab=tools#activity_log_retention' ) ); ?>" class="activity_logs_tool_settings_url">
+				<?php esc_html_e( 'Tool settings', 'wc-blacklist-manager' ); ?>
+			</a>
 		<?php endif; ?>
 	</h1>
     
@@ -348,7 +351,7 @@ $logs = $wpdb->get_results(
 								$label = ucfirst( str_replace( '_', ' ', $k ) );
 								$out[] = esc_html( $label . ': ' . $v );
 							}
-							echo implode( ', ', $out );
+							echo esc_html( implode( ', ', $out ) );
 							?>
 						</td>
 						<td>

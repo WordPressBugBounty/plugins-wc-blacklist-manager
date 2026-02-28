@@ -104,16 +104,16 @@ class WC_Blacklist_Manager_User_Blocking {
 			$settings_instance = new WC_Blacklist_Manager_Settings();
 			$premium_active = $settings_instance->is_premium_active();
 			?>
-			<h3><?php _e('Blocking management', 'wc-blacklist-manager'); ?></h3>
+			<h3><?php esc_html_e('Blocking management', 'wc-blacklist-manager'); ?></h3>
 			<table class="form-table">
 				<tr>
-					<th><label for="user_blocked"><?php _e('User blocking', 'wc-blacklist-manager'); ?></label></th>
+					<th><label for="user_blocked"><?php esc_html_e('User blocking', 'wc-blacklist-manager'); ?></label></th>
 					<td>
 						<?php if ($is_blocked == '1'): ?>
 							<input
 								type="submit"
 								name="unblock_user"
-								value="<?php _e('Unblock this user', 'wc-blacklist-manager'); ?>"
+								value="<?php esc_html_e('Unblock this user', 'wc-blacklist-manager'); ?>"
 								class="button button-secondary"
 								onclick="
 								window.onbeforeunload = null;
@@ -125,7 +125,7 @@ class WC_Blacklist_Manager_User_Blocking {
 								<input
 									type="submit"
 									name="block_user"
-									value="<?php _e('Block this user', 'wc-blacklist-manager'); ?>"
+									value="<?php esc_html_e('Block this user', 'wc-blacklist-manager'); ?>"
 									class="button red-button"
 									onclick="
 										window.onbeforeunload = null;
@@ -133,7 +133,7 @@ class WC_Blacklist_Manager_User_Blocking {
 									"
 								/>
 							<?php else: ?>
-								<span><?php _e('No', 'wc-blacklist-manager'); ?></span>
+								<span><?php esc_html_e('No', 'wc-blacklist-manager'); ?></span>
 							<?php endif; ?>
 						<?php endif; ?>
 					</td>
@@ -153,9 +153,14 @@ class WC_Blacklist_Manager_User_Blocking {
 		if (current_user_can('edit_user', $user_id)) {
 			$user = get_userdata($user_id);
 			if ($user && in_array('administrator', $user->roles)) {
-				add_action('admin_notices', function() use ($user) {
-					echo '<div class="error notice"><p>' . sprintf(__('Cannot block the administrator %s.', 'wc-blacklist-manager'), esc_html($user->user_login)) . '</p></div>';
-				});
+				add_action( 'admin_notices', function() use ( $user ) {
+					echo '<div class="error notice"><p>' .
+						sprintf(
+							esc_html__( 'Cannot block the administrator %s.', 'wc-blacklist-manager' ),
+							esc_html( $user->user_login )
+						) .
+					'</p></div>';
+				} );
 				return;
 			}
 

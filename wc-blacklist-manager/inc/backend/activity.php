@@ -60,9 +60,7 @@ class WC_Blacklist_Manager_Activity_Log {
         $settings_instance = new WC_Blacklist_Manager_Settings();
         $premium_active = $settings_instance->is_premium_active();
         $woocommerce_active = class_exists( 'WooCommerce' );
-		$unlock_url = $woocommerce_active
-			? 'https://yoohw.com/product/blacklist-manager-premium/'
-			: 'https://yoohw.com/product/blacklist-manager-premium-for-forms/';
+		$unlock_url = 'https://yoohw.com/product/blacklist-manager-premium/';
             
         $message = $this->handle_form_submission();
 

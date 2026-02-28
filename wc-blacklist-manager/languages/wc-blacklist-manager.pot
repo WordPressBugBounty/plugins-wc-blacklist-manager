@@ -2,14 +2,14 @@
 # This file is distributed under the GPL v2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Blacklist Manager 2.1.6.5\n"
+"Project-Id-Version: Blacklist Manager 2.1.7.1\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/wc-blacklist-manager\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-01-07T03:04:29+00:00\n"
+"POT-Creation-Date: 2026-02-02T02:37:54+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.9.0\n"
 "X-Domain: wc-blacklist-manager\n"
@@ -320,7 +320,7 @@ msgstr ""
 #: inc/backend/actions/verifications-email.php:62
 #: inc/backend/actions/verifications-phone.php:62
 #: inc/backend/verifications.php:75
-#: inc/backend/views/activity-log.php:314
+#: inc/backend/views/activity-log.php:317
 #: inc/backend/views/table/activity-log.php:135
 msgid "Verify"
 msgstr ""
@@ -779,7 +779,7 @@ msgid "Add to the suspects list"
 msgstr ""
 
 #: inc/backend/order-action-button.php:179
-#: inc/backend/views/activity-log.php:313
+#: inc/backend/views/activity-log.php:316
 #: inc/backend/views/dashboard-form.php:106
 #: inc/backend/views/dashboard-form.php:759
 #: inc/backend/views/dashboard-form.php:993
@@ -796,7 +796,7 @@ msgstr ""
 
 #: inc/backend/order-action-button.php:182
 #: inc/backend/order-risk-score.php:271
-#: inc/backend/views/activity-log.php:312
+#: inc/backend/views/activity-log.php:315
 #: inc/backend/views/table/activity-log.php:129
 msgid "Block"
 msgstr ""
@@ -806,7 +806,7 @@ msgid "This customer is already blocked."
 msgstr ""
 
 #: inc/backend/order-action-button.php:187
-#: inc/backend/views/activity-log.php:315
+#: inc/backend/views/activity-log.php:318
 #: inc/backend/views/table/activity-log.php:138
 msgid "Remove"
 msgstr ""
@@ -1078,8 +1078,8 @@ msgstr ""
 
 #: inc/backend/order-risk-score.php:479
 #: inc/backend/order-risk-score.php:502
-#: inc/backend/views/activity-log.php:125
-#: inc/backend/views/activity-log.php:408
+#: inc/backend/views/activity-log.php:128
+#: inc/backend/views/activity-log.php:411
 msgid "Close"
 msgstr ""
 
@@ -1185,18 +1185,22 @@ msgstr ""
 msgid "Failed to save the generated key. Please try again."
 msgstr ""
 
-#: inc/backend/views/activity-log.php:117
-#: inc/backend/views/activity-log.php:404
+#: inc/backend/views/activity-log.php:55
+msgid "Tool settings"
+msgstr ""
+
+#: inc/backend/views/activity-log.php:120
+#: inc/backend/views/activity-log.php:407
 msgid "Activity log details"
 msgstr ""
 
-#: inc/backend/views/activity-log.php:191
-#: inc/backend/views/activity-log.php:369
+#: inc/backend/views/activity-log.php:194
+#: inc/backend/views/activity-log.php:372
 msgid "Bulk actions"
 msgstr ""
 
-#: inc/backend/views/activity-log.php:193
-#: inc/backend/views/activity-log.php:371
+#: inc/backend/views/activity-log.php:196
+#: inc/backend/views/activity-log.php:374
 #: inc/backend/views/dashboard-form.php:432
 #: inc/backend/views/dashboard-form.php:530
 #: inc/backend/views/dashboard-form.php:681
@@ -1205,17 +1209,17 @@ msgstr ""
 msgid "Apply"
 msgstr ""
 
-#: inc/backend/views/activity-log.php:203
+#: inc/backend/views/activity-log.php:206
 #: inc/backend/views/table/activity-log.php:29
 msgid "Timestamp"
 msgstr ""
 
-#: inc/backend/views/activity-log.php:204
+#: inc/backend/views/activity-log.php:207
 #: inc/backend/views/table/activity-log.php:30
 msgid "Type"
 msgstr ""
 
-#: inc/backend/views/activity-log.php:205
+#: inc/backend/views/activity-log.php:208
 #: inc/backend/views/dashboard-form.php:445
 #: inc/backend/views/dashboard-form.php:548
 #: inc/backend/views/dashboard-form.php:695
@@ -1224,22 +1228,22 @@ msgstr ""
 msgid "Source"
 msgstr ""
 
-#: inc/backend/views/activity-log.php:206
+#: inc/backend/views/activity-log.php:209
 #: inc/backend/views/table/activity-log.php:32
 msgid "Action"
 msgstr ""
 
-#: inc/backend/views/activity-log.php:207
+#: inc/backend/views/activity-log.php:210
 #: inc/backend/views/table/activity-log.php:33
 msgid "Details"
 msgstr ""
 
-#: inc/backend/views/activity-log.php:208
+#: inc/backend/views/activity-log.php:211
 #: inc/backend/views/table/activity-log.php:34
 msgid "View"
 msgstr ""
 
-#: inc/backend/views/activity-log.php:316
+#: inc/backend/views/activity-log.php:319
 #: inc/backend/views/table/activity-log.php:141
 msgid "Unblock"
 msgstr ""

@@ -1,11 +1,11 @@
-=== Blacklist Manager – WooCommerce Anti-Fraud & Checkout Verification & Spam Prevention (Contact Form 7, Gravity Forms, WPForms) ===
+=== Blacklist Manager – WooCommerce Anti-Fraud & Checkout Verification & Spam Prevention ===
 Contributors: yoohw, baonguyen0310
 Tags: blacklist customers, spam prevention, fraud prevention, woocommerce anti fraud, Prevent fake orders
 Requires at least: 6.3
 Tested up to: 6.9
-WC tested up to: 10.4
+WC tested up to: 10.5
 Requires PHP: 7.4
-Stable tag: 2.1.7
+Stable tag: 2.1.8
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -183,7 +183,7 @@ Our premier solution for combating fraud and unauthorized transactions: we've in
 **Dedicated Assistance**: Access to our premium support team for any issues or questions you may have.
 **Priority Response**: Receive faster response times and personalized support to ensure your plugin operates smoothly.
 
-[Explore the Premium version here](https://yoohw.com/product/woocommerce-blacklist-manager-premium/)
+[Explore the Premium version here](https://yoohw.com/product/blacklist-manager-premium/)
 
 With these premium features and dedicated support, the Blacklist Manager Premium plugin provides unparalleled security and efficiency, giving you peace of mind and allowing you to focus on growing your business.
 
@@ -228,6 +228,11 @@ A: There is no set limit within the plugin, but practical limitations depend on 
 A: No, the plugin is optimized for performance. It performs blacklist checks efficiently and only at appropriate times (like form submission or checkout), so it won’t noticeably impact your site speed.
 
 == Changelog ==
+
+= 2.1.8 (Feb 28, 2026) =
+* Improve: Improved security and stability by enhancing input validation, database handling, and internal redirects to ensure safer and more reliable performance.
+* Improve: WooCommerce 10.5 compatibility.
+* Improve: Some other minor improvements.
 
 = 2.1.7 (Jan 10, 2026) =
 * Update: Excluded blocking report from 'pending, failed, cancelled, on-hold' order statuses to Global Blacklist.

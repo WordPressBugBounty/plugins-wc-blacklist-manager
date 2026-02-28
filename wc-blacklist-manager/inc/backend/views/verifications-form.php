@@ -478,10 +478,16 @@ if (!defined('ABSPATH')) {
 							) . '</p>';
 							echo '<p><a href="' . esc_url($install_url) . '" class="button button-primary">' . esc_html__('Install now', 'wc-blacklist-manager') . '</a></p>';
 						} else {
-							echo '<p>' . sprintf(
-								esc_html__('WooCommerce Advanced Accounts is already active. %s', 'wc-blacklist-manager'),
-								'<a href="' . $settings_url . '">' . esc_html__('Go to settings page.', 'wc-blacklist-manager') . '</a>'
-							) . '</p>';
+							$message = sprintf(
+								esc_html__( 'WooCommerce Advanced Accounts is already active. %s', 'wc-blacklist-manager' ),
+								sprintf(
+									'<a href="%s">%s</a>',
+									esc_url( $settings_url ),
+									esc_html__( 'Go to settings page.', 'wc-blacklist-manager' )
+								)
+							);
+
+							echo '<p>' . wp_kses_post( $message ) . '</p>';
 						}
 						?>
 					</td>

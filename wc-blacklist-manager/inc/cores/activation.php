@@ -405,9 +405,9 @@ if (!class_exists('WC_Blacklist_Manager_Validator')) {
 
 			$host = strtolower($u['host']);
 
-			// allow yoohw.com + subdomains, and api.bk.yoohw.com (bridge)
+			// allow yoohw.com + subdomains, and api2.yoohw.com (bridge)
 			if (preg_match('#(^|\.)yoohw\.com$#', $host)) return true;
-			if ($host === 'api.bk.yoohw.com') return true;
+			if ($host === 'api2.yoohw.com') return true;
 
 			return false;
 		}

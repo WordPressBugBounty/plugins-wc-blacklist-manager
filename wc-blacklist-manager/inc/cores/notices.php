@@ -110,7 +110,6 @@ class WC_Blacklist_Manager_Notices {
 		
 		$settings_instance = new WC_Blacklist_Manager_Settings();
 		$premium_active = $settings_instance->is_premium_active();
-		$woocommerce_active = class_exists( 'WooCommerce' );
 
 		$user_id = get_current_user_id();
 		$last_shown_time = get_user_meta( $user_id, 'blacklist_manager_premium_ads_time', true );
@@ -131,7 +130,7 @@ class WC_Blacklist_Manager_Notices {
 	  
 		if ( $should_show ) {
 			// Check if user is administrator and notice hasn't been dismissed
-			if (!$premium_active && $woocommerce_active) {
+			if (!$premium_active) {
 				echo '<div class="notice notice-info yobm-ads is-dismissible">
 					<p><b>🚀 Blacklist Manager Premium — Total Fraud & Spam Defence for WooCommerce</b></p>
 						
@@ -141,17 +140,6 @@ class WC_Blacklist_Manager_Notices {
 
 					<p><a href="#" onclick="WC_Blacklist_Manager_Admin_Notice.dismissAdsNotice()" class="button-secondary">Dismiss</a> <a href="https://yoohw.com/product/blacklist-manager-premium/" class="button-primary">🌟 Unlock Premium Now</a></p>
 					</div>';
-			}
-
-			if (!$premium_active && !$woocommerce_active) {
-				echo '<div class="notice notice-info yobm-ads is-dismissible">
-					<p>🛡️ <strong>Protect Every Form Submission — Instantly</strong></p>
-					<p>Upgrade to <strong>Blacklist&nbsp;Manager&nbsp;Premium&nbsp;for Forms</strong> and unlock IP blocking, disposable-email & domain filters, automatic user blacklisting, linked up with powerful third party services, and more.</p>
-					<p>
-						<a href="#" onclick="WC_Blacklist_Manager_Admin_Notice.dismissAdsNotice()" style="margin-right:10px;">Dismiss</a>
-						<a href="https://yoohw.com/product/blacklist-manager-premium-for-forms/" target="_blank" class="button button-primary">Upgrade&nbsp;Now</a>
-					</p>
-				</div>';
 			}
 		}
 	}
@@ -209,19 +197,35 @@ class WC_Blacklist_Manager_Notices {
 	}
 
 	public static function show_download_premium_notice() {
-		$plugins_page = esc_url( admin_url( 'plugins.php' ) );
-		$activate = sprintf(
-			wp_kses(
-				'<a href="%s">activate it</a>',
-				[ 'a' => [ 'href' => [] ] ]
-			),
-			$plugins_page
+		$plugins_page = admin_url( 'plugins.php' );
+
+		$activate_link = sprintf(
+			'<a href="%s">%s</a>',
+			esc_url( $plugins_page ),
+			esc_html__( 'activate it', 'wc-blacklist-manager' )
 		);
 
-		echo '<div class="error">
-				<p>License activated, but the Premium add-on is not activated or installed on your site yet. Please ' . $activate . ', or login to your account on our website to download and install it.</p>
-				<p><a href="https://yoohw.com/my-account/" class="button-primary" target="_blank">Go to My account</a></p>
-			</div>';
+		$message = sprintf(
+			/* translators: %s: Activate premium plugin link */
+			__( 'License activated, but the Premium add-on is not activated or installed on your site yet. Please %s, or login to your account on our website to download and install it.', 'wc-blacklist-manager' ),
+			$activate_link
+		);
+
+		echo '<div class="error">';
+		echo '<p>' . wp_kses(
+			$message,
+			[
+				'a' => [
+					'href' => [],
+				],
+			]
+		) . '</p>';
+
+		echo '<p><a href="' . esc_url( 'https://yoohw.com/my-account/' ) . '" class="button-primary" target="_blank" rel="noopener noreferrer">'
+			. esc_html__( 'Go to My account', 'wc-blacklist-manager' )
+			. '</a></p>';
+
+		echo '</div>';
 	}
 
 	public function enqueue_inline_scripts() {
@@ -338,7 +342,7 @@ class WC_Blacklist_Manager_Alert {
 	const OPTION_SPIKE_ARMED       = 'yobm_failed_spike_armed_at';          // int timestamp (site-wide) when a spike episode began
 
 	/* ====== Behavior ====== */
-	const FAIL_THRESHOLD           = 4;                  // consecutive failed orders to consider a spike
+	const FAIL_THRESHOLD           = 5;                  // consecutive failed orders to consider a spike
 	const MAX_TIMESTAMPS_STORED    = 10;                 // how many fail times to keep (for “between A and B” window)
 	const SNOOZE_SECONDS           = DAY_IN_SECONDS;     // per-user “I’ll do it later”
 	const SPIKE_TTL                = WEEK_IN_SECONDS;    // 0 = never auto-expire
@@ -454,24 +458,27 @@ class WC_Blacklist_Manager_Alert {
 			);
 		}
 
-		$headline    = esc_html__( '⚠️ Unusual spike of failed payments detected', 'wc-blacklist-manager' );
-		$details = sprintf(
+		$headline = __( '⚠️ Unusual spike of failed payments detected', 'wc-blacklist-manager' );
+
+		$details  = sprintf(
 			/* translators: 1: number of failed orders, 2: time window string */
-			esc_html__( '%1$d failed orders in a short period %2$s.', 'wc-blacklist-manager' ),
+			__( '%1$d failed orders in a short period %2$s.', 'wc-blacklist-manager' ),
 			max( $recent_count, self::FAIL_THRESHOLD ),
-			$window_str ? esc_html( $window_str ) : ''
+			$window_str ? $window_str : ''
 		);
-		$para_text   = esc_html__( 'Bots may be testing stolen cards (CVC/CVV).', 'wc-blacklist-manager' ) . ' '
-			. esc_html__( 'Blacklist Manager Premium blocks card-testing attacks, reduces failed payments, and automatically flags risky activity—keeping your checkout and gateway clean.', 'wc-blacklist-manager' ) . ' '
-			. esc_html__( 'Upgrade now to turn on advanced bot-defense and fraud automation.', 'wc-blacklist-manager' );
-		$cta_label   = esc_html__( 'Upgrade to Premium — protect checkout', 'wc-blacklist-manager' );
-		$premium_url = esc_url( $this->get_premium_buy_url() );
+
+		$para_text = __( 'Bots may be testing stolen cards (CVC/CVV).', 'wc-blacklist-manager' ) . ' '
+			. __( 'Blacklist Manager Premium blocks card-testing attacks, reduces failed payments, and automatically flags risky activity—keeping your checkout and gateway clean.', 'wc-blacklist-manager' ) . ' '
+			. __( 'Upgrade now to turn on advanced bot-defense and fraud automation.', 'wc-blacklist-manager' );
+
+		$cta_label   = __( 'Upgrade to Premium — protect checkout', 'wc-blacklist-manager' );
+		$premium_url = $this->get_premium_buy_url();
 
 		echo '<div class="notice notice-error yobmp-notice-captcha is-dismissible" style="border-left-color:#d63638;">'
-			. '<p style="margin-top:8px;margin-bottom:8px;"><strong>' . $headline . ':</strong> ' . $details . '</p>'
-			. '<p style="margin:0 0 10px;">' . $para_text . '</p>'
+			. '<p style="margin-top:8px;margin-bottom:8px;"><strong>' . esc_html( $headline ) . ':</strong> ' . esc_html( $details ) . '</p>'
+			. '<p style="margin:0 0 10px;">' . esc_html( $para_text ) . '</p>'
 			. '<p style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 12px;">'
-				. '<a class="button button-primary" target="_blank" rel="noopener" href="' . $premium_url . '">' . $cta_label . '</a> '
+				. '<a class="button button-primary" target="_blank" rel="noopener noreferrer" href="' . esc_url( $premium_url ) . '">' . esc_html( $cta_label ) . '</a> '
 				. '<a href="#" onclick="YOBM_Admin_Notice.doItLater();return false;">' . esc_html__( 'I’ll do it later', 'wc-blacklist-manager' ) . '</a>'
 				. '<span aria-hidden="true">·</span> '
 				. '<a href="#" onclick="YOBM_Admin_Notice.resolveSpike();return false;">' . esc_html__( 'Mark as resolved', 'wc-blacklist-manager' ) . '</a>'

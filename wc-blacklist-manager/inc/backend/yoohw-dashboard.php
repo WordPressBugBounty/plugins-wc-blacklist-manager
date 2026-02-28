@@ -128,7 +128,7 @@ if (!class_exists('Yo_Ohw_Menu')) {
 				<p>Keep updated and explore our works from here.</p>
 				<div class="dashboard-container">
 					<div class="dashboard">
-						<?php echo $this->generate_dashboard_links($colors); ?>
+						<?php echo wp_kses_post( $this->generate_dashboard_links( $colors ) ); ?>
 					</div>
 				</div>
 		

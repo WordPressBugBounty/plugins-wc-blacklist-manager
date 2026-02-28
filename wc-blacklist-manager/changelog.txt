@@ -1,6 +1,11 @@
-=== Blacklist Manager (Freemium) ===
+=== Blacklist Manager (Core / Freemium) ===
 
 == Changelog ==
+
+= 2.1.8 (Feb 28, 2026) =
+* Improve: Improved security and stability by enhancing input validation, database handling, and internal redirects to ensure safer and more reliable performance.
+* Improve: WooCommerce 10.5 compatibility.
+* Improve: Some other minor improvements.
 
 = 2.1.7 (Jan 10, 2026) =
 * Update: Excluded blocking report from 'pending, failed, cancelled, on-hold' order statuses to Global Blacklist.

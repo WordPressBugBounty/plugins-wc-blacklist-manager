@@ -95,9 +95,7 @@ class WC_Blacklist_Manager_Verifications {
 		$settings_instance = new WC_Blacklist_Manager_Settings();
 		$premium_active = $settings_instance->is_premium_active();
 		$woocommerce_active = class_exists( 'WooCommerce' );
-		$unlock_url = $woocommerce_active
-			? 'https://yoohw.com/product/blacklist-manager-premium/'
-			: 'https://yoohw.com/product/blacklist-manager-premium-for-forms/';
+		$unlock_url = 'https://yoohw.com/product/blacklist-manager-premium/';
 			
 		$allowed_countries_option = get_option('woocommerce_allowed_countries', 'all');
 		$specific_countries = get_option('woocommerce_specific_allowed_countries', []);
@@ -118,9 +116,7 @@ class WC_Blacklist_Manager_Verifications {
 		$settings_instance = new WC_Blacklist_Manager_Settings();
 		$premium_active = $settings_instance->is_premium_active();
 		$woocommerce_active = class_exists( 'WooCommerce' );
-		$unlock_url = $woocommerce_active
-			? 'https://yoohw.com/product/blacklist-manager-premium/'
-			: 'https://yoohw.com/product/blacklist-manager-premium-for-forms/';
+		$unlock_url = 'https://yoohw.com/product/blacklist-manager-premium/';
 			
 		$template_path = plugin_dir_path(__FILE__) . 'views/verifications-advanced.php';
 
@@ -367,7 +363,7 @@ class WC_Blacklist_Manager_Verifications {
 	public function wc_blacklist_refresh_merging() {
 		// Check for required capabilities (optional, based on your requirements)
 		if (!current_user_can('manage_options')) {
-			wp_die(__('You do not have sufficient permissions to access this page.', 'wc-blacklist-manager'));
+			wp_die(esc_html('You do not have sufficient permissions to access this page.', 'wc-blacklist-manager'));
 		}
 	
 		// Delete the option

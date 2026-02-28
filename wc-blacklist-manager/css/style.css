@@ -416,6 +416,18 @@ th.column-name {
 }
 
 /* Activity logs */
+.activity_logs_tool_settings_url {
+    display: flex;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    float: right;
+}
+.activity_logs_tool_settings_url::before {
+    font-family: 'dashicons';
+    content: "\f107";
+}
+
 .activity_logs th#timestamp {
     width: 20ch;
 }
