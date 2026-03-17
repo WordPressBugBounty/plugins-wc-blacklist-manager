@@ -3,9 +3,9 @@ Contributors: yoohw, baonguyen0310
 Tags: blacklist customers, spam prevention, fraud prevention, woocommerce anti fraud, Prevent fake orders
 Requires at least: 6.3
 Tested up to: 6.9
-WC tested up to: 10.5
+WC tested up to: 10.6
 Requires PHP: 7.4
-Stable tag: 2.1.8
+Stable tag: 2.1.9
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -228,6 +228,13 @@ A: There is no set limit within the plugin, but practical limitations depend on 
 A: No, the plugin is optimized for performance. It performs blacklist checks efficiently and only at appropriate times (like form submission or checkout), so it won’t noticeably impact your site speed.
 
 == Changelog ==
+
+= 2.1.9 (Mar 17, 2026) =
+* Update: Upgraded and added helpers to normalize phone numbers for stricter blocking logic.
+* Update: Added a helper to normalize email addresses before performing the block lookup.
+* Update: When a user is blocked, their email address is added to the blacklist if it is not already present.
+* Improve: Removed the duplicate blocking notice at the classic checkout page.
+* Improve: Removed and cleaned unused code.
 
 = 2.1.8 (Feb 28, 2026) =
 * Improve: Improved security and stability by enhancing input validation, database handling, and internal redirects to ensure safer and more reliable performance.

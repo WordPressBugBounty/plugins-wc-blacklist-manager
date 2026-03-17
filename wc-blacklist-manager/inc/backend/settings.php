@@ -106,11 +106,11 @@ class WC_Blacklist_Manager_Settings {
 	}
 
 	private function includes() {
-		include_once plugin_dir_path(__FILE__) . '/actions/settings-suspects.php';
-		include_once plugin_dir_path(__FILE__) . '/actions/settings-blocklist.php';
-		include_once plugin_dir_path(__FILE__) . '/actions/settings-blocking-ip.php';
-		include_once plugin_dir_path(__FILE__) . '/actions/settings-blocking-domain.php';
-		include_once plugin_dir_path(__FILE__) . '/actions/settings-blocking-user.php';
+		include_once plugin_dir_path(__FILE__) . '/actions/suspects.php';
+		include_once plugin_dir_path(__FILE__) . '/actions/blocklist.php';
+		include_once plugin_dir_path(__FILE__) . '/actions/blocking-ip.php';
+		include_once plugin_dir_path(__FILE__) . '/actions/blocking-domain.php';
+		include_once plugin_dir_path(__FILE__) . '/actions/blocking-user.php';
 		include_once plugin_dir_path(__FILE__) . '/actions/form/contact-form-7.php';
 		include_once plugin_dir_path(__FILE__) . '/actions/form/gravity-forms.php';
 		include_once plugin_dir_path(__FILE__) . '/actions/form/wp-forms.php';
@@ -120,11 +120,11 @@ class WC_Blacklist_Manager_Settings {
 
 	public function is_premium_active() {
 		include_once( ABSPATH . 'wp-admin/includes/plugin.php' );
+		if ( ! is_plugin_active( 'wc-blacklist-manager-premium/wc-blacklist-manager-premium.php' ) ) {
+			return false;
+		}
 
-		$main_active = is_plugin_active( 'wc-blacklist-manager-premium/wc-blacklist-manager-premium.php' )
-			&& get_option( 'wc_blacklist_manager_premium_license_status' ) === 'activated';
-
-		return $main_active;
+		return WC_Blacklist_Manager_Validator::is_premium_active();
 	}
 }
 

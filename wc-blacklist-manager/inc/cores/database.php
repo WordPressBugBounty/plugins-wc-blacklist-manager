@@ -60,6 +60,7 @@ class WC_Blacklist_Manager_DB {
 				first_name varchar(255) DEFAULT '' NOT NULL,
 				last_name varchar(255) DEFAULT '' NOT NULL,
 				phone_number varchar(255) DEFAULT '' NOT NULL,
+				normalized_phone varchar(32) DEFAULT '' NOT NULL,
 				email_address varchar(255) DEFAULT '' NOT NULL,
 				normalized_email varchar(320) DEFAULT '' NOT NULL,
 				ip_address varchar(255) DEFAULT '' NOT NULL,
@@ -71,7 +72,10 @@ class WC_Blacklist_Manager_DB {
 				date_added datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
 				sources text NOT NULL,
 				is_blocked boolean NOT NULL DEFAULT FALSE,
-				PRIMARY KEY  (id)
+				PRIMARY KEY  (id),
+				KEY normalized_phone (normalized_phone),
+				KEY normalized_email (normalized_email),
+				KEY is_blocked (is_blocked)
 			) $charset_collate;";
 
 			$whitelist_sql = "CREATE TABLE $this->whitelist_table_name (
@@ -109,6 +113,7 @@ class WC_Blacklist_Manager_DB {
 			dbDelta($detection_log_sql);
 
 			$this->backfill_normalized_emails( $this->blacklist_table_name, 500 );
+			$this->maybe_upgrade_blacklist_normalized_phone();
 
 			// Update the version in the database so the update isn't run again.
 			update_option('wc_blacklist_manager_version', $this->version);
@@ -507,10 +512,155 @@ class WC_Blacklist_Manager_DB {
 		return $updated;
 	}
 
+	public function maybe_upgrade_blacklist_normalized_phone() {
+		global $wpdb;
+
+		$table_name = $this->blacklist_table_name;
+
+		$migration_done = get_option( 'wc_blacklist_manager_normalized_phone_migrated', 'no' );
+
+		if ( 'yes' === $migration_done ) {
+			return;
+		}
+
+		// Ensure column exists.
+		$column_exists = $wpdb->get_var(
+			$wpdb->prepare(
+				"SHOW COLUMNS FROM {$table_name} LIKE %s",
+				'normalized_phone'
+			)
+		);
+
+		if ( null === $column_exists ) {
+			$wpdb->query(
+				"ALTER TABLE {$table_name}
+				ADD COLUMN normalized_phone varchar(32) NOT NULL DEFAULT ''
+				AFTER phone_number"
+			);
+		}
+
+		// Ensure index exists.
+		$index_exists = $wpdb->get_var(
+			$wpdb->prepare(
+				"SHOW INDEX FROM {$table_name} WHERE Key_name = %s",
+				'normalized_phone'
+			)
+		);
+
+		if ( null === $index_exists ) {
+			$wpdb->query(
+				"ALTER TABLE {$table_name}
+				ADD KEY normalized_phone (normalized_phone)"
+			);
+		}
+
+		$limit              = 200;
+		$last_id            = 0;
+		$country_dial_cache = array();
+
+		while ( true ) {
+			$rows = $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT id, order_id, phone_number
+					FROM {$table_name}
+					WHERE id > %d
+					AND phone_number <> ''
+					AND ( normalized_phone = '' OR normalized_phone IS NULL )
+					ORDER BY id ASC
+					LIMIT %d",
+					$last_id,
+					$limit
+				)
+			);
+
+			if ( empty( $rows ) ) {
+				break;
+			}
+
+			foreach ( $rows as $row ) {
+				$last_id     = (int) $row->id;
+				$order_id    = isset( $row->order_id ) ? absint( $row->order_id ) : 0;
+				$raw_phone   = (string) $row->phone_number;
+				$raw_phone   = sanitize_text_field( $raw_phone );
+				$raw_trimmed = trim( $raw_phone );
+
+				$normalized_phone = '';
+
+				/*
+				* If the stored value already looks international, normalize it directly.
+				* Examples:
+				* +123456789
+				* 00123456789
+				*/
+				if (
+					0 === strpos( $raw_trimmed, '+' ) ||
+					0 === strpos( $raw_trimmed, '00' )
+				) {
+					$normalized_phone = yobm_normalize_phone( $raw_trimmed );
+				} else {
+					/*
+					* For legacy local numbers, prefer order billing country dial code
+					* when available, so numbers like 0912345678 become 84912345678.
+					*/
+					if ( $order_id > 0 && function_exists( 'wc_get_order' ) ) {
+						$order = wc_get_order( $order_id );
+
+						if ( $order ) {
+							$billing_country = strtoupper( (string) $order->get_billing_country() );
+
+							if ( '' !== $billing_country ) {
+								if ( ! isset( $country_dial_cache[ $billing_country ] ) ) {
+									$country_dial_cache[ $billing_country ] = yobm_get_country_dial_code( $billing_country );
+								}
+
+								$dial_code = $country_dial_cache[ $billing_country ];
+
+								if ( '' !== $dial_code ) {
+									$normalized_phone = yobm_normalize_phone( $raw_trimmed, $dial_code );
+								}
+							}
+						}
+					}
+
+					// Final fallback when no order/country context exists.
+					if ( '' === $normalized_phone ) {
+						$normalized_phone = yobm_normalize_phone( $raw_trimmed );
+					}
+				}
+
+				if ( ! is_string( $normalized_phone ) ) {
+					$normalized_phone = '';
+				}
+
+				$wpdb->update(
+					$table_name,
+					array(
+						'normalized_phone' => $normalized_phone,
+					),
+					array(
+						'id' => $last_id,
+					),
+					array(
+						'%s',
+					),
+					array(
+						'%d',
+					)
+				);
+			}
+
+			if ( count( $rows ) < $limit ) {
+				break;
+			}
+		}
+
+		update_option( 'wc_blacklist_manager_normalized_phone_migrated', 'yes' );
+	}
+
 	public function is_premium_active() {
 		include_once(ABSPATH . 'wp-admin/includes/plugin.php');
 		$is_plugin_active = is_plugin_active('wc-blacklist-manager-premium/wc-blacklist-manager-premium.php');
-		$is_license_activated = (get_option('wc_blacklist_manager_premium_license_status') === 'activated');
+		$is_license_activated = WC_Blacklist_Manager_Validator::is_premium_active();
 
 		return $is_plugin_active && $is_license_activated;
 	}

@@ -1,6 +1,6 @@
 <?php
 
-if (!defined('ABSPATH')) {
+if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
@@ -8,20 +8,18 @@ require_once plugin_dir_path( __FILE__ ) . 'helper/yoohw-debug-blob.php';
 require_once plugin_dir_path( __FILE__ ) . 'helper/yoohw-debug-log-email.php';
 require_once plugin_dir_path( __FILE__ ) . 'helper/yoohw-http-debug.php';
 
-if (!class_exists('WC_Blacklist_Manager_Validator')) {
+if ( ! class_exists( 'WC_Blacklist_Manager_Validator' ) ) {
 	class WC_Blacklist_Manager_Validator {
 
 		/** Endpoints: Origin (US) first, then Bridge */
 		private $endpoints = [
-			// UPDATED: v4 activation endpoint
 			'us'     => 'https://yoohw.com/wp-json/yo_ohw/v4/activate_license/',
-			// Bridge can stay as-is (if it proxies v4, it will return download_url; if not, activation still works)
 			'bridge' => 'https://api2.yoohw.com/wp-json/yoohw-bridge/v1/activate_license_v4/',
 		];
 
 		/** Secrets */
-		private $origin_api_key = 'yoOhw1Lf2DfrpXBcShC0AdUskKEivE5B1oNPQs8kmiiKG5wG40Dhgm79g7yj4yXJ'; // sent to origin
-		private $bridge_key     = 'Zf9uE1x2P7qL0kD8mR6cV5wB3yH4tN9sA2jF7pQ1gU0oX6rM5vL'; // sent to bridge
+		private $origin_api_key = 'yoOhw1Lf2DfrpXBcShC0AdUskKEivE5B1oNPQs8kmiiKG5wG40Dhgm79g7yj4yXJ';
+		private $bridge_key     = 'Zf9uE1x2P7qL0kD8mR6cV5wB3yH4tN9sA2jF7pQ1gU0oX6rM5vL';
 
 		/** Circuit breaker transients */
 		private $cb_flag_key   = 'yoohw_bmp_origin_cb_open';
@@ -32,6 +30,15 @@ if (!class_exists('WC_Blacklist_Manager_Validator')) {
 
 		public function __construct() {
 			add_action( 'admin_init', [ $this, 'register_settings' ] );
+
+			YoOhw_License_Runtime::maybe_migrate_legacy_state(
+				[
+					'license_key_option' => 'wc_blacklist_manager_premium_license_key',
+					'status_option'      => 'wc_blacklist_manager_premium_license_status',
+					'state_option'       => 'wc_blacklist_manager_premium_license_state',
+					'product_id'         => '44',
+				]
+			);
 		}
 
 		public function register_settings() {
@@ -42,20 +49,31 @@ if (!class_exists('WC_Blacklist_Manager_Validator')) {
 			);
 		}
 
+		public static function is_premium_active() {
+			return YoOhw_License_Runtime::is_active(
+				[
+					'license_key_option' => 'wc_blacklist_manager_premium_license_key',
+					'status_option'      => 'wc_blacklist_manager_premium_license_status',
+					'state_option'       => 'wc_blacklist_manager_premium_license_state',
+					'product_id'         => '44',
+				]
+			);
+		}
+
 		public function validate_license_key( $input ) {
 			require_once ABSPATH . 'wp-admin/includes/plugin.php';
 
 			$plugin_id    = '44';
 			$yoohw_logger = (int) get_option( 'yoohw_settings_logger', 0 );
+			$input        = is_string( $input ) ? trim( $input ) : '';
 
-			// 1) Handle "Remove License" click
+			// Remove license.
 			if ( isset( $_POST['remove_license'] ) ) {
 				$this->remove_license();
 				return '';
 			}
 
-			// 2) Empty key
-			if ( empty( $input ) ) {
+			if ( '' === $input ) {
 				$this->add_settings_error_once(
 					'wc_blacklist_manager_license_required',
 					'License key is required.',
@@ -64,15 +82,18 @@ if (!class_exists('WC_Blacklist_Manager_Validator')) {
 				return $input;
 			}
 
-			// 3) Call remote API
-			$domain = parse_url( home_url(), PHP_URL_HOST );
+			$domain = YoOhw_License_Runtime::normalize_domain( home_url() );
 
 			if ( $yoohw_logger ) {
-				YoOhw_HTTP_Debug::begin( 'license_activation', $this->endpoints['us'], [
-					'license_key' => $input,
-					'domain'      => $domain,
-					'product_id'  => $plugin_id,
-				] );
+				YoOhw_HTTP_Debug::begin(
+					'license_activation',
+					$this->endpoints['us'],
+					[
+						'license_key' => $input,
+						'domain'      => $domain,
+						'product_id'  => $plugin_id,
+					]
+				);
 			}
 
 			$response = $this->send_api_request( $input, $domain, $plugin_id );
@@ -81,11 +102,20 @@ if (!class_exists('WC_Blacklist_Manager_Validator')) {
 				YoOhw_HTTP_Debug::end( $response );
 			}
 
-			// 4) Network / WP_Error
 			if ( is_wp_error( $response ) ) {
 				if ( $yoohw_logger ) {
 					YoOhw_Debug_Log_Email::sending( $response, $input, $domain, $plugin_id, YoOhw_HTTP_Debug::export() );
 				}
+
+				YoOhw_License_Runtime::mark_grace(
+					[
+						'state_option'  => 'wc_blacklist_manager_premium_license_state',
+						'status_option' => 'wc_blacklist_manager_premium_license_status',
+						'product_id'    => '44',
+						'error_code'    => 'activation_transport_error',
+						'server_code'   => '',
+					]
+				);
 
 				$this->add_settings_error_once(
 					'wc_blacklist_manager_api_fail',
@@ -95,52 +125,84 @@ if (!class_exists('WC_Blacklist_Manager_Validator')) {
 				return $input;
 			}
 
-			// 5) HTTP‐status + JSON parsing
-			$code = wp_remote_retrieve_response_code( $response );
-			$body = wp_remote_retrieve_body( $response );
+			$code = (int) wp_remote_retrieve_response_code( $response );
+			$body = (string) wp_remote_retrieve_body( $response );
 			$data = json_decode( $body );
 
-			if ( 200 !== (int) $code || ! isset( $data->message ) ) {
+			if ( 200 !== $code || ! isset( $data->message ) ) {
 				if ( $yoohw_logger ) {
 					YoOhw_Debug_Log_Email::sending( $response, $input, $domain, $plugin_id, YoOhw_HTTP_Debug::export() );
 				}
+
+				YoOhw_License_Runtime::mark_grace(
+					[
+						'state_option'  => 'wc_blacklist_manager_premium_license_state',
+						'status_option' => 'wc_blacklist_manager_premium_license_status',
+						'product_id'    => '44',
+						'error_code'    => 'activation_unexpected_response',
+						'server_code'   => '',
+					]
+				);
+
 				$this->add_settings_error_once(
 					'wc_blacklist_manager_api_fail',
-					sprintf( 'Unexpected response from license server (HTTP %1$d): %2$s', (int) $code, wp_html_excerpt( $body, 100 ) ),
+					sprintf( 'Unexpected response from license server (HTTP %1$d): %2$s', $code, wp_html_excerpt( $body, 100 ) ),
 					'error'
 				);
 				return $input;
 			}
 
-			if ( isset($data->raw) && $data->message === 'OK' ) {
+			if ( isset( $data->raw ) && 'OK' === $data->message ) {
+				YoOhw_License_Runtime::mark_grace(
+					[
+						'state_option'  => 'wc_blacklist_manager_premium_license_state',
+						'status_option' => 'wc_blacklist_manager_premium_license_status',
+						'product_id'    => '44',
+						'error_code'    => 'activation_raw_response',
+						'server_code'   => '',
+					]
+				);
+
 				$this->add_settings_error_once(
 					'wc_blacklist_manager_api_fail',
-					sprintf('Unexpected response from license server (HTTP %1$d): %2$s', (int)$code, wp_html_excerpt((string)$data->raw, 120)),
+					sprintf( 'Unexpected response from license server (HTTP %1$d): %2$s', $code, wp_html_excerpt( (string) $data->raw, 120 ) ),
 					'error'
 				);
 				return $input;
 			}
 
-			// 6) Handle success / fail
-			if ( $data->message === 'License activated successfully.' ) {
-
-				update_option( 'wc_blacklist_manager_premium_license_status', 'activated' );
+			if ( 'License activated successfully.' === $data->message ) {
+				$expires_at = 0;
 
 				if ( ! empty( $data->expired ) ) {
-					update_option( 'wc_blacklist_manager_premium_license_expired', sanitize_text_field( $data->expired ) );
+					$expired_value = sanitize_text_field( $data->expired );
+					update_option( 'wc_blacklist_manager_premium_license_expired', $expired_value );
+
+					$parsed_expires_at = strtotime( $expired_value . ' UTC' );
+					if ( false !== $parsed_expires_at ) {
+						$expires_at = (int) $parsed_expires_at;
+					}
 				}
 
-				// NEW: if premium plugin not installed/active, auto install/activate using v4 download_url
+				YoOhw_License_Runtime::mark_activated(
+					[
+						'state_option'  => 'wc_blacklist_manager_premium_license_state',
+						'status_option' => 'wc_blacklist_manager_premium_license_status',
+						'product_id'    => '44',
+						'domain'        => $domain,
+						'expires_at'    => $expires_at,
+						'server_code'   => 'valid',
+					]
+				);
+
 				$auto_result = $this->maybe_auto_install_activate_premium( $data );
 
-				// Always show activation message
 				$this->add_settings_error_once(
 					'wc_blacklist_manager_license_activated',
 					esc_html( $data->message ),
 					'updated'
 				);
 
-				// Also show auto-install result if any (success or actionable error)
 				if ( $auto_result && ! empty( $auto_result['message'] ) && ! empty( $auto_result['type'] ) ) {
 					$this->add_settings_error_once(
 						$auto_result['transient'],
@@ -148,8 +210,25 @@ if (!class_exists('WC_Blacklist_Manager_Validator')) {
 						$auto_result['type']
 					);
 				}
-
 			} else {
+				$server_code = isset( $data->code ) ? sanitize_text_field( (string) $data->code ) : 'activation_rejected';
+				$new_status  = 'invalid';
+
+				if ( 'license_expired' === $server_code ) {
+					$new_status = 'expired';
+				}
+
+				YoOhw_License_Runtime::mark_inactive(
+					[
+						'state_option'  => 'wc_blacklist_manager_premium_license_state',
+						'status_option' => 'wc_blacklist_manager_premium_license_status',
+						'product_id'    => '44',
+						'status'        => $new_status,
+						'error_code'    => 'activation_rejected',
+						'server_code'   => $server_code,
+					]
+				);
+
 				$this->add_settings_error_once(
 					'wc_blacklist_manager_license_invalid',
 					esc_html( $data->message ),
@@ -162,8 +241,18 @@ if (!class_exists('WC_Blacklist_Manager_Validator')) {
 
 		private function remove_license() {
 			delete_option( 'wc_blacklist_manager_premium_license_key' );
-			delete_option( 'wc_blacklist_manager_premium_license_status' );
 			delete_option( 'wc_blacklist_manager_premium_license_expired' );
+
+			YoOhw_License_Runtime::mark_inactive(
+				[
+					'state_option'  => 'wc_blacklist_manager_premium_license_state',
+					'status_option' => 'wc_blacklist_manager_premium_license_status',
+					'product_id'    => '44',
+					'status'        => 'deactivated',
+					'error_code'    => 'removed_by_user',
+					'server_code'   => 'removed_by_user',
+				]
+			);
 
 			$this->add_settings_error_once(
 				'wc_blacklist_manager_premium_license_key_removed',
@@ -172,27 +261,20 @@ if (!class_exists('WC_Blacklist_Manager_Validator')) {
 			);
 		}
 
-		/**
-		 * Auto-install + activate premium plugin if needed.
-		 * Expects v4 response fields: download_url OR download_unavailable.
-		 */
 		private function maybe_auto_install_activate_premium( $data ) {
-
 			require_once ABSPATH . 'wp-admin/includes/plugin.php';
 
-			// Only admins should trigger install/activate operations
 			if ( ! current_user_can( 'install_plugins' ) || ! current_user_can( 'activate_plugins' ) ) {
-				return null; // silent: license activation should still succeed
+				return null;
 			}
 
 			$is_active    = is_plugin_active( $this->premium_plugin_file );
 			$is_installed = $this->is_plugin_installed( $this->premium_plugin_file );
 
 			if ( $is_active ) {
-				return null; // nothing to do
+				return null;
 			}
 
-			// If installed but inactive => just activate
 			if ( $is_installed && ! $is_active ) {
 				$act = activate_plugin( $this->premium_plugin_file );
 				if ( is_wp_error( $act ) ) {
@@ -202,6 +284,7 @@ if (!class_exists('WC_Blacklist_Manager_Validator')) {
 						'type'      => 'error',
 					];
 				}
+
 				return [
 					'transient' => 'yoohw_bmp_auto_activate_ok',
 					'message'   => 'Premium plugin activated successfully.',
@@ -209,7 +292,6 @@ if (!class_exists('WC_Blacklist_Manager_Validator')) {
 				];
 			}
 
-			// Not installed => need download_url
 			$download_url = ( isset( $data->download_url ) && is_string( $data->download_url ) ) ? $data->download_url : '';
 
 			if ( empty( $download_url ) ) {
@@ -242,7 +324,6 @@ if (!class_exists('WC_Blacklist_Manager_Validator')) {
 				];
 			}
 
-			// After install, activate
 			$act = activate_plugin( $this->premium_plugin_file );
 			if ( is_wp_error( $act ) ) {
 				return [
@@ -259,98 +340,52 @@ if (!class_exists('WC_Blacklist_Manager_Validator')) {
 			];
 		}
 
-		private function is_plugin_installed( $plugin_file ) {
-			// Fast path
-			if ( file_exists( WP_PLUGIN_DIR . '/' . ltrim( $plugin_file, '/' ) ) ) {
-				return true;
-			}
-
-			// Full scan (covers uncommon setups)
-			if ( ! function_exists( 'get_plugins' ) ) {
-				require_once ABSPATH . 'wp-admin/includes/plugin.php';
-			}
-			$plugins = get_plugins();
-			return isset( $plugins[ $plugin_file ] );
-		}
-
-		private function install_plugin_from_url( $download_url ) {
-			// WordPress upgrader stack
-			require_once ABSPATH . 'wp-admin/includes/file.php';
-			require_once ABSPATH . 'wp-admin/includes/misc.php';
-			require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
-
-			// Ensure FS credentials are not prompted
-			$creds = request_filesystem_credentials( admin_url(), '', false, false, null );
-			if ( false === $creds ) {
-				return new WP_Error( 'yoohw_fs_creds', 'Filesystem credentials are required to install the plugin.' );
-			}
-			if ( ! WP_Filesystem( $creds ) ) {
-				return new WP_Error( 'yoohw_fs_init', 'Could not initialize filesystem.' );
-			}
-
-			$skin     = new Automatic_Upgrader_Skin();
-			$upgrader = new Plugin_Upgrader( $skin );
-
-			// Install ZIP from URL
-			$result = $upgrader->install( $download_url );
-
-			if ( is_wp_error( $result ) ) {
-				return $result;
-			}
-
-			if ( ! $result ) {
-				// Automatic_Upgrader_Skin stores errors in $skin->result sometimes, but keep it simple.
-				return new WP_Error( 'yoohw_install_failed', 'Plugin installation failed (unknown error).' );
-			}
-
-			return true;
-		}
-
-		/**
-		 * Origin-first with short timeout + circuit breaker + bridge failover.
-		 */
 		private function send_api_request( $license_key, $domain, $plugin_id ) {
 			$payload = [
 				'license_key' => $license_key,
-				'domain'      => preg_replace( '/^www\./i', '', (string) $domain ),
+				'domain'      => $domain,
 				'product_id'  => $plugin_id,
 			];
+
+			$post_json = function( $url, array $headers, array $body, $timeout ) {
+				return wp_remote_post(
+					$url,
+					[
+						'headers' => array_merge(
+							[
+								'Content-Type' => 'application/json',
+								'Accept'       => 'application/json',
+								'X-Plugin'     => 'blacklist-manager-premium',
+							],
+							$headers
+						),
+						'body'    => wp_json_encode( $body ),
+						'timeout' => $timeout,
+					]
+				);
+			};
+
+			$should_failover = function( $resp ) {
+				if ( is_wp_error( $resp ) ) {
+					return true;
+				}
+
+				$code = (int) wp_remote_retrieve_response_code( $resp );
+				return ( $code >= 500 );
+			};
 
 			$cb_open    = (bool) get_transient( $this->cb_flag_key );
 			$fail_count = (int) get_transient( $this->cb_fail_count );
 
-			// Helper: POST JSON
-			$post_json = function( $url, array $headers, array $body, $timeout ) {
-				return wp_remote_post( $url, [
-					'headers' => array_merge( [
-						'Content-Type' => 'application/json',
-						'X-Plugin'     => 'blacklist-manager-premium',
-					], $headers ),
-					'body'    => wp_json_encode( $body ),
-					'timeout' => $timeout,
-				] );
-			};
-
-			// Helper: decide failover
-			$should_failover = function( $resp ) {
-				if ( is_wp_error( $resp ) ) return true;
-				$code = (int) wp_remote_retrieve_response_code( $resp );
-				if ( $code >= 500 ) return true;
-				// Do NOT failover on 4xx — treat as definitive response.
-				return false;
-			};
-
-			// If breaker is OPEN, skip origin and go straight to bridge
 			if ( $cb_open ) {
 				return $post_json(
 					$this->endpoints['bridge'],
 					[ 'X-BRIDGE-KEY' => $this->bridge_key ],
 					$payload,
-					25
+					20
 				);
 			}
 
-			/* 1) Try ORIGIN (US) with short timeout (8s) */
 			$origin_resp = $post_json(
 				$this->endpoints['us'],
 				[ 'X-API-KEY' => $this->origin_api_key ],
@@ -364,18 +399,17 @@ if (!class_exists('WC_Blacklist_Manager_Validator')) {
 				return $origin_resp;
 			}
 
-			/* 2) Fall back to BRIDGE (25s timeout) */
 			$bridge_resp = $post_json(
 				$this->endpoints['bridge'],
 				[ 'X-BRIDGE-KEY' => $this->bridge_key ],
 				$payload,
-				25
+				20
 			);
 
-			// Update breaker state based on ORIGIN result only
 			if ( is_wp_error( $origin_resp ) || (int) wp_remote_retrieve_response_code( $origin_resp ) >= 500 ) {
-				$fail_count++;
+				++$fail_count;
 				set_transient( $this->cb_fail_count, $fail_count, 30 * MINUTE_IN_SECONDS );
+
 				if ( $fail_count >= 2 ) {
 					set_transient( $this->cb_flag_key, 1, 10 * MINUTE_IN_SECONDS );
 				}
@@ -386,33 +420,83 @@ if (!class_exists('WC_Blacklist_Manager_Validator')) {
 			return $bridge_resp;
 		}
 
-		private function add_settings_error_once( $transient, $message, $type ) {
-			if ( get_transient( $transient ) === false ) {
-				set_transient( $transient, true, 10 );
-				add_settings_error(
-					'wc_blacklist_manager_premium_license_key',
-					'wc_blacklist_manager_premium_license_key_error',
-					$message,
-					$type
-				);
-			}
+		private function add_settings_error_once( $code, $message, $type = 'error' ) {
+			settings_errors( 'wc_blacklist_manager_premium_license_key' );
+
+			add_settings_error(
+				'wc_blacklist_manager_premium_license_key',
+				$code,
+				$message,
+				$type
+			);
 		}
 
-		private function is_allowed_download_url($url) {
-			$u = wp_parse_url((string)$url);
-			if (empty($u['scheme']) || strtolower($u['scheme']) !== 'https') return false;
-			if (empty($u['host'])) return false;
+		private function is_plugin_installed( $plugin_file ) {
+			$plugin_path = WP_PLUGIN_DIR . '/' . ltrim( $plugin_file, '/' );
+			return file_exists( $plugin_path );
+		}
 
-			$host = strtolower($u['host']);
+		private function is_allowed_download_url( $url ) {
+			$host = wp_parse_url( $url, PHP_URL_HOST );
+			if ( ! is_string( $host ) || '' === $host ) {
+				return false;
+			}
 
-			// allow yoohw.com + subdomains, and api2.yoohw.com (bridge)
-			if (preg_match('#(^|\.)yoohw\.com$#', $host)) return true;
-			if ($host === 'api2.yoohw.com') return true;
+			$host = strtolower( $host );
 
-			return false;
+			$allowed_hosts = [
+				'yoohw.com',
+				'www.yoohw.com',
+				'api2.yoohw.com',
+				'dl.dropboxusercontent.com',
+				'www.dropbox.com',
+				'dropbox.com',
+			];
+
+			return in_array( $host, $allowed_hosts, true );
+		}
+
+		private function install_plugin_from_url( $download_url ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+			require_once ABSPATH . 'wp-admin/includes/misc.php';
+			require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+			require_once ABSPATH . 'wp-admin/includes/plugin-install.php';
+
+			$temp_file = download_url( $download_url );
+
+			if ( is_wp_error( $temp_file ) ) {
+				return $temp_file;
+			}
+
+			$upgrader = new Plugin_Upgrader(
+				new Automatic_Upgrader_Skin(
+					[
+						'title'  => 'Installing Plugin',
+						'url'    => admin_url( 'admin.php?page=yoohw-license-manager' ),
+						'nonce'  => 'install-plugin_' . sanitize_key( basename( $download_url ) ),
+						'plugin' => '',
+						'api'    => null,
+					]
+				)
+			);
+
+			$result = $upgrader->install( $download_url );
+
+			if ( is_wp_error( $result ) ) {
+				@unlink( $temp_file );
+				return $result;
+			}
+
+			if ( ! $result ) {
+				@unlink( $temp_file );
+				return new WP_Error( 'plugin_install_failed', 'Plugin installation failed.' );
+			}
+
+			@unlink( $temp_file );
+
+			return true;
 		}
 	}
-}
 
-// Instantiate the class
-new WC_Blacklist_Manager_Validator();
+	new WC_Blacklist_Manager_Validator();
+}

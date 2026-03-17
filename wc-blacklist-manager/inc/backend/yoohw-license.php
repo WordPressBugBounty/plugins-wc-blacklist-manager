@@ -1,76 +1,161 @@
 <?php
 
-if (!defined('ABSPATH')) {
+if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-require_once plugin_dir_path(__FILE__) . '../cores/activation.php';
-
-if (!class_exists('YoOhw_License_Manager')) {
+if ( ! class_exists( 'YoOhw_License_Manager' ) ) {
 	class YoOhw_License_Manager {
 
 		public function __construct() {
 			global $yo_ohw_license_manager_submenu_added;
 
-			if (!isset($yo_ohw_license_manager_submenu_added)) {
-				if (get_option('yoohw_settings_disable_menu') == 1) {
-					add_action('admin_menu', [$this, 'add_license_manager_wordpress_submenu']);
+			if ( ! isset( $yo_ohw_license_manager_submenu_added ) ) {
+				if ( get_option( 'yoohw_settings_disable_menu' ) == 1 ) {
+					add_action( 'admin_menu', [ $this, 'add_license_manager_wordpress_submenu' ] );
 				} else {
-					add_action('admin_menu', [$this, 'add_license_manager_yoohw_submenu']);
+					add_action( 'admin_menu', [ $this, 'add_license_manager_yoohw_submenu' ] );
 				}
 				$yo_ohw_license_manager_submenu_added = true;
 			}
 		}
 
 		public function add_license_manager_yoohw_submenu() {
-			$parent_slug = 'yo-ohw';
-			$page_title = 'License Manager';
-			$menu_title = 'Licenses';
-			$capability = 'manage_options';
-			$menu_slug = 'yoohw-license-manager';
-			$function = [$this, 'license_manager_page'];
-		
-			add_submenu_page($parent_slug, $page_title, $menu_title, $capability, $menu_slug, $function);
+			add_submenu_page(
+				'yo-ohw',
+				'License Manager',
+				'Licenses',
+				'manage_options',
+				'yoohw-license-manager',
+				[ $this, 'license_manager_page' ]
+			);
 		}
 
 		public function add_license_manager_wordpress_submenu() {
-			$parent_slug = 'options-general.php';
-			$page_title = 'YoOhw License Manager';
-			$menu_title = 'YoOhw Licenses';
-			$capability = 'manage_options';
-			$menu_slug = 'yoohw-license-manager';
-			$function = [$this, 'license_manager_page'];
-		
-			add_submenu_page($parent_slug, $page_title, $menu_title, $capability, $menu_slug, $function);
+			add_submenu_page(
+				'options-general.php',
+				'YoOhw License Manager',
+				'YoOhw Licenses',
+				'manage_options',
+				'yoohw-license-manager',
+				[ $this, 'license_manager_page' ]
+			);
 		}
 
 		public function license_manager_page() {
 			echo '<div class="wrap">';
-			echo '<h1>' . esc_html(get_admin_page_title()) . '</h1>';
+			echo '<h1>' . esc_html( get_admin_page_title() ) . '</h1>';
 			settings_errors( 'wc_blacklist_manager_premium_license_key' );
-			do_action('yoohw_license_manager_content');
+			do_action( 'yoohw_license_manager_content' );
 			echo '</div>';
 		}
 	}
 
-	// Instantiate the class
 	new YoOhw_License_Manager();
 }
 
-if (!class_exists('WC_Blacklist_Manager_Validator_Form')) {
+if ( ! class_exists( 'WC_Blacklist_Manager_Validator_Form' ) ) {
 	class WC_Blacklist_Manager_Validator_Form {
 
 		public function __construct() {
-			add_action('yoohw_license_manager_content', [$this, 'wc_blacklist_manager_premium_license_manager_content']);
-			add_action('admin_init', [$this, 'settings_init']);
+			add_action( 'yoohw_license_manager_content', [ $this, 'wc_blacklist_manager_premium_license_manager_content' ] );
+			add_action( 'admin_init', [ $this, 'settings_init' ] );
+		}
+
+		private function get_license_args() {
+			return [
+				'license_key_option' => 'wc_blacklist_manager_premium_license_key',
+				'status_option'      => 'wc_blacklist_manager_premium_license_status',
+				'state_option'       => 'wc_blacklist_manager_premium_license_state',
+				'product_id'         => '44',
+			];
+		}
+
+		private function get_runtime_status() {
+			$args = $this->get_license_args();
+
+			return YoOhw_License_Runtime::get_runtime_status(
+				[
+					'state_option' => $args['state_option'],
+					'product_id'   => $args['product_id'],
+				]
+			);
+		}
+
+		private function is_runtime_active() {
+			return YoOhw_License_Runtime::is_active( $this->get_license_args() );
+		}
+
+		private function get_display_status() {
+			$runtime_status = $this->get_runtime_status();
+
+			if ( in_array( $runtime_status, [ 'activated', 'grace' ], true ) ) {
+				return [
+					'label' => __( 'Active', 'wc-blacklist-manager' ),
+					'class' => 'is-active',
+				];
+			}
+
+			if ( 'expired' === $runtime_status ) {
+				return [
+					'label' => __( 'Expired', 'wc-blacklist-manager' ),
+					'class' => 'is-expired',
+				];
+			}
+
+			return [
+				'label' => __( 'Inactive', 'wc-blacklist-manager' ),
+				'class' => 'is-inactive',
+			];
 		}
 
 		public function wc_blacklist_manager_premium_license_manager_content() {
-			$is_activated = get_option('wc_blacklist_manager_premium_license_status') === 'activated';
+			$is_active      = $this->is_runtime_active();
+			$display_status = $this->get_display_status();
+			$status_label   = $display_status['label'];
+			$status_class   = $display_status['class'];
 			?>
 			<div class="wrap">
 
 				<style>
+					.yoohw-license-card {
+						background: #fff;
+						border: 1px solid #dcdcde;
+						border-radius: 12px;
+						padding: 24px;
+						max-width: 760px;
+						box-shadow: 0 1px 2px rgba(0,0,0,.04);
+					}
+					.yoohw-license-card h2 {
+						margin-top: 0;
+					}
+					.yoohw-license-header {
+						float: right;
+					}
+					.yoohw-license-badge {
+						display: inline-flex;
+						align-items: center;
+						padding: 7px 12px;
+						border-radius: 999px;
+						font-size: 13px;
+						font-weight: 600;
+					}
+					.yoohw-license-badge.is-active {
+						background: #edfaef;
+						color: #0f6b28;
+					}
+					.yoohw-license-badge.is-expired,
+					.yoohw-license-badge.is-inactive {
+						background: #fbeaea;
+						color: #b32d2e;
+					}
+					.yoohw-license-meta {
+						color: #50575e;
+						font-size: 13px;
+					}
+					.yoohw-license-actions {
+						margin-top: 22px;
+					}
 					#yoohw-bmp-loading {
 						position: fixed;
 						inset: 0;
@@ -127,23 +212,35 @@ if (!class_exists('WC_Blacklist_Manager_Validator_Form')) {
 							<span class="spinner" aria-hidden="true"></span>
 							<p class="step" id="yoohw-bmp-loading-step"><?php echo esc_html__( 'Activating license…', 'wc-blacklist-manager' ); ?></p>
 						</div>
-						<p class="hint">
-							<?php echo esc_html__( 'Please keep this tab open. The page will refresh when finished.', 'wc-blacklist-manager' ); ?>
-						</p>
+						<p class="hint"><?php echo esc_html__( 'Please keep this tab open. The page will refresh when finished.', 'wc-blacklist-manager' ); ?></p>
 					</div>
 				</div>
 
-				<form method="post" action="options.php" id="yoohw-bmp-license-form">
-					<?php
-					settings_fields('wc_blacklist_manager_premium_options');
-					do_settings_sections('wc_blacklist_manager_premium');
-					if ($is_activated) {
-						submit_button('Remove License', 'secondary', 'remove_license', true, ['id' => 'yoohw-bmp-remove']);
-					} else {
-						submit_button('Activate License', 'primary', 'submit', true, ['id' => 'yoohw-bmp-activate']);
-					}
-					?>
-				</form>
+				<div class="yoohw-license-card">
+					<div class="yoohw-license-header">
+						<span class="yoohw-license-badge <?php echo esc_attr( $status_class ); ?>">
+							<?php echo esc_html( $status_label ); ?>
+						</span>
+					</div>
+
+					<form method="post" action="options.php" id="yoohw-bmp-license-form">
+						<?php
+						settings_fields( 'wc_blacklist_manager_premium_options' );
+						do_settings_sections( 'wc_blacklist_manager_premium' );
+						?>
+
+						<div class="yoohw-license-actions">
+							<?php
+							if ( $is_active ) {
+								submit_button( __( 'Remove License', 'wc-blacklist-manager' ), 'secondary', 'remove_license', false, [ 'id' => 'yoohw-bmp-remove' ] );
+							} else {
+								submit_button( __( 'Activate License', 'wc-blacklist-manager' ), 'primary', 'submit', false, [ 'id' => 'yoohw-bmp-activate' ] );
+								echo ' <a href="https://yoohw.com/product/blacklist-manager-premium/" class="button button-secondary" target="_blank" rel="noopener noreferrer">' . esc_html__( 'Purchase a license', 'wc-blacklist-manager' ) . '</a>';
+							}
+							?>
+						</div>
+					</form>
+				</div>
 
 				<script>
 				(function() {
@@ -151,10 +248,6 @@ if (!class_exists('WC_Blacklist_Manager_Validator_Form')) {
 					if (!form) return;
 
 					var btnActivate = document.getElementById('yoohw-bmp-activate');
-					var btnRemove   = document.getElementById('yoohw-bmp-remove');
-
-					// Only show loading for Activate (not Remove)
-					if (btnRemove) return;
 					if (!btnActivate) return;
 
 					var overlay = document.getElementById('yoohw-bmp-loading');
@@ -169,25 +262,27 @@ if (!class_exists('WC_Blacklist_Manager_Validator_Form')) {
 
 					var t1, t2, t3;
 
-					form.addEventListener('submit', function() {
+					form.addEventListener('submit', function(event) {
+						if (!event.submitter || event.submitter.id !== 'yoohw-bmp-activate') {
+							return;
+						}
+
 						if (!overlay || !stepEl) return;
 
 						overlay.style.display = 'flex';
 						overlay.setAttribute('aria-hidden', 'false');
-
-						// Disable the button to prevent double submit
 						btnActivate.disabled = true;
 
-						// Simple timed progress messages (server-side will do the real work)
 						stepEl.textContent = steps[0];
 						t1 = setTimeout(function(){ stepEl.textContent = steps[1]; }, 900);
 						t2 = setTimeout(function(){ stepEl.textContent = steps[2]; }, 2000);
 						t3 = setTimeout(function(){ stepEl.textContent = steps[3]; }, 3500);
 					});
 
-					// If the browser navigates away / reloads, cleanup timers
 					window.addEventListener('beforeunload', function() {
-						clearTimeout(t1); clearTimeout(t2); clearTimeout(t3);
+						clearTimeout(t1);
+						clearTimeout(t2);
+						clearTimeout(t3);
 					});
 				})();
 				</script>
@@ -197,81 +292,86 @@ if (!class_exists('WC_Blacklist_Manager_Validator_Form')) {
 		}
 
 		public function settings_init() {
-			register_setting(
-				'wc_blacklist_manager_premium_options', 
-				'wc_blacklist_manager_premium_license_key', 
-				[$this, 'wc_blacklist_manager_premium_validate_license_key']
-			);
-
 			add_settings_section(
 				'wc_blacklist_manager_premium_section',
-				__('Blacklist Manager Premium', 'wc-blacklist-manager'),
-				[$this, 'section_callback'],
+				__( 'Blacklist Manager Premium', 'wc-blacklist-manager' ),
+				[ $this, 'section_callback' ],
 				'wc_blacklist_manager_premium'
 			);
 
 			add_settings_field(
 				'wc_blacklist_manager_premium_license_key_field',
-				__('License key', 'wc-blacklist-manager'),
-				[$this, 'license_key_field_callback'],
+				__( 'License key', 'wc-blacklist-manager' ),
+				[ $this, 'license_key_field_callback' ],
 				'wc_blacklist_manager_premium',
 				'wc_blacklist_manager_premium_section'
 			);
 
 			add_settings_field(
 				'wc_blacklist_manager_premium_license_expired_field',
-				__('Expired date', 'wc-blacklist-manager'),
-				[$this, 'license_expired_field_callback'],
+				__( 'Expiration date', 'wc-blacklist-manager' ),
+				[ $this, 'license_expired_field_callback' ],
 				'wc_blacklist_manager_premium',
 				'wc_blacklist_manager_premium_section'
 			);
 		}
 
 		public function section_callback() {
-			echo '<p>' . esc_html__('Enter your license key to activate the Blacklist Manager Premium plugin.', 'wc-blacklist-manager') . '</p>';
+			echo '<p>' . esc_html__( 'Enter your license key to activate the Blacklist Manager Premium plugin.', 'wc-blacklist-manager' ) . '</p>';
 		}
 
 		public function license_key_field_callback() {
-			$setting = get_option('wc_blacklist_manager_premium_license_key');
-			$is_activated = get_option('wc_blacklist_manager_premium_license_status') === 'activated';
+			$setting        = (string) get_option( 'wc_blacklist_manager_premium_license_key', '' );
+			$runtime_status = $this->get_runtime_status();
+			$is_active      = $this->is_runtime_active();
+
+			$display_value = $setting;
+
+			if ( '' !== $setting && $is_active ) {
+				$len = strlen( $setting );
+				if ( $len > 8 ) {
+					$display_value = str_repeat( '•', max( 0, $len - 8 ) ) . substr( $setting, -8 );
+				}
+			}
 			?>
-			<input type="password" name="wc_blacklist_manager_premium_license_key"
-				<?php if ( $is_activated ) : ?>
-					value="****************************************" disabled
-				<?php else : ?>
-					value="<?php echo esc_attr( $setting ); ?>"
-				<?php endif; ?> 
-				>
-			<?php if ($is_activated): ?>
-				<span class="dashicons dashicons-yes-alt" style="color: #00a32a; vertical-align: text-top;"></span>
-				<span style="color: #00a32a;">activated</span>
-			<?php else: ?>
-				<span><a href="https://yoohw.com/product/blacklist-manager-premium/" class="button-secondary" target="_blank">Purchase a license</a></span>
-			<?php endif; ?>
+			<input
+				type="text"
+				name="wc_blacklist_manager_premium_license_key"
+				value="<?php echo esc_attr( $display_value ); ?>"
+				<?php echo $is_active ? 'readonly' : ''; ?>
+				class="regular-text"
+				autocomplete="off"
+			/>
 			<?php
+			if ( in_array( $runtime_status, [ 'activated', 'grace' ], true ) ) {
+				echo '<p class="description" style="color:#00a32a;">' . esc_html__( 'Your license is active.', 'wc-blacklist-manager' ) . '</p>';
+			} elseif ( 'expired' === $runtime_status ) {
+				echo '<p class="description" style="color:#d63638;">' . esc_html__( 'Your license has expired.', 'wc-blacklist-manager' ) . '</p>';
+			} else {
+				echo '<p class="description">' . esc_html__( 'Enter a valid license key to activate Premium on this site.', 'wc-blacklist-manager' ) . '</p>';
+			}
 		}
 
 		public function license_expired_field_callback() {
-			$expired = get_option( 'wc_blacklist_manager_premium_license_expired' );
+			$runtime_status = $this->get_runtime_status();
+			$expired        = get_option( 'wc_blacklist_manager_premium_license_expired' );
 
 			if ( empty( $expired ) ) {
-				echo '<span>N/A</span>';
+				echo '<span>—</span>';
 				return;
 			}
 
 			$utc_ts = strtotime( $expired . ' UTC' );
 			if ( false === $utc_ts ) {
-				$local_date = date_i18n( get_option( 'date_format' ) );
-				$is_future  = false;
-			} else {
-				$local_date     = date_i18n( get_option( 'date_format' ), $utc_ts, true );
-				$current_gmt_ts = current_time( 'timestamp', true );
-				$is_future      = ( $utc_ts >= $current_gmt_ts );
+				echo '<span>—</span>';
+				return;
 			}
 
-			$style = $is_future
-				? 'background: #00a32a; color: #fff; padding: 5px; border-radius: 5px; font-size: 0.85em;'
-				: 'background: #d63638; color: #fff; padding: 5px; border-radius: 5px; font-size: 0.85em;';
+			$local_date = date_i18n( get_option( 'date_format' ), $utc_ts, true );
+
+			$style = ( 'expired' === $runtime_status )
+				? 'background:#d63638;color:#fff;padding:5px 8px;border-radius:999px;font-size:12px;'
+				: 'background:#00a32a;color:#fff;padding:5px 8px;border-radius:999px;font-size:12px;';
 
 			echo '<span style="' . esc_attr( $style ) . '">' . esc_html( $local_date ) . '</span>';
 		}
@@ -279,4 +379,3 @@ if (!class_exists('WC_Blacklist_Manager_Validator_Form')) {
 }
 
 new WC_Blacklist_Manager_Validator_Form();
-

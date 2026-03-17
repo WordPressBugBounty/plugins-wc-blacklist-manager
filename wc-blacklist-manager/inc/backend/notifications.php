@@ -281,23 +281,3 @@ class WC_Blacklist_Manager_Notifications {
 }
 
 new WC_Blacklist_Manager_Notifications();
-
-trait Blacklist_Notice_Trait {
-	protected function add_checkout_notice() {
-		$checkout_notice = get_option('wc_blacklist_checkout_notice', __('Sorry! You are no longer allowed to shop with us. If you think it is a mistake, please contact support.', 'wc-blacklist-manager'));
-		
-		if (!$this->is_notice_added($checkout_notice)) {
-			wc_add_notice($checkout_notice, 'error');
-		}
-	}
-
-	private function is_notice_added($notice_text) {
-		$notices = wc_get_notices('error');
-		foreach ($notices as $notice) {
-			if ($notice['notice'] === $notice_text) {
-				return true;
-			}
-		}
-		return false;
-	}
-}

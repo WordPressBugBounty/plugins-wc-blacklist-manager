@@ -298,340 +298,363 @@ class WC_Blacklist_Manager_Button_Add_To_Blacklist {
 	}	
 
 	public function handle_add_to_suspects() {
-		check_ajax_referer($this->suspect_nonce_key, 'nonce');
-	
+		check_ajax_referer( $this->suspect_nonce_key, 'nonce' );
+
 		global $wpdb;
-		$table_name = $wpdb->prefix . 'wc_blacklist';
+		$table_name          = $wpdb->prefix . 'wc_blacklist';
 		$table_detection_log = $wpdb->prefix . 'wc_blacklist_detection_log';
-	
-		$allowed_roles = get_option('wc_blacklist_dashboard_permission', []);
+
+		$allowed_roles       = get_option( 'wc_blacklist_dashboard_permission', array() );
 		$user_has_permission = false;
-		if (is_array($allowed_roles) && !empty($allowed_roles)) {
-			foreach ($allowed_roles as $role) {
-				if (current_user_can($role)) {
+
+		if ( is_array( $allowed_roles ) && ! empty( $allowed_roles ) ) {
+			foreach ( $allowed_roles as $role ) {
+				if ( current_user_can( $role ) ) {
 					$user_has_permission = true;
 					break;
 				}
 			}
 		}
-	
-		if (!$user_has_permission && !current_user_can('manage_options')) {
+
+		if ( ! $user_has_permission && ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
-	
-		$order_id = isset($_POST['order_id']) ? intval($_POST['order_id']) : 0;
-		if ($order_id <= 0) {
-			echo esc_html__('Invalid order ID.', 'wc-blacklist-manager');
+
+		$order_id = isset( $_POST['order_id'] ) ? intval( $_POST['order_id'] ) : 0;
+		if ( $order_id <= 0 ) {
+			echo esc_html__( 'Invalid order ID.', 'wc-blacklist-manager' );
 			wp_die();
 		}
-	
-		$ip_blacklist_enabled = get_option('wc_blacklist_ip_enabled', 0);
-		$address_blocking_enabled = get_option('wc_blacklist_enable_customer_address_blocking', 0);
-		$shipping_blocking_enabled = get_option('wc_blacklist_enable_shipping_address_blocking', 0);
-		$customer_name_blocking_enabled = get_option('wc_blacklist_customer_name_blocking_enabled', 0);
-	
-		$settings_instance = new WC_Blacklist_Manager_Settings();
-		$premium_active = $settings_instance->is_premium_active();
-	
-		$order = wc_get_order($order_id);
-		$phone = sanitize_text_field($order->get_billing_phone());
-		$email = sanitize_email($order->get_billing_email());
-		$ip_address = sanitize_text_field($order->get_customer_ip_address());
 
-		$source = sprintf(__('Order ID: %d', 'wc-blacklist-manager'), $order_id);
-	
-		$first_name = sanitize_text_field($order->get_billing_first_name());
-		$last_name = sanitize_text_field($order->get_billing_last_name());
-	
-		$address_1 = sanitize_text_field($order->get_billing_address_1());
-		$address_2 = sanitize_text_field($order->get_billing_address_2());
-		$city = sanitize_text_field($order->get_billing_city());
-		$state = sanitize_text_field($order->get_billing_state());
-		$postcode = sanitize_text_field($order->get_billing_postcode());
-		$country = sanitize_text_field($order->get_billing_country());
-		$address_parts = array_filter([$address_1, $address_2, $city, $state, $postcode, $country]);
-		$customer_address = implode(', ', $address_parts);
-	
-		$shipping_address_1 = sanitize_text_field($order->get_shipping_address_1());
-		$shipping_address_2 = sanitize_text_field($order->get_shipping_address_2());
-		$shipping_city = sanitize_text_field($order->get_shipping_city());
-		$shipping_state = sanitize_text_field($order->get_shipping_state());
-		$shipping_postcode = sanitize_text_field($order->get_shipping_postcode());
-		$shipping_country = sanitize_text_field($order->get_shipping_country());
-		$shipping_address_parts = array_filter([$shipping_address_1, $shipping_address_2, $shipping_city, $shipping_state, $shipping_postcode, $shipping_country]);
-		$shipping_address = implode(', ', $shipping_address_parts);
-	
-		// Initialize contact data
-		$contact_data = [
+		$ip_blacklist_enabled           = get_option( 'wc_blacklist_ip_enabled', 0 );
+		$address_blocking_enabled       = get_option( 'wc_blacklist_enable_customer_address_blocking', 0 );
+		$shipping_blocking_enabled      = get_option( 'wc_blacklist_enable_shipping_address_blocking', 0 );
+		$customer_name_blocking_enabled = get_option( 'wc_blacklist_customer_name_blocking_enabled', 0 );
+
+		$settings_instance = new WC_Blacklist_Manager_Settings();
+		$premium_active    = $settings_instance->is_premium_active();
+
+		$order = wc_get_order( $order_id );
+		if ( ! $order ) {
+			echo esc_html__( 'Invalid order.', 'wc-blacklist-manager' );
+			wp_die();
+		}
+
+		$phone      = sanitize_text_field( $order->get_billing_phone() );
+		$email      = sanitize_email( $order->get_billing_email() );
+		$ip_address = sanitize_text_field( $order->get_customer_ip_address() );
+
+		$normalized_email = '';
+		if ( ! empty( $email ) && is_email( $email ) ) {
+			$normalized_email = yobm_normalize_email( $email );
+		}
+
+		$source = sprintf( __( 'Order ID: %d', 'wc-blacklist-manager' ), $order_id );
+
+		$first_name = sanitize_text_field( $order->get_billing_first_name() );
+		$last_name  = sanitize_text_field( $order->get_billing_last_name() );
+
+		$address_1 = sanitize_text_field( $order->get_billing_address_1() );
+		$address_2 = sanitize_text_field( $order->get_billing_address_2() );
+		$city      = sanitize_text_field( $order->get_billing_city() );
+		$state     = sanitize_text_field( $order->get_billing_state() );
+		$postcode  = sanitize_text_field( $order->get_billing_postcode() );
+		$country   = sanitize_text_field( $order->get_billing_country() );
+
+		$address_parts    = array_filter( array( $address_1, $address_2, $city, $state, $postcode, $country ) );
+		$customer_address = yobm_norm_str( implode( ', ', $address_parts ) );
+
+		$shipping_address_1 = sanitize_text_field( $order->get_shipping_address_1() );
+		$shipping_address_2 = sanitize_text_field( $order->get_shipping_address_2() );
+		$shipping_city      = sanitize_text_field( $order->get_shipping_city() );
+		$shipping_state     = sanitize_text_field( $order->get_shipping_state() );
+		$shipping_postcode  = sanitize_text_field( $order->get_shipping_postcode() );
+		$shipping_country   = sanitize_text_field( $order->get_shipping_country() );
+
+		$shipping_address_parts = array_filter( array( $shipping_address_1, $shipping_address_2, $shipping_city, $shipping_state, $shipping_postcode, $shipping_country ) );
+		$shipping_address       = yobm_norm_str( implode( ', ', $shipping_address_parts ) );
+
+		$normalized_phone = '';
+		if ( ! empty( $phone ) ) {
+			$billing_dial_code = yobm_get_country_dial_code( $country );
+			$normalized_phone = yobm_normalize_phone( $phone, $billing_dial_code );
+		}
+
+		// Initialize contact data.
+		$contact_data = array(
 			'sources'    => $source,
 			'is_blocked' => 0,
 			'order_id'   => $order_id,
-			'date_added' => current_time('mysql', 1)
-		];
-	
-		$insert_data = [];
-	
-		// Insert phone number if not empty
-		if (!empty($phone)) {
+			'date_added' => current_time( 'mysql', 1 ),
+		);
+
+		$insert_data = array();
+
+		// Insert phone number if not empty.
+		if ( ! empty( $phone ) ) {
 			$insert_data['phone_number'] = $phone;
+			$insert_data['normalized_phone'] = $normalized_phone;
 		}
-	
-		// Insert email address if not empty
-		if (!empty($email)) {
-			$insert_data['email_address'] = $email;
-			if ($premium_active) {
-				$normalized_email = yobmp_normalize_email( $email );
-				$insert_data['normalized_email'] = $normalized_email;
-			}
+
+		// Insert email address if not empty.
+		if ( ! empty( $email ) && is_email( $email ) ) {
+			$insert_data['email_address']    = $email;
+			$insert_data['normalized_email'] = $normalized_email;
 		}
-	
-		// Insert IP address if enabled and not empty
-		if ($ip_blacklist_enabled && !empty($ip_address)) {
+
+		// Insert IP address if enabled and not empty.
+		if ( $ip_blacklist_enabled && ! empty( $ip_address ) ) {
 			$insert_data['ip_address'] = $ip_address;
 		}
-	
-		// Insert customer address if premium is active, address blocking enabled, and not empty
-		if ($premium_active && $address_blocking_enabled && !empty($customer_address)) {
+
+		// Insert customer address if premium is active, address blocking enabled, and not empty.
+		if ( $premium_active && $address_blocking_enabled && ! empty( $customer_address ) ) {
 			$insert_data['customer_address'] = $customer_address;
 		}
 
-		// Insert customer name if premium is active, customer name blocking enabled, and both first and last name are not empty
-		if ($premium_active && $customer_name_blocking_enabled) {
-			if (!empty($first_name) && !empty($last_name)) {
+		// Insert customer name if premium is active, customer name blocking enabled, and both first and last name are not empty.
+		if ( $premium_active && $customer_name_blocking_enabled ) {
+			if ( ! empty( $first_name ) && ! empty( $last_name ) ) {
 				$insert_data['first_name'] = $first_name;
 				$insert_data['last_name']  = $last_name;
 			}
-		}		
-	
-		// Merge contact data with the insert data
-		$insert_data = array_merge($contact_data, $insert_data);
-	
-		// Insert a new row if there are fields to insert
-		if (!empty($insert_data)) {
-			$wpdb->insert($table_name, $insert_data);
+		}
+
+		// Merge contact data with the insert data.
+		$insert_data = array_merge( $contact_data, $insert_data );
+
+		// Insert a new row if there are fields to insert.
+		if ( ! empty( $insert_data ) ) {
+			$wpdb->insert( $table_name, $insert_data );
 			$new_blacklist_id = $wpdb->insert_id;
 
-			if ($premium_active && get_option('wc_blacklist_connection_mode') === 'host') {
+			if ( $premium_active && get_option( 'wc_blacklist_connection_mode' ) === 'host' ) {
 				$customer_domain = '';
-				$is_blocked = 0;
-				
-				$site_url = site_url();
+				$is_blocked      = 0;
+
+				$site_url     = site_url();
 				$clean_domain = preg_replace( '/^https?:\/\//', '', $site_url );
-				$sources = $clean_domain . '[' . $new_blacklist_id . ']';
+				$sources      = $clean_domain . '[' . $new_blacklist_id . ']';
 
 				if ( ! wp_next_scheduled( 'wc_blacklist_connection_send_to_subsite', array( $phone, $email, $ip_address, $customer_domain, $is_blocked, $sources, $customer_address, $first_name, $last_name ) ) ) {
 					wp_schedule_single_event( time() + 5, 'wc_blacklist_connection_send_to_subsite', array( $phone, $email, $ip_address, $customer_domain, $is_blocked, $sources, $customer_address, $first_name, $last_name ) );
 				}
 			}
 
-			if ($premium_active && get_option('wc_blacklist_connection_mode') === 'sub') {
+			if ( $premium_active && get_option( 'wc_blacklist_connection_mode' ) === 'sub' ) {
 				if ( ! wp_next_scheduled( 'wc_blacklist_connection_send_to_hostsite', array( $new_blacklist_id ) ) ) {
 					wp_schedule_single_event( time() + 5, 'wc_blacklist_connection_send_to_hostsite', array( $new_blacklist_id ) );
 				}
 			}
-	
-			$current_meta = $order->get_meta('_blacklist_suspect_id', true);
-			if (!empty($current_meta)) {
+
+			$current_meta = $order->get_meta( '_blacklist_suspect_id', true );
+			if ( ! empty( $current_meta ) ) {
 				$new_meta = $current_meta . ',' . $new_blacklist_id;
 			} else {
 				$new_meta = $new_blacklist_id;
 			}
-	
-			$order->delete_meta_data('_blacklist_blocked_id');
-			$order->update_meta_data('_blacklist_suspect_id', $new_meta);
+
+			$order->delete_meta_data( '_blacklist_blocked_id' );
+			$order->update_meta_data( '_blacklist_suspect_id', $new_meta );
 
 			$current_user = wp_get_current_user();
 			$shop_manager = $current_user->display_name;
 
 			$order->add_order_note(
 				sprintf(
-					esc_html__('Added to the suspect list by %s.', 'wc-blacklist-manager'),
+					esc_html__( 'Added to the suspect list by %s.', 'wc-blacklist-manager' ),
 					$shop_manager
 				),
 				false
 			);
 
 			$order->save();
-	
+
 			if ( $premium_active ) {
-				$details = 'suspected_added_to_suspects_list_by:' . $shop_manager;
+				$details   = 'suspected_added_to_suspects_list_by:' . $shop_manager;
 				$view_json = '';
 
 				$wpdb->insert(
 					$table_detection_log,
-					[
+					array(
 						'timestamp' => current_time( 'mysql' ),
 						'type'      => 'human',
 						'source'    => 'woo_order_' . $order_id,
 						'action'    => 'suspect',
 						'details'   => $details,
 						'view'      => $view_json,
-					],
-					[ '%s', '%s', '%s', '%s', '%s', '%s' ]
+					),
+					array( '%s', '%s', '%s', '%s', '%s', '%s' )
 				);
 			}
-			
-			echo esc_html__('Added to suspects list successfully.', 'wc-blacklist-manager');
+
+			echo esc_html__( 'Added to suspects list successfully.', 'wc-blacklist-manager' );
 		} else {
-			echo esc_html__('Nothing to add to the suspects list.', 'wc-blacklist-manager');
+			echo esc_html__( 'Nothing to add to the suspects list.', 'wc-blacklist-manager' );
 		}
 
-		// Add shipping address to a new row if premium is active, shipping blocking enabled, not empty, and different from customer address
-		if ($premium_active && $address_blocking_enabled && $shipping_blocking_enabled && !empty($shipping_address) && $shipping_address !== $customer_address) {
-			$shipping_data = [
-				'sources'          => sprintf(__('Order ID: %d | Shipping', 'wc-blacklist-manager'), $order_id),
+		// Add shipping address to a new row if premium is active, shipping blocking enabled, not empty, and different from customer address.
+		if ( $premium_active && $address_blocking_enabled && $shipping_blocking_enabled && ! empty( $shipping_address ) && $shipping_address !== $customer_address ) {
+			$shipping_data = array(
+				'sources'          => sprintf( __( 'Order ID: %d | Shipping', 'wc-blacklist-manager' ), $order_id ),
 				'customer_address' => $shipping_address,
 				'is_blocked'       => 0,
 				'order_id'         => $order_id,
-				'date_added'       => current_time('mysql')
-			];
-			$wpdb->insert($table_name, $shipping_data);
+				'date_added'       => current_time( 'mysql', 1 ),
+			);
+
+			$wpdb->insert( $table_name, $shipping_data );
 			$shipping_blacklist_id = $wpdb->insert_id;
 
-			if (get_option('wc_blacklist_connection_mode') === 'host') {
-				$phone_holder = '';
-				$email_holder = '';
-				$ip_address_holder = '';
+			if ( get_option( 'wc_blacklist_connection_mode' ) === 'host' ) {
+				$phone_holder           = '';
+				$email_holder           = '';
+				$ip_address_holder      = '';
 				$customer_domain_holder = '';
-				$first_name_holder = '';
-				$last_name_holder = '';
-				$is_blocked_holder = 0;
-				
-				$site_url_holder = site_url();
+				$first_name_holder      = '';
+				$last_name_holder       = '';
+				$is_blocked_holder      = 0;
+
+				$site_url_holder     = site_url();
 				$clean_domain_holder = preg_replace( '/^https?:\/\//', '', $site_url_holder );
-				$sources_holder = $clean_domain_holder . '[' . $shipping_blacklist_id . ']';
+				$sources_holder      = $clean_domain_holder . '[' . $shipping_blacklist_id . ']';
 
 				if ( ! wp_next_scheduled( 'wc_blacklist_connection_send_to_subsite', array( $phone_holder, $email_holder, $ip_address_holder, $customer_domain_holder, $is_blocked_holder, $sources_holder, $shipping_address, $first_name_holder, $last_name_holder ) ) ) {
 					wp_schedule_single_event( time() + 5, 'wc_blacklist_connection_send_to_subsite', array( $phone_holder, $email_holder, $ip_address_holder, $customer_domain_holder, $is_blocked_holder, $sources_holder, $shipping_address, $first_name_holder, $last_name_holder ) );
 				}
 			}
 
-			if (get_option('wc_blacklist_connection_mode') === 'sub') {
+			if ( get_option( 'wc_blacklist_connection_mode' ) === 'sub' ) {
 				if ( ! wp_next_scheduled( 'wc_blacklist_connection_send_to_hostsite', array( $shipping_blacklist_id ) ) ) {
 					wp_schedule_single_event( time() + 5, 'wc_blacklist_connection_send_to_hostsite', array( $shipping_blacklist_id ) );
 				}
 			}
-	
-			$current_meta = $order->get_meta('_blacklist_suspect_id', true);
-			if (!empty($current_meta)) {
+
+			$current_meta = $order->get_meta( '_blacklist_suspect_id', true );
+			if ( ! empty( $current_meta ) ) {
 				$new_meta = $current_meta . ',' . $shipping_blacklist_id;
 			} else {
 				$new_meta = $shipping_blacklist_id;
 			}
-	
-			$order->update_meta_data('_blacklist_suspect_id', $new_meta);
+
+			$order->update_meta_data( '_blacklist_suspect_id', $new_meta );
 			$order->save();
-		}		
-	
+		}
+
 		wp_die();
 	}
 
 	public function handle_add_to_blocklist() {
-		check_ajax_referer($this->block_nonce_key, 'nonce');
-	
+		check_ajax_referer( $this->block_nonce_key, 'nonce' );
+
 		global $wpdb;
-		$table_name = $wpdb->prefix . 'wc_blacklist';
+		$table_name          = $wpdb->prefix . 'wc_blacklist';
 		$table_detection_log = $wpdb->prefix . 'wc_blacklist_detection_log';
 
 		$settings_instance = new WC_Blacklist_Manager_Settings();
-		$premium_active = $settings_instance->is_premium_active();
+		$premium_active    = $settings_instance->is_premium_active();
 
 		// --- Read + sanitize reason/description ---
-		$allowed_reasons = [ 'stolen_card', 'chargeback', 'fraud_network', 'spam', 'policy_abuse', 'other' ];
-		$reason_code_raw = isset($_POST['reason_code']) ? wp_unslash($_POST['reason_code']) : '';
-		$reason_code     = sanitize_key($reason_code_raw);
-		if ( ! in_array($reason_code, $allowed_reasons, true) ) {
+		$allowed_reasons = array( 'stolen_card', 'chargeback', 'fraud_network', 'spam', 'policy_abuse', 'other' );
+		$reason_code_raw = isset( $_POST['reason_code'] ) ? wp_unslash( $_POST['reason_code'] ) : '';
+		$reason_code     = sanitize_key( $reason_code_raw );
+
+		if ( ! in_array( $reason_code, $allowed_reasons, true ) ) {
 			return;
 		}
-		$description = isset($_POST['description']) ? sanitize_textarea_field( wp_unslash($_POST['description']) ) : '';
 
-		// Map to human label for notes/logs
-		$reason_labels = [
-			'stolen_card'   => __('Stolen card', 'wc-blacklist-manager'),
-			'chargeback'    => __('Chargeback', 'wc-blacklist-manager'),
-			'fraud_network' => __('Fraud network', 'wc-blacklist-manager'),
-			'spam'          => __('Spam', 'wc-blacklist-manager'),
-			'policy_abuse'  => __('Policy abuse', 'wc-blacklist-manager'),
-			'other'         => __('Other', 'wc-blacklist-manager'),
-		];
-		$reason_label = isset($reason_labels[$reason_code]) ? $reason_labels[$reason_code] : $reason_code;
-	
-		if ( $reason_code === 'other' && $description === '' ) {
-			wp_die( esc_html__('Please provide a description for “Other”.', 'wc-blacklist-manager') );
+		$description = isset( $_POST['description'] ) ? sanitize_textarea_field( wp_unslash( $_POST['description'] ) ) : '';
+
+		// Map to human label for notes/logs.
+		$reason_labels = array(
+			'stolen_card'   => __( 'Stolen card', 'wc-blacklist-manager' ),
+			'chargeback'    => __( 'Chargeback', 'wc-blacklist-manager' ),
+			'fraud_network' => __( 'Fraud network', 'wc-blacklist-manager' ),
+			'spam'          => __( 'Spam', 'wc-blacklist-manager' ),
+			'policy_abuse'  => __( 'Policy abuse', 'wc-blacklist-manager' ),
+			'other'         => __( 'Other', 'wc-blacklist-manager' ),
+		);
+		$reason_label = isset( $reason_labels[ $reason_code ] ) ? $reason_labels[ $reason_code ] : $reason_code;
+
+		if ( 'other' === $reason_code && '' === $description ) {
+			wp_die( esc_html__( 'Please provide a description for “Other”.', 'wc-blacklist-manager' ) );
 		}
 
-		$order_id = isset($_POST['order_id']) ? intval($_POST['order_id']) : 0;
-		if ($order_id <= 0) {
-			echo esc_html__('Invalid order ID.', 'wc-blacklist-manager');
+		$order_id = isset( $_POST['order_id'] ) ? intval( $_POST['order_id'] ) : 0;
+		if ( $order_id <= 0 ) {
+			echo esc_html__( 'Invalid order ID.', 'wc-blacklist-manager' );
 			wp_die();
 		}
-	
-		$order = wc_get_order($order_id);
-	
-		// Get the blacklist suspect IDs from order meta
-		$blacklist_meta = $order->get_meta('_blacklist_suspect_id', true);
+
+		$order = wc_get_order( $order_id );
+		if ( ! $order ) {
+			echo esc_html__( 'Invalid order.', 'wc-blacklist-manager' );
+			wp_die();
+		}
+
+		// Get the blacklist suspect IDs from order meta.
+		$blacklist_meta = $order->get_meta( '_blacklist_suspect_id', true );
 
 		$current_user = wp_get_current_user();
-		$shop_manager = $current_user && $current_user->exists() ? $current_user->display_name : __('System', 'wc-blacklist-manager');
-	
-		if (!empty($blacklist_meta)) {
-			// Explode the meta value to get an array of IDs (ensuring they're integers)
-			$blacklist_ids = array_map('intval', explode(',', $blacklist_meta));
-	
-			// Loop through each ID and update the corresponding row in the table
-			foreach ($blacklist_ids as $bid) {
+		$shop_manager = $current_user && $current_user->exists() ? $current_user->display_name : __( 'System', 'wc-blacklist-manager' );
+
+		if ( ! empty( $blacklist_meta ) ) {
+			// Explode the meta value to get an array of IDs.
+			$blacklist_ids = array_map( 'intval', explode( ',', $blacklist_meta ) );
+
+			// Loop through each ID and update the corresponding row in the table.
+			foreach ( $blacklist_ids as $bid ) {
 				$wpdb->update(
 					$table_name,
-					[
-						'is_blocked'   => 1,
-						'reason_code'  => $reason_code,
-						'description'  => $description,
-					],
-					[ 'id' => $bid ],
-					[ '%d', '%s', '%s' ],
-					[ '%d' ]
+					array(
+						'is_blocked'  => 1,
+						'reason_code' => $reason_code,
+						'description' => $description,
+					),
+					array( 'id' => $bid ),
+					array( '%d', '%s', '%s' ),
+					array( '%d' )
 				);
 
-				if ($premium_active && get_option('wc_blacklist_connection_mode') === 'host') {
+				if ( $premium_active && get_option( 'wc_blacklist_connection_mode' ) === 'host' ) {
 					$is_blocked = 1;
 
-					$site_url = site_url();
+					$site_url     = site_url();
 					$clean_domain = preg_replace( '/^https?:\/\//', '', $site_url );
-					$sources = $clean_domain . '[' . $bid . ']';
+					$sources      = $clean_domain . '[' . $bid . ']';
 
 					if ( ! wp_next_scheduled( 'wc_blacklist_connection_update_to_subsite', array( $is_blocked, $sources ) ) ) {
 						wp_schedule_single_event( time() + 5, 'wc_blacklist_connection_update_to_subsite', array( $is_blocked, $sources ) );
 					}
 				}
 
-				if ($premium_active && get_option('wc_blacklist_connection_mode') === 'sub') {
+				if ( $premium_active && get_option( 'wc_blacklist_connection_mode' ) === 'sub' ) {
 					if ( ! wp_next_scheduled( 'wc_blacklist_connection_update_to_hostsite', array( $bid ) ) ) {
 						wp_schedule_single_event( time() + 5, 'wc_blacklist_connection_update_to_hostsite', array( $bid ) );
 					}
 				}
 			}
-	
-			echo esc_html__('Moved to the blocklist successfully.', 'wc-blacklist-manager');
-	
-			// Optionally update the user meta for user blocking if enabled
+
+			echo esc_html__( 'Moved to the blocklist successfully.', 'wc-blacklist-manager' );
+
+			// Optionally update the user meta for user blocking if enabled.
 			$user_id = $order->get_user_id();
-			if ($user_id && get_option('wc_blacklist_enable_user_blocking') == '1') {
-				$user = get_userdata($user_id);
-			
-				if ($user && !in_array('administrator', (array) $user->roles)) {
-					update_user_meta($user_id, 'user_blocked', '1');
+			if ( $user_id && get_option( 'wc_blacklist_enable_user_blocking' ) == '1' ) {
+				$user = get_userdata( $user_id );
+
+				if ( $user && ! in_array( 'administrator', (array) $user->roles, true ) ) {
+					update_user_meta( $user_id, 'user_blocked', '1' );
 				}
 			}
-	
-			// Delete the suspect meta and add blocked meta with the previous value
-			$order->delete_meta_data('_blacklist_suspect_id');
-			$order->update_meta_data('_blacklist_blocked_id', $blacklist_meta);
 
-			$note_desc = $description !== '' ? ' — ' . $description : '';
+			// Delete the suspect meta and add blocked meta with the previous value.
+			$order->delete_meta_data( '_blacklist_suspect_id' );
+			$order->update_meta_data( '_blacklist_blocked_id', $blacklist_meta );
+
+			$note_desc = '' !== $description ? ' — ' . $description : '';
 			$order->add_order_note(
 				sprintf(
-					/* translators: 1: manager name, 2: reason label, 3: optional description */
-					esc_html__('Moved to blocklist by %1$s. Reason: %2$s%3$s', 'wc-blacklist-manager'),
+					esc_html__( 'Moved to blocklist by %1$s. Reason: %2$s%3$s', 'wc-blacklist-manager' ),
 					$shop_manager,
 					$reason_label,
 					$note_desc
@@ -646,248 +669,263 @@ class WC_Blacklist_Manager_Button_Add_To_Blacklist {
 			}
 
 			if ( $premium_active ) {
-				$details = 'blocked_added_to_blocklist_by:' . $shop_manager;
-				$view_json = wp_json_encode( [
-					'reason_code' => $reason_code,
-					'description' => $description,
-				] );
+				$details   = 'blocked_added_to_blocklist_by:' . $shop_manager;
+				$view_json = wp_json_encode(
+					array(
+						'reason_code' => $reason_code,
+						'description' => $description,
+					)
+				);
 
 				$wpdb->insert(
 					$table_detection_log,
-					[
+					array(
 						'timestamp' => current_time( 'mysql' ),
 						'type'      => 'human',
 						'source'    => 'woo_order_' . $order_id,
 						'action'    => 'block',
 						'details'   => $details,
 						'view'      => $view_json,
-					],
-					[ '%s', '%s', '%s', '%s', '%s', '%s' ]
+					),
+					array( '%s', '%s', '%s', '%s', '%s', '%s' )
 				);
 			}
 		} else {
-			$ip_blacklist_enabled = get_option('wc_blacklist_ip_enabled', 0);
-			$address_blocking_enabled = get_option('wc_blacklist_enable_customer_address_blocking', 0);
-			$shipping_blocking_enabled = get_option('wc_blacklist_enable_shipping_address_blocking', 0);
-			$customer_name_blocking_enabled = get_option('wc_blacklist_customer_name_blocking_enabled', 0);
-		
-			$phone = sanitize_text_field($order->get_billing_phone());
-			$email = sanitize_email($order->get_billing_email());
-			$ip_address = sanitize_text_field($order->get_customer_ip_address());
+			$ip_blacklist_enabled           = get_option( 'wc_blacklist_ip_enabled', 0 );
+			$address_blocking_enabled       = get_option( 'wc_blacklist_enable_customer_address_blocking', 0 );
+			$shipping_blocking_enabled      = get_option( 'wc_blacklist_enable_shipping_address_blocking', 0 );
+			$customer_name_blocking_enabled = get_option( 'wc_blacklist_customer_name_blocking_enabled', 0 );
 
-			$source = sprintf(__('Order ID: %d', 'wc-blacklist-manager'), $order_id);
-		
-			$first_name = sanitize_text_field($order->get_billing_first_name());
-			$last_name = sanitize_text_field($order->get_billing_last_name());
-		
-			$address_1 = sanitize_text_field($order->get_billing_address_1());
-			$address_2 = sanitize_text_field($order->get_billing_address_2());
-			$city = sanitize_text_field($order->get_billing_city());
-			$state = sanitize_text_field($order->get_billing_state());
-			$postcode = sanitize_text_field($order->get_billing_postcode());
-			$country = sanitize_text_field($order->get_billing_country());
-			$address_parts = array_filter([$address_1, $address_2, $city, $state, $postcode, $country]);
-			$customer_address = implode(', ', $address_parts);
-		
-			$shipping_address_1 = sanitize_text_field($order->get_shipping_address_1());
-			$shipping_address_2 = sanitize_text_field($order->get_shipping_address_2());
-			$shipping_city = sanitize_text_field($order->get_shipping_city());
-			$shipping_state = sanitize_text_field($order->get_shipping_state());
-			$shipping_postcode = sanitize_text_field($order->get_shipping_postcode());
-			$shipping_country = sanitize_text_field($order->get_shipping_country());
-			$shipping_address_parts = array_filter([$shipping_address_1, $shipping_address_2, $shipping_city, $shipping_state, $shipping_postcode, $shipping_country]);
-			$shipping_address = implode(', ', $shipping_address_parts);
-		
-			// Initialize contact data
-			$contact_data = [
-				'sources'    => $source,
-				'is_blocked' => 1,
-				'order_id'   => $order_id,
-				'reason_code'  => $reason_code,
-				'description'  => $description,
-				'date_added' => current_time('mysql', 1)
-			];
-		
-			$insert_data = [];
-		
-			// Insert phone number if not empty
-			if (!empty($phone)) {
+			$phone      = sanitize_text_field( $order->get_billing_phone() );
+			$email      = sanitize_email( $order->get_billing_email() );
+			$ip_address = sanitize_text_field( $order->get_customer_ip_address() );
+
+			$normalized_email = '';
+			if ( ! empty( $email ) && is_email( $email ) ) {
+				$normalized_email = yobm_normalize_email( $email );
+			}
+
+			$source = sprintf( __( 'Order ID: %d', 'wc-blacklist-manager' ), $order_id );
+
+			$first_name = sanitize_text_field( $order->get_billing_first_name() );
+			$last_name  = sanitize_text_field( $order->get_billing_last_name() );
+
+			$address_1 = sanitize_text_field( $order->get_billing_address_1() );
+			$address_2 = sanitize_text_field( $order->get_billing_address_2() );
+			$city      = sanitize_text_field( $order->get_billing_city() );
+			$state     = sanitize_text_field( $order->get_billing_state() );
+			$postcode  = sanitize_text_field( $order->get_billing_postcode() );
+			$country   = sanitize_text_field( $order->get_billing_country() );
+
+			$address_parts    = array_filter( array( $address_1, $address_2, $city, $state, $postcode, $country ) );
+			$customer_address = yobm_norm_str( implode( ', ', $address_parts ) );
+
+			$shipping_address_1 = sanitize_text_field( $order->get_shipping_address_1() );
+			$shipping_address_2 = sanitize_text_field( $order->get_shipping_address_2() );
+			$shipping_city      = sanitize_text_field( $order->get_shipping_city() );
+			$shipping_state     = sanitize_text_field( $order->get_shipping_state() );
+			$shipping_postcode  = sanitize_text_field( $order->get_shipping_postcode() );
+			$shipping_country   = sanitize_text_field( $order->get_shipping_country() );
+
+			$shipping_address_parts = array_filter( array( $shipping_address_1, $shipping_address_2, $shipping_city, $shipping_state, $shipping_postcode, $shipping_country ) );
+			$shipping_address       = yobm_norm_str( implode( ', ', $shipping_address_parts ) );
+
+			$normalized_phone = '';
+			if ( ! empty( $phone ) ) {
+				$billing_dial_code = yobm_get_country_dial_code( $country );
+				$normalized_phone = yobm_normalize_phone( $phone, $billing_dial_code );
+			}
+
+			// Initialize contact data.
+			$contact_data = array(
+				'sources'     => $source,
+				'is_blocked'  => 1,
+				'order_id'    => $order_id,
+				'reason_code' => $reason_code,
+				'description' => $description,
+				'date_added'  => current_time( 'mysql', 1 ),
+			);
+
+			$insert_data = array();
+
+			// Insert phone number if not empty.
+			if ( ! empty( $phone ) ) {
 				$insert_data['phone_number'] = $phone;
+				$insert_data['normalized_phone'] = $normalized_phone;
 			}
-		
-			// Insert email address if not empty
-			if (!empty($email)) {
-				$insert_data['email_address'] = $email;
-				if ($premium_active) {
-					$normalized_email = yobmp_normalize_email( $email );
-					$insert_data['normalized_email'] = $normalized_email;
-				}
+
+			// Insert email address if not empty.
+			if ( ! empty( $email ) && is_email( $email ) ) {
+				$insert_data['email_address']    = $email;
+				$insert_data['normalized_email'] = $normalized_email;
 			}
-		
-			// Insert IP address if enabled and not empty
-			if ($ip_blacklist_enabled && !empty($ip_address)) {
+
+			// Insert IP address if enabled and not empty.
+			if ( $ip_blacklist_enabled && ! empty( $ip_address ) ) {
 				$insert_data['ip_address'] = $ip_address;
 			}
-		
-			// Insert customer address if premium is active, address blocking enabled, and not empty
-			if ($premium_active && $address_blocking_enabled && !empty($customer_address)) {
+
+			// Insert customer address if premium is active, address blocking enabled, and not empty.
+			if ( $premium_active && $address_blocking_enabled && ! empty( $customer_address ) ) {
 				$insert_data['customer_address'] = $customer_address;
 			}
 
-			// Insert customer name if premium is active, customer name blocking enabled, and both first and last name are not empty
-			if ($premium_active && $customer_name_blocking_enabled) {
-				if (!empty($first_name) && !empty($last_name)) {
+			// Insert customer name if premium is active, customer name blocking enabled, and both first and last name are not empty.
+			if ( $premium_active && $customer_name_blocking_enabled ) {
+				if ( ! empty( $first_name ) && ! empty( $last_name ) ) {
 					$insert_data['first_name'] = $first_name;
 					$insert_data['last_name']  = $last_name;
 				}
-			}		
-		
-			// Merge contact data with the insert data
-			$insert_data = array_merge($contact_data, $insert_data);
-		
-			// Insert a new row if there are fields to insert
-			if (!empty($insert_data)) {
-				$wpdb->insert($table_name, $insert_data);
+			}
+
+			// Merge contact data with the insert data.
+			$insert_data = array_merge( $contact_data, $insert_data );
+
+			// Insert a new row if there are fields to insert.
+			if ( ! empty( $insert_data ) ) {
+				$wpdb->insert( $table_name, $insert_data );
 				$new_blacklist_id = $wpdb->insert_id;
 
-				// Optionally update the user meta for user blocking if enabled
-				$user_id = $order->get_user_id();
+				// Optionally update the user meta for user blocking if enabled.
+				$user_id      = $order->get_user_id();
 				$user_blocked = false;
-				if ($user_id && get_option('wc_blacklist_enable_user_blocking') == '1') {
-					$user = get_userdata($user_id);
-				
-					if ($user && !in_array('administrator', (array) $user->roles)) {
-						$user_blocked = update_user_meta($user_id, 'user_blocked', '1');
+
+				if ( $user_id && get_option( 'wc_blacklist_enable_user_blocking' ) == '1' ) {
+					$user = get_userdata( $user_id );
+
+					if ( $user && ! in_array( 'administrator', (array) $user->roles, true ) ) {
+						$user_blocked = update_user_meta( $user_id, 'user_blocked', '1' );
 					}
 				}
-				
-				if ($premium_active && get_option('wc_blacklist_connection_mode') === 'host') {
+
+				if ( $premium_active && get_option( 'wc_blacklist_connection_mode' ) === 'host' ) {
 					$customer_domain = '';
-					$is_blocked = 1;
-					
-					$site_url = site_url();
+					$is_blocked      = 1;
+
+					$site_url     = site_url();
 					$clean_domain = preg_replace( '/^https?:\/\//', '', $site_url );
-					$sources = $clean_domain . '[' . $new_blacklist_id . ']';
+					$sources      = $clean_domain . '[' . $new_blacklist_id . ']';
 
 					if ( ! wp_next_scheduled( 'wc_blacklist_connection_send_to_subsite', array( $phone, $email, $ip_address, $customer_domain, $is_blocked, $sources, $customer_address, $first_name, $last_name ) ) ) {
 						wp_schedule_single_event( time() + 5, 'wc_blacklist_connection_send_to_subsite', array( $phone, $email, $ip_address, $customer_domain, $is_blocked, $sources, $customer_address, $first_name, $last_name ) );
 					}
 				}
 
-				if ($premium_active && get_option('wc_blacklist_connection_mode') === 'sub') {
+				if ( $premium_active && get_option( 'wc_blacklist_connection_mode' ) === 'sub' ) {
 					if ( ! wp_next_scheduled( 'wc_blacklist_connection_send_to_hostsite', array( $new_blacklist_id ) ) ) {
 						wp_schedule_single_event( time() + 5, 'wc_blacklist_connection_send_to_hostsite', array( $new_blacklist_id ) );
 					}
 				}
-		
-				$current_meta = $order->get_meta('_blacklist_blocked_id', true);
-				if (!empty($current_meta)) {
+
+				$current_meta = $order->get_meta( '_blacklist_blocked_id', true );
+				if ( ! empty( $current_meta ) ) {
 					$new_meta = $current_meta . ',' . $new_blacklist_id;
 				} else {
 					$new_meta = $new_blacklist_id;
 				}
-		
-				$order->update_meta_data('_blacklist_blocked_id', $new_meta);
 
-				$note_desc = $description !== '' ? ' — ' . $description : '';
+				$order->update_meta_data( '_blacklist_blocked_id', $new_meta );
+
+				$note_desc = '' !== $description ? ' — ' . $description : '';
 				$order->add_order_note(
 					sprintf(
-						/* translators: 1: manager name, 2: reason label, 3: optional description */
-						esc_html__('Added to blocklist by %1$s. Reason: %2$s%3$s', 'wc-blacklist-manager'),
+						esc_html__( 'Added to blocklist by %1$s. Reason: %2$s%3$s', 'wc-blacklist-manager' ),
 						$shop_manager,
 						$reason_label,
 						$note_desc
 					),
 					false
 				);
-				
+
 				$order->save();
 
 				if ( YOGB_BM_Report::is_ready() ) {
 					YOGB_BM_Report::queue_report_from_order( $order, $reason_code, $description );
 				}
-		
-				if ( $premium_active ) {
-					$current_user = wp_get_current_user();
-					$shop_manager = $current_user->display_name;
 
+				if ( $premium_active ) {
 					$details = 'blocked_added_to_blocklist_by:' . $shop_manager;
 					if ( $user_blocked ) {
 						$details .= ', blocked_user_attempt:' . $user_id;
 					}
 
-					$view_json = wp_json_encode([
-						'reason_code' => $reason_code,
-						'description' => $description,
-					]);
+					$view_json = wp_json_encode(
+						array(
+							'reason_code' => $reason_code,
+							'description' => $description,
+						)
+					);
 
 					$wpdb->insert(
 						$table_detection_log,
-						[
+						array(
 							'timestamp' => current_time( 'mysql' ),
 							'type'      => 'human',
 							'source'    => 'woo_order_' . $order_id,
 							'action'    => 'block',
 							'details'   => $details,
 							'view'      => $view_json,
-						],
-						[ '%s', '%s', '%s', '%s', '%s', '%s' ]
+						),
+						array( '%s', '%s', '%s', '%s', '%s', '%s' )
 					);
 				}
-				
-				echo esc_html__('Added to blocklist successfully.', 'wc-blacklist-manager');
+
+				echo esc_html__( 'Added to blocklist successfully.', 'wc-blacklist-manager' );
 			} else {
-				echo esc_html__('Nothing to add to the blocklist.', 'wc-blacklist-manager');
+				echo esc_html__( 'Nothing to add to the blocklist.', 'wc-blacklist-manager' );
 			}
 
-			// Add shipping address to a new row if premium is active, shipping blocking enabled, not empty, and different from customer address
-			if ($premium_active && $address_blocking_enabled && $shipping_blocking_enabled && !empty($shipping_address) && $shipping_address !== $customer_address) {
-				$shipping_data = [
-					'sources'          => sprintf(__('Order ID: %d | Shipping', 'wc-blacklist-manager'), $order_id),
+			// Add shipping address to a new row if premium is active, shipping blocking enabled, not empty, and different from customer address.
+			if ( $premium_active && $address_blocking_enabled && $shipping_blocking_enabled && ! empty( $shipping_address ) && $shipping_address !== $customer_address ) {
+				$shipping_data = array(
+					'sources'          => sprintf( __( 'Order ID: %d | Shipping', 'wc-blacklist-manager' ), $order_id ),
 					'customer_address' => $shipping_address,
 					'is_blocked'       => 1,
 					'order_id'         => $order_id,
-					'date_added'       => current_time('mysql')
-				];
-				$wpdb->insert($table_name, $shipping_data);
+					'reason_code'      => $reason_code,
+					'description'      => $description,
+					'date_added'       => current_time( 'mysql' ),
+				);
+
+				$wpdb->insert( $table_name, $shipping_data );
 				$shipping_blacklist_id = $wpdb->insert_id;
 
-				if (get_option('wc_blacklist_connection_mode') === 'host') {
-					$phone_holder = '';
-					$email_holder = '';
-					$ip_address_holder = '';
+				if ( get_option( 'wc_blacklist_connection_mode' ) === 'host' ) {
+					$phone_holder           = '';
+					$email_holder           = '';
+					$ip_address_holder      = '';
 					$customer_domain_holder = '';
-					$first_name_holder = '';
-					$last_name_holder = '';
-					$is_blocked_holder = 1;
-					
-					$site_url_holder = site_url();
+					$first_name_holder      = '';
+					$last_name_holder       = '';
+					$is_blocked_holder      = 1;
+
+					$site_url_holder     = site_url();
 					$clean_domain_holder = preg_replace( '/^https?:\/\//', '', $site_url_holder );
-					$sources_holder = $clean_domain_holder . '[' . $shipping_blacklist_id . ']';
+					$sources_holder      = $clean_domain_holder . '[' . $shipping_blacklist_id . ']';
 
 					if ( ! wp_next_scheduled( 'wc_blacklist_connection_send_to_subsite', array( $phone_holder, $email_holder, $ip_address_holder, $customer_domain_holder, $is_blocked_holder, $sources_holder, $shipping_address, $first_name_holder, $last_name_holder ) ) ) {
 						wp_schedule_single_event( time() + 5, 'wc_blacklist_connection_send_to_subsite', array( $phone_holder, $email_holder, $ip_address_holder, $customer_domain_holder, $is_blocked_holder, $sources_holder, $shipping_address, $first_name_holder, $last_name_holder ) );
 					}
 				}
 
-				if (get_option('wc_blacklist_connection_mode') === 'sub') {
+				if ( get_option( 'wc_blacklist_connection_mode' ) === 'sub' ) {
 					if ( ! wp_next_scheduled( 'wc_blacklist_connection_send_to_hostsite', array( $shipping_blacklist_id ) ) ) {
 						wp_schedule_single_event( time() + 5, 'wc_blacklist_connection_send_to_hostsite', array( $shipping_blacklist_id ) );
 					}
 				}
-		
-				$current_meta = $order->get_meta('_blacklist_blocked_id', true);
-				if (!empty($current_meta)) {
+
+				$current_meta = $order->get_meta( '_blacklist_blocked_id', true );
+				if ( ! empty( $current_meta ) ) {
 					$new_meta = $current_meta . ',' . $shipping_blacklist_id;
 				} else {
 					$new_meta = $shipping_blacklist_id;
 				}
-		
-				$order->update_meta_data('_blacklist_blocked_id', $new_meta);
+
+				$order->update_meta_data( '_blacklist_blocked_id', $new_meta );
 				$order->save();
 			}
 		}
-	
+
 		wp_die();
 	}
 	

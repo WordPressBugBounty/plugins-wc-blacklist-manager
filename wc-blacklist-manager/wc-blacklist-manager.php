@@ -3,7 +3,7 @@
  * Plugin Name: Blacklist Manager
  * Plugin URI: https://wordpress.org/plugins/wc-blacklist-manager
  * Description: An anti-fraud and spam prevention plugin for WooCommerce and WordPress forms.
- * Version: 2.1.8
+ * Version: 2.1.9
  * Author: YoOhw.com
  * Author URI: https://yoohw.com
  * License: GPL v2 or later
@@ -34,9 +34,12 @@ class WC_Blacklist_Manager {
 	}
 
 	private function include_files() {
+		include_once plugin_dir_path(__FILE__) . 'inc/cores/runtime.php';
+		include_once plugin_dir_path(__FILE__) . 'inc/cores/activation.php';
 		include_once plugin_dir_path(__FILE__) . 'inc/cores/database.php';
 		include_once plugin_dir_path(__FILE__) . 'inc/cores/notices.php';
 		include_once plugin_dir_path(__FILE__) . 'inc/cores/backend.php';
+		include_once plugin_dir_path(__FILE__) . 'inc/cores/alert.php';
 	}
 
 	public function add_action_links($links) {

@@ -247,7 +247,7 @@ class WC_Blacklist_Manager_Dashboard {
 		$settings_instance = new WC_Blacklist_Manager_Settings();
 		$premium_active    = $settings_instance->is_premium_active();
 
-		$allowed_roles       = get_option( 'wc_blacklist_dashboard_permission', [] );
+		$allowed_roles       = get_option( 'wc_blacklist_dashboard_permission', array() );
 		$user_has_permission = false;
 
 		if ( is_array( $allowed_roles ) && ! empty( $allowed_roles ) ) {
@@ -265,7 +265,7 @@ class WC_Blacklist_Manager_Dashboard {
 
 		if ( isset( $_POST['submit'] ) && check_admin_referer( 'add_suspect_action_nonce', 'add_suspect_action_nonce_field' ) ) {
 
-			// Sanitize inputs (use wp_unslash to handle slashes added by WP)
+			// Sanitize inputs.
 			$new_first_name    = isset( $_POST['new_first_name'] ) ? sanitize_text_field( wp_unslash( $_POST['new_first_name'] ) ) : '';
 			$new_last_name     = isset( $_POST['new_last_name'] ) ? sanitize_text_field( wp_unslash( $_POST['new_last_name'] ) ) : '';
 			$new_phone_number  = isset( $_POST['new_phone_number'] ) ? sanitize_text_field( wp_unslash( $_POST['new_phone_number'] ) ) : '';
@@ -279,7 +279,7 @@ class WC_Blacklist_Manager_Dashboard {
 				$redirect_base = admin_url();
 			}
 
-			// If absolutely nothing was provided, bail gracefully
+			// If absolutely nothing was provided, bail gracefully.
 			if (
 				'' === $new_first_name &&
 				'' === $new_last_name &&
@@ -289,10 +289,10 @@ class WC_Blacklist_Manager_Dashboard {
 				$message = esc_html__( 'There is nothing to add.', 'wc-blacklist-manager' );
 
 				$redirect_url = add_query_arg(
-					[
+					array(
 						'add_suspect_message' => $message,
 						'status'              => $status,
-					],
+					),
 					$redirect_base
 				);
 
@@ -300,27 +300,33 @@ class WC_Blacklist_Manager_Dashboard {
 				exit;
 			}
 
-			// Build a single insert payload
-			$data = [
-				'first_name'    => $new_first_name,
-				'last_name'     => $new_last_name,
-				'phone_number'  => $new_phone_number,
-				'email_address' => $new_email_address,
-				'date_added'    => current_time( 'mysql' ),
-				'sources'       => 'manual',
-				'is_blocked'    => (int) $is_blocked,
-			];
-
-			// Premium: normalized email (only if email provided)
-			if ( $premium_active && ! empty( $new_email_address ) ) {
-				$normalized_email         = yobmp_normalize_email( $new_email_address );
-				$data['normalized_email'] = $normalized_email;
+			$normalized_phone = '';
+			if ( ! empty( $new_phone_number ) ) {
+				$normalized_phone = yobm_normalize_phone( $new_phone_number );
 			}
+
+			$normalized_email = '';
+			if ( ! empty( $new_email_address ) && is_email( $new_email_address ) ) {
+				$normalized_email = yobm_normalize_email( $new_email_address );
+			}
+
+			// Build a single insert payload.
+			$data = array(
+				'first_name'       => $new_first_name,
+				'last_name'        => $new_last_name,
+				'phone_number'     => $new_phone_number,
+				'normalized_phone' => $normalized_phone,
+				'email_address'    => $new_email_address,
+				'normalized_email' => $normalized_email,
+				'date_added'       => current_time( 'mysql' ),
+				'sources'          => 'manual',
+				'is_blocked'       => (int) $is_blocked,
+			);
 
 			$this->wpdb->insert( $this->table_name, $data );
 			$new_insert_id = (int) $this->wpdb->insert_id;
 
-			// Optional: push to subsites (host mode), same as your original logic
+			// Optional: push to subsites (host mode), same as your original logic.
 			if ( $premium_active && 'host' === get_option( 'wc_blacklist_connection_mode' ) ) {
 				$ip_address       = '';
 				$customer_domain  = '';
@@ -330,7 +336,17 @@ class WC_Blacklist_Manager_Dashboard {
 				$clean_domain = preg_replace( '/^https?:\/\//', '', $site_url );
 				$sources      = $clean_domain . '[' . $new_insert_id . ']';
 
-				$args = [ $new_phone_number, $new_email_address, $ip_address, $customer_domain, $is_blocked, $sources, $customer_address, $new_first_name, $new_last_name ];
+				$args = array(
+					$new_phone_number,
+					$new_email_address,
+					$ip_address,
+					$customer_domain,
+					$is_blocked,
+					$sources,
+					$customer_address,
+					$new_first_name,
+					$new_last_name,
+				);
 
 				if ( ! wp_next_scheduled( 'wc_blacklist_connection_send_to_subsite', $args ) ) {
 					wp_schedule_single_event(
@@ -344,41 +360,15 @@ class WC_Blacklist_Manager_Dashboard {
 			$message = esc_html__( 'Entry has been added to the suspected list.', 'wc-blacklist-manager' );
 
 			$redirect_url = add_query_arg(
-				[
+				array(
 					'add_suspect_message' => $message,
 					'status'              => $status,
-				],
+				),
 				$redirect_base
 			);
 
 			wp_safe_redirect( esc_url_raw( $redirect_url ) );
 			exit;
-		}
-	}
-	
-	private function process_form_data($new_phone_number, $new_email_address) {
-		$sql = $this->wpdb->prepare(
-			"SELECT id, phone_number, email_address FROM {$this->table_name} WHERE phone_number = %s OR email_address = %s",
-			$new_phone_number, $new_email_address
-		);
-		$results = $this->wpdb->get_results($sql);
-
-		$phone_exists = $email_exists = false;
-		foreach ($results as $result) {
-			if ($result->phone_number === $new_phone_number) {
-				$phone_exists = true;
-			}
-			if ($result->email_address === $new_email_address) {
-				$email_exists = true;
-			}
-		}
-
-		if ($phone_exists && $email_exists) {
-			return __("Both Phone and Email already exist in blacklist.", "wc-blacklist-manager");
-		} elseif ($phone_exists || $email_exists) {
-			return __("Either Phone or Email exists in the blacklist.", "wc-blacklist-manager");
-		} else {
-			return __("New Phone or Email added to the blacklist.", "wc-blacklist-manager");
 		}
 	}
 
@@ -916,7 +906,7 @@ class WC_Blacklist_Manager_Dashboard {
 		$settings_instance = new WC_Blacklist_Manager_Settings();
 		$premium_active    = $settings_instance->is_premium_active();
 
-		$allowed_roles       = get_option( 'wc_blacklist_dashboard_permission', [] );
+		$allowed_roles       = get_option( 'wc_blacklist_dashboard_permission', array() );
 		$user_has_permission = false;
 
 		if ( is_array( $allowed_roles ) && ! empty( $allowed_roles ) ) {
@@ -947,12 +937,12 @@ class WC_Blacklist_Manager_Dashboard {
 		$postcode  = isset( $_POST['postcode_input'] ) ? sanitize_text_field( wp_unslash( $_POST['postcode_input'] ) ) : '';
 		$country   = isset( $_POST['country'] ) ? sanitize_text_field( wp_unslash( $_POST['country'] ) ) : '';
 
-		$address_parts     = array_filter( [ $address_1, $address_2, $city, $state, $postcode, $country ] );
-		$customer_address  = implode( ', ', $address_parts );
+		$address_parts    = array_filter( array( $address_1, $address_2, $city, $state, $postcode, $country ) );
+		$customer_address = yobm_norm_str( implode( ', ', $address_parts ) );
 
-		if ( empty( $customer_address ) ) {
+		if ( '' === $customer_address ) {
 			$message      = esc_html__( 'No address provided. Please fill in at least one field.', 'wc-blacklist-manager' );
-			$redirect_url = add_query_arg( [ 'add_address_message' => $message ], $redirect_base );
+			$redirect_url = add_query_arg( array( 'add_address_message' => $message ), $redirect_base );
 
 			wp_safe_redirect( esc_url_raw( $redirect_url ) );
 			exit;
@@ -960,13 +950,13 @@ class WC_Blacklist_Manager_Dashboard {
 
 		$this->wpdb->insert(
 			$this->table_name,
-			[
+			array(
 				'customer_address' => $customer_address,
 				'date_added'       => current_time( 'mysql', 1 ),
 				'is_blocked'       => 1,
 				'sources'          => 'manual',
-			],
-			[ '%s', '%s', '%d', '%s' ]
+			),
+			array( '%s', '%s', '%d', '%s' )
 		);
 
 		$new_insert_id = absint( $this->wpdb->insert_id );
@@ -984,7 +974,7 @@ class WC_Blacklist_Manager_Dashboard {
 			$clean_domain = preg_replace( '/^https?:\/\//', '', $site_url );
 			$sources      = $clean_domain . '[' . $new_insert_id . ']';
 
-			$args = [ $phone, $email, $ip_address, $customer_domain, $is_blocked, $sources, $customer_address, $first_name, $last_name ];
+			$args = array( $phone, $email, $ip_address, $customer_domain, $is_blocked, $sources, $customer_address, $first_name, $last_name );
 
 			if ( ! wp_next_scheduled( 'wc_blacklist_connection_send_to_subsite', $args ) ) {
 				wp_schedule_single_event( time() + 5, 'wc_blacklist_connection_send_to_subsite', $args );
@@ -992,7 +982,7 @@ class WC_Blacklist_Manager_Dashboard {
 		}
 
 		$message      = esc_html__( 'Address added successfully.', 'wc-blacklist-manager' );
-		$redirect_url = add_query_arg( [ 'add_address_message' => $message ], $redirect_base );
+		$redirect_url = add_query_arg( array( 'add_address_message' => $message ), $redirect_base );
 
 		wp_safe_redirect( esc_url_raw( $redirect_url ) );
 		exit;

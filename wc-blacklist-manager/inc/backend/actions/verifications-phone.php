@@ -298,7 +298,7 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 			$billing_country = WC()->session->get('billing_country', '');
 		}
 		
-		$country_code = yobm_get_country_code_from_file($billing_country);
+		$country_code = yobm_get_country_dial_code($billing_country);
 	
 		if ($country_code) {
 			return '+' . $country_code . $phone;

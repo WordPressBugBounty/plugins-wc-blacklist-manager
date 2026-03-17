@@ -37,10 +37,6 @@ if (!defined('ABSPATH')) {
 			$ip_blocking_enabled = get_option('wc_blacklist_ip_enabled', '0');
 			$address_blocking_enabled = get_option('wc_blacklist_enable_customer_address_blocking', '0');
 			$domain_blocking_enabled = get_option('wc_blacklist_domain_enabled', '0');
-
-			$allowed_countries_option = get_option('woocommerce_allowed_countries', 'all');
-			$specific_countries = get_option('woocommerce_specific_allowed_countries', []);
-			$skip_country_code = ($allowed_countries_option === 'specific' && count($specific_countries) === 1);
 			?>
 			<?php if (!$premium_active || $customer_name_blocking_enabled === '0'): ?>
 				<p class="description"><?php echo esc_html__('You can add only a phone number or an email address or either both.', 'wc-blacklist-manager'); ?></p>
@@ -72,12 +68,12 @@ if (!defined('ABSPATH')) {
 									<?php echo esc_html__('Phone number', 'wc-blacklist-manager'); ?>
 								</label>
 							</th>
-							<?php if (!$premium_active || ($premium_active && $skip_country_code)): ?>
+							<?php if (!$premium_active): ?>
 								<td>
 									<input type="tel" id="new_phone_number" name="new_phone_number" placeholder="<?php echo esc_attr__('Enter phone number', 'wc-blacklist-manager'); ?>" class="regular-text" title="<?php echo esc_attr__('Phone number format: 0123456789 or +19876543210', 'wc-blacklist-manager'); ?>" pattern="[0-9\+]*" />
 								</td>
 							<?php endif; ?>
-							<?php if ($premium_active && !$skip_country_code): ?>
+							<?php if ($premium_active): ?>
 								<td>
 									<input type="tel" id="phone_number_holder" name="phone_number_holder" placeholder="<?php echo esc_attr__('Enter phone number', 'wc-blacklist-manager'); ?>" class="regular-text" />
 									<input type="hidden" name="phone_dial_code_holder" id="phone_dial_code_holder" value="">
@@ -833,7 +829,7 @@ if (!defined('ABSPATH')) {
 					<p class="description"><?php echo esc_html__('You have to enter the correct format of the address on your site.', 'wc-blacklist-manager'); ?></p>
 					<div class="country-state-container">
 						<?php if (!$single_country): ?>
-							<select id="country-select" name="country" class="wc-enhanced-select" style="max-width: 500px; width: 200px;">
+							<select id="country-select" name="country" class="wc-enhanced-select" style="max-width: 500px; width: 200px;" required>
 								<option value=""><?php echo esc_html__('Select a country...', 'wc-blacklist-manager'); ?></option>
 								<?php
 								foreach ($allowed_countries as $country_code => $country_name) {

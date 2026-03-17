@@ -12,7 +12,7 @@ class YOGB_BM_Registrar {
 	const OPT_REPORTER_ID = 'yogb_bm_reporter_id';
 
 	/* Server base */
-	const SERVER_BASE = 'https://bmc.yoohw.com/wp-json/yoohw-gbl';
+	const SERVER_BASE = 'https://globalblacklist.org/wp-json/yoohw-gbl';
 
 	/* Transient + cron hook */
 	const TRANSIENT_PREFIX = 'yogb_bm_challenge_';

@@ -10,8 +10,8 @@ if (!class_exists('YoOhw_Settings')) {
 
         public function __construct() {
             global $yo_ohw_settings_submenu_added;
-            $license_status = get_option('wc_blacklist_manager_premium_license_status');
-            if (!isset($yo_ohw_settings_submenu_added) && $license_status === 'activated') {
+            $license_status = WC_Blacklist_Manager_Validator::is_premium_active();
+            if (!isset($yo_ohw_settings_submenu_added) && $license_status) {
                 add_action('admin_menu', [$this, 'add_settings_yoohw_submenu']);
                 $yo_ohw_settings_submenu_added = true;
             }
@@ -19,8 +19,8 @@ if (!class_exists('YoOhw_Settings')) {
         }
 
         public function check_license_status() {
-            $license_status = get_option('wc_blacklist_manager_premium_license_status');
-            if ($license_status === 'deactivated' || $license_status === false) {
+            $license_status = WC_Blacklist_Manager_Validator::is_premium_active();
+            if (!$license_status) {
                 update_option('yoohw_settings_disable_menu', '0');
             }
         }
@@ -73,11 +73,9 @@ if (!class_exists('YoOhw_Settings_Content')) {
         }
 
         public function yoohw_settings_init() {
-            $license_status = get_option('wc_blacklist_manager_premium_license_status');
-
-            include_once( ABSPATH . 'wp-admin/includes/plugin.php' );
-            $main_active = is_plugin_active( 'wc-blacklist-manager-premium/wc-blacklist-manager-premium.php' )
-                && get_option( 'wc_blacklist_manager_premium_license_status' ) === 'activated';
+            $license_status = WC_Blacklist_Manager_Validator::is_premium_active();
+            $settings_instance = new WC_Blacklist_Manager_Settings();
+            $main_active = $settings_instance->is_premium_active();
 
             // Register options
 			register_setting(

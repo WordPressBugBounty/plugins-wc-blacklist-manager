@@ -2,6 +2,13 @@
 
 == Changelog ==
 
+= 2.1.9 (Mar 17, 2026) =
+* Update: Upgraded and added helpers to normalize phone numbers for stricter blocking logic.
+* Update: Added a helper to normalize email addresses before performing the block lookup.
+* Update: When a user is blocked, their email address is added to the blacklist if it is not already present.
+* Improve: Removed the duplicate blocking notice at the classic checkout page.
+* Improve: Removed and cleaned unused code.
+
 = 2.1.8 (Feb 28, 2026) =
 * Improve: Improved security and stability by enhancing input validation, database handling, and internal redirects to ensure safer and more reliable performance.
 * Improve: WooCommerce 10.5 compatibility.

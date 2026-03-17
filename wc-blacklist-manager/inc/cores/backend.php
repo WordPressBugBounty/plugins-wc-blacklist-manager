@@ -6,25 +6,25 @@ if (!defined('ABSPATH')) {
 
 class WC_Blacklist_Manager_Backend {
 	public function __construct() {
-		add_action('admin_enqueue_scripts', [$this, 'enqueue_assets']);
+		add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_assets' ] );
 		$this->includes();
 
-		$allowed_countries_option = get_option('woocommerce_allowed_countries', 'all');
-		$specific_countries = get_option('woocommerce_specific_allowed_countries', []);
-		$skip_country_code = ($allowed_countries_option === 'specific' && count($specific_countries) === 1);
+		include_once ABSPATH . 'wp-admin/includes/plugin.php';
 
-		include_once(ABSPATH . 'wp-admin/includes/plugin.php');
-		$premium_active = (is_plugin_active('wc-blacklist-manager-premium/wc-blacklist-manager-premium.php') && get_option('wc_blacklist_manager_premium_license_status') === 'activated');
-		
-		if (!is_plugin_active('wc-blacklist-manager-premium/wc-blacklist-manager-premium.php') && get_option('wc_blacklist_manager_premium_license_status') === 'activated'){
-			add_action('admin_notices', ['WC_Blacklist_Manager_Notices', 'show_download_premium_notice']);
+		$license_active        = WC_Blacklist_Manager_Validator::is_premium_active();
+		$premium_plugin_active = is_plugin_active( 'wc-blacklist-manager-premium/wc-blacklist-manager-premium.php' );
+
+		$premium_active = ( $premium_plugin_active && $license_active );
+
+		if ( ! $premium_plugin_active && $license_active ) {
+			add_action( 'admin_notices', [ 'WC_Blacklist_Manager_Notices', 'show_download_premium_notice' ] );
 		}
 
-		if ($skip_country_code || !$premium_active) {
+		if ( ! $premium_active ) {
 			return;
 		}
 
-		add_action('admin_enqueue_scripts', [$this, 'enqueue_scripts']);
+		add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_scripts' ] );
 	}
 
 	public function enqueue_assets( $hook_suffix ) {
@@ -131,11 +131,16 @@ class WC_Blacklist_Manager_Backend {
 		include_once plugin_dir_path(__FILE__) . '../backend/order-action-button.php';
 		include_once plugin_dir_path(__FILE__) . '../backend/order-risk-score.php';
 		include_once plugin_dir_path(__FILE__) . '../backend/actions/sub/helper.php';
+		include_once plugin_dir_path(__FILE__) . '../backend/helpers/normalize.php';
+		include_once plugin_dir_path(__FILE__) . '../backend/helpers/checkout-phone.php';
+
 		require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-register.php';
 		require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-reports.php';
 		require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-revoke.php';
 		require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-check.php';
 		require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-tier.php';
+		require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-tier-sync.php';
+
 		include_once plugin_dir_path(__FILE__) . '/api/sms/sms-quota.php';
 		include_once plugin_dir_path(__FILE__) . '/api/push-subscription.php';
 	}
