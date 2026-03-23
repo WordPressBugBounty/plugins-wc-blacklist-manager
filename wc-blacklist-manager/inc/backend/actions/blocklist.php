@@ -4,7 +4,7 @@ if (!defined('ABSPATH')) {
 	exit;
 }
 
-class WC_Blacklist_Manager_Blocklisted_Actions {
+class WC_Blacklist_Manager_Blocklist_Actions {
 	public function __construct() {
 		add_action('woocommerce_checkout_process', [$this, 'prevent_order']);
 		add_action('woocommerce_store_api_checkout_order_processed', [$this, 'prevent_order_for_blocks'], 10, 1);
@@ -59,43 +59,30 @@ class WC_Blacklist_Manager_Blocklisted_Actions {
 			$billing_first_name = isset( $_POST['billing_first_name'] ) ? sanitize_text_field( wp_unslash( $_POST['billing_first_name'] ) ) : '';
 			$billing_last_name  = isset( $_POST['billing_last_name'] ) ? sanitize_text_field( wp_unslash( $_POST['billing_last_name'] ) ) : '';
 
-			// Retrieve and sanitize billing address.
-			$billing_address_1 = isset( $_POST['billing_address_1'] ) ? sanitize_text_field( wp_unslash( $_POST['billing_address_1'] ) ) : '';
-			$billing_address_2 = isset( $_POST['billing_address_2'] ) ? sanitize_text_field( wp_unslash( $_POST['billing_address_2'] ) ) : '';
-			$billing_city      = isset( $_POST['billing_city'] ) ? sanitize_text_field( wp_unslash( $_POST['billing_city'] ) ) : '';
-			$billing_state     = isset( $_POST['billing_state'] ) ? sanitize_text_field( wp_unslash( $_POST['billing_state'] ) ) : '';
-			$billing_postcode  = isset( $_POST['billing_postcode'] ) ? sanitize_text_field( wp_unslash( $_POST['billing_postcode'] ) ) : '';
-
-			$billing_address_parts = array_filter(
+			$billing_address_data = yobm_normalize_address_parts(
 				array(
-					$billing_address_1,
-					$billing_address_2,
-					$billing_city,
-					$billing_state,
-					$billing_postcode,
-					$billing_country,
+					'address_1' => isset( $_POST['billing_address_1'] ) ? sanitize_text_field( wp_unslash( $_POST['billing_address_1'] ) ) : '',
+					'address_2' => isset( $_POST['billing_address_2'] ) ? sanitize_text_field( wp_unslash( $_POST['billing_address_2'] ) ) : '',
+					'city'      => isset( $_POST['billing_city'] ) ? sanitize_text_field( wp_unslash( $_POST['billing_city'] ) ) : '',
+					'state'     => isset( $_POST['billing_state'] ) ? sanitize_text_field( wp_unslash( $_POST['billing_state'] ) ) : '',
+					'postcode'  => isset( $_POST['billing_postcode'] ) ? sanitize_text_field( wp_unslash( $_POST['billing_postcode'] ) ) : '',
+					'country'   => $billing_country,
 				)
 			);
-			$billing_address = implode( ', ', $billing_address_parts );
 
-			// Retrieve and sanitize shipping address.
-			$shipping_address_1 = isset( $_POST['shipping_address_1'] ) ? sanitize_text_field( wp_unslash( $_POST['shipping_address_1'] ) ) : '';
-			$shipping_address_2 = isset( $_POST['shipping_address_2'] ) ? sanitize_text_field( wp_unslash( $_POST['shipping_address_2'] ) ) : '';
-			$shipping_city      = isset( $_POST['shipping_city'] ) ? sanitize_text_field( wp_unslash( $_POST['shipping_city'] ) ) : '';
-			$shipping_state     = isset( $_POST['shipping_state'] ) ? sanitize_text_field( wp_unslash( $_POST['shipping_state'] ) ) : '';
-			$shipping_postcode  = isset( $_POST['shipping_postcode'] ) ? sanitize_text_field( wp_unslash( $_POST['shipping_postcode'] ) ) : '';
-
-			$shipping_address_parts = array_filter(
+			$shipping_address_data = yobm_normalize_address_parts(
 				array(
-					$shipping_address_1,
-					$shipping_address_2,
-					$shipping_city,
-					$shipping_state,
-					$shipping_postcode,
-					$shipping_country,
+					'address_1' => isset( $_POST['shipping_address_1'] ) ? sanitize_text_field( wp_unslash( $_POST['shipping_address_1'] ) ) : '',
+					'address_2' => isset( $_POST['shipping_address_2'] ) ? sanitize_text_field( wp_unslash( $_POST['shipping_address_2'] ) ) : '',
+					'city'      => isset( $_POST['shipping_city'] ) ? sanitize_text_field( wp_unslash( $_POST['shipping_city'] ) ) : '',
+					'state'     => isset( $_POST['shipping_state'] ) ? sanitize_text_field( wp_unslash( $_POST['shipping_state'] ) ) : '',
+					'postcode'  => isset( $_POST['shipping_postcode'] ) ? sanitize_text_field( wp_unslash( $_POST['shipping_postcode'] ) ) : '',
+					'country'   => $shipping_country,
 				)
 			);
-			$shipping_address = implode( ', ', $shipping_address_parts );
+
+			$billing_address  = $billing_address_data['address_display'];
+			$shipping_address = $shipping_address_data['address_display'];
 
 			// Pull cart items (product_id => quantity).
 			$items = array();
@@ -391,36 +378,26 @@ class WC_Blacklist_Manager_Blocklisted_Actions {
 				'phone'             => $billing_phone,
 				'email'             => $billing_email,
 				'normalized_email'  => $normalized_billing_email,
-				'billing'           => trim(
-					implode(
-						', ',
-						array_filter(
-							array(
-								$order->get_billing_address_1(),
-								$order->get_billing_address_2(),
-								$order->get_billing_city(),
-								$order->get_billing_state(),
-								$order->get_billing_postcode(),
-								$billing_country,
-							)
-						)
+				'billing'           => yobm_normalize_address_parts(
+					array(
+						'address_1' => sanitize_text_field( $order->get_billing_address_1() ),
+						'address_2' => sanitize_text_field( $order->get_billing_address_2() ),
+						'city'      => sanitize_text_field( $order->get_billing_city() ),
+						'state'     => sanitize_text_field( $order->get_billing_state() ),
+						'postcode'  => sanitize_text_field( $order->get_billing_postcode() ),
+						'country'   => $billing_country,
 					)
-				),
-				'shipping'          => trim(
-					implode(
-						', ',
-						array_filter(
-							array(
-								$order->get_shipping_address_1(),
-								$order->get_shipping_address_2(),
-								$order->get_shipping_city(),
-								$order->get_shipping_state(),
-								$order->get_shipping_postcode(),
-								$shipping_country,
-							)
-						)
+				)['address_display'],
+				'shipping'          => yobm_normalize_address_parts(
+					array(
+						'address_1' => sanitize_text_field( $order->get_shipping_address_1() ),
+						'address_2' => sanitize_text_field( $order->get_shipping_address_2() ),
+						'city'      => sanitize_text_field( $order->get_shipping_city() ),
+						'state'     => sanitize_text_field( $order->get_shipping_state() ),
+						'postcode'  => sanitize_text_field( $order->get_shipping_postcode() ),
+						'country'   => $shipping_country,
 					)
-				),
+				)['address_display'],
 				'cart_items'        => $items,
 				'fees'              => $fees,
 				'cart_subtotal'     => (float) $order->get_subtotal(),
@@ -1113,4 +1090,4 @@ class WC_Blacklist_Manager_Blocklisted_Actions {
 	}
 }
 
-new WC_Blacklist_Manager_Blocklisted_Actions();
+new WC_Blacklist_Manager_Blocklist_Actions();

@@ -13,6 +13,7 @@ class WC_Blacklist_Manager_Notices {
 		add_action('wp_ajax_dismiss_ads_notice', [$this, 'dismiss_ads_notice']);
 		add_action('wp_ajax_dismiss_gbd_limit_notice', [ $this, 'dismiss_gbd_limit_notice'] );
 		add_action('admin_enqueue_scripts', [$this, 'enqueue_inline_scripts']);
+		$this->includes();
 	}
 	
 	public function display_notices() {
@@ -326,6 +327,11 @@ class WC_Blacklist_Manager_Notices {
 
 		update_user_meta( $user_id, $dismiss_k, 'yes' );
 		wp_send_json_success();
+	}
+
+	private function includes() {
+		include_once plugin_dir_path(__FILE__) . 'helper/bot-signal-analyzer.php';
+		include_once plugin_dir_path(__FILE__) . 'alert.php';
 	}
 }
 

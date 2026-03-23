@@ -133,6 +133,8 @@ class WC_Blacklist_Manager_Backend {
 		include_once plugin_dir_path(__FILE__) . '../backend/actions/sub/helper.php';
 		include_once plugin_dir_path(__FILE__) . '../backend/helpers/normalize.php';
 		include_once plugin_dir_path(__FILE__) . '../backend/helpers/checkout-phone.php';
+		include_once plugin_dir_path(__FILE__) . '../backend/helpers/new-order-email.php';
+		include_once plugin_dir_path(__FILE__) . '../backend/emails/admin-new-order.php';
 
 		require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-register.php';
 		require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-reports.php';

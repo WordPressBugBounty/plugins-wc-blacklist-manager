@@ -24,11 +24,11 @@ if (!defined('ABSPATH')) {
 			<a href="#tab-content-automation" class="nav-tab" id="tab-automation"><?php echo esc_html__('Automation', 'wc-blacklist-manager'); ?></a>
 			<a href="#tab-content-scoring" class="nav-tab" id="tab-scoring"><?php echo esc_html__('Scoring', 'wc-blacklist-manager'); ?></a>
 		<?php endif; ?>
-		<a href="#tab-content-integrations" class="nav-tab" id="tab-integrations"><?php echo esc_html__('Integrations', 'wc-blacklist-manager'); ?></a>
 		<?php if ($woocommerce_active): ?>
 			<a href="#tab-content-payments" class="nav-tab" id="tab-payments"><?php echo esc_html__('Payments', 'wc-blacklist-manager'); ?></a>
 		<?php endif; ?>
 		<a href="#tab-content-permission" class="nav-tab" id="tab-permission"><?php echo esc_html__('Permission', 'wc-blacklist-manager'); ?></a>
+		<a href="#tab-content-integrations" class="nav-tab" id="tab-integrations"><?php echo esc_html__('Integrations', 'wc-blacklist-manager'); ?></a>
 		<a href="#tab-content-tools" class="nav-tab" id="tab-tools"><?php echo esc_html__('Tools', 'wc-blacklist-manager'); ?></a>
 		<a href="#tab-content-connection" class="nav-tab" id="tab-connection"><?php echo esc_html__('Connection', 'wc-blacklist-manager'); ?></a>
 	</nav>
@@ -266,6 +266,19 @@ if (!defined('ABSPATH')) {
 						<td>
 							<input type="checkbox" disabled>
 							<label class="premium-text"><?php echo esc_html__('Enable the customer address blocking', 'wc-blacklist-manager'); ?></label>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row">
+							<label class="premium-text label_child"><?php echo esc_html__('Matching mode', 'wc-blacklist-manager'); ?></label>
+						</th>
+						<td>
+							<select disabled>
+								<option><?php echo esc_html__('Standard', 'wc-blacklist-manager'); ?></option>
+							</select>
+							<p class="premium-text">
+								<?php echo esc_html__('Control how strict the address matching should be. Standard mode checks exact matches only, while advanced modes intelligently detect variations like apartment numbers, abbreviations, and formatting changes often used to bypass fraud protection.', 'wc-blacklist-manager'); ?> <a href="https://yoohw.com/docs/woocommerce-blacklist-manager/settings/general/#customer-address" target="_blank"><?php echo esc_html__('Learn more', 'wc-blacklist-manager'); ?></a>
+							</p>
 						</td>
 					</tr>
 					<tr>

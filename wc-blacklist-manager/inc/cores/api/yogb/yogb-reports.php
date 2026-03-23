@@ -134,47 +134,80 @@ final class YOGB_BM_Report {
 		$phone           = sanitize_text_field( $order->get_billing_phone() );
 		$ip              = sanitize_text_field( $order->get_customer_ip_address() );
 
-		$addr_parts = array_filter([
-			sanitize_text_field( $order->get_billing_address_1() ),
-			sanitize_text_field( $order->get_billing_address_2() ),
-			sanitize_text_field( $order->get_billing_city() ),
-			sanitize_text_field( $order->get_billing_state() ),
-			sanitize_text_field( $order->get_billing_postcode() ),
-			$billing_country,
-		]);
-		$bill_addr = implode( ', ', $addr_parts );
+		$billing_address = yobm_normalize_address_parts(
+			array(
+				'address_1' => sanitize_text_field( $order->get_billing_address_1() ),
+				'address_2' => sanitize_text_field( $order->get_billing_address_2() ),
+				'city'      => sanitize_text_field( $order->get_billing_city() ),
+				'state'     => sanitize_text_field( $order->get_billing_state() ),
+				'postcode'  => sanitize_text_field( $order->get_billing_postcode() ),
+				'country'   => $billing_country,
+			)
+		);
 
-		$ship_parts = array_filter([
-			sanitize_text_field( $order->get_shipping_address_1() ),
-			sanitize_text_field( $order->get_shipping_address_2() ),
-			sanitize_text_field( $order->get_shipping_city() ),
-			sanitize_text_field( $order->get_shipping_state() ),
-			sanitize_text_field( $order->get_shipping_postcode() ),
-			sanitize_text_field( $order->get_shipping_country() ),
-		]);
-		$ship_addr = implode( ', ', $ship_parts );
+		$shipping_address = yobm_normalize_address_parts(
+			array(
+				'address_1' => sanitize_text_field( $order->get_shipping_address_1() ),
+				'address_2' => sanitize_text_field( $order->get_shipping_address_2() ),
+				'city'      => sanitize_text_field( $order->get_shipping_city() ),
+				'state'     => sanitize_text_field( $order->get_shipping_state() ),
+				'postcode'  => sanitize_text_field( $order->get_shipping_postcode() ),
+				'country'   => sanitize_text_field( $order->get_shipping_country() ),
+			)
+		);
+
+		/*
+		* Report canonical normalized address identities.
+		* Use core norm to make reporting more resistant to unit / formatting noise.
+		*/
+		$bill_addr = isset( $billing_address['address_core_norm'] ) ? (string) $billing_address['address_core_norm'] : '';
+		$ship_addr = isset( $shipping_address['address_core_norm'] ) ? (string) $shipping_address['address_core_norm'] : '';
 
 		// Phone normalization: same behavior as reporting
 		if ( $phone ) {
-			// Only add prefix if it doesn't already start with '+'
-			if ( substr( $phone, 0, 1 ) !== '+' ) {
-				$phone = ltrim( $phone, '0' );
-				if ( function_exists( 'yobm_get_country_code_from_file' ) && $billing_country ) {
-					$country_code = yobm_get_country_code_from_file( $billing_country ); // e.g., "1"
-				} else {
-					$country_code = '';
-				}
-				$phone = '+' . ( $country_code ? $country_code : '' ) . $phone;
+			$dial_code        = yobm_get_country_dial_code( $billing_country );
+			$normalized_phone = yobm_normalize_phone( $phone, $dial_code );
+
+			if ( '' !== $normalized_phone ) {
+				$phone = '+' . $normalized_phone;
 			}
 		}
 
-		$idents = [];
-		if ( $email )      $idents[] = [ 'type' => 'email',   'value' => $email ];
-		if ( $phone )      $idents[] = [ 'type' => 'phone',   'value' => $phone ];
-		if ( $ip )         $idents[] = [ 'type' => 'ip',      'value' => $ip ];
-		if ( $bill_addr )  $idents[] = [ 'type' => 'address', 'value' => $bill_addr ];
+		$idents = array();
+
+		if ( $email ) {
+			$idents[] = array(
+				'type'  => 'email',
+				'value' => $email,
+			);
+		}
+
+		if ( $phone ) {
+			$idents[] = array(
+				'type'  => 'phone',
+				'value' => $phone,
+			);
+		}
+
+		if ( $ip ) {
+			$idents[] = array(
+				'type'  => 'ip',
+				'value' => $ip,
+			);
+		}
+
+		if ( $bill_addr ) {
+			$idents[] = array(
+				'type'  => 'address',
+				'value' => $bill_addr,
+			);
+		}
+
 		if ( $ship_addr && $ship_addr !== $bill_addr ) {
-			$idents[] = [ 'type' => 'address', 'value' => $ship_addr ];
+			$idents[] = array(
+				'type'  => 'address',
+				'value' => $ship_addr,
+			);
 		}
 
 		return $idents;
@@ -184,39 +217,159 @@ final class YOGB_BM_Report {
 
 	/** Build one payload per identity using your server's schema. */
 	private static function build_payloads_from_order( WC_Order $order, string $reason_code, string $description = '', ?string $evidence_hash = null ) : array {
-		$payloads = [];
+		$payloads = array();
 
 		$billing_country = sanitize_text_field( $order->get_billing_country() );
 		$currency        = sanitize_text_field( $order->get_currency() );
 		$total           = (float) $order->get_total();
 		$ip              = sanitize_text_field( $order->get_customer_ip_address() );
 
-		// Reuse the same identities for both reporting and checking
+		$billing_address = yobm_normalize_address_parts(
+			array(
+				'address_1' => sanitize_text_field( $order->get_billing_address_1() ),
+				'address_2' => sanitize_text_field( $order->get_billing_address_2() ),
+				'city'      => sanitize_text_field( $order->get_billing_city() ),
+				'state'     => sanitize_text_field( $order->get_billing_state() ),
+				'postcode'  => sanitize_text_field( $order->get_billing_postcode() ),
+				'country'   => $billing_country,
+			)
+		);
+
+		$shipping_address = yobm_normalize_address_parts(
+			array(
+				'address_1' => sanitize_text_field( $order->get_shipping_address_1() ),
+				'address_2' => sanitize_text_field( $order->get_shipping_address_2() ),
+				'city'      => sanitize_text_field( $order->get_shipping_city() ),
+				'state'     => sanitize_text_field( $order->get_shipping_state() ),
+				'postcode'  => sanitize_text_field( $order->get_shipping_postcode() ),
+				'country'   => sanitize_text_field( $order->get_shipping_country() ),
+			)
+		);
+
+		// Reuse the same identities for both reporting and checking.
 		$idents = self::build_identities_from_order( $order );
 
 		$ttl_days = (int) get_option( 'yogb_bm_default_ttl_days', 365 );
 		$ttl_days = max( 1, min( 1095, $ttl_days ) ); // cap to server limits
 
 		foreach ( $idents as $ident ) {
-			$ctx = [
-				'reason_code'  => sanitize_key( $reason_code ),
-				'description'  => (string) $description,
-				'order_amount' => $total,
-				'currency'     => $currency,
-				'country'      => $billing_country,
-				'ip'           => $ip,
-			];
+			$ctx = array(
+				'reason_code'          => sanitize_key( $reason_code ),
+				'description'          => (string) $description,
+				'order_amount'         => $total,
+				'currency'             => $currency,
+				'country'              => $billing_country,
+				'ip'                   => $ip,
+				'address_norm_version' => 2,
+
+				'billing_address_norm' => array(
+					'full'          => isset( $billing_address['address_full_norm'] ) ? $billing_address['address_full_norm'] : '',
+					'core'          => isset( $billing_address['address_core_norm'] ) ? $billing_address['address_core_norm'] : '',
+					'premise'       => isset( $billing_address['address_premise_norm'] ) ? $billing_address['address_premise_norm'] : '',
+					'postcode'      => isset( $billing_address['postcode_norm'] ) ? $billing_address['postcode_norm'] : '',
+					'state'         => isset( $billing_address['state_code'] ) ? $billing_address['state_code'] : '',
+					'country'       => isset( $billing_address['country_code'] ) ? $billing_address['country_code'] : '',
+					'house_number'  => isset( $billing_address['house_number_norm'] ) ? $billing_address['house_number_norm'] : '',
+					'street_name'   => isset( $billing_address['street_name_norm'] ) ? $billing_address['street_name_norm'] : '',
+					'display'       => isset( $billing_address['address_display'] ) ? $billing_address['address_display'] : '',
+					'hash_full'     => isset( $billing_address['address_hash'] ) ? $billing_address['address_hash'] : '',
+					'hash_core'     => isset( $billing_address['address_core_hash'] ) ? $billing_address['address_core_hash'] : '',
+					'hash_premise'  => isset( $billing_address['address_premise_hash'] ) ? $billing_address['address_premise_hash'] : '',
+				),
+
+				'shipping_address_norm' => array(
+					'full'          => isset( $shipping_address['address_full_norm'] ) ? $shipping_address['address_full_norm'] : '',
+					'core'          => isset( $shipping_address['address_core_norm'] ) ? $shipping_address['address_core_norm'] : '',
+					'premise'       => isset( $shipping_address['address_premise_norm'] ) ? $shipping_address['address_premise_norm'] : '',
+					'postcode'      => isset( $shipping_address['postcode_norm'] ) ? $shipping_address['postcode_norm'] : '',
+					'state'         => isset( $shipping_address['state_code'] ) ? $shipping_address['state_code'] : '',
+					'country'       => isset( $shipping_address['country_code'] ) ? $shipping_address['country_code'] : '',
+					'house_number'  => isset( $shipping_address['house_number_norm'] ) ? $shipping_address['house_number_norm'] : '',
+					'street_name'   => isset( $shipping_address['street_name_norm'] ) ? $shipping_address['street_name_norm'] : '',
+					'display'       => isset( $shipping_address['address_display'] ) ? $shipping_address['address_display'] : '',
+					'hash_full'     => isset( $shipping_address['address_hash'] ) ? $shipping_address['address_hash'] : '',
+					'hash_core'     => isset( $shipping_address['address_core_hash'] ) ? $shipping_address['address_core_hash'] : '',
+					'hash_premise'  => isset( $shipping_address['address_premise_hash'] ) ? $shipping_address['address_premise_hash'] : '',
+				),
+			);
+
 			if ( $evidence_hash ) {
-				$ctx['evidence_hash'] = $evidence_hash; // include the hash
+				$ctx['evidence_hash'] = $evidence_hash;
 			}
 
-			$payloads[] = [
+			$payloads[] = array(
 				'identity' => $ident,
 				'context'  => $ctx,
 				'ttl_days' => $ttl_days,
-			];
+			);
 		}
+
 		return $payloads;
+	}
+
+	/**
+	 * Build richer /check payload from an order.
+	 *
+	 * Keeps the same identities list as reporting, but also sends normalized
+	 * address bags so the server can probe smarter than exact-match only.
+	 */
+	public static function build_check_payload_from_order( WC_Order $order ) : array {
+		$billing_country = sanitize_text_field( $order->get_billing_country() );
+
+		$billing_address = yobm_normalize_address_parts(
+			array(
+				'address_1' => sanitize_text_field( $order->get_billing_address_1() ),
+				'address_2' => sanitize_text_field( $order->get_billing_address_2() ),
+				'city'      => sanitize_text_field( $order->get_billing_city() ),
+				'state'     => sanitize_text_field( $order->get_billing_state() ),
+				'postcode'  => sanitize_text_field( $order->get_billing_postcode() ),
+				'country'   => $billing_country,
+			)
+		);
+
+		$shipping_address = yobm_normalize_address_parts(
+			array(
+				'address_1' => sanitize_text_field( $order->get_shipping_address_1() ),
+				'address_2' => sanitize_text_field( $order->get_shipping_address_2() ),
+				'city'      => sanitize_text_field( $order->get_shipping_city() ),
+				'state'     => sanitize_text_field( $order->get_shipping_state() ),
+				'postcode'  => sanitize_text_field( $order->get_shipping_postcode() ),
+				'country'   => sanitize_text_field( $order->get_shipping_country() ),
+			)
+		);
+
+		$idents = self::build_identities_from_order( $order );
+
+		return array(
+			'identities' => $idents,
+			'context'    => array(
+				'address_norm_version' => 2,
+
+				'billing_address_norm' => array(
+					'full'         => isset( $billing_address['address_full_norm'] ) ? (string) $billing_address['address_full_norm'] : '',
+					'core'         => isset( $billing_address['address_core_norm'] ) ? (string) $billing_address['address_core_norm'] : '',
+					'premise'      => isset( $billing_address['address_premise_norm'] ) ? (string) $billing_address['address_premise_norm'] : '',
+					'postcode'     => isset( $billing_address['postcode_norm'] ) ? (string) $billing_address['postcode_norm'] : '',
+					'state'        => isset( $billing_address['state_code'] ) ? (string) $billing_address['state_code'] : '',
+					'country'      => isset( $billing_address['country_code'] ) ? (string) $billing_address['country_code'] : '',
+					'house_number' => isset( $billing_address['house_number_norm'] ) ? (string) $billing_address['house_number_norm'] : '',
+					'street_name'  => isset( $billing_address['street_name_norm'] ) ? (string) $billing_address['street_name_norm'] : '',
+					'display'      => isset( $billing_address['address_display'] ) ? (string) $billing_address['address_display'] : '',
+				),
+
+				'shipping_address_norm' => array(
+					'full'         => isset( $shipping_address['address_full_norm'] ) ? (string) $shipping_address['address_full_norm'] : '',
+					'core'         => isset( $shipping_address['address_core_norm'] ) ? (string) $shipping_address['address_core_norm'] : '',
+					'premise'      => isset( $shipping_address['address_premise_norm'] ) ? (string) $shipping_address['address_premise_norm'] : '',
+					'postcode'     => isset( $shipping_address['postcode_norm'] ) ? (string) $shipping_address['postcode_norm'] : '',
+					'state'        => isset( $shipping_address['state_code'] ) ? (string) $shipping_address['state_code'] : '',
+					'country'      => isset( $shipping_address['country_code'] ) ? (string) $shipping_address['country_code'] : '',
+					'house_number' => isset( $shipping_address['house_number_norm'] ) ? (string) $shipping_address['house_number_norm'] : '',
+					'street_name'  => isset( $shipping_address['street_name_norm'] ) ? (string) $shipping_address['street_name_norm'] : '',
+					'display'      => isset( $shipping_address['address_display'] ) ? (string) $shipping_address['address_display'] : '',
+				),
+			),
+		);
 	}
 
 	/** Idempotency per identity (meets /^[A-Za-z0-9-]{8,64}$/). */

@@ -2,6 +2,15 @@
 
 == Changelog ==
 
+= 2.2 (Mar 23, 2026) =
+* New: Added `yogb_after_gbl_check` hook for async Global Blacklist completion.
+* New: Support delaying admin new order email until risk checks finish.
+* New: Stored enhanced signal data (effective score, linked boost, neighbors, matches).
+* Fix: Updated to use the phone number normalize helpers before reporting to Global Blacklist.
+* Fix: Fixed missing completion trigger in some async cases.
+* Improve: Improved async reliability with consistent completion signaling.
+* Improve: Enhanced handling of linked identity signals and match metadata.
+
 = 2.1.9 (Mar 17, 2026) =
 * Update: Upgraded and added helpers to normalize phone numbers for stricter blocking logic.
 * Update: Added a helper to normalize email addresses before performing the block lookup.

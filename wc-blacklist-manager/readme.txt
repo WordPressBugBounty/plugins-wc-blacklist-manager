@@ -5,7 +5,7 @@ Requires at least: 6.3
 Tested up to: 6.9
 WC tested up to: 10.6
 Requires PHP: 7.4
-Stable tag: 2.1.9
+Stable tag: 2.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -228,6 +228,15 @@ A: There is no set limit within the plugin, but practical limitations depend on 
 A: No, the plugin is optimized for performance. It performs blacklist checks efficiently and only at appropriate times (like form submission or checkout), so it won’t noticeably impact your site speed.
 
 == Changelog ==
+
+= 2.2 (Mar 23, 2026) =
+* New: Added `yogb_after_gbl_check` hook for async Global Blacklist completion.
+* New: Support delaying admin new order email until risk checks finish.
+* New: Stored enhanced signal data (effective score, linked boost, neighbors, matches).
+* Fix: Updated to use the phone number normalize helpers before reporting to Global Blacklist.
+* Fix: Fixed missing completion trigger in some async cases.
+* Improve: Improved async reliability with consistent completion signaling.
+* Improve: Enhanced handling of linked identity signals and match metadata.
 
 = 2.1.9 (Mar 17, 2026) =
 * Update: Upgraded and added helpers to normalize phone numbers for stricter blocking logic.

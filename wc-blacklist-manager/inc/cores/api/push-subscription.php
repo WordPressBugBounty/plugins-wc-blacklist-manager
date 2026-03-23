@@ -6,7 +6,7 @@ if (!defined('ABSPATH')) {
 
 class WC_Blacklist_Manager_Push_Subscription {
     /** REST endpoint of your central subscriptions service */
-    const SUBSCRIBE_API_ENDPOINT = 'https://express.yoohw.com/wp-json/yo-pr/v1/email-subscriptions';
+    const SUBSCRIBE_API_ENDPOINT = 'https://yoexpress.top/wp-json/yo-pr/v1/email-subscriptions';
 
     /** Option name to store last run timestamp */
     const OPTION_LAST_PUSH = 'wc_blacklist_manager_last_push_subscription';

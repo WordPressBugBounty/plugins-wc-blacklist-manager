@@ -106,16 +106,16 @@ class WC_Blacklist_Manager_Settings {
 	}
 
 	private function includes() {
-		include_once plugin_dir_path(__FILE__) . '/actions/suspects.php';
-		include_once plugin_dir_path(__FILE__) . '/actions/blocklist.php';
-		include_once plugin_dir_path(__FILE__) . '/actions/blocking-ip.php';
-		include_once plugin_dir_path(__FILE__) . '/actions/blocking-domain.php';
-		include_once plugin_dir_path(__FILE__) . '/actions/blocking-user.php';
-		include_once plugin_dir_path(__FILE__) . '/actions/form/contact-form-7.php';
-		include_once plugin_dir_path(__FILE__) . '/actions/form/gravity-forms.php';
-		include_once plugin_dir_path(__FILE__) . '/actions/form/wp-forms.php';
-		include_once plugin_dir_path(__FILE__) . '/actions/sub/send-email.php';
-		include_once plugin_dir_path(__FILE__) . '/actions/yogb-check-orders.php';
+		include_once plugin_dir_path(__FILE__) . 'actions/suspects.php';
+		include_once plugin_dir_path(__FILE__) . 'actions/blocklist.php';
+		include_once plugin_dir_path(__FILE__) . 'actions/blocking-ip.php';
+		include_once plugin_dir_path(__FILE__) . 'actions/blocking-domain.php';
+		include_once plugin_dir_path(__FILE__) . 'actions/blocking-user.php';
+		include_once plugin_dir_path(__FILE__) . 'actions/form/contact-form-7.php';
+		include_once plugin_dir_path(__FILE__) . 'actions/form/gravity-forms.php';
+		include_once plugin_dir_path(__FILE__) . 'actions/form/wp-forms.php';
+		include_once plugin_dir_path(__FILE__) . 'actions/sub/send-email.php';
+		include_once plugin_dir_path(__FILE__) . 'actions/yogb-check-orders.php';
 	}
 
 	public function is_premium_active() {

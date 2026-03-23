@@ -1,7 +1,7 @@
 <?php
 
-if (!defined('ABSPATH')) {
-	exit; // Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
 }
 
 use Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableController;
@@ -9,44 +9,42 @@ use Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableControlle
 class WC_Blacklist_Manager_Order_Risk_Score {
 
 	public function __construct() {
-		// Hook into the add_meta_boxes action for legacy storage and HPOS
-		add_action('add_meta_boxes', array($this, 'add_order_risk_score_meta_box'), 1);
+		add_action( 'add_meta_boxes', array( $this, 'add_order_risk_score_meta_box' ), 1 );
 	}
 
 	public function add_order_risk_score_meta_box() {
 		$settings_instance = new WC_Blacklist_Manager_Settings();
-		$premium_active = $settings_instance->is_premium_active();
+		$premium_active    = $settings_instance->is_premium_active();
 
-		if ($premium_active) {
+		if ( $premium_active ) {
 			return;
 		}
 
-		if (!current_user_can('manage_options')) {
+		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
 
 		if ( function_exists( 'get_current_screen' ) ) {
 			$screen = get_current_screen();
 			if ( $screen ) {
-				// Classic CPT new order screen
 				if ( 'shop_order' === ( $screen->post_type ?? '' ) && 'add' === ( $screen->action ?? '' ) ) {
 					return;
 				}
-				// HPOS new order screen (Orders page)
+
 				if ( 'woocommerce_page_wc-orders' === $screen->id && isset( $_GET['action'] ) && 'new' === $_GET['action'] ) {
 					return;
 				}
 			}
 		}
 
-		$screen = class_exists('\Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableController') && wc_get_container()->get(CustomOrdersTableController::class)->custom_orders_table_usage_is_enabled()
-			? wc_get_page_screen_id('shop-order')
+		$screen = class_exists( '\Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableController' ) && wc_get_container()->get( CustomOrdersTableController::class )->custom_orders_table_usage_is_enabled()
+			? wc_get_page_screen_id( 'shop-order' )
 			: 'shop_order';
 
 		add_meta_box(
 			'wc_blacklist_manager_order_risk_score',
-			__('Order risk score', 'wc-blacklist-manager'),
-			array($this, 'display_order_risk_score_meta_box'),
+			__( 'Order risk score', 'wc-blacklist-manager' ),
+			array( $this, 'display_order_risk_score_meta_box' ),
 			$screen,
 			'side',
 			'high'
@@ -54,11 +52,9 @@ class WC_Blacklist_Manager_Order_Risk_Score {
 
 		global $wp_meta_boxes;
 		if ( isset( $wp_meta_boxes[ $screen ]['side']['high'] ) ) {
-
 			$high = $wp_meta_boxes[ $screen ]['side']['high'];
 
 			if ( isset( $high['wc_blacklist_manager_order_risk_score'], $high['woocommerce-order-actions'] ) ) {
-
 				$our_box = $high['wc_blacklist_manager_order_risk_score'];
 				unset( $high['wc_blacklist_manager_order_risk_score'] );
 
@@ -76,7 +72,6 @@ class WC_Blacklist_Manager_Order_Risk_Score {
 	}
 
 	public function display_order_risk_score_meta_box( $object ) {
-		// Get the WC_Order object
 		$order = is_a( $object, 'WP_Post' ) ? wc_get_order( $object->ID ) : $object;
 
 		if ( ! $order ) {
@@ -84,24 +79,17 @@ class WC_Blacklist_Manager_Order_Risk_Score {
 			return;
 		}
 
-		// Is Global Blacklist enabled?
 		$is_global_enabled = ( '1' === get_option( 'wc_blacklist_enable_global_blacklist', '0' ) );
 
-		// Build enable URL (admin-post handler with nonce) if needed.
 		$enable_url = wp_nonce_url(
 			admin_url( 'admin-post.php?action=enable_global_blacklist' ),
 			'enable_global_blacklist'
 		);
 
-		// Branch 1: not enabled yet => notice + [Enable] link.
 		if ( ! $is_global_enabled ) : ?>
 			<div class="bm-order-risk-meta bm-order-risk-meta--disabled">
-				<p>
-					<strong><?php esc_html_e( 'Global Blacklist is currently disabled.', 'wc-blacklist-manager' ); ?></strong>
-				</p>
-				<p>
-					<?php esc_html_e( 'Enable the Global Blacklist to start checking orders against your site’s global reputation data.', 'wc-blacklist-manager' ); ?>
-				</p>
+				<p><strong><?php esc_html_e( 'Global Blacklist is currently disabled.', 'wc-blacklist-manager' ); ?></strong></p>
+				<p><?php esc_html_e( 'Enable the Global Blacklist to start checking orders against your site’s global reputation data.', 'wc-blacklist-manager' ); ?></p>
 				<p>
 					<a href="<?php echo esc_url( $enable_url ); ?>" class="button button-secondary">
 						<?php esc_html_e( 'Enable Global Blacklist', 'wc-blacklist-manager' ); ?>
@@ -112,14 +100,8 @@ class WC_Blacklist_Manager_Order_Risk_Score {
 			return;
 		endif;
 
-		// -----------------------------------------------------------------
-		// Branch 1b: Global Blacklist is enabled, but site is not connected
-		// (missing API key / secret / reporter ID).
-		// -----------------------------------------------------------------
-
-		// Use constants if class exists, otherwise fall back to raw option names.
-		$opt_api_key     = class_exists( 'YOGB_BM_Registrar' ) ? YOGB_BM_Registrar::OPT_API_KEY     : 'yogb_bm_api_key';
-		$opt_api_secret  = class_exists( 'YOGB_BM_Registrar' ) ? YOGB_BM_Registrar::OPT_API_SECRET  : 'yogb_bm_api_secret';
+		$opt_api_key     = class_exists( 'YOGB_BM_Registrar' ) ? YOGB_BM_Registrar::OPT_API_KEY : 'yogb_bm_api_key';
+		$opt_api_secret  = class_exists( 'YOGB_BM_Registrar' ) ? YOGB_BM_Registrar::OPT_API_SECRET : 'yogb_bm_api_secret';
 		$opt_reporter_id = class_exists( 'YOGB_BM_Registrar' ) ? YOGB_BM_Registrar::OPT_REPORTER_ID : 'yogb_bm_reporter_id';
 
 		$api_key     = trim( (string) get_option( $opt_api_key, '' ) );
@@ -130,18 +112,15 @@ class WC_Blacklist_Manager_Order_Risk_Score {
 
 		if ( $missing_connection ) : ?>
 			<div class="bm-order-risk-meta bm-order-risk-meta--disabled">
-				<p>
-					<strong><?php esc_html_e( 'Global Blacklist is enabled, but your site is not connected to the Global Blacklist server yet.', 'wc-blacklist-manager' ); ?></strong>
-				</p>
+				<p><strong><?php esc_html_e( 'Global Blacklist is enabled, but your site is not connected to the Global Blacklist server yet.', 'wc-blacklist-manager' ); ?></strong></p>
 				<p>
 					<?php
 					$settings_url = admin_url( 'admin.php?page=wc-blacklist-manager-settings#global_blacklist' );
 
 					echo wp_kses(
 						sprintf(
-							/* translators: 1: URL to Global Blacklist settings. */
 							__(
-								'To see Global Blacklist risk scores and decisions here, finish connecting your site to the server on the <a href="%1$s" target="_blank" rel="noopener noreferrer">Global Blacklist settings page</a>.',
+								'To see Global Blacklist results here, finish connecting your site on the <a href="%1$s" target="_blank" rel="noopener noreferrer">Global Blacklist settings page</a>.',
 								'wc-blacklist-manager'
 							),
 							esc_url( $settings_url )
@@ -161,506 +140,605 @@ class WC_Blacklist_Manager_Order_Risk_Score {
 			return;
 		endif;
 
-		// ---------------------------------------------------------------------
-		// Branch 2: Global Blacklist enabled -> show tier + usage + decision.
-		// ---------------------------------------------------------------------
-
-		// Tier FROM ORDER META, default to "free".
 		$tier_meta = (string) $order->get_meta( '_yogb_gbl_tier', true );
-		$tier      = $tier_meta !== '' ? strtolower( trim( $tier_meta ) ) : 'free';
+		$tier      = '' !== $tier_meta ? strtolower( trim( $tier_meta ) ) : 'free';
 
 		$allowed_tiers = array( 'free', 'basic', 'pro', 'enterprise' );
 		if ( ! in_array( $tier, $allowed_tiers, true ) ) {
 			$tier = 'free';
 		}
 
-		// Pretty tier label
 		switch ( $tier ) {
 			case 'basic':
 				$tier_label = __( 'Basic', 'wc-blacklist-manager' );
+				$tier_limit = 150;
 				break;
 			case 'pro':
 				$tier_label = __( 'Pro', 'wc-blacklist-manager' );
+				$tier_limit = 1000;
 				break;
 			case 'enterprise':
 				$tier_label = __( 'Enterprise', 'wc-blacklist-manager' );
+				$tier_limit = 0;
 				break;
 			case 'free':
 			default:
 				$tier_label = __( 'Free', 'wc-blacklist-manager' );
-				break;
-		}
-
-		// Monthly limit (mirror enforce_rate_limit(), enterprise unlimited).
-		switch ( $tier ) {
-			case 'basic':
-				$tier_limit = 150;
-				break;
-			case 'pro':
-				$tier_limit = 1000;
-				break;
-			case 'enterprise':
-				$tier_limit = 0; // unlimited
-				break;
-			case 'free':
-			default:
 				$tier_limit = 20;
 				break;
 		}
 
-		// Usage for current UTC calendar month (without incrementing), keyed by this tier.
-		$month_key  = gmdate( 'Ym' ); // e.g. 202511
-		$usage_opt  = 'yogb_bm_chk_month_' . $tier . '_' . $month_key;
-		$tier_used  = (int) get_option( $usage_opt, 0 );
+		$month_key         = gmdate( 'Ym' );
+		$usage_opt         = 'yogb_bm_chk_month_' . $tier . '_' . $month_key;
+		$tier_used         = (int) get_option( $usage_opt, 0 );
+		$has_reached_limit = ( $tier_limit > 0 && $tier_used >= $tier_limit );
 
-		// Usage text: "3 / 20 checks used this month" or "3 checks used this month (unlimited)".
 		if ( $tier_limit > 0 ) {
-			$has_reached_limit = ( $tier_used >= $tier_limit );
-
-			if ( $has_reached_limit ) {
-				$tier_usage_text = sprintf(
-					/* translators: 1: used checks, 2: monthly limit */
-					__(
-						'%1$d / %2$d checks used this month. You have reached your monthly limit. Upgrade your tier to unlock more checks.',
-						'wc-blacklist-manager'
-					),
+			$tier_usage_text = $has_reached_limit
+				? sprintf(
+					__( '%1$d / %2$d checks used this month. Your monthly limit has been reached.', 'wc-blacklist-manager' ),
 					$tier_used,
 					$tier_limit
-				);
-			} else {
-				$tier_usage_text = sprintf(
-					/* translators: 1: used checks, 2: monthly limit */
+				)
+				: sprintf(
 					__( '%1$d / %2$d checks used this month.', 'wc-blacklist-manager' ),
 					$tier_used,
 					$tier_limit
 				);
-			}
 		} else {
 			$tier_usage_text = sprintf(
-				/* translators: 1: used checks */
 				__( '%1$d checks used this month (unlimited tier).', 'wc-blacklist-manager' ),
 				$tier_used
 			);
 		}
 
-		// Upgrade badge for free/basic/pro only.
-		$can_upgrade   = in_array( $tier, array( 'free', 'basic', 'pro' ), true );
-		$upgrade_url   = 'https://yoohw.com/global-blacklist-plan/';
-		$upgrade_label = __( 'Upgrade', 'wc-blacklist-manager' );
-
-		// ---------------------------------------------------------------------
-		// Decision (allow / challenge / block).
-		// ---------------------------------------------------------------------
+		$can_upgrade = in_array( $tier, array( 'free', 'basic', 'pro' ), true );
+		$upgrade_url = 'https://yoohw.com/global-blacklist-plan/';
 
 		$decision_raw = strtolower( trim( (string) $order->get_meta( '_yogb_gbl_decision', true ) ) );
-		$allowed_decisions = array( 'allow', 'challenge', 'block' );
 
-		if ( ! in_array( $decision_raw, $allowed_decisions, true ) ) {
-			$decision_slug  = 'none';
-			$decision_label = __( 'No record', 'wc-blacklist-manager' );
-		} else {
-			$decision_slug = $decision_raw;
-			switch ( $decision_raw ) {
-				case 'allow':
-					$decision_label = __( 'Allow', 'wc-blacklist-manager' );
-					break;
-				case 'challenge':
-					$decision_label = __( 'Challenge', 'wc-blacklist-manager' );
-					break;
-				case 'block':
-					$decision_label = __( 'Block', 'wc-blacklist-manager' );
-					break;
+		$meta_effective_score    = (float) $order->get_meta( '_yogb_gbl_effective_score', true );
+		$meta_direct_score       = (float) $order->get_meta( '_yogb_gbl_direct_score', true );
+		$meta_linked_boost       = (float) $order->get_meta( '_yogb_gbl_linked_boost', true );
+		$meta_neighbors_count    = (int) $order->get_meta( '_yogb_gbl_linked_neighbors_count', true );
+		$meta_matched_identities = (int) $order->get_meta( '_yogb_gbl_matched_identities', true );
+		$meta_primary_type       = (string) $order->get_meta( '_yogb_gbl_primary_signal_type', true );
+		$meta_primary_risk       = (string) $order->get_meta( '_yogb_gbl_primary_risk_level', true );
+		$meta_primary_last       = (string) $order->get_meta( '_yogb_gbl_primary_last_reported', true );
+
+		$signal_summaries = $this->normalize_meta_lines( $order->get_meta( '_yogb_gbl_signal_summaries', true ) );
+		$reason_summaries = $this->normalize_meta_lines( $order->get_meta( '_yogb_gbl_reason_summaries', true ) );
+		$report_summaries = $this->normalize_meta_lines( $order->get_meta( '_yogb_gbl_report_summaries', true ) );
+
+		$raw_json = (string) $order->get_meta( '_yogb_gbl_raw', true );
+		$raw_data = array();
+
+		if ( '' !== $raw_json ) {
+			$decoded = json_decode( $raw_json, true );
+			if ( is_array( $decoded ) ) {
+				$raw_data = $decoded;
 			}
 		}
 
-		// Identity coverage per tier (what this order is checked against).
-		$coverage_message = '';
+		$results = isset( $raw_data['results'] ) && is_array( $raw_data['results'] ) ? $raw_data['results'] : array();
 
-		switch ( $tier ) {
-			case 'free':
-				$coverage_message = __(
-					'This order is checked against email and IP only on the Free tier.',
-					'wc-blacklist-manager'
-				);
+		$matched_types       = array();
+		$matched_modes       = array();
+		$matched_variants    = array();
+		$total_matched_nodes = 0;
+
+		foreach ( $results as $item ) {
+			if ( ! is_array( $item ) ) {
+				continue;
+			}
+
+			$type                 = isset( $item['type'] ) ? strtolower( (string) $item['type'] ) : '';
+			$agg                  = isset( $item['aggregate'] ) && is_array( $item['aggregate'] ) ? $item['aggregate'] : array();
+			$matches              = isset( $item['matches'] ) && is_array( $item['matches'] ) ? $item['matches'] : array();
+			$match_mode           = isset( $item['match_mode'] ) ? strtolower( (string) $item['match_mode'] ) : '';
+			$matched_variant      = isset( $item['matched_variant'] ) ? strtolower( (string) $item['matched_variant'] ) : '';
+			$matched_identity_cnt = isset( $item['matched_identity_count'] ) ? (int) $item['matched_identity_count'] : 0;
+
+			$reports   = isset( $agg['report_count'] ) ? (int) $agg['report_count'] : 0;
+			$direct    = isset( $agg['direct_score'] ) ? (float) $agg['direct_score'] : 0.0;
+			$linked    = isset( $agg['linked_boost'] ) ? (float) $agg['linked_boost'] : 0.0;
+			$effective = isset( $agg['score'] ) ? (float) $agg['score'] : 0.0;
+
+			if ( ! empty( $matches ) || $reports > 0 || $direct > 0 || $linked > 0 || $effective > 0 ) {
+				$matched_types[]    = $type;
+				$total_matched_nodes += max( 1, $matched_identity_cnt );
+
+				if ( '' !== $match_mode && 'none' !== $match_mode ) {
+					$matched_modes[] = $match_mode;
+				}
+
+				if ( '' !== $matched_variant && 'submitted' !== $matched_variant ) {
+					$matched_variants[] = $matched_variant;
+				}
+			}
+		}
+
+		$matched_types    = array_values( array_unique( array_filter( $matched_types ) ) );
+		$matched_modes    = array_values( array_unique( array_filter( $matched_modes ) ) );
+		$matched_variants = array_values( array_unique( array_filter( $matched_variants ) ) );
+
+		switch ( $decision_raw ) {
+			case 'block':
+				$decision_slug   = 'block';
+				$decision_label  = __( 'High risk', 'wc-blacklist-manager' );
+				$summary_text    = __( 'This order matched strong fraud-related signals in the Global Blacklist network.', 'wc-blacklist-manager' );
+				$action_text     = __( 'Do not fulfill this order until it has been manually verified.', 'wc-blacklist-manager' );
 				break;
 
-			case 'basic':
-				$coverage_message = __(
-					'This order is checked against email, phone and IP on the Basic tier.',
-					'wc-blacklist-manager'
-				);
+			case 'challenge':
+				$decision_slug   = 'challenge';
+				$decision_label  = __( 'Needs review', 'wc-blacklist-manager' );
+				$summary_text    = __( 'Some order details matched previous fraud-related reports. Manual review is recommended.', 'wc-blacklist-manager' );
+				$action_text     = __( 'Review the order details before shipping or completing the order.', 'wc-blacklist-manager' );
 				break;
 
-			case 'pro':
-			case 'enterprise':
+			case 'allow':
+				$decision_slug   = 'allow';
+				$decision_label  = __( 'Clear', 'wc-blacklist-manager' );
+				$summary_text    = __( 'No blocking decision was returned for this order.', 'wc-blacklist-manager' );
+				$action_text     = __( 'Proceed as normal.', 'wc-blacklist-manager' );
+				break;
+
+			case 'skipped_rate_limit':
+				$decision_slug   = 'none';
+				$decision_label  = __( 'Check skipped', 'wc-blacklist-manager' );
+				$summary_text    = __( 'This order was not checked because your monthly Global Blacklist limit was reached.', 'wc-blacklist-manager' );
+				$action_text     = __( 'Upgrade your plan if you need more checks this month.', 'wc-blacklist-manager' );
+				break;
+
 			default:
-				// Pro and Enterprise already include all checks (email, phone, IP, address).
-				$coverage_message = '';
+				$decision_slug   = 'none';
+				$decision_label  = __( 'No record', 'wc-blacklist-manager' );
+				$summary_text    = __( 'No Global Blacklist result has been stored for this order yet.', 'wc-blacklist-manager' );
+				$action_text     = __( 'No action is required unless you want to run a check manually.', 'wc-blacklist-manager' );
 				break;
 		}
 
-		// Extra details from Global Blacklist metas.
-		$reason_summaries = (array) $order->get_meta( '_yogb_gbl_reason_summaries', true );
-		$report_summaries = (array) $order->get_meta( '_yogb_gbl_report_summaries', true );
-		$has_details      = ! empty( $reason_summaries ) || ! empty( $report_summaries );
-		
+		$coverage_message = '';
+		switch ( $tier ) {
+			case 'free':
+				$coverage_message = __( 'Checked with Email + IP', 'wc-blacklist-manager' );
+				break;
+			case 'basic':
+				$coverage_message = __( 'Checked with Email + Phone + IP', 'wc-blacklist-manager' );
+				break;
+			case 'pro':
+			case 'enterprise':
+				$coverage_message = __( 'Checked with Email + Phone + IP + Address', 'wc-blacklist-manager' );
+				break;
+		}
+
+		$main_reason_text = '';
+		if ( ! empty( $reason_summaries ) ) {
+			$main_reason_text = $reason_summaries[0];
+		} elseif ( ! empty( $signal_summaries ) ) {
+			$main_reason_text = $signal_summaries[0];
+		} elseif ( $meta_primary_type ) {
+			$main_reason_text = sprintf(
+				__( 'The strongest match was %1$s with %2$s risk.', 'wc-blacklist-manager' ),
+				ucfirst( $meta_primary_type ),
+				$meta_primary_risk ? strtolower( $meta_primary_risk ) : __( 'low', 'wc-blacklist-manager' )
+			);
+		}
+
+		$smart_match_text = '';
+		if ( ! empty( $matched_modes ) || ! empty( $matched_variants ) || $total_matched_nodes > 0 ) {
+			$parts = array();
+
+			if ( ! empty( $matched_modes ) ) {
+				$parts[] = sprintf(
+					__( 'Match type: %s', 'wc-blacklist-manager' ),
+					implode( ', ', array_map( array( $this, 'format_match_mode_label' ), $matched_modes ) )
+				);
+			}
+
+			if ( ! empty( $matched_variants ) ) {
+				$parts[] = sprintf(
+					__( 'Matched detail: %s', 'wc-blacklist-manager' ),
+					implode( ', ', array_map( array( $this, 'format_matched_variant_label' ), $matched_variants ) )
+				);
+			}
+
+			if ( $total_matched_nodes > 0 ) {
+				$parts[] = sprintf(
+					__( 'Related identity records: %s', 'wc-blacklist-manager' ),
+					number_format_i18n( $total_matched_nodes )
+				);
+			}
+
+			$smart_match_text = implode( ' · ', $parts );
+		}
 		?>
-		<div class="bm-order-risk-meta bm-order-risk-meta--enabled">
+		<div class="bm-order-risk-meta bm-order-risk-meta--enabled bm-order-risk-meta--simple">
 			<p class="bm-order-risk-tier">
 				<span class="yogb-tier-badge yogb-tier-<?php echo esc_attr( $tier ); ?>">
 					<span class="yogb-tier-dot"></span>
 					<span class="yogb-tier-text"><?php echo esc_html( $tier_label ); ?></span>
 				</span>
-
 				<?php if ( $can_upgrade ) : ?>
-					<a
-						href="<?php echo esc_url( $upgrade_url ); ?>"
-						class="yogb-tier-cta yogb-tier-cta--small"
-						target="_blank"
-						rel="noopener noreferrer"
-					>
-						<?php echo esc_html( $upgrade_label ); ?>
+					<a href="<?php echo esc_url( $upgrade_url ); ?>" class="yogb-tier-cta yogb-tier-cta--small" target="_blank" rel="noopener noreferrer">
+						<?php esc_html_e( 'Upgrade', 'wc-blacklist-manager' ); ?>
 					</a>
 				<?php endif; ?>
-
 				<br />
 				<small class="bm-order-risk-tier-usage<?php echo $has_reached_limit ? ' bm-order-risk-tier-usage--limit' : ''; ?>">
 					<?php echo esc_html( $tier_usage_text ); ?>
 				</small>
 			</p>
 
-			<p class="bm-order-risk-decision">
-				<strong><?php esc_html_e( 'Global Blacklist decision', 'wc-blacklist-manager' ); ?>:</strong>
-				<span class="bm-decision-badge bm-decision-<?php echo esc_attr( $decision_slug ); ?>">
-					<?php echo esc_html( $decision_label ); ?>
-				</span>
+			<div class="bm-gbl-summary-card bm-gbl-summary-card--<?php echo esc_attr( $decision_slug ); ?>">
+				<div class="bm-gbl-summary-card__label">
+					<?php esc_html_e( 'Fraud check result', 'wc-blacklist-manager' ); ?>
+				</div>
+				<div class="bm-gbl-summary-card__value">
+					<span class="bm-decision-badge bm-decision-<?php echo esc_attr( $decision_slug ); ?>">
+						<?php echo esc_html( $decision_label ); ?>
+					</span>
+				</div>
+				<div class="bm-gbl-summary-card__text">
+					<?php echo esc_html( $summary_text ); ?>
+				</div>
+			</div>
 
-				<span
-					class="woocommerce-help-tip"
-					data-tip="<?php echo esc_attr__(
-						'Allow: order passes Global Blacklist checks. Challenge: order is allowed but should be reviewed or additional checks applied. Block: order should be rejected based on Global Blacklist risk.',
-						'wc-blacklist-manager'
-					); ?>"
-				></span>
-			</p>
+			<div class="bm-gbl-merchant-section">
+				<div class="bm-gbl-merchant-section__title"><?php esc_html_e( 'What this means', 'wc-blacklist-manager' ); ?></div>
+				<?php if ( $main_reason_text ) : ?>
+					<p><?php echo esc_html( $main_reason_text ); ?></p>
+				<?php else : ?>
+					<p><?php esc_html_e( 'No additional match details are available for this order.', 'wc-blacklist-manager' ); ?></p>
+				<?php endif; ?>
+			</div>
+
+			<?php if ( $smart_match_text ) : ?>
+				<div class="bm-gbl-merchant-section">
+					<div class="bm-gbl-merchant-section__title"><?php esc_html_e( 'How this was matched', 'wc-blacklist-manager' ); ?></div>
+					<p><?php echo esc_html( $smart_match_text ); ?></p>
+				</div>
+			<?php endif; ?>
+
+			<div class="bm-gbl-merchant-section">
+				<div class="bm-gbl-merchant-section__title"><?php esc_html_e( 'Recommended action', 'wc-blacklist-manager' ); ?></div>
+				<p><?php echo esc_html( $action_text ); ?></p>
+			</div>
+
+			<div class="bm-gbl-merchant-section">
+				<div class="bm-gbl-merchant-section__title"><?php esc_html_e( 'Coverage', 'wc-blacklist-manager' ); ?></div>
+				<p><?php echo esc_html( $coverage_message ); ?></p>
+			</div>
+
+			<?php if ( ! empty( $matched_types ) ) : ?>
+				<div class="bm-gbl-merchant-section">
+					<div class="bm-gbl-merchant-section__title"><?php esc_html_e( 'Matched checks', 'wc-blacklist-manager' ); ?></div>
+					<p><?php echo esc_html( implode( ', ', array_map( array( $this, 'format_identity_type_label' ), $matched_types ) ) ); ?></p>
+				</div>
+			<?php endif; ?>
+
+			<details class="bm-gbl-advanced-details">
+				<summary><?php esc_html_e( 'View advanced details', 'wc-blacklist-manager' ); ?></summary>
+
+				<?php if ( $meta_effective_score > 0 || $meta_direct_score > 0 || $meta_linked_boost > 0 ) : ?>
+					<div class="bm-gbl-primary-signal">
+						<div class="bm-gbl-primary-signal__title">
+							<?php esc_html_e( 'Strongest match', 'wc-blacklist-manager' ); ?>
+						</div>
+						<div class="bm-gbl-primary-signal__meta">
+							<span><?php printf( esc_html__( 'Type: %s', 'wc-blacklist-manager' ), esc_html( $meta_primary_type ? ucfirst( $meta_primary_type ) : __( 'Unknown', 'wc-blacklist-manager' ) ) ); ?></span>
+							<span>·</span>
+							<span><?php printf( esc_html__( 'Risk: %s', 'wc-blacklist-manager' ), esc_html( $meta_primary_risk ? ucfirst( $meta_primary_risk ) : __( 'Low', 'wc-blacklist-manager' ) ) ); ?></span>
+							<span>·</span>
+							<span><?php printf( esc_html__( 'Matched checks: %s', 'wc-blacklist-manager' ), esc_html( number_format_i18n( $meta_matched_identities ) ) ); ?></span>
+						</div>
+						<div class="bm-gbl-primary-signal__meta">
+							<span><?php printf( esc_html__( 'Direct: %s', 'wc-blacklist-manager' ), esc_html( number_format_i18n( $meta_direct_score, 2 ) ) ); ?></span>
+							<span>·</span>
+							<span><?php printf( esc_html__( 'Linked: +%s', 'wc-blacklist-manager' ), esc_html( number_format_i18n( $meta_linked_boost, 2 ) ) ); ?></span>
+							<span>·</span>
+							<span><?php printf( esc_html__( 'Effective: %s', 'wc-blacklist-manager' ), esc_html( number_format_i18n( $meta_effective_score, 2 ) ) ); ?></span>
+						</div>
+						<div class="bm-gbl-primary-signal__meta">
+							<span><?php printf( esc_html__( 'Neighbors: %s', 'wc-blacklist-manager' ), esc_html( number_format_i18n( $meta_neighbors_count ) ) ); ?></span>
+							<span>·</span>
+							<span><?php printf( esc_html__( 'Last reported: %s', 'wc-blacklist-manager' ), esc_html( $meta_primary_last ? $meta_primary_last : '—' ) ); ?></span>
+						</div>
+					</div>
+				<?php endif; ?>
+
+				<?php if ( ! empty( $results ) ) : ?>
+					<div class="bm-gbl-identities">
+						<?php foreach ( $results as $item ) :
+							if ( ! is_array( $item ) ) {
+								continue;
+							}
+
+							$type                  = isset( $item['type'] ) ? (string) $item['type'] : '';
+							$agg                   = isset( $item['aggregate'] ) && is_array( $item['aggregate'] ) ? $item['aggregate'] : array();
+							$matches               = isset( $item['matches'] ) && is_array( $item['matches'] ) ? $item['matches'] : array();
+							$match_mode            = isset( $item['match_mode'] ) ? strtolower( (string) $item['match_mode'] ) : 'none';
+							$matched_variant       = isset( $item['matched_variant'] ) ? strtolower( (string) $item['matched_variant'] ) : '';
+							$matched_identity_count = isset( $item['matched_identity_count'] ) ? (int) $item['matched_identity_count'] : 0;
+
+							$risk      = isset( $agg['risk_level'] ) ? (string) $agg['risk_level'] : '';
+							$reports   = isset( $agg['report_count'] ) ? (int) $agg['report_count'] : 0;
+							$direct    = isset( $agg['direct_score'] ) ? (float) $agg['direct_score'] : 0.0;
+							$linked    = isset( $agg['linked_boost'] ) ? (float) $agg['linked_boost'] : 0.0;
+							$effective = isset( $agg['score'] ) ? (float) $agg['score'] : 0.0;
+							$neighbors = isset( $agg['linked_neighbors_count'] ) ? (int) $agg['linked_neighbors_count'] : 0;
+							$last      = isset( $agg['last_reported'] ) ? (string) $agg['last_reported'] : '';
+
+							$type_label = $this->format_identity_type_label( $type );
+							$risk_slug  = '' !== $risk ? strtolower( $risk ) : 'unknown';
+							$risk_label = '' !== $risk ? ucfirst( $risk ) : __( 'Unknown', 'wc-blacklist-manager' );
+
+							$is_flagged = ! empty( $matches ) || $reports > 0 || $effective > 0 || $direct > 0 || $linked > 0;
+
+							$match_mode_label      = $this->format_match_mode_label( $match_mode );
+							$matched_variant_label = $this->format_matched_variant_label( $matched_variant );
+							?>
+							<div class="bm-gbl-identity<?php echo $is_flagged ? ' bm-gbl-identity--flagged' : ''; ?>">
+								<div class="bm-gbl-identity-header">
+									<span class="bm-gbl-identity-type"><?php echo esc_html( $type_label ); ?></span>
+									<span class="bm-gbl-risk-badge bm-gbl-risk-<?php echo esc_attr( $risk_slug ); ?>">
+										<?php echo esc_html( $risk_label ); ?>
+									</span>
+								</div>
+
+								<div class="bm-gbl-identity-meta">
+									<span><?php printf( esc_html__( 'Reports: %s', 'wc-blacklist-manager' ), esc_html( number_format_i18n( $reports ) ) ); ?></span>
+									<span>·</span>
+									<span><?php printf( esc_html__( 'Direct: %s', 'wc-blacklist-manager' ), esc_html( number_format_i18n( $direct, 2 ) ) ); ?></span>
+									<span>·</span>
+									<span><?php printf( esc_html__( 'Linked: +%s', 'wc-blacklist-manager' ), esc_html( number_format_i18n( $linked, 2 ) ) ); ?></span>
+									<span>·</span>
+									<span><?php printf( esc_html__( 'Effective: %s', 'wc-blacklist-manager' ), esc_html( number_format_i18n( $effective, 2 ) ) ); ?></span>
+								</div>
+
+								<div class="bm-gbl-identity-meta">
+									<span><?php printf( esc_html__( 'Neighbors: %s', 'wc-blacklist-manager' ), esc_html( number_format_i18n( $neighbors ) ) ); ?></span>
+									<span>·</span>
+									<span><?php printf( esc_html__( 'Last: %s', 'wc-blacklist-manager' ), esc_html( $last ? $last : '—' ) ); ?></span>
+								</div>
+
+								<?php if ( 'none' !== $match_mode || $matched_identity_count > 0 ) : ?>
+									<div class="bm-gbl-identity-meta bm-gbl-identity-meta--smart">
+										<?php if ( 'none' !== $match_mode ) : ?>
+											<span><?php printf( esc_html__( 'Match type: %s', 'wc-blacklist-manager' ), esc_html( $match_mode_label ) ); ?></span>
+										<?php endif; ?>
+
+										<?php if ( $matched_variant_label ) : ?>
+											<span>·</span>
+											<span><?php printf( esc_html__( 'Matched detail: %s', 'wc-blacklist-manager' ), esc_html( $matched_variant_label ) ); ?></span>
+										<?php endif; ?>
+
+										<?php if ( $matched_identity_count > 0 ) : ?>
+											<span>·</span>
+											<span><?php printf( esc_html__( 'Related records: %s', 'wc-blacklist-manager' ), esc_html( number_format_i18n( $matched_identity_count ) ) ); ?></span>
+										<?php endif; ?>
+									</div>
+								<?php endif; ?>
+							</div>
+						<?php endforeach; ?>
+					</div>
+				<?php endif; ?>
+
+				<?php if ( ! empty( $signal_summaries ) ) : ?>
+					<h4><?php esc_html_e( 'Why this order was flagged', 'wc-blacklist-manager' ); ?></h4>
+					<ul class="bm-gbl-details-list">
+						<?php foreach ( $signal_summaries as $line ) : ?>
+							<li><?php echo esc_html( $line ); ?></li>
+						<?php endforeach; ?>
+					</ul>
+				<?php endif; ?>
+
+				<?php if ( ! empty( $reason_summaries ) ) : ?>
+					<h4><?php esc_html_e( 'Match history', 'wc-blacklist-manager' ); ?></h4>
+					<ul class="bm-gbl-details-list">
+						<?php foreach ( $reason_summaries as $line ) : ?>
+							<li><?php echo esc_html( $line ); ?></li>
+						<?php endforeach; ?>
+					</ul>
+				<?php endif; ?>
+
+				<?php if ( ! empty( $report_summaries ) ) : ?>
+					<h4><?php esc_html_e( 'Past related reports', 'wc-blacklist-manager' ); ?></h4>
+					<ul class="bm-gbl-details-list">
+						<?php foreach ( $report_summaries as $line ) : ?>
+							<li><?php echo esc_html( $line ); ?></li>
+						<?php endforeach; ?>
+					</ul>
+				<?php endif; ?>
+			</details>
 
 			<?php
-			// -----------------------------------------------------------------
-			// Raw Global Blacklist data (_yogb_gbl_raw)
-			// -----------------------------------------------------------------
-			$raw_json = (string) $order->get_meta( '_yogb_gbl_raw', true );
-
-			if ( '' !== $raw_json ) {
-				$raw_data = json_decode( $raw_json, true );
-
-				if ( is_array( $raw_data ) ) {
-					// Decision numeric risk, if present.
-					$risk_numeric_display = null;
-					if ( isset( $raw_data['decision']['risk_numeric'] ) ) {
-						$risk_numeric = (float) $raw_data['decision']['risk_numeric'];
-
-						// Map to a human-readable band
-						$band = __( 'low', 'wc-blacklist-manager' );
-						if ( $risk_numeric >= 2.5 ) {
-							$band = __( 'very high', 'wc-blacklist-manager' );
-						} elseif ( $risk_numeric >= 1.2 ) {
-							$band = __( 'elevated', 'wc-blacklist-manager' );
-						} elseif ( $risk_numeric >= 0.5 ) {
-							$band = __( 'moderate', 'wc-blacklist-manager' );
-						}
-
-						$risk_numeric_display = sprintf(
-							/* translators: 1: numeric score, 2: band label */
-							__( 'Estimated risk score: %1$.1f (%2$s)', 'wc-blacklist-manager' ),
-							$risk_numeric,
-							$band
-						);
-					}
-					$results = isset( $raw_data['results'] ) && is_array( $raw_data['results'] )
-						? $raw_data['results']
-						: array();
-				?>
-
-					<?php if ( $risk_numeric_display ) : ?>
-						<p class="bm-order-risk-overall">
-							<?php echo esc_html( $risk_numeric_display ); ?>
-
-							<span
-								class="woocommerce-help-tip"
-								data-tip="<?php echo esc_attr__(
-									'This numeric is the overall estimated Global Blacklist risk for this order, combining all identities. The cards below show per-identity details: risk level, total report count, score, and last reported time.',
-									'wc-blacklist-manager'
-								); ?>"
-							></span>
-						</p>
-					<?php endif; ?>
-
-					<?php if ( ! empty( $results ) ) : ?>
-						<div class="bm-gbl-identities">
-							<?php foreach ( $results as $item ) :
-								$type   = isset( $item['type'] ) ? (string) $item['type'] : '';
-								$agg    = isset( $item['aggregate'] ) && is_array( $item['aggregate'] ) ? $item['aggregate'] : array();
-								$risk   = isset( $agg['risk_level'] ) ? (string) $agg['risk_level'] : '';
-								$reports= isset( $agg['report_count'] ) ? (int) $agg['report_count'] : 0;
-								$score  = isset( $agg['score'] ) ? (float) $agg['score'] : 0;
-								$last   = isset( $agg['last_reported'] ) ? (string) $agg['last_reported'] : '';
-
-								// Nicify type label.
-								switch ( strtolower( $type ) ) {
-									case 'email':
-										$type_label = __( 'Email', 'wc-blacklist-manager' );
-										break;
-									case 'phone':
-										$type_label = __( 'Phone', 'wc-blacklist-manager' );
-										break;
-									case 'ip':
-										$type_label = __( 'IP address', 'wc-blacklist-manager' );
-										break;
-									case 'address':
-										$type_label = __( 'Address', 'wc-blacklist-manager' );
-										break;
-									default:
-										$type_label = ucfirst( $type );
-										break;
-								}
-
-								// Risk label + slug.
-								$risk_slug  = $risk !== '' ? strtolower( $risk ) : 'unknown';
-								$risk_label = $risk !== '' ? ucfirst( $risk ) : __( 'Unknown', 'wc-blacklist-manager' );
-
-								$reports_label = number_format_i18n( $reports );
-								$score_label   = number_format_i18n( $score, 0 );
-								$last_label    = $last ? $last : '—';
-
-								// Flag card if this identity has any reports / score > 0.
-								$is_flagged   = ( $reports > 0 || $score > 0 );
-								$card_classes = 'bm-gbl-identity bm-gbl-identity-' . strtolower( $type );
-								if ( $is_flagged ) {
-									$card_classes .= ' bm-gbl-identity--flagged';
-									if ( $has_details ) {
-										$card_classes .= ' bm-gbl-identity--clickable';
-									}
-								}
-							?>
-								<div
-									class="<?php echo esc_attr( $card_classes ); ?>"
-									<?php echo ( $is_flagged && $has_details ) ? 'data-bm-gbl-open-modal="1"' : ''; ?>
-								>
-									<div class="bm-gbl-identity-header">
-										<span class="bm-gbl-identity-type">
-											<?php echo esc_html( $type_label ); ?>
-										</span>
-										<span class="bm-gbl-risk-badge bm-gbl-risk-<?php echo esc_attr( $risk_slug ); ?>">
-											<?php echo esc_html( $risk_label ); ?>
-										</span>
-									</div>
-									<div class="bm-gbl-identity-meta">
-										<span><?php printf( esc_html__( 'Reports: %s', 'wc-blacklist-manager' ), esc_html( $reports_label ) ); ?></span>
-										<span>·</span>
-										<span><?php printf( esc_html__( 'Score: %s', 'wc-blacklist-manager' ), esc_html( $score_label ) ); ?></span>
-										<span>·</span>
-										<span><?php printf( esc_html__( 'Last: %s', 'wc-blacklist-manager' ), esc_html( $last_label ) ); ?></span>
-									</div>
-
-									<?php if ( $is_flagged && $has_details ) : ?>
-										<div class="bm-gbl-identity-hint">
-											<?php esc_html_e( 'Click for full details', 'wc-blacklist-manager' ); ?>
-										</div>
-									<?php endif; ?>
-								</div>
-
-							<?php endforeach; ?>
-						</div>
-
-						<?php if ( $has_details ) : ?>
-							<div class="bm-gbl-details-modal-backdrop" id="bm-gbl-details-modal-backdrop" style="display:none;"></div>
-							<div class="bm-gbl-details-modal" id="bm-gbl-details-modal" style="display:none;">
-								<div class="bm-gbl-details-modal-inner">
-									<button type="button" class="bm-gbl-details-close" id="bm-gbl-details-close" aria-label="<?php esc_attr_e( 'Close', 'wc-blacklist-manager' ); ?>">×</button>
-									<h3><?php esc_html_e( 'Global Blacklist details', 'wc-blacklist-manager' ); ?></h3>
-
-									<?php if ( ! empty( $reason_summaries ) ) : ?>
-										<h4><?php esc_html_e( 'Identity risk summary', 'wc-blacklist-manager' ); ?></h4>
-										<ul class="bm-gbl-details-list">
-											<?php foreach ( $reason_summaries as $line ) : ?>
-												<li><?php echo esc_html( $line ); ?></li>
-											<?php endforeach; ?>
-										</ul>
-									<?php endif; ?>
-
-									<?php if ( ! empty( $report_summaries ) ) : ?>
-										<h4><?php esc_html_e( 'Individual reports', 'wc-blacklist-manager' ); ?></h4>
-										<ul class="bm-gbl-details-list">
-											<?php foreach ( $report_summaries as $line ) : ?>
-												<li><?php echo esc_html( $line ); ?></li>
-											<?php endforeach; ?>
-										</ul>
-									<?php endif; ?>
-
-									<p class="bm-gbl-details-footer">
-										<button type="button" class="button button-secondary" id="bm-gbl-details-close-btn">
-											<?php esc_html_e( 'Close', 'wc-blacklist-manager' ); ?>
-										</button>
-									</p>
-								</div>
-							</div>
-						<?php endif; ?>
-
-					<?php else : ?>
-						<p class="description">
-							<?php esc_html_e( 'No identity-level details were returned for this order.', 'wc-blacklist-manager' ); ?>
-						</p>
-					<?php endif; ?>
-
-					<?php
-					// Coverage + upgrade hint at the bottom, for Free / Basic tiers only.
-					if ( $coverage_message ) {
-						// If this tier can upgrade, append an upgrade call-to-action.
-						if ( $can_upgrade ) {
-							echo '<p class="bm-gbl-coverage">';
-							echo wp_kses(
-								sprintf(
-									/* translators: 1: coverage message, 2: upgrade URL */
-									__(
-										'%1$s <a href="%2$s" target="_blank" rel="noopener noreferrer">Upgrade for more coverage (add phone and/or address checks).</a>',
-										'wc-blacklist-manager'
-									),
-									esc_html( $coverage_message ),
-									esc_url( $upgrade_url )
-								),
-								array(
-									'a' => array(
-										'href'   => array(),
-										'target' => array(),
-										'rel'    => array(),
-									),
-								)
-							);
-							echo '</p>';
-						} else {
-							// Just show the coverage text, no link (pro/enterprise won’t hit this anyway).
-							echo '<p class="bm-gbl-coverage">' . esc_html( $coverage_message ) . '</p>';
-						}
-					}
-					?>
-
-				<?php
-				} // is_array( $raw_data )
-			} // has raw_json
+			if ( $can_upgrade && in_array( $tier, array( 'free', 'basic' ), true ) ) {
+				echo '<p class="bm-gbl-coverage" style="margin-top:10px;">';
+				echo wp_kses(
+					sprintf(
+						__(
+							'Need broader coverage? <a href="%s" target="_blank" rel="noopener noreferrer">Upgrade to include more identity checks.</a>',
+							'wc-blacklist-manager-premium'
+						),
+						esc_url( $upgrade_url )
+					),
+					array(
+						'a' => array(
+							'href'   => array(),
+							'target' => array(),
+							'rel'    => array(),
+						),
+					)
+				);
+				echo '</p>';
+			}
 			?>
-		</div>
 
-		<?php if ( $has_details ) : ?>
 			<style>
-				.bm-gbl-identity--clickable {
-					cursor: pointer;
-				}
-				.bm-gbl-identity-hint {
-					margin-top: 4px;
-					font-size: 11px;
-					color: #666;
-				}
-				.bm-gbl-details-modal-backdrop {
-					position: fixed;
-					inset: 0;
-					background: rgba(0, 0, 0, 0.4);
-					z-index: 100001;
-				}
-				.bm-gbl-details-modal {
-					position: fixed;
-					inset: 0;
-					display: flex;
-					align-items: center;
-					justify-content: center;
-					z-index: 100002;
-				}
-				.bm-gbl-details-modal-inner {
+				.bm-gbl-summary-card {
+					margin: 12px 0;
+					padding: 12px;
+					border: 1px solid #dcdcde;
+					border-radius: 6px;
 					background: #fff;
-					padding: 16px 18px;
-					max-width: 640px;
-					width: 100%;
-					max-height: 80vh;
-					overflow-y: auto;
-					box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-					border-radius: 4px;
 				}
-				.bm-gbl-details-modal-inner h3 {
-					margin-top: 0;
+				.bm-gbl-summary-card__label {
+					font-size: 12px;
+					font-weight: 600;
+					color: #50575e;
+					margin-bottom: 6px;
+				}
+				.bm-gbl-summary-card__value {
+					float: right;
+				}
+				.bm-gbl-summary-card__text {
+					font-size: 13px;
+					line-height: 1.5;
+				}
+				.bm-gbl-merchant-section {
+					margin: 12px 0;
+				}
+				.bm-gbl-merchant-section__title {
+					font-weight: 600;
+					margin-bottom: 4px;
+				}
+				.bm-gbl-advanced-details {
+					margin-top: 14px;
+					padding-top: 10px;
+					border-top: 1px solid #e0e0e0;
+				}
+				.bm-gbl-advanced-details summary {
+					cursor: pointer;
+					font-weight: 600;
+				}
+				.bm-gbl-primary-signal {
+					margin: 12px 0;
+					padding: 10px 12px;
+					border: 1px solid #dcdcde;
+					border-radius: 4px;
+					background: #f6f7f7;
+				}
+				.bm-gbl-primary-signal__title {
+					font-weight: 600;
+					margin-bottom: 6px;
+				}
+				.bm-gbl-primary-signal__meta,
+				.bm-gbl-identity-meta {
+					font-size: 12px;
+					line-height: 1.55;
+					color: #50575e;
+				}
+				.bm-gbl-identity-meta--smart {
+					margin-top: 4px;
+					padding-top: 4px;
+					border-top: 1px dashed #dcdcde;
 				}
 				.bm-gbl-details-list {
 					margin-left: 18px;
 					list-style: disc;
 				}
-				.bm-gbl-details-footer {
-					margin-top: 12px;
-					text-align: right;
-				}
-				.bm-gbl-details-close {
-					position: absolute;
-					right: 10px;
-					top: 8px;
-					border: none;
-					background: transparent;
-					font-size: 20px;
-					line-height: 1;
-					cursor: pointer;
-				}
 			</style>
-			<script>
-				(function() {
-					document.addEventListener('DOMContentLoaded', function() {
-						var cards    = document.querySelectorAll('.bm-gbl-identity--clickable[data-bm-gbl-open-modal="1"]');
-						var backdrop = document.getElementById('bm-gbl-details-modal-backdrop');
-						var modal    = document.getElementById('bm-gbl-details-modal');
-						var closeX   = document.getElementById('bm-gbl-details-close');
-						var closeBtn = document.getElementById('bm-gbl-details-close-btn');
-
-						if (!cards.length || !backdrop || !modal) {
-							return;
-						}
-
-						function openModal() {
-							backdrop.style.display = 'block';
-							modal.style.display    = 'flex';
-						}
-
-						function closeModal() {
-							backdrop.style.display = 'none';
-							modal.style.display    = 'none';
-						}
-
-						cards.forEach(function(card) {
-							card.addEventListener('click', function(e) {
-								e.preventDefault();
-								openModal();
-							});
-						});
-
-						if (backdrop) {
-							backdrop.addEventListener('click', closeModal);
-						}
-						if (closeX) {
-							closeX.addEventListener('click', closeModal);
-						}
-						if (closeBtn) {
-							closeBtn.addEventListener('click', closeModal);
-						}
-
-						document.addEventListener('keydown', function(e) {
-							if (e.key === 'Escape') {
-								closeModal();
-							}
-						});
-					});
-				})();
-			</script>
-		<?php endif; ?>
-
+		</div>
 		<?php
+	}
+
+	private function map_score_band_label( float $score ) : string {
+		if ( $score >= 2.5 ) {
+			return __( 'very high', 'wc-blacklist-manager' );
+		}
+
+		if ( $score >= 1.2 ) {
+			return __( 'elevated', 'wc-blacklist-manager' );
+		}
+
+		if ( $score >= 0.5 ) {
+			return __( 'moderate', 'wc-blacklist-manager' );
+		}
+
+		return __( 'low', 'wc-blacklist-manager' );
+	}
+
+	private function normalize_meta_lines( $value ) : array {
+		if ( is_string( $value ) ) {
+			$value = array( $value );
+		} elseif ( ! is_array( $value ) ) {
+			return array();
+		}
+
+		$value = array_map(
+			static function( $line ) {
+				return is_scalar( $line ) ? trim( (string) $line ) : '';
+			},
+			$value
+		);
+
+		return array_values(
+			array_filter(
+				$value,
+				static function( $line ) {
+					return '' !== $line;
+				}
+			)
+		);
+	}
+
+	private function format_identity_type_label( string $type ) : string {
+		switch ( strtolower( $type ) ) {
+			case 'email':
+				return __( 'Email', 'wc-blacklist-manager' );
+			case 'phone':
+				return __( 'Phone', 'wc-blacklist-manager' );
+			case 'ip':
+				return __( 'IP address', 'wc-blacklist-manager' );
+			case 'address':
+				return __( 'Address', 'wc-blacklist-manager' );
+			default:
+				return ucfirst( $type );
+		}
+	}
+
+	public function format_match_mode_label( string $mode ) : string {
+		switch ( strtolower( $mode ) ) {
+			case 'exact':
+				return __( 'Exact match', 'wc-blacklist-manager' );
+
+			case 'variant_core':
+				return __( 'Main address match', 'wc-blacklist-manager' );
+
+			case 'variant_premise':
+				return __( 'Unit / apartment match', 'wc-blacklist-manager' );
+
+			case 'linked':
+				return __( 'Related match', 'wc-blacklist-manager' );
+
+			case 'none':
+			default:
+				return __( 'No match', 'wc-blacklist-manager' );
+		}
+	}
+
+	public function format_matched_variant_label( string $variant ) : string {
+		switch ( strtolower( $variant ) ) {
+			case 'submitted':
+				return __( 'Submitted details', 'wc-blacklist-manager' );
+
+			case 'core':
+				return __( 'Main address', 'wc-blacklist-manager' );
+
+			case 'premise':
+				return __( 'Unit / apartment', 'wc-blacklist-manager' );
+
+			case 'full':
+				return __( 'Full address', 'wc-blacklist-manager' );
+
+			default:
+				return '' !== $variant ? ucfirst( str_replace( '_', ' ', $variant ) ) : '';
+		}
 	}
 }
 
-// Instantiate the class
-if (class_exists('WC_Blacklist_Manager_Order_Risk_Score')) {
+if ( class_exists( 'WC_Blacklist_Manager_Order_Risk_Score' ) ) {
 	new WC_Blacklist_Manager_Order_Risk_Score();
 }
