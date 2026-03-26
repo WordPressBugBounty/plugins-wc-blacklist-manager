@@ -8,7 +8,8 @@ class YOGB_BM_Admin_Email_New_Order {
 
 	public function __construct() {
 		$enabled = (int) get_option( 'wc_blacklist_enable_global_blacklist', 0 );
-		if ( 1 !== $enabled ) {
+		$email_details = (int) get_option( 'wc_blacklist_email_global_blacklist_details', 'yes' );
+		if ( 1 !== $enabled || 'yes' !== $email_details ) {
 			return;
 		}
 		

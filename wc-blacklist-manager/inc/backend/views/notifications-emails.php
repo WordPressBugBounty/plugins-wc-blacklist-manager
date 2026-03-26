@@ -246,6 +246,23 @@ if (!defined('ABSPATH')) {
 			</table>
 		<?php endif; ?>
 
+		<?php if ($woocommerce_active): ?>
+			<h2><?php echo esc_html__( 'Global Blacklist', 'wc-blacklist-manager' ); ?></h2>
+			<table class="form-table">
+				<tbody>
+					<tr>
+						<th scope="row">
+							<label class="label_child"><?php echo esc_html__( 'Decision details', 'wc-blacklist-manager' ); ?></label>
+						</th>
+						<td>
+							<input type="checkbox" id="wc_blacklist_email_global_blacklist_details" name="wc_blacklist_email_global_blacklist_details" value="yes" <?php checked($data['email_global_blacklist_details'], 'yes'); ?> />
+							<label for="wc_blacklist_email_global_blacklist_details"><?php echo esc_html__( 'Include Global Blacklist decision details in new order notification emails sent to admins', 'wc-blacklist-manager' ); ?></label>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+		<?php endif; ?>
+
 		<p class="submit">
 			<input type="submit" class="button-primary" value="<?php echo esc_attr__( 'Save Changes', 'wc-blacklist-manager' ); ?>" />
 		</p>

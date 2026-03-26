@@ -190,6 +190,7 @@ class WC_Blacklist_Manager_Notifications {
 			'email_comment_block' => get_option('wc_blacklist_email_comment_block', 'no'),
 			'email_form_suspect' => get_option('wc_blacklist_email_form_suspect', 'no'),
 			'email_form_block' => get_option('wc_blacklist_email_form_block', 'no'),
+			'email_global_blacklist_details' => get_option('wc_blacklist_email_global_blacklist_details', 'yes'),
 		];
 	}
 
@@ -208,6 +209,7 @@ class WC_Blacklist_Manager_Notifications {
 		$email_comment_block = isset($_POST['wc_blacklist_email_comment_block']) ? 'yes' : 'no';
 		$email_form_suspect = isset($_POST['wc_blacklist_email_form_suspect']) ? 'yes' : 'no';
 		$email_form_block = isset($_POST['wc_blacklist_email_form_block']) ? 'yes' : 'no';
+		$email_global_blacklist_details = isset($_POST['wc_blacklist_email_global_blacklist_details']) ? 'yes' : 'no';
 		
 		update_option('wc_blacklist_sender_name', $sender_name);
 		update_option('wc_blacklist_sender_address', $sender_address);
@@ -223,6 +225,7 @@ class WC_Blacklist_Manager_Notifications {
 		update_option('wc_blacklist_email_comment_block', $email_comment_block);
 		update_option('wc_blacklist_email_form_suspect', $email_form_suspect);
 		update_option('wc_blacklist_email_form_block', $email_form_block);
+		update_option('wc_blacklist_email_global_blacklist_details', $email_global_blacklist_details);
 	}
 
 	private function get_notification_notices_settings() {

@@ -5,7 +5,7 @@ Requires at least: 6.3
 Tested up to: 6.9
 WC tested up to: 10.6
 Requires PHP: 7.4
-Stable tag: 2.2
+Stable tag: 2.2.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -228,6 +228,10 @@ A: There is no set limit within the plugin, but practical limitations depend on 
 A: No, the plugin is optimized for performance. It performs blacklist checks efficiently and only at appropriate times (like form submission or checkout), so it won’t noticeably impact your site speed.
 
 == Changelog ==
+
+= 2.2.1 (Mar 26, 2026) =
+* New: Added option (Blacklist Manager → Notifications) to enable or disable Global Blacklist decision details in admin new order notifications.
+* Improve: Global Blacklist check by enriching request context (email, phone, IP, and domain) for more accurate matching.
 
 = 2.2 (Mar 23, 2026) =
 * New: Added `yogb_after_gbl_check` hook for async Global Blacklist completion.

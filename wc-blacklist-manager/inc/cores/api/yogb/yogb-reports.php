@@ -125,13 +125,13 @@ final class YOGB_BM_Report {
 	}
 
 	/**
-	 * Build identity list (email, phone, ip, billing + shipping address) from an order.
+	 * Build identity list (email, phone, ip, billing + shipping address, domain) from an order.
 	 * Used both for reporting and for /check calls.
 	 */
 	public static function build_identities_from_order( WC_Order $order ) : array {
 		$billing_country = sanitize_text_field( $order->get_billing_country() );
 		$email           = sanitize_email( $order->get_billing_email() );
-		$phone           = sanitize_text_field( $order->get_billing_phone() );
+		$phone_raw       = sanitize_text_field( $order->get_billing_phone() );
 		$ip              = sanitize_text_field( $order->get_customer_ip_address() );
 
 		$billing_address = yobm_normalize_address_parts(
@@ -156,17 +156,13 @@ final class YOGB_BM_Report {
 			)
 		);
 
-		/*
-		* Report canonical normalized address identities.
-		* Use core norm to make reporting more resistant to unit / formatting noise.
-		*/
 		$bill_addr = isset( $billing_address['address_core_norm'] ) ? (string) $billing_address['address_core_norm'] : '';
 		$ship_addr = isset( $shipping_address['address_core_norm'] ) ? (string) $shipping_address['address_core_norm'] : '';
 
-		// Phone normalization: same behavior as reporting
-		if ( $phone ) {
+		$phone = '';
+		if ( '' !== $phone_raw ) {
 			$dial_code        = yobm_get_country_dial_code( $billing_country );
-			$normalized_phone = yobm_normalize_phone( $phone, $dial_code );
+			$normalized_phone = yobm_normalize_phone( $phone_raw, $dial_code );
 
 			if ( '' !== $normalized_phone ) {
 				$phone = '+' . $normalized_phone;
@@ -180,6 +176,20 @@ final class YOGB_BM_Report {
 				'type'  => 'email',
 				'value' => $email,
 			);
+
+			$at = strrpos( $email, '@' );
+			if ( false !== $at ) {
+				$domain = strtolower( substr( $email, $at + 1 ) );
+				$domain = preg_replace( '/^www\./', '', $domain );
+				$domain = trim( (string) $domain, ". \t\n\r\0\x0B" );
+
+				if ( '' !== $domain && false !== strpos( $domain, '.' ) ) {
+					$idents[] = array(
+						'type'  => 'domain',
+						'value' => $domain,
+					);
+				}
+			}
 		}
 
 		if ( $phone ) {
@@ -210,10 +220,62 @@ final class YOGB_BM_Report {
 			);
 		}
 
-		return $idents;
+		return self::dedupe_identities( $idents );
 	}
 
-	// ---- Builders ----------------------------------------------------------
+	private static function dedupe_identities( array $idents ) : array {
+		$out = array();
+
+		foreach ( $idents as $ident ) {
+			if ( ! is_array( $ident ) ) {
+				continue;
+			}
+
+			$type  = isset( $ident['type'] ) ? strtolower( trim( (string) $ident['type'] ) ) : '';
+			$value = isset( $ident['value'] ) ? trim( (string) $ident['value'] ) : '';
+
+			if ( '' === $type || '' === $value ) {
+				continue;
+			}
+
+			$key = $type . '|' . $value;
+
+			$out[ $key ] = array(
+				'type'  => $type,
+				'value' => $value,
+			);
+		}
+
+		return array_values( $out );
+	}
+
+	private static function dedupe_related_identities( array $related ) : array {
+		$out = array();
+
+		foreach ( $related as $row ) {
+			if ( ! is_array( $row ) ) {
+				continue;
+			}
+
+			$type  = isset( $row['type'] ) ? strtolower( trim( (string) $row['type'] ) ) : '';
+			$value = isset( $row['value'] ) ? trim( (string) $row['value'] ) : '';
+
+			if ( '' === $type || '' === $value ) {
+				continue;
+			}
+
+			$key = $type . '|' . $value;
+
+			$out[ $key ] = array(
+				'type'        => $type,
+				'value'       => $value,
+				'role'        => isset( $row['role'] ) ? (string) $row['role'] : 'secondary',
+				'link_source' => isset( $row['link_source'] ) ? (string) $row['link_source'] : 'report',
+			);
+		}
+
+		return array_values( $out );
+	}
 
 	/** Build one payload per identity using your server's schema. */
 	private static function build_payloads_from_order( WC_Order $order, string $reason_code, string $description = '', ?string $evidence_hash = null ) : array {
@@ -223,6 +285,18 @@ final class YOGB_BM_Report {
 		$currency        = sanitize_text_field( $order->get_currency() );
 		$total           = (float) $order->get_total();
 		$ip              = sanitize_text_field( $order->get_customer_ip_address() );
+		$email           = sanitize_email( $order->get_billing_email() );
+		$phone_raw       = sanitize_text_field( $order->get_billing_phone() );
+
+		$phone = '';
+		if ( '' !== $phone_raw ) {
+			$dial_code        = yobm_get_country_dial_code( $billing_country );
+			$normalized_phone = yobm_normalize_phone( $phone_raw, $dial_code );
+
+			if ( '' !== $normalized_phone ) {
+				$phone = '+' . $normalized_phone;
+			}
+		}
 
 		$billing_address = yobm_normalize_address_parts(
 			array(
@@ -246,11 +320,10 @@ final class YOGB_BM_Report {
 			)
 		);
 
-		// Reuse the same identities for both reporting and checking.
 		$idents = self::build_identities_from_order( $order );
 
 		$ttl_days = (int) get_option( 'yogb_bm_default_ttl_days', 365 );
-		$ttl_days = max( 1, min( 1095, $ttl_days ) ); // cap to server limits
+		$ttl_days = max( 1, min( 1095, $ttl_days ) );
 
 		foreach ( $idents as $ident ) {
 			$ctx = array(
@@ -260,36 +333,38 @@ final class YOGB_BM_Report {
 				'currency'             => $currency,
 				'country'              => $billing_country,
 				'ip'                   => $ip,
+				'email'                => $email,
+				'phone'                => $phone,
 				'address_norm_version' => 2,
 
 				'billing_address_norm' => array(
-					'full'          => isset( $billing_address['address_full_norm'] ) ? $billing_address['address_full_norm'] : '',
-					'core'          => isset( $billing_address['address_core_norm'] ) ? $billing_address['address_core_norm'] : '',
-					'premise'       => isset( $billing_address['address_premise_norm'] ) ? $billing_address['address_premise_norm'] : '',
-					'postcode'      => isset( $billing_address['postcode_norm'] ) ? $billing_address['postcode_norm'] : '',
-					'state'         => isset( $billing_address['state_code'] ) ? $billing_address['state_code'] : '',
-					'country'       => isset( $billing_address['country_code'] ) ? $billing_address['country_code'] : '',
-					'house_number'  => isset( $billing_address['house_number_norm'] ) ? $billing_address['house_number_norm'] : '',
-					'street_name'   => isset( $billing_address['street_name_norm'] ) ? $billing_address['street_name_norm'] : '',
-					'display'       => isset( $billing_address['address_display'] ) ? $billing_address['address_display'] : '',
-					'hash_full'     => isset( $billing_address['address_hash'] ) ? $billing_address['address_hash'] : '',
-					'hash_core'     => isset( $billing_address['address_core_hash'] ) ? $billing_address['address_core_hash'] : '',
-					'hash_premise'  => isset( $billing_address['address_premise_hash'] ) ? $billing_address['address_premise_hash'] : '',
+					'full'          => isset( $billing_address['address_full_norm'] ) ? (string) $billing_address['address_full_norm'] : '',
+					'core'          => isset( $billing_address['address_core_norm'] ) ? (string) $billing_address['address_core_norm'] : '',
+					'premise'       => isset( $billing_address['address_premise_norm'] ) ? (string) $billing_address['address_premise_norm'] : '',
+					'postcode'      => isset( $billing_address['postcode_norm'] ) ? (string) $billing_address['postcode_norm'] : '',
+					'state'         => isset( $billing_address['state_code'] ) ? (string) $billing_address['state_code'] : '',
+					'country'       => isset( $billing_address['country_code'] ) ? (string) $billing_address['country_code'] : '',
+					'house_number'  => isset( $billing_address['house_number_norm'] ) ? (string) $billing_address['house_number_norm'] : '',
+					'street_name'   => isset( $billing_address['street_name_norm'] ) ? (string) $billing_address['street_name_norm'] : '',
+					'display'       => isset( $billing_address['address_display'] ) ? (string) $billing_address['address_display'] : '',
+					'hash_full'     => isset( $billing_address['address_hash'] ) ? (string) $billing_address['address_hash'] : '',
+					'hash_core'     => isset( $billing_address['address_core_hash'] ) ? (string) $billing_address['address_core_hash'] : '',
+					'hash_premise'  => isset( $billing_address['address_premise_hash'] ) ? (string) $billing_address['address_premise_hash'] : '',
 				),
 
 				'shipping_address_norm' => array(
-					'full'          => isset( $shipping_address['address_full_norm'] ) ? $shipping_address['address_full_norm'] : '',
-					'core'          => isset( $shipping_address['address_core_norm'] ) ? $shipping_address['address_core_norm'] : '',
-					'premise'       => isset( $shipping_address['address_premise_norm'] ) ? $shipping_address['address_premise_norm'] : '',
-					'postcode'      => isset( $shipping_address['postcode_norm'] ) ? $shipping_address['postcode_norm'] : '',
-					'state'         => isset( $shipping_address['state_code'] ) ? $shipping_address['state_code'] : '',
-					'country'       => isset( $shipping_address['country_code'] ) ? $shipping_address['country_code'] : '',
-					'house_number'  => isset( $shipping_address['house_number_norm'] ) ? $shipping_address['house_number_norm'] : '',
-					'street_name'   => isset( $shipping_address['street_name_norm'] ) ? $shipping_address['street_name_norm'] : '',
-					'display'       => isset( $shipping_address['address_display'] ) ? $shipping_address['address_display'] : '',
-					'hash_full'     => isset( $shipping_address['address_hash'] ) ? $shipping_address['address_hash'] : '',
-					'hash_core'     => isset( $shipping_address['address_core_hash'] ) ? $shipping_address['address_core_hash'] : '',
-					'hash_premise'  => isset( $shipping_address['address_premise_hash'] ) ? $shipping_address['address_premise_hash'] : '',
+					'full'          => isset( $shipping_address['address_full_norm'] ) ? (string) $shipping_address['address_full_norm'] : '',
+					'core'          => isset( $shipping_address['address_core_norm'] ) ? (string) $shipping_address['address_core_norm'] : '',
+					'premise'       => isset( $shipping_address['address_premise_norm'] ) ? (string) $shipping_address['address_premise_norm'] : '',
+					'postcode'      => isset( $shipping_address['postcode_norm'] ) ? (string) $shipping_address['postcode_norm'] : '',
+					'state'         => isset( $shipping_address['state_code'] ) ? (string) $shipping_address['state_code'] : '',
+					'country'       => isset( $shipping_address['country_code'] ) ? (string) $shipping_address['country_code'] : '',
+					'house_number'  => isset( $shipping_address['house_number_norm'] ) ? (string) $shipping_address['house_number_norm'] : '',
+					'street_name'   => isset( $shipping_address['street_name_norm'] ) ? (string) $shipping_address['street_name_norm'] : '',
+					'display'       => isset( $shipping_address['address_display'] ) ? (string) $shipping_address['address_display'] : '',
+					'hash_full'     => isset( $shipping_address['address_hash'] ) ? (string) $shipping_address['address_hash'] : '',
+					'hash_core'     => isset( $shipping_address['address_core_hash'] ) ? (string) $shipping_address['address_core_hash'] : '',
+					'hash_premise'  => isset( $shipping_address['address_premise_hash'] ) ? (string) $shipping_address['address_premise_hash'] : '',
 				),
 			);
 
@@ -297,10 +372,40 @@ final class YOGB_BM_Report {
 				$ctx['evidence_hash'] = $evidence_hash;
 			}
 
+			$related_identities = array();
+
+			foreach ( $idents as $candidate ) {
+				if (
+					isset( $candidate['type'], $candidate['value'] ) &&
+					$candidate['type'] === $ident['type'] &&
+					$candidate['value'] === $ident['value']
+				) {
+					continue;
+				}
+
+				$role        = 'secondary';
+				$link_source = 'report';
+
+				if ( 'domain' === ( $candidate['type'] ?? '' ) ) {
+					$role        = 'derived_domain';
+					$link_source = 'derived';
+				}
+
+				$related_identities[] = array(
+					'type'        => (string) $candidate['type'],
+					'value'       => (string) $candidate['value'],
+					'role'        => $role,
+					'link_source' => $link_source,
+				);
+			}
+
+			$related_identities = self::dedupe_related_identities( $related_identities );
+
 			$payloads[] = array(
-				'identity' => $ident,
-				'context'  => $ctx,
-				'ttl_days' => $ttl_days,
+				'identity'           => $ident,
+				'context'            => $ctx,
+				'related_identities' => $related_identities,
+				'ttl_days'           => $ttl_days,
 			);
 		}
 
@@ -315,6 +420,31 @@ final class YOGB_BM_Report {
 	 */
 	public static function build_check_payload_from_order( WC_Order $order ) : array {
 		$billing_country = sanitize_text_field( $order->get_billing_country() );
+		$email           = sanitize_email( $order->get_billing_email() );
+		$phone_raw       = sanitize_text_field( $order->get_billing_phone() );
+		$ip              = sanitize_text_field( $order->get_customer_ip_address() );
+
+		$phone = '';
+		if ( '' !== $phone_raw ) {
+			$dial_code        = yobm_get_country_dial_code( $billing_country );
+			$normalized_phone = yobm_normalize_phone( $phone_raw, $dial_code );
+
+			if ( '' !== $normalized_phone ) {
+				$phone = '+' . $normalized_phone;
+			}
+		}
+
+		$email_domain = '';
+		if ( $email && false !== strpos( $email, '@' ) ) {
+			$at           = strrpos( $email, '@' );
+			$email_domain = strtolower( substr( $email, $at + 1 ) );
+			$email_domain = preg_replace( '/^www\./', '', $email_domain );
+			$email_domain = trim( (string) $email_domain, ". \t\n\r\0\x0B" );
+
+			if ( '' === $email_domain || false === strpos( $email_domain, '.' ) ) {
+				$email_domain = '';
+			}
+		}
 
 		$billing_address = yobm_normalize_address_parts(
 			array(
@@ -343,6 +473,10 @@ final class YOGB_BM_Report {
 		return array(
 			'identities' => $idents,
 			'context'    => array(
+				'ip'                   => $ip,
+				'email'                => $email,
+				'phone'                => $phone,
+				'email_domain'         => $email_domain,
 				'address_norm_version' => 2,
 
 				'billing_address_norm' => array(

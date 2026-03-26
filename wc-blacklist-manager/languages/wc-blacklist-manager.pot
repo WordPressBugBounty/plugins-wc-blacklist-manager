@@ -2,14 +2,14 @@
 # This file is distributed under the GPL v2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Blacklist Manager 2.1.9.7\n"
+"Project-Id-Version: Blacklist Manager 2.2.1\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/wc-blacklist-manager\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-03-22T09:19:34+00:00\n"
+"POT-Creation-Date: 2026-03-26T00:55:46+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.9.0\n"
 "X-Domain: wc-blacklist-manager\n"
@@ -556,76 +556,76 @@ msgid "Order placed on hold: requires review by Global Blacklist Decisions."
 msgstr ""
 
 #: inc/backend/actions/yogb-check-orders.php:923
-#: inc/backend/emails/admin-new-order.php:528
+#: inc/backend/emails/admin-new-order.php:529
 #: inc/backend/order-risk-score.php:705
 msgid "Exact match"
 msgstr ""
 
 #: inc/backend/actions/yogb-check-orders.php:926
-#: inc/backend/emails/admin-new-order.php:531
+#: inc/backend/emails/admin-new-order.php:532
 #: inc/backend/order-risk-score.php:708
 msgid "Main address match"
 msgstr ""
 
 #: inc/backend/actions/yogb-check-orders.php:929
-#: inc/backend/emails/admin-new-order.php:534
+#: inc/backend/emails/admin-new-order.php:535
 #: inc/backend/order-risk-score.php:711
 msgid "Unit / apartment match"
 msgstr ""
 
 #: inc/backend/actions/yogb-check-orders.php:932
-#: inc/backend/emails/admin-new-order.php:537
+#: inc/backend/emails/admin-new-order.php:538
 #: inc/backend/order-risk-score.php:714
 msgid "Related match"
 msgstr ""
 
 #: inc/backend/actions/yogb-check-orders.php:936
-#: inc/backend/emails/admin-new-order.php:176
-#: inc/backend/emails/admin-new-order.php:294
-#: inc/backend/emails/admin-new-order.php:541
+#: inc/backend/emails/admin-new-order.php:177
+#: inc/backend/emails/admin-new-order.php:295
+#: inc/backend/emails/admin-new-order.php:542
 #: inc/backend/order-risk-score.php:718
 msgid "No match"
 msgstr ""
 
 #: inc/backend/actions/yogb-check-orders.php:943
-#: inc/backend/emails/admin-new-order.php:548
+#: inc/backend/emails/admin-new-order.php:549
 #: inc/backend/order-risk-score.php:725
 msgid "Submitted details"
 msgstr ""
 
 #: inc/backend/actions/yogb-check-orders.php:946
-#: inc/backend/emails/admin-new-order.php:551
+#: inc/backend/emails/admin-new-order.php:552
 #: inc/backend/order-risk-score.php:728
 msgid "Main address"
 msgstr ""
 
 #: inc/backend/actions/yogb-check-orders.php:949
-#: inc/backend/emails/admin-new-order.php:554
+#: inc/backend/emails/admin-new-order.php:555
 #: inc/backend/order-risk-score.php:731
 msgid "Unit / apartment"
 msgstr ""
 
 #: inc/backend/actions/yogb-check-orders.php:952
-#: inc/backend/emails/admin-new-order.php:557
+#: inc/backend/emails/admin-new-order.php:558
 #: inc/backend/order-risk-score.php:734
 #: inc/backend/views/dashboard-form.php:986
 msgid "Full address"
 msgstr ""
 
 #: inc/backend/actions/yogb-check-orders.php:962
-#: inc/backend/emails/admin-new-order.php:506
+#: inc/backend/emails/admin-new-order.php:507
 #: inc/backend/order-risk-score.php:690
 msgid "Email"
 msgstr ""
 
 #: inc/backend/actions/yogb-check-orders.php:965
-#: inc/backend/emails/admin-new-order.php:509
+#: inc/backend/emails/admin-new-order.php:510
 #: inc/backend/order-risk-score.php:692
 msgid "Phone"
 msgstr ""
 
 #: inc/backend/actions/yogb-check-orders.php:968
-#: inc/backend/emails/admin-new-order.php:512
+#: inc/backend/emails/admin-new-order.php:513
 #: inc/backend/order-risk-score.php:694
 #: inc/backend/views/dashboard-form.php:156
 #: inc/backend/views/dashboard-form.php:322
@@ -636,7 +636,7 @@ msgid "IP address"
 msgstr ""
 
 #: inc/backend/actions/yogb-check-orders.php:971
-#: inc/backend/emails/admin-new-order.php:515
+#: inc/backend/emails/admin-new-order.php:516
 #: inc/backend/order-risk-score.php:696
 #: inc/backend/views/dashboard-form.php:166
 #: inc/backend/views/dashboard-form.php:332
@@ -647,7 +647,7 @@ msgid "Address"
 msgstr ""
 
 #: inc/backend/actions/yogb-check-orders.php:974
-#: inc/backend/emails/admin-new-order.php:518
+#: inc/backend/emails/admin-new-order.php:519
 #: inc/backend/views/dashboard-form.php:412
 #: inc/backend/views/dashboard-form.php:1138
 #: inc/backend/views/settings-form.php:1873
@@ -655,8 +655,8 @@ msgid "Domain"
 msgstr ""
 
 #: inc/backend/actions/yogb-check-orders.php:977
-#: inc/backend/emails/admin-new-order.php:477
-#: inc/backend/emails/admin-new-order.php:521
+#: inc/backend/emails/admin-new-order.php:478
+#: inc/backend/emails/admin-new-order.php:522
 #: inc/backend/order-risk-score.php:430
 #: inc/backend/order-risk-score.php:475
 #: inc/backend/views/dashboard-form.php:466
@@ -852,175 +852,175 @@ msgstr[1] ""
 msgid "No new domains were added."
 msgstr ""
 
-#: inc/backend/emails/admin-new-order.php:41
+#: inc/backend/emails/admin-new-order.php:42
 msgid "Upgrade your plan to include more identity checks."
 msgstr ""
 
-#: inc/backend/emails/admin-new-order.php:46
+#: inc/backend/emails/admin-new-order.php:47
 msgid "Your monthly Global Blacklist check limit has been reached. Upgrade to a higher plan for more checks."
 msgstr ""
 
-#: inc/backend/emails/admin-new-order.php:92
+#: inc/backend/emails/admin-new-order.php:93
 msgid "The strongest signal for this order is %s."
 msgstr ""
 
-#: inc/backend/emails/admin-new-order.php:164
-#: inc/backend/emails/admin-new-order.php:258
+#: inc/backend/emails/admin-new-order.php:165
+#: inc/backend/emails/admin-new-order.php:259
 msgid "Global Blacklist Check"
 msgstr ""
 
-#: inc/backend/emails/admin-new-order.php:166
+#: inc/backend/emails/admin-new-order.php:167
 msgid "Result: %s"
 msgstr ""
 
-#: inc/backend/emails/admin-new-order.php:173
+#: inc/backend/emails/admin-new-order.php:174
 msgid "Main signal: %s"
 msgstr ""
 
-#: inc/backend/emails/admin-new-order.php:177
+#: inc/backend/emails/admin-new-order.php:178
 #: inc/backend/order-risk-score.php:335
 #: inc/backend/order-risk-score.php:509
 msgid "Match type: %s"
 msgstr ""
 
-#: inc/backend/emails/admin-new-order.php:181
+#: inc/backend/emails/admin-new-order.php:182
 #: inc/backend/order-risk-score.php:342
 #: inc/backend/order-risk-score.php:514
 msgid "Matched detail: %s"
 msgstr ""
 
-#: inc/backend/emails/admin-new-order.php:185
+#: inc/backend/emails/admin-new-order.php:186
 msgid "Related records: %d"
 msgstr ""
 
-#: inc/backend/emails/admin-new-order.php:189
+#: inc/backend/emails/admin-new-order.php:190
 msgid "Matched checks: %d"
 msgstr ""
 
-#: inc/backend/emails/admin-new-order.php:194
+#: inc/backend/emails/admin-new-order.php:195
 msgid "Scores: Direct %1$s | Related +%2$s | Effective %3$s"
 msgstr ""
 
-#: inc/backend/emails/admin-new-order.php:202
+#: inc/backend/emails/admin-new-order.php:203
 msgid "Neighbors: %d"
 msgstr ""
 
-#: inc/backend/emails/admin-new-order.php:206
+#: inc/backend/emails/admin-new-order.php:207
 #: inc/backend/order-risk-score.php:446
 msgid "Last reported: %s"
 msgstr ""
 
-#: inc/backend/emails/admin-new-order.php:210
+#: inc/backend/emails/admin-new-order.php:211
 msgid "Summary: %s"
 msgstr ""
 
-#: inc/backend/emails/admin-new-order.php:215
+#: inc/backend/emails/admin-new-order.php:216
 msgid "Plan notice: %s"
 msgstr ""
 
-#: inc/backend/emails/admin-new-order.php:216
-#: inc/backend/emails/admin-new-order.php:222
+#: inc/backend/emails/admin-new-order.php:217
+#: inc/backend/emails/admin-new-order.php:223
 msgid "Upgrade: %s"
 msgstr ""
 
-#: inc/backend/emails/admin-new-order.php:221
+#: inc/backend/emails/admin-new-order.php:222
 msgid "Coverage notice: %s"
 msgstr ""
 
-#: inc/backend/emails/admin-new-order.php:286
+#: inc/backend/emails/admin-new-order.php:287
 msgid "Main signal"
 msgstr ""
 
-#: inc/backend/emails/admin-new-order.php:297
+#: inc/backend/emails/admin-new-order.php:298
 msgid "Match type"
 msgstr ""
 
-#: inc/backend/emails/admin-new-order.php:308
+#: inc/backend/emails/admin-new-order.php:309
 msgid "Matched detail"
 msgstr ""
 
-#: inc/backend/emails/admin-new-order.php:319
+#: inc/backend/emails/admin-new-order.php:320
 msgid "Last reported"
 msgstr ""
 
-#: inc/backend/emails/admin-new-order.php:333
+#: inc/backend/emails/admin-new-order.php:334
 msgid "Related records"
 msgstr ""
 
-#: inc/backend/emails/admin-new-order.php:340
+#: inc/backend/emails/admin-new-order.php:341
 #: inc/backend/order-risk-score.php:416
 msgid "Matched checks"
 msgstr ""
 
-#: inc/backend/emails/admin-new-order.php:347
+#: inc/backend/emails/admin-new-order.php:348
 msgid "Neighbors"
 msgstr ""
 
-#: inc/backend/emails/admin-new-order.php:367
+#: inc/backend/emails/admin-new-order.php:368
 msgid "Score summary"
 msgstr ""
 
-#: inc/backend/emails/admin-new-order.php:373
+#: inc/backend/emails/admin-new-order.php:374
 msgid "Direct"
 msgstr ""
 
-#: inc/backend/emails/admin-new-order.php:380
+#: inc/backend/emails/admin-new-order.php:381
 msgid "Related"
 msgstr ""
 
-#: inc/backend/emails/admin-new-order.php:387
+#: inc/backend/emails/admin-new-order.php:388
 msgid "Effective"
 msgstr ""
 
-#: inc/backend/emails/admin-new-order.php:400
+#: inc/backend/emails/admin-new-order.php:401
 msgid "Plan limit reached"
 msgstr ""
 
-#: inc/backend/emails/admin-new-order.php:406
+#: inc/backend/emails/admin-new-order.php:407
 msgid "Upgrade plan"
 msgstr ""
 
-#: inc/backend/emails/admin-new-order.php:414
+#: inc/backend/emails/admin-new-order.php:415
 msgid "Need broader coverage?"
 msgstr ""
 
-#: inc/backend/emails/admin-new-order.php:419
+#: inc/backend/emails/admin-new-order.php:420
 msgid "See higher plans"
 msgstr ""
 
-#: inc/backend/emails/admin-new-order.php:433
+#: inc/backend/emails/admin-new-order.php:434
 #: inc/backend/order-risk-score.php:268
 msgid "High risk"
 msgstr ""
 
-#: inc/backend/emails/admin-new-order.php:439
+#: inc/backend/emails/admin-new-order.php:440
 msgid "Review this order carefully before fulfilling it."
 msgstr ""
 
-#: inc/backend/emails/admin-new-order.php:444
+#: inc/backend/emails/admin-new-order.php:445
 #: inc/backend/order-risk-score.php:275
 msgid "Needs review"
 msgstr ""
 
-#: inc/backend/emails/admin-new-order.php:450
+#: inc/backend/emails/admin-new-order.php:451
 msgid "Some details matched previous suspicious activity and should be reviewed."
 msgstr ""
 
-#: inc/backend/emails/admin-new-order.php:455
+#: inc/backend/emails/admin-new-order.php:456
 #: inc/backend/order-risk-score.php:282
 msgid "Clear"
 msgstr ""
 
-#: inc/backend/emails/admin-new-order.php:461
+#: inc/backend/emails/admin-new-order.php:462
 msgid "No blocking result was returned for this order."
 msgstr ""
 
-#: inc/backend/emails/admin-new-order.php:466
+#: inc/backend/emails/admin-new-order.php:467
 #: inc/backend/order-risk-score.php:289
 msgid "Check skipped"
 msgstr ""
 
-#: inc/backend/emails/admin-new-order.php:472
+#: inc/backend/emails/admin-new-order.php:473
 msgid "The monthly check limit was reached, so no decision was made for this order."
 msgstr ""
 
@@ -2190,6 +2190,19 @@ msgid "Send email notification when blocked visitor try to submit a form"
 msgstr ""
 
 #: inc/backend/views/notifications-emails.php:250
+#: inc/backend/views/settings-form.php:531
+msgid "Global Blacklist"
+msgstr ""
+
+#: inc/backend/views/notifications-emails.php:255
+msgid "Decision details"
+msgstr ""
+
+#: inc/backend/views/notifications-emails.php:259
+msgid "Include Global Blacklist decision details in new order notification emails sent to admins"
+msgstr ""
+
+#: inc/backend/views/notifications-emails.php:267
 #: inc/backend/views/notifications-notices.php:244
 msgid "Save Changes"
 msgstr ""
@@ -2703,10 +2716,6 @@ msgstr ""
 #. translators: 1: used checks
 #: inc/backend/views/settings-form.php:515
 msgid "This tier includes unlimited global checks per calendar month. (%1$d used this month)"
-msgstr ""
-
-#: inc/backend/views/settings-form.php:531
-msgid "Global Blacklist"
 msgstr ""
 
 #: inc/backend/views/settings-form.php:533
