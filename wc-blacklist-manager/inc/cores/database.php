@@ -26,6 +26,7 @@ class WC_Blacklist_Manager_DB {
 	public function activate() {
 		$this->update_db();
 		$this->set_first_install_date();
+		$this->maybe_set_default_development_mode();
 		$this->install_default_options();
 		$this->install_count_options();
 		$this->create_trigger();
@@ -34,6 +35,30 @@ class WC_Blacklist_Manager_DB {
 		update_option( 'wc_blacklist_manager_version', $this->version );
 
 		WC_Blacklist_Manager_Push_Subscription::maybe_push_subscription();
+	}
+
+	private function maybe_set_default_development_mode() {
+		if ( false !== get_option( 'wc_blacklist_development_mode', false ) ) {
+			return;
+		}
+
+		$first_install_date = get_option( 'wc_blacklist_manager_first_install_date', false );
+
+		if ( false === $first_install_date ) {
+			return;
+		}
+
+		$installed_timestamp = strtotime( $first_install_date );
+
+		if ( false === $installed_timestamp ) {
+			return;
+		}
+
+		$is_recent_install = ( time() - $installed_timestamp ) <= ( 7 * DAY_IN_SECONDS );
+
+		if ( $is_recent_install ) {
+			add_option( 'wc_blacklist_development_mode', '1' );
+		}
 	}
 
 	public function check_version() {

@@ -8,12 +8,14 @@ class WC_Blacklist_Manager_Order_Actions {
 	private $version = '2.1.1';
 	private $suspect_nonce_key = 'blacklist_ajax_nonce';
 	private $block_nonce_key = 'block_ajax_nonce';
+	private $remove_nonce_key = 'remove_ajax_nonce';
 
 	public function __construct() {
 		add_action('admin_enqueue_scripts', [$this, 'enqueue_script']);
 		add_action('woocommerce_admin_order_data_after_billing_address', [$this, 'add_button_to_order_edit']);
 		add_action('wp_ajax_add_to_blacklist', [$this, 'handle_add_to_suspects']);
 		add_action('wp_ajax_block_customer', [$this, 'handle_add_to_blocklist']);
+		add_action( 'wp_ajax_remove_from_blacklist', [ $this, 'handle_remove_from_blacklist' ] );
 		add_action('woocommerce_admin_order_data_after_payment_info', [$this, 'display_blacklist_notices']);
 	}
 
@@ -327,6 +329,68 @@ class WC_Blacklist_Manager_Order_Actions {
 				]
 			);
 		}
+
+		$show_remove_button_suspect_main    = $order->get_meta( '_blacklist_suspect_ids_main', true );
+		$show_remove_button_suspect_address = $order->get_meta( '_blacklist_suspect_ids_address', true );
+		$show_remove_button_block_main      = $order->get_meta( '_blacklist_blocked_ids_main', true );
+		$show_remove_button_block_address   = $order->get_meta( '_blacklist_blocked_ids_address', true );
+
+		$legacy_suspect = $order->get_meta( '_blacklist_suspect_id', true );
+		$legacy_blocked = $order->get_meta( '_blacklist_blocked_id', true );
+
+		$has_remove_button = ! empty( $show_remove_button_suspect_main )
+			|| ! empty( $show_remove_button_suspect_address )
+			|| ! empty( $show_remove_button_block_main )
+			|| ! empty( $show_remove_button_block_address )
+			|| ! empty( $legacy_suspect )
+			|| ! empty( $legacy_blocked );
+
+		if ( $has_remove_button ) {
+			$remove_script_url = plugin_dir_url( __FILE__ ) . '../../js/button-blacklist-removal.js?v=' . $this->version;
+			$remove_script_url = filter_var( $remove_script_url, FILTER_SANITIZE_URL );
+
+			if ( ! filter_var( $remove_script_url, FILTER_VALIDATE_URL ) ) {
+				wp_die( 'Invalid script URL' );
+			}
+
+			wp_enqueue_script( 'remove-ajax-script', esc_url( $remove_script_url ), array( 'jquery' ), null, true );
+
+			$remove_nonce = wp_create_nonce( $this->remove_nonce_key );
+
+			wp_localize_script(
+				'remove-ajax-script',
+				'remove_ajax_object',
+				array(
+					'ajax_url' => admin_url( 'admin-ajax.php' ),
+					'nonce'    => esc_attr( $remove_nonce ),
+					'reasons'  => array(
+						'customer_appeal'    => __( 'Customer appeal / cleared', 'wc-blacklist-manager' ),
+						'merchant_error'     => __( 'Merchant error / mis-report', 'wc-blacklist-manager' ),
+						'processor_decision' => __( 'Payment provider decision', 'wc-blacklist-manager' ),
+						'duplicate'          => __( 'Duplicate report', 'wc-blacklist-manager' ),
+						'test_data'          => __( 'Test / QA data', 'wc-blacklist-manager' ),
+						'rvk_other'          => __( 'Other', 'wc-blacklist-manager' ),
+					),
+					'descriptions' => array(
+						'customer_appeal'    => __( 'Customer provided evidence; after manual review, merchant agrees the customer is legitimate.', 'wc-blacklist-manager' ),
+						'merchant_error'     => __( 'Wrong order / wrong customer / mis-click / misunderstood reason when reporting.', 'wc-blacklist-manager' ),
+						'processor_decision' => __( 'Payment provider or bank dispute outcome indicates the original report no longer stands.', 'wc-blacklist-manager' ),
+						'duplicate'          => __( 'Same incident or same identity accidentally reported multiple times by the same merchant.', 'wc-blacklist-manager' ),
+						'test_data'          => __( 'Report was created from test / QA / staging data that slipped into production.', 'wc-blacklist-manager' ),
+					),
+					'labels' => array(
+						'modal_title'       => __( 'Remove from the blacklist', 'wc-blacklist-manager' ),
+						'reason_label'      => __( 'Revoke reason', 'wc-blacklist-manager' ),
+						'select_reason'     => __( 'Select a reason...', 'wc-blacklist-manager' ),
+						'description_label' => __( 'Note', 'wc-blacklist-manager' ),
+						'required_reason'   => __( 'Please select a reason.', 'wc-blacklist-manager' ),
+						'required_desc'     => __( 'Please enter a note for “Other”.', 'wc-blacklist-manager' ),
+						'cancel'            => __( 'Cancel', 'wc-blacklist-manager' ),
+						'confirm'           => __( 'Confirm remove', 'wc-blacklist-manager' ),
+					),
+				)
+			);
+		}
 	}
 
 	public function add_button_to_order_edit( $order ) {
@@ -337,8 +401,32 @@ class WC_Blacklist_Manager_Order_Actions {
 		$settings_instance = new WC_Blacklist_Manager_Settings();
 		$premium_active    = $settings_instance->is_premium_active();
 
-		// Free-version UI only.
-		if ( $premium_active || ! current_user_can( 'manage_options' ) ) {
+		$premium_version = defined( 'WC_BLACKLIST_MANAGER_PREMIUM_VERSION' )
+			? WC_BLACKLIST_MANAGER_PREMIUM_VERSION
+			: null;
+
+		// Return if premium is active AND version < 2.3.6
+		if (
+			$premium_active &&
+			$premium_version &&
+			version_compare( $premium_version, '2.3.6', '<' )
+		) {
+			return;
+		}
+
+		$allowed_roles       = get_option( 'wc_blacklist_dashboard_permission', array() );
+		$user_has_permission = false;
+
+		if ( is_array( $allowed_roles ) && ! empty( $allowed_roles ) ) {
+			foreach ( $allowed_roles as $role ) {
+				if ( current_user_can( $role ) ) {
+					$user_has_permission = true;
+					break;
+				}
+			}
+		}
+
+		if ( ! $user_has_permission && ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
 
@@ -349,18 +437,42 @@ class WC_Blacklist_Manager_Order_Actions {
 		$show_suspect_button = $this->should_show_suspect_button( $order, $phone, $email, $ip_address );
 		$show_block_button   = $this->should_show_block_button( $order, $phone, $email, $ip_address );
 
-		$show_remove_button_suspect_main = $order->get_meta( '_blacklist_suspect_ids_main', true );
-		$show_remove_button_block_main   = $order->get_meta( '_blacklist_blocked_ids_main', true );
+		$show_remove_button_suspect_main    = $order->get_meta( '_blacklist_suspect_ids_main', true );
+		$show_remove_button_suspect_address = $order->get_meta( '_blacklist_suspect_ids_address', true );
+		$show_remove_button_block_main      = $order->get_meta( '_blacklist_blocked_ids_main', true );
+		$show_remove_button_block_address   = $order->get_meta( '_blacklist_blocked_ids_address', true );
 
-		// Legacy fallback.
 		$legacy_suspect = $order->get_meta( '_blacklist_suspect_id', true );
 		$legacy_blocked = $order->get_meta( '_blacklist_blocked_id', true );
 
-		$has_suspect_meta = ! empty( $show_remove_button_suspect_main ) || ! empty( $legacy_suspect );
-		$has_blocked_meta = ! empty( $show_remove_button_block_main ) || ! empty( $legacy_blocked );
+		$has_suspect_meta = ! empty( $show_remove_button_suspect_main ) || ! empty( $show_remove_button_suspect_address ) || ! empty( $legacy_suspect );
+		$has_blocked_meta = ! empty( $show_remove_button_block_main ) || ! empty( $show_remove_button_block_address ) || ! empty( $legacy_blocked );
 
 		echo '<div style="margin-top: 12px;" class="bm_order_actions">';
 		echo '<h3>' . esc_html__( 'Blacklist actions', 'wc-blacklist-manager' ) . '</h3>';
+
+		$install_date = get_option( 'wc_blacklist_manager_first_install_date' );
+
+		if ( $install_date ) {
+			$installed_time = strtotime( $install_date );
+			$days_since = ( time() - $installed_time ) / DAY_IN_SECONDS;
+
+			if ( $days_since <= 7 && get_option( 'wc_blacklist_development_mode', '1' ) === '1' ) {
+				$enable_url = wp_nonce_url(
+					admin_url( 'admin-post.php?action=wc_blacklist_enable_production_mode' ),
+					'wc_blacklist_enable_production_mode'
+				);
+
+				echo '<div class="notice notice-warning inline" style="margin-top:10px;">';
+				echo '<p>';
+				echo '<strong>' . esc_html__( 'Development Mode Active.', 'wc-blacklist-manager' ) . '</strong> ';
+				echo esc_html__( 'The blacklist system is currently running in development mode.', 'wc-blacklist-manager' ) . ' ';
+				echo '<a href="' . esc_url( $enable_url ) . '">' . esc_html__( 'Switch to Production Mode', 'wc-blacklist-manager' ) . '</a>';
+				echo '</p>';
+				echo '</div>';
+			}
+		}
+
 		echo '<p>';
 
 		if ( $show_suspect_button ) {
@@ -374,11 +486,13 @@ class WC_Blacklist_Manager_Order_Actions {
 		}
 
 		if ( $has_suspect_meta || $has_blocked_meta ) {
-			echo ' <button class="button button-secondary icon-button" title="' . esc_attr__( 'Remove', 'wc-blacklist-manager' ) . '" disabled><span class="dashicons dashicons-remove" style="margin-right: 3px;"></span> ' . esc_html__( 'Remove', 'wc-blacklist-manager' ) . '</button>';
+			echo ' <button id="remove_from_blacklist" class="button button-secondary icon-button" title="' . esc_attr__( 'Remove', 'wc-blacklist-manager' ) . '"><span class="dashicons dashicons-remove" style="margin-right: 3px;"></span> ' . esc_html__( 'Remove', 'wc-blacklist-manager' ) . '</button>';
 		}
 
 		echo '</p>';
-		echo '<p class="bm_description"><a href="https://yoohw.com/product/blacklist-manager-premium/" target="_blank" title="Upgrade Premium"><span class="yoohw_unlock">Unlock</span></a> ' . esc_html__( 'to power up the blacklist actions.', 'wc-blacklist-manager' ) . '</p>';
+		if ( ! $premium_active ) {
+			echo '<p class="bm_description"><a href="https://yoohw.com/product/blacklist-manager-premium/" target="_blank" title="Upgrade Premium"><span class="yoohw_unlock">Unlock</span></a> ' . esc_html__( 'to power up the blacklist management', 'wc-blacklist-manager' ) . '</p>';
+		}
 		echo '</div>';
 
 		echo '
@@ -561,6 +675,7 @@ class WC_Blacklist_Manager_Order_Actions {
 		$table_name          = $wpdb->prefix . 'wc_blacklist';
 		$address_table_name  = $wpdb->prefix . 'wc_blacklist_addresses';
 		$table_detection_log = $wpdb->prefix . 'wc_blacklist_detection_log';
+		$dev_mode = get_option( 'wc_blacklist_development_mode', '0' );
 
 		$allowed_roles       = get_option( 'wc_blacklist_dashboard_permission', array() );
 		$user_has_permission = false;
@@ -667,7 +782,7 @@ class WC_Blacklist_Manager_Order_Actions {
 			if ( $new_blacklist_id > 0 ) {
 				$created_main_ids[] = $new_blacklist_id;
 
-				if ( $premium_active && 'host' === get_option( 'wc_blacklist_connection_mode' ) ) {
+				if ( $premium_active && 'host' === get_option( 'wc_blacklist_connection_mode' ) && '0' === $dev_mode ) {
 					$customer_domain = '';
 					$is_blocked      = 0;
 
@@ -684,7 +799,7 @@ class WC_Blacklist_Manager_Order_Actions {
 					}
 				}
 
-				if ( $premium_active && 'sub' === get_option( 'wc_blacklist_connection_mode' ) ) {
+				if ( $premium_active && 'sub' === get_option( 'wc_blacklist_connection_mode' ) && '0' === $dev_mode ) {
 					if ( ! wp_next_scheduled( 'wc_blacklist_connection_send_to_hostsite', array( $new_blacklist_id ) ) ) {
 						wp_schedule_single_event( time() + 5, 'wc_blacklist_connection_send_to_hostsite', array( $new_blacklist_id ) );
 					}
@@ -708,7 +823,7 @@ class WC_Blacklist_Manager_Order_Actions {
 				if ( $billing_address_id > 0 ) {
 					$created_address_ids[] = $billing_address_id;
 
-					if ( 'host' === get_option( 'wc_blacklist_connection_mode' ) ) {
+					if ( 'host' === get_option( 'wc_blacklist_connection_mode' ) && '0' === $dev_mode ) {
 						$site_url     = site_url();
 						$clean_domain = preg_replace( '/^https?:\/\//', '', $site_url );
 						$sources      = $clean_domain . '[address:' . $billing_address_id . ']';
@@ -722,7 +837,7 @@ class WC_Blacklist_Manager_Order_Actions {
 						}
 					}
 
-					if ( 'sub' === get_option( 'wc_blacklist_connection_mode' ) ) {
+					if ( 'sub' === get_option( 'wc_blacklist_connection_mode' ) && '0' === $dev_mode ) {
 						if ( ! wp_next_scheduled( 'wc_blacklist_connection_send_to_hostsite', array( $billing_address_id ) ) ) {
 							wp_schedule_single_event( time() + 5, 'wc_blacklist_connection_send_to_hostsite', array( $billing_address_id ) );
 						}
@@ -753,7 +868,7 @@ class WC_Blacklist_Manager_Order_Actions {
 				if ( $shipping_address_id > 0 ) {
 					$created_address_ids[] = $shipping_address_id;
 
-					if ( 'host' === get_option( 'wc_blacklist_connection_mode' ) ) {
+					if ( 'host' === get_option( 'wc_blacklist_connection_mode' ) && '0' === $dev_mode ) {
 						$site_url     = site_url();
 						$clean_domain = preg_replace( '/^https?:\/\//', '', $site_url );
 						$sources      = $clean_domain . '[address:' . $shipping_address_id . ']';
@@ -767,7 +882,7 @@ class WC_Blacklist_Manager_Order_Actions {
 						}
 					}
 
-					if ( 'sub' === get_option( 'wc_blacklist_connection_mode' ) ) {
+					if ( 'sub' === get_option( 'wc_blacklist_connection_mode' ) && '0' === $dev_mode ) {
 						if ( ! wp_next_scheduled( 'wc_blacklist_connection_send_to_hostsite', array( $shipping_address_id ) ) ) {
 							wp_schedule_single_event( time() + 5, 'wc_blacklist_connection_send_to_hostsite', array( $shipping_address_id ) );
 						}
@@ -842,6 +957,8 @@ class WC_Blacklist_Manager_Order_Actions {
 		$settings_instance = new WC_Blacklist_Manager_Settings();
 		$premium_active    = $settings_instance->is_premium_active();
 
+		$dev_mode = get_option( 'wc_blacklist_development_mode', '0' );
+
 		// --- Read + sanitize reason/description ---
 		$allowed_reasons = array( 'stolen_card', 'chargeback', 'fraud_network', 'spam', 'policy_abuse', 'other' );
 		$reason_code_raw = isset( $_POST['reason_code'] ) ? wp_unslash( $_POST['reason_code'] ) : '';
@@ -915,7 +1032,7 @@ class WC_Blacklist_Manager_Order_Actions {
 				if ( false !== $updated ) {
 					$moved_main_ids[] = (int) $bid;
 
-					if ( $premium_active && 'host' === get_option( 'wc_blacklist_connection_mode' ) ) {
+					if ( $premium_active && 'host' === get_option( 'wc_blacklist_connection_mode' ) && '0' === $dev_mode) {
 						$is_blocked  = 1;
 						$site_url    = site_url();
 						$clean_domain = preg_replace( '/^https?:\/\//', '', $site_url );
@@ -926,7 +1043,7 @@ class WC_Blacklist_Manager_Order_Actions {
 						}
 					}
 
-					if ( $premium_active && 'sub' === get_option( 'wc_blacklist_connection_mode' ) ) {
+					if ( $premium_active && 'sub' === get_option( 'wc_blacklist_connection_mode' ) && '0' === $dev_mode ) {
 						if ( ! wp_next_scheduled( 'wc_blacklist_connection_update_to_hostsite', array( $bid ) ) ) {
 							wp_schedule_single_event( time() + 5, 'wc_blacklist_connection_update_to_hostsite', array( $bid ) );
 						}
@@ -949,7 +1066,7 @@ class WC_Blacklist_Manager_Order_Actions {
 				if ( false !== $updated ) {
 					$moved_address_ids[] = (int) $aid;
 
-					if ( $premium_active && 'host' === get_option( 'wc_blacklist_connection_mode' ) ) {
+					if ( $premium_active && 'host' === get_option( 'wc_blacklist_connection_mode' ) && '0' === $dev_mode ) {
 						$is_blocked  = 1;
 						$site_url    = site_url();
 						$clean_domain = preg_replace( '/^https?:\/\//', '', $site_url );
@@ -960,7 +1077,7 @@ class WC_Blacklist_Manager_Order_Actions {
 						}
 					}
 
-					if ( $premium_active && 'sub' === get_option( 'wc_blacklist_connection_mode' ) ) {
+					if ( $premium_active && 'sub' === get_option( 'wc_blacklist_connection_mode' ) && '0' === $dev_mode ) {
 						if ( ! wp_next_scheduled( 'wc_blacklist_connection_update_to_hostsite', array( $aid ) ) ) {
 							wp_schedule_single_event( time() + 5, 'wc_blacklist_connection_update_to_hostsite', array( $aid ) );
 						}
@@ -1006,7 +1123,7 @@ class WC_Blacklist_Manager_Order_Actions {
 
 			$order->save();
 
-			if ( YOGB_BM_Report::is_ready() ) {
+			if ( YOGB_BM_Report::is_ready() && '0' === $dev_mode ) {
 				YOGB_BM_Report::queue_report_from_order( $order, $reason_code, $description );
 			}
 
@@ -1132,7 +1249,7 @@ class WC_Blacklist_Manager_Order_Actions {
 			}
 		}
 
-		if ( $premium_active && 'host' === get_option( 'wc_blacklist_connection_mode' ) && $new_blacklist_id > 0 ) {
+		if ( $premium_active && 'host' === get_option( 'wc_blacklist_connection_mode' ) && $new_blacklist_id > 0 && '0' === $dev_mode ) {
 			$customer_domain = '';
 			$is_blocked      = 1;
 
@@ -1149,7 +1266,7 @@ class WC_Blacklist_Manager_Order_Actions {
 			}
 		}
 
-		if ( $premium_active && 'sub' === get_option( 'wc_blacklist_connection_mode' ) && $new_blacklist_id > 0 ) {
+		if ( $premium_active && 'sub' === get_option( 'wc_blacklist_connection_mode' ) && $new_blacklist_id > 0 && '0' === $dev_mode ) {
 			if ( ! wp_next_scheduled( 'wc_blacklist_connection_send_to_hostsite', array( $new_blacklist_id ) ) ) {
 				wp_schedule_single_event( time() + 5, 'wc_blacklist_connection_send_to_hostsite', array( $new_blacklist_id ) );
 			}
@@ -1171,7 +1288,7 @@ class WC_Blacklist_Manager_Order_Actions {
 				if ( $billing_address_id > 0 ) {
 					$created_address_ids[] = $billing_address_id;
 
-					if ( 'host' === get_option( 'wc_blacklist_connection_mode' ) ) {
+					if ( 'host' === get_option( 'wc_blacklist_connection_mode' ) && '0' === $dev_mode ) {
 						$site_url     = site_url();
 						$clean_domain = preg_replace( '/^https?:\/\//', '', $site_url );
 						$sources      = $clean_domain . '[address:' . $billing_address_id . ']';
@@ -1185,7 +1302,7 @@ class WC_Blacklist_Manager_Order_Actions {
 						}
 					}
 
-					if ( 'sub' === get_option( 'wc_blacklist_connection_mode' ) ) {
+					if ( 'sub' === get_option( 'wc_blacklist_connection_mode' ) && '0' === $dev_mode ) {
 						if ( ! wp_next_scheduled( 'wc_blacklist_connection_send_to_hostsite', array( $billing_address_id ) ) ) {
 							wp_schedule_single_event( time() + 5, 'wc_blacklist_connection_send_to_hostsite', array( $billing_address_id ) );
 						}
@@ -1216,7 +1333,7 @@ class WC_Blacklist_Manager_Order_Actions {
 				if ( $shipping_address_id > 0 ) {
 					$created_address_ids[] = $shipping_address_id;
 
-					if ( 'host' === get_option( 'wc_blacklist_connection_mode' ) ) {
+					if ( 'host' === get_option( 'wc_blacklist_connection_mode' ) && '0' === $dev_mode ) {
 						$site_url     = site_url();
 						$clean_domain = preg_replace( '/^https?:\/\//', '', $site_url );
 						$sources      = $clean_domain . '[address:' . $shipping_address_id . ']';
@@ -1230,7 +1347,7 @@ class WC_Blacklist_Manager_Order_Actions {
 						}
 					}
 
-					if ( 'sub' === get_option( 'wc_blacklist_connection_mode' ) ) {
+					if ( 'sub' === get_option( 'wc_blacklist_connection_mode' ) && '0' === $dev_mode ) {
 						if ( ! wp_next_scheduled( 'wc_blacklist_connection_send_to_hostsite', array( $shipping_address_id ) ) ) {
 							wp_schedule_single_event( time() + 5, 'wc_blacklist_connection_send_to_hostsite', array( $shipping_address_id ) );
 						}
@@ -1266,7 +1383,7 @@ class WC_Blacklist_Manager_Order_Actions {
 
 			$order->save();
 
-			if ( YOGB_BM_Report::is_ready() ) {
+			if ( YOGB_BM_Report::is_ready() && '0' === $dev_mode ) {
 				YOGB_BM_Report::queue_report_from_order( $order, $reason_code, $description );
 			}
 
@@ -1304,7 +1421,226 @@ class WC_Blacklist_Manager_Order_Actions {
 
 		wp_die();
 	}
-	
+
+	public function handle_remove_from_blacklist() {
+		check_ajax_referer( $this->remove_nonce_key, 'nonce' );
+
+		global $wpdb;
+		$table_main          = $wpdb->prefix . 'wc_blacklist';
+		$table_address       = $wpdb->prefix . 'wc_blacklist_addresses';
+		$table_detection_log = $wpdb->prefix . 'wc_blacklist_detection_log';
+		$dev_mode = get_option( 'wc_blacklist_development_mode', '0' );
+
+		$allowed_roles       = get_option( 'wc_blacklist_dashboard_permission', array() );
+		$user_has_permission = false;
+
+		if ( is_array( $allowed_roles ) && ! empty( $allowed_roles ) ) {
+			foreach ( $allowed_roles as $role ) {
+				if ( current_user_can( $role ) ) {
+					$user_has_permission = true;
+					break;
+				}
+			}
+		}
+
+		if ( ! $user_has_permission && ! current_user_can( 'manage_options' ) ) {
+			wp_die();
+		}
+
+		$settings_instance = new WC_Blacklist_Manager_Settings();
+		$premium_active    = $settings_instance->is_premium_active();
+
+		$order_id = isset( $_POST['order_id'] ) ? absint( wp_unslash( $_POST['order_id'] ) ) : 0;
+		if ( $order_id <= 0 ) {
+			echo esc_html__( 'Invalid order ID.', 'wc-blacklist-manager' );
+			wp_die();
+		}
+
+		$revoke_reason = isset( $_POST['revoke_reason'] )
+			? sanitize_text_field( wp_unslash( $_POST['revoke_reason'] ) )
+			: 'rvk_other';
+
+		$revoke_note = isset( $_POST['revoke_note'] )
+			? wp_strip_all_tags( wp_unslash( $_POST['revoke_note'] ) )
+			: '';
+
+		$reason_labels = array(
+			'customer_appeal'    => __( 'Customer appeal / cleared', 'wc-blacklist-manager' ),
+			'merchant_error'     => __( 'Merchant error / mis-report', 'wc-blacklist-manager' ),
+			'processor_decision' => __( 'Payment provider decision', 'wc-blacklist-manager' ),
+			'duplicate'          => __( 'Duplicate report', 'wc-blacklist-manager' ),
+			'test_data'          => __( 'Test / QA data', 'wc-blacklist-manager' ),
+			'rvk_other'          => __( 'Other', 'wc-blacklist-manager' ),
+		);
+		$reason_label = isset( $reason_labels[ $revoke_reason ] ) ? $reason_labels[ $revoke_reason ] : $revoke_reason;
+
+		$order = wc_get_order( $order_id );
+		if ( ! $order ) {
+			echo esc_html__( 'Order not found.', 'wc-blacklist-manager' );
+			wp_die();
+		}
+
+		$blocked_main_ids    = function_exists( 'yobm_parse_meta_id_list' ) ? yobm_parse_meta_id_list( $order->get_meta( '_blacklist_blocked_ids_main', true ) ) : array();
+		$blocked_address_ids = function_exists( 'yobm_parse_meta_id_list' ) ? yobm_parse_meta_id_list( $order->get_meta( '_blacklist_blocked_ids_address', true ) ) : array();
+		$suspect_main_ids    = function_exists( 'yobm_parse_meta_id_list' ) ? yobm_parse_meta_id_list( $order->get_meta( '_blacklist_suspect_ids_main', true ) ) : array();
+		$suspect_address_ids = function_exists( 'yobm_parse_meta_id_list' ) ? yobm_parse_meta_id_list( $order->get_meta( '_blacklist_suspect_ids_address', true ) ) : array();
+
+		// Legacy fallback.
+		if ( empty( $blocked_main_ids ) && empty( $blocked_address_ids ) && empty( $suspect_main_ids ) && empty( $suspect_address_ids ) ) {
+			$legacy_blocked = $order->get_meta( '_blacklist_blocked_id', true );
+			$legacy_suspect = $order->get_meta( '_blacklist_suspect_id', true );
+
+			if ( ! empty( $legacy_blocked ) && function_exists( 'yobm_parse_meta_id_list' ) ) {
+				$blocked_main_ids = yobm_parse_meta_id_list( $legacy_blocked );
+			} elseif ( ! empty( $legacy_suspect ) && function_exists( 'yobm_parse_meta_id_list' ) ) {
+				$suspect_main_ids = yobm_parse_meta_id_list( $legacy_suspect );
+			}
+		}
+
+		$remove_type        = '';
+		$main_ids_to_delete = array();
+		$addr_ids_to_delete = array();
+
+		if ( ! empty( $blocked_main_ids ) || ! empty( $blocked_address_ids ) ) {
+			$remove_type        = 'blocked';
+			$main_ids_to_delete = $blocked_main_ids;
+			$addr_ids_to_delete = $blocked_address_ids;
+		} elseif ( ! empty( $suspect_main_ids ) || ! empty( $suspect_address_ids ) ) {
+			$remove_type        = 'suspect';
+			$main_ids_to_delete = $suspect_main_ids;
+			$addr_ids_to_delete = $suspect_address_ids;
+		} else {
+			echo esc_html__( 'No blacklist entry found for this order.', 'wc-blacklist-manager' );
+			wp_die();
+		}
+
+		$user_blocked = false;
+		$user_id      = $order->get_user_id();
+
+		if ( 'blocked' === $remove_type && $user_id && '1' === get_option( 'wc_blacklist_enable_user_blocking' ) ) {
+			$user = get_userdata( $user_id );
+
+			if ( $user && ! in_array( 'administrator', (array) $user->roles, true ) ) {
+				$user_blocked = update_user_meta( $user_id, 'user_blocked', '0' );
+			}
+		}
+
+		$deleted_main_rows    = array();
+		$deleted_address_rows = array();
+
+		// Always allow removing main blacklist rows in free.
+		foreach ( $main_ids_to_delete as $entry_id ) {
+			$row = $wpdb->get_row(
+				$wpdb->prepare(
+					"SELECT * FROM {$table_main} WHERE id = %d",
+					$entry_id
+				),
+				ARRAY_A
+			);
+
+			if ( empty( $row ) ) {
+				continue;
+			}
+
+			$deleted = $wpdb->delete( $table_main, array( 'id' => $entry_id ), array( '%d' ) );
+			if ( false === $deleted ) {
+				echo esc_html__( 'Database delete failed for main blacklist entry ID ', 'wc-blacklist-manager' ) . (int) $entry_id;
+				wp_die();
+			}
+
+			$deleted_main_rows[] = $row;
+		}
+
+		// Premium only: remove address rows.
+		if ( $premium_active ) {
+			foreach ( $addr_ids_to_delete as $entry_id ) {
+				$row = $wpdb->get_row(
+					$wpdb->prepare(
+						"SELECT * FROM {$table_address} WHERE id = %d",
+						$entry_id
+					),
+					ARRAY_A
+				);
+
+				if ( empty( $row ) ) {
+					continue;
+				}
+
+				$deleted = $wpdb->delete( $table_address, array( 'id' => $entry_id ), array( '%d' ) );
+				if ( false === $deleted ) {
+					echo esc_html__( 'Database delete failed for address blacklist entry ID ', 'wc-blacklist-manager' ) . (int) $entry_id;
+					wp_die();
+				}
+
+				$deleted_address_rows[] = $row;
+			}
+		}
+
+		$current_user = wp_get_current_user();
+		$shop_manager = $current_user && $current_user->exists() ? $current_user->display_name : __( 'System', 'wc-blacklist-manager' );
+
+		$order_note = sprintf(
+			esc_html__(
+				'The customer details have been removed from the blacklist by %1$s. Revoke reason: %2$s%3$s',
+				'wc-blacklist-manager'
+			),
+			$shop_manager,
+			$reason_label,
+			$revoke_note ? ' – ' . $revoke_note : ''
+		);
+
+		$order->add_order_note( $order_note, false );
+
+		$order->delete_meta_data( '_blacklist_blocked_ids_main' );
+		$order->delete_meta_data( '_blacklist_blocked_ids_address' );
+		$order->delete_meta_data( '_blacklist_suspect_ids_main' );
+		$order->delete_meta_data( '_blacklist_suspect_ids_address' );
+		$order->delete_meta_data( '_blacklist_blocked_id' );
+		$order->delete_meta_data( '_blacklist_suspect_id' );
+		$order->save();
+
+		// Premium-only logging/reporting.
+		if ( $premium_active ) {
+			$details = 'removed_from_blacklist_by:' . $shop_manager;
+
+			if ( $user_blocked ) {
+				$details .= ', user_attempt:' . $user_id;
+			}
+
+			$view_json = wp_json_encode(
+				array(
+					'reason_code'          => $revoke_reason,
+					'note'                 => $revoke_note ? substr( $revoke_note, 0, 255 ) : '',
+					'removed_from'         => $remove_type,
+					'removed_main_ids'     => array_values( array_map( 'intval', $main_ids_to_delete ) ),
+					'removed_address_ids'  => array_values( array_map( 'intval', $addr_ids_to_delete ) ),
+					'removed_main_rows'    => $deleted_main_rows,
+					'removed_address_rows' => $deleted_address_rows,
+				)
+			);
+
+			$wpdb->insert(
+				$table_detection_log,
+				array(
+					'timestamp' => current_time( 'mysql' ),
+					'type'      => 'human',
+					'source'    => 'woo_order_' . $order_id,
+					'action'    => 'remove',
+					'details'   => $details,
+					'view'      => $view_json,
+				),
+				array( '%s', '%s', '%s', '%s', '%s', '%s' )
+			);
+		}
+
+		if ( class_exists( 'YOGB_BM_Revoke_Report' ) && $order instanceof WC_Order && '0' === $dev_mode ) {
+			YOGB_BM_Revoke_Report::queue_revoke_for_order( $order, $revoke_reason, $revoke_note );
+		}
+
+		echo esc_html__( 'Remove from the blacklist successfully.', 'wc-blacklist-manager' );
+		wp_die();
+	}
+		
 	public function display_blacklist_notices( WC_Order $order ) {
 		global $wpdb;
 
@@ -1460,3 +1796,17 @@ class WC_Blacklist_Manager_Order_Actions {
 }
 
 new WC_Blacklist_Manager_Order_Actions();
+
+add_action( 'admin_post_wc_blacklist_enable_production_mode', function() {
+
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_die( esc_html__( 'Unauthorized', 'wc-blacklist-manager' ) );
+	}
+
+	check_admin_referer( 'wc_blacklist_enable_production_mode' );
+
+	update_option( 'wc_blacklist_development_mode', '0' );
+
+	wp_safe_redirect( wp_get_referer() ?: admin_url() );
+	exit;
+});

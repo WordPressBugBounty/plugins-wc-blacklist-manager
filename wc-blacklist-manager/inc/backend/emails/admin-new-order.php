@@ -8,8 +8,8 @@ class YOGB_BM_Admin_Email_New_Order {
 
 	public function __construct() {
 		$enabled = (int) get_option( 'wc_blacklist_enable_global_blacklist', 0 );
-		$email_details = (int) get_option( 'wc_blacklist_email_global_blacklist_details', 'yes' );
-		if ( 1 !== $enabled || 'yes' !== $email_details ) {
+		$email_details = get_option( 'wc_blacklist_email_global_blacklist_details', 'yes' );
+		if ( 1 !== $enabled || 'no' === $email_details ) {
 			return;
 		}
 		
@@ -406,20 +406,6 @@ class YOGB_BM_Admin_Email_New_Order {
 						<a href="<?php echo esc_url( $upgrade_url ); ?>" target="_blank" rel="noopener noreferrer" style="display:inline-block; padding:9px 14px; background:#d63638; color:#ffffff; text-decoration:none; border-radius:6px; font-size:13px; font-weight:700;">
 							<?php esc_html_e( 'Upgrade plan', 'wc-blacklist-manager' ); ?>
 						</a>
-					</div>
-				<?php endif; ?>
-
-				<?php if ( '' !== $coverage_cta ) : ?>
-					<div style="margin:0 0 14px 0; padding:12px 14px; border:1px solid #dcdcde; background:#ffffff; border-radius:8px;">
-						<div style="margin:0 0 6px 0; font-size:13px; font-weight:700; color:#1d2327;">
-							<?php esc_html_e( 'Need broader coverage?', 'wc-blacklist-manager' ); ?>
-						</div>
-						<div style="margin:0 0 10px 0; font-size:13px; line-height:1.6; color:#50575e;">
-							<?php echo esc_html( $coverage_cta ); ?>
-							<a href="<?php echo esc_url( $upgrade_url ); ?>" target="_blank" rel="noopener noreferrer">
-								<?php esc_html_e( 'See higher plans', 'wc-blacklist-manager' ); ?>
-							</a>
-						</div>
 					</div>
 				<?php endif; ?>
 			</div>

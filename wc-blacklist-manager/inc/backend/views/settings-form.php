@@ -42,6 +42,16 @@ if (!defined('ABSPATH')) {
 			<p class="description"><?php echo esc_html__('This setting is for both suspects and blocklist.', 'wc-blacklist-manager'); ?></p>
 
 			<table class="form-table">
+				<tr>
+					<th scope="row">
+						<span class="dashicons dashicons-admin-site"></span>
+						<label for="development_mode"><?php echo esc_html__('Development mode', 'wc-blacklist-manager'); ?></label>
+					</th>
+					<td>
+						<input type="checkbox" id="development_mode" name="development_mode" value="1" <?php checked($settings['development_mode']); ?>>
+						<label for="development_mode"><?php echo esc_html__('Enable development mode to test the blacklist on your site', 'wc-blacklist-manager'); ?></label>
+					</td>
+				</tr>
 				<?php if ($woocommerce_active): ?>
 					<tr>
 						<th scope="row">

@@ -5,7 +5,7 @@ Requires at least: 6.3
 Tested up to: 6.9
 WC tested up to: 10.6
 Requires PHP: 7.4
-Stable tag: 2.2.1
+Stable tag: 2.2.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -228,6 +228,14 @@ A: There is no set limit within the plugin, but practical limitations depend on 
 A: No, the plugin is optimized for performance. It performs blacklist checks efficiently and only at appropriate times (like form submission or checkout), so it won’t noticeably impact your site speed.
 
 == Changelog ==
+
+= 2.2.2 (Mar 28, 2026) =
+* New: Added Blacklist action buttons (remove / manage entries) directly in the order screen for faster workflow.
+* New: Introduced Development Mode (default for new installs) to prevent aggressive blocking during initial setup.
+* New: Added in-context notice in Blacklist actions to guide users to switch from Development Mode to Production Mode.
+* New: Automatically enable Development Mode for new installations only (within first 7 days), without affecting existing users.
+* Fix: The option of Global Blacklist decision details in admin new order email notification did not work.
+* Improve: Added a safeguard to prevent sending new order email notifications for unpaid orders.
 
 = 2.2.1 (Mar 26, 2026) =
 * New: Added option (Blacklist Manager → Notifications) to enable or disable Global Blacklist decision details in admin new order notifications.

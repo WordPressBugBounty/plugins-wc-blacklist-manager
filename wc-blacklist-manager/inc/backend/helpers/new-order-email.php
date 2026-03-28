@@ -1,6 +1,6 @@
 <?php
 
-if (!defined('ABSPATH')) {
+if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
@@ -11,13 +11,13 @@ class WC_Blacklist_Manager_New_Order_Email_Coordinator {
 	public function __construct() {
 		$license_active        = WC_Blacklist_Manager_Validator::is_premium_active();
 		$premium_plugin_active = is_plugin_active( 'wc-blacklist-manager-premium/wc-blacklist-manager-premium.php' );
-		$premium_active = ( $premium_plugin_active && $license_active );
+		$premium_active        = ( $premium_plugin_active && $license_active );
 
-		$local_risk_enabled  = ( get_option( 'wc_blacklist_manager_enable_order_risk', '0' ) === '1' );
-		$global_gbl_enabled  = ( get_option( 'wc_blacklist_enable_global_blacklist', '0' ) === '1' );
+		$local_risk_enabled = ( get_option( 'wc_blacklist_manager_enable_order_risk', '0' ) === '1' );
+		$global_gbl_enabled = ( get_option( 'wc_blacklist_enable_global_blacklist', '0' ) === '1' );
 
 		// Enable if either local async risk jobs or Global Blacklist async checks are on.
-		if ( ! ($local_risk_enabled && $premium_active) && ! $global_gbl_enabled ) {
+		if ( ! ( $local_risk_enabled && $premium_active ) && ! $global_gbl_enabled ) {
 			return;
 		}
 
@@ -26,6 +26,11 @@ class WC_Blacklist_Manager_New_Order_Email_Coordinator {
 
 		// Also listen for the Global Blacklist async completion path.
 		add_action( 'yogb_after_gbl_check', [ $this, 'maybe_trigger_admin_email' ], 10, 2 );
+
+		// Retry when the order later becomes eligible to send the admin New Order email.
+		add_action( 'woocommerce_order_status_pending_to_processing', [ $this, 'retry_admin_email_on_status_change' ], 10, 1 );
+		add_action( 'woocommerce_order_status_pending_to_on-hold', [ $this, 'retry_admin_email_on_status_change' ], 10, 1 );
+		add_action( 'woocommerce_payment_complete', [ $this, 'retry_admin_email_on_payment_complete' ], 10, 1 );
 	}
 
 	public function yobm_delay_new_order_email_init() {
@@ -53,13 +58,33 @@ class WC_Blacklist_Manager_New_Order_Email_Coordinator {
 	}
 
 	/**
-	 * Only fire the New Order email if no pending AS actions remain
-	 * for this order across enabled checks.
+	 * Retry sending the admin New Order email when the order status changes
+	 * to an eligible state.
 	 *
-	 * @param int    $order_id
-	 * @param string $finished_hook
+	 * @param int $order_id Order ID.
 	 */
-	public function maybe_trigger_admin_email( $order_id, $finished_hook ) {
+	public function retry_admin_email_on_status_change( $order_id ) {
+		$this->maybe_trigger_admin_email( $order_id, 'status_retry' );
+	}
+
+	/**
+	 * Retry sending the admin New Order email when payment is completed.
+	 *
+	 * @param int $order_id Order ID.
+	 */
+	public function retry_admin_email_on_payment_complete( $order_id ) {
+		$this->maybe_trigger_admin_email( $order_id, 'payment_complete_retry' );
+	}
+
+	/**
+	 * Only fire the New Order email if no pending Action Scheduler actions remain
+	 * for this order across enabled checks, and only when the order has reached
+	 * an allowed status.
+	 *
+	 * @param int    $order_id      Order ID.
+	 * @param string $finished_hook Hook name that just finished.
+	 */
+	public function maybe_trigger_admin_email( $order_id, $finished_hook = '' ) {
 		$order_id = (int) $order_id;
 		if ( $order_id <= 0 ) {
 			return;
@@ -78,7 +103,8 @@ class WC_Blacklist_Manager_New_Order_Email_Coordinator {
 		$job_hooks = [];
 
 		$settings_instance = new WC_Blacklist_Manager_Settings();
-		$premium_active = $settings_instance->is_premium_active();
+		$premium_active    = $settings_instance->is_premium_active();
+
 		/*
 		 * Local premium risk-score async jobs.
 		 */
@@ -131,8 +157,8 @@ class WC_Blacklist_Manager_New_Order_Email_Coordinator {
 		}
 
 		foreach ( $job_hooks as $hook ) {
-			// Skip the job that just finished.
-			if ( $hook === $finished_hook ) {
+			// Skip the async hook that just finished.
+			if ( '' !== $finished_hook && $hook === $finished_hook ) {
 				continue;
 			}
 
@@ -141,6 +167,17 @@ class WC_Blacklist_Manager_New_Order_Email_Coordinator {
 			if ( as_next_scheduled_action( $hook, $args ) ) {
 				return;
 			}
+		}
+
+		/*
+		 * Only send after the order reaches an allowed status.
+		 * Prevent pending/unpaid orders from sending the admin New Order email.
+		 */
+		$allowed_statuses = [ 'processing', 'on-hold', 'completed' ];
+		$current_status   = $order->get_status();
+
+		if ( ! in_array( $current_status, $allowed_statuses, true ) ) {
+			return;
 		}
 
 		$mailer = WC()->mailer();
@@ -159,8 +196,8 @@ class WC_Blacklist_Manager_New_Order_Email_Coordinator {
 	/**
 	 * Build the exact args array used when the async action was scheduled.
 	 *
-	 * @param string $hook
-	 * @param int    $order_id
+	 * @param string $hook     Hook name.
+	 * @param int    $order_id Order ID.
 	 * @return array
 	 */
 	private function get_job_args_for_order( $hook, $order_id ) {
@@ -201,5 +238,4 @@ class WC_Blacklist_Manager_New_Order_Email_Coordinator {
 	}
 }
 
-// instantiate it early in your plugin bootstrap
 new WC_Blacklist_Manager_New_Order_Email_Coordinator();
