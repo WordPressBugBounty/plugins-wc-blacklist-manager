@@ -7,6 +7,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Blacklist_Manager_Dashboard {
 	private $wpdb;
 	private $table_name;
+	private $device_table_name;
+	private $device_links_table_name;
 	private $address_table_name;
 	private $date_format;
 	private $time_format;
@@ -15,11 +17,13 @@ class WC_Blacklist_Manager_Dashboard {
 
 	public function __construct() {
 		global $wpdb;
-		$this->wpdb               = $wpdb;
-		$this->table_name         = $this->wpdb->prefix . 'wc_blacklist';
-		$this->address_table_name = $this->wpdb->prefix . 'wc_blacklist_addresses';
-		$this->date_format        = get_option( 'date_format' );
-		$this->time_format        = get_option( 'time_format' );
+		$this->wpdb                    = $wpdb;
+		$this->table_name              = $this->wpdb->prefix . 'wc_blacklist';
+		$this->address_table_name      = $this->wpdb->prefix . 'wc_blacklist_addresses';
+		$this->device_table_name       = $this->wpdb->prefix . 'wc_blacklist_devices';
+		$this->device_links_table_name = $this->wpdb->prefix . 'wc_blacklist_device_links';
+		$this->date_format             = get_option( 'date_format' );
+		$this->time_format             = get_option( 'time_format' );
 	}
 
 	public function init_hooks() {
@@ -31,6 +35,7 @@ class WC_Blacklist_Manager_Dashboard {
 		add_action( 'admin_post_add_address_action', array( $this, 'handle_add_address' ) );
 		add_action( 'admin_post_add_domain_action', array( $this, 'handle_add_domain' ) );
 		add_action( 'admin_post_add_suspect_action', array( $this, 'handle_form_submission' ) );
+		add_action( 'wp_ajax_wc_blacklist_get_device_details', array( $this, 'ajax_get_device_details' ) );
 	}
 
 	public function add_admin_menus() {
@@ -98,30 +103,30 @@ class WC_Blacklist_Manager_Dashboard {
 		$action = isset( $_GET['action'] ) ? sanitize_text_field( wp_unslash( $_GET['action'] ) ) : '';
 		$id     = isset( $_GET['id'] ) ? absint( wp_unslash( $_GET['id'] ) ) : 0;
 
-if ( $action && $id ) {
-	$nonce = isset( $_GET['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ) : '';
+		if ( $action && $id ) {
+			$nonce = isset( $_GET['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ) : '';
 
-	$nonce_action = '';
-	if ( 'block' === $action ) {
-		$nonce_action = 'block_action';
-	} elseif ( 'delete' === $action ) {
-		$nonce_action = 'delete_action';
-	} elseif ( 'delete_address' === $action ) {
-		$nonce_action = 'delete_address_action';
-	}
+			$nonce_action = '';
+			if ( 'block' === $action ) {
+				$nonce_action = 'block_action';
+			} elseif ( 'delete' === $action ) {
+				$nonce_action = 'delete_action';
+			} elseif ( 'delete_address' === $action ) {
+				$nonce_action = 'delete_address_action';
+			}
 
-	if ( $nonce_action && wp_verify_nonce( $nonce, $nonce_action ) ) {
-		if ( 'block' === $action ) {
-			$this->handle_block_action( $id );
-		} elseif ( 'delete' === $action ) {
-			$this->handle_delete_action( $id );
-		} elseif ( 'delete_address' === $action ) {
-			$this->handle_delete_address_action( $id );
+			if ( $nonce_action && wp_verify_nonce( $nonce, $nonce_action ) ) {
+				if ( 'block' === $action ) {
+					$this->handle_block_action( $id );
+				} elseif ( 'delete' === $action ) {
+					$this->handle_delete_action( $id );
+				} elseif ( 'delete_address' === $action ) {
+					$this->handle_delete_address_action( $id );
+				}
+			} elseif ( $nonce_action ) {
+				wp_die( esc_html__( 'Security check failed. Please try again.', 'wc-blacklist-manager' ) );
+			}
 		}
-	} elseif ( $nonce_action ) {
-		wp_die( esc_html__( 'Security check failed. Please try again.', 'wc-blacklist-manager' ) );
-	}
-}
 
 		$this->handle_messages();
 
@@ -139,6 +144,8 @@ if ( $action && $id ) {
 			"is_blocked = 1 AND ((phone_number != '' AND phone_number IS NOT NULL) OR (email_address != '' AND email_address IS NOT NULL) OR (first_name != '' AND first_name IS NOT NULL) OR (last_name != '' AND last_name IS NOT NULL))"
 		);
 
+		$device_data = $this->handle_device_pagination();
+
 		$ip_banned_data = $this->handle_pagination(
 			'ip_banned',
 			"ip_address IS NOT NULL AND ip_address <> ''"
@@ -151,6 +158,7 @@ if ( $action && $id ) {
 
 		$address_blocking_data = $this->handle_address_pagination();
 
+		$device_blacklist_enabled           = get_option( 'wc_blacklist_enable_device_identity', false );
 		$ip_blacklist_enabled               = get_option( 'wc_blacklist_ip_enabled', false );
 		$domain_blocking_enabled            = get_option( 'wc_blacklist_domain_enabled', false );
 		$customer_address_blocking_enabled  = get_option( 'wc_blacklist_enable_customer_address_blocking', false );
@@ -164,6 +172,11 @@ if ( $action && $id ) {
 		$total_items_blocked  = $blocked_data['total_items'];
 		$total_pages_blocked  = $blocked_data['total_pages'];
 		$blocked_entries      = $blocked_data['entries'];
+
+		$current_page_device = $device_data['current_page'];
+		$total_items_device  = $device_data['total_items'];
+		$total_pages_device  = $device_data['total_pages'];
+		$device_entries      = $device_data['entries'];
 
 		$current_page_ip_banned = $ip_banned_data['current_page'];
 		$total_items_ip_banned  = $ip_banned_data['total_items'];
@@ -836,6 +849,96 @@ if ( $action && $id ) {
 			'total_pages'  => $total_pages,
 			'entries'      => $entries,
 		);
+	}
+
+	private function handle_device_pagination() {
+		$current_page = isset( $_GET['paged_device'] ) ? max( 1, intval( wp_unslash( $_GET['paged_device'] ) ) ) : 1;
+
+		$search_query = $this->handle_search();
+		$search_terms = array_filter( array_map( 'sanitize_text_field', explode( ' ', $search_query ) ) );
+
+		$where_clause = '1=1';
+
+		if ( ! empty( $search_terms ) ) {
+			$where_parts = array();
+
+			foreach ( $search_terms as $term ) {
+				$like = '%' . $this->wpdb->esc_like( $term ) . '%';
+
+				$where_parts[] = $this->wpdb->prepare(
+					"(device_id LIKE %s
+					OR last_ip_address LIKE %s
+					OR block_reason LIKE %s)",
+					$like,
+					$like,
+					$like
+				);
+			}
+
+			if ( ! empty( $where_parts ) ) {
+				$where_clause .= ' AND (' . implode( ' OR ', $where_parts ) . ')';
+			}
+		}
+
+		$total_items = (int) $this->wpdb->get_var(
+			"SELECT COUNT(*) FROM {$this->device_table_name} WHERE {$where_clause}"
+		);
+
+		$total_pages = (int) ceil( $total_items / $this->items_per_page );
+		$offset      = ( $current_page - 1 ) * $this->items_per_page;
+
+		$query = $this->wpdb->prepare(
+			"SELECT *
+			FROM {$this->device_table_name}
+			WHERE {$where_clause}
+			ORDER BY last_seen DESC
+			LIMIT %d OFFSET %d",
+			$this->items_per_page,
+			$offset
+		);
+
+		$entries = $this->wpdb->get_results( $query );
+
+		return array(
+			'current_page' => $current_page,
+			'total_items'  => $total_items,
+			'total_pages'  => $total_pages,
+			'entries'      => $entries,
+		);
+	}
+
+	private function normalize_device_record_for_response( $device ) {
+		if ( ! is_array( $device ) ) {
+			return array();
+		}
+
+		$device['order_count']        = isset( $device['order_count'] ) ? (int) $device['order_count'] : 0;
+		$device['user_count']         = isset( $device['user_count'] ) ? (int) $device['user_count'] : 0;
+		$device['email_count']        = isset( $device['email_count'] ) ? (int) $device['email_count'] : 0;
+		$device['phone_count']        = isset( $device['phone_count'] ) ? (int) $device['phone_count'] : 0;
+		$device['ip_count']           = isset( $device['ip_count'] ) ? (int) $device['ip_count'] : 0;
+		$device['last_order_id']      = isset( $device['last_order_id'] ) ? (int) $device['last_order_id'] : 0;
+		$device['is_blocked']         = isset( $device['is_blocked'] ) ? (int) $device['is_blocked'] : 0;
+		$device['last_payload_valid'] = isset( $device['last_payload_valid'] ) ? (int) $device['last_payload_valid'] : 1;
+
+		$validation_reasons = array();
+
+		if ( ! empty( $device['last_validation_reasons'] ) ) {
+			$decoded = json_decode( (string) $device['last_validation_reasons'], true );
+			if ( is_array( $decoded ) ) {
+				$validation_reasons = array_values(
+					array_unique(
+						array_filter(
+							array_map( 'sanitize_text_field', $decoded )
+						)
+					)
+				);
+			}
+		}
+
+		$device['last_validation_reasons_list'] = $validation_reasons;
+
+		return $device;
 	}
 
 	private function build_where_clause( $base_clause ) {
@@ -1618,75 +1721,75 @@ if ( $action && $id ) {
 					return $id > 0;
 				}
 			);
-foreach ( $entry_ids as $id ) {
-	$address_row = $this->wpdb->get_row(
-		$this->wpdb->prepare(
-			"SELECT *
-			FROM {$this->address_table_name}
-			WHERE id = %d",
-			$id
-		),
-		ARRAY_A
-	);
+			foreach ( $entry_ids as $id ) {
+				$address_row = $this->wpdb->get_row(
+					$this->wpdb->prepare(
+						"SELECT *
+						FROM {$this->address_table_name}
+						WHERE id = %d",
+						$id
+					),
+					ARRAY_A
+				);
 
-	if ( empty( $address_row ) ) {
-		continue;
-	}
+				if ( empty( $address_row ) ) {
+					continue;
+				}
 
-	$this->wpdb->delete(
-		$this->address_table_name,
-		array( 'id' => $id ),
-		array( '%d' )
-	);
+				$this->wpdb->delete(
+					$this->address_table_name,
+					array( 'id' => $id ),
+					array( '%d' )
+				);
 
-	if ( $premium_active ) {
-		$table_detection_log = $this->wpdb->prefix . 'wc_blacklist_detection_log';
-		$current_user        = wp_get_current_user();
-		$shop_manager        = $current_user ? $current_user->display_name : '';
-		$details             = 'removed_from_blacklist_by:' . $shop_manager;
+				if ( $premium_active ) {
+					$table_detection_log = $this->wpdb->prefix . 'wc_blacklist_detection_log';
+					$current_user        = wp_get_current_user();
+					$shop_manager        = $current_user ? $current_user->display_name : '';
+					$details             = 'removed_from_blacklist_by:' . $shop_manager;
 
-		$view_data = array(
-			'id'                => $address_row['id'],
-			'match_type'        => $address_row['match_type'],
-			'is_blocked'        => $address_row['is_blocked'],
-			'country_code'      => $address_row['country_code'],
-			'state_code'        => $address_row['state_code'],
-			'city_norm'         => $address_row['city_norm'],
-			'postcode_norm'     => $address_row['postcode_norm'],
-			'address_line_norm' => $address_row['address_line_norm'],
-			'address_full_norm' => $address_row['address_full_norm'],
-			'address_hash'      => $address_row['address_hash'],
-			'address_display'   => $address_row['address_display'],
-			'notes'             => $address_row['notes'],
-			'date_added'        => $address_row['date_added'],
-		);
+					$view_data = array(
+						'id'                => $address_row['id'],
+						'match_type'        => $address_row['match_type'],
+						'is_blocked'        => $address_row['is_blocked'],
+						'country_code'      => $address_row['country_code'],
+						'state_code'        => $address_row['state_code'],
+						'city_norm'         => $address_row['city_norm'],
+						'postcode_norm'     => $address_row['postcode_norm'],
+						'address_line_norm' => $address_row['address_line_norm'],
+						'address_full_norm' => $address_row['address_full_norm'],
+						'address_hash'      => $address_row['address_hash'],
+						'address_display'   => $address_row['address_display'],
+						'notes'             => $address_row['notes'],
+						'date_added'        => $address_row['date_added'],
+					);
 
-		$this->wpdb->insert(
-			$table_detection_log,
-			array(
-				'timestamp' => current_time( 'mysql' ),
-				'type'      => 'human',
-				'source'    => 'address_entry_id_' . $id,
-				'action'    => 'remove',
-				'details'   => $details,
-				'view'      => wp_json_encode( $view_data ),
-			),
-			array( '%s', '%s', '%s', '%s', '%s', '%s' )
-		);
-	}
+					$this->wpdb->insert(
+						$table_detection_log,
+						array(
+							'timestamp' => current_time( 'mysql' ),
+							'type'      => 'human',
+							'source'    => 'address_entry_id_' . $id,
+							'action'    => 'remove',
+							'details'   => $details,
+							'view'      => wp_json_encode( $view_data ),
+						),
+						array( '%s', '%s', '%s', '%s', '%s', '%s' )
+					);
+				}
 
-	if ( $premium_active && 'host' === get_option( 'wc_blacklist_connection_mode' ) ) {
-		$site_url     = site_url();
-		$clean_domain = preg_replace( '/^https?:\/\//', '', $site_url );
-		$sources      = $clean_domain . '[address:' . $id . ']';
+				if ( $premium_active && 'host' === get_option( 'wc_blacklist_connection_mode' ) ) {
+					$site_url     = site_url();
+					$clean_domain = preg_replace( '/^https?:\/\//', '', $site_url );
+					$sources      = $clean_domain . '[address:' . $id . ']';
 
-		$args = array( $sources );
+					$args = array( $sources );
 
-		if ( ! wp_next_scheduled( 'wc_blacklist_connection_remove_to_subsite', $args ) ) {
-			wp_schedule_single_event( time() + 5, 'wc_blacklist_connection_remove_to_subsite', $args );
-		}
-	}
-}
+					if ( ! wp_next_scheduled( 'wc_blacklist_connection_remove_to_subsite', $args ) ) {
+						wp_schedule_single_event( time() + 5, 'wc_blacklist_connection_remove_to_subsite', $args );
+					}
+				}
+			}
 		}
 
 		$redirect_base = wp_get_referer();
@@ -1696,6 +1799,128 @@ foreach ( $entry_ids as $id ) {
 
 		wp_safe_redirect( esc_url_raw( $redirect_base ) );
 		exit;
+	}
+
+	private function get_device_links_grouped( $device_id ) {
+		$device_id = sanitize_text_field( (string) $device_id );
+
+		if ( '' === $device_id ) {
+			return array(
+				'emails' => array(),
+				'phones' => array(),
+				'ips'    => array(),
+				'users'  => array(),
+				'orders' => array(),
+			);
+		}
+
+		$rows = $this->wpdb->get_results(
+			$this->wpdb->prepare(
+				"SELECT identity_type, identity_value
+				FROM {$this->device_links_table_name}
+				WHERE device_id = %s
+				ORDER BY last_seen DESC",
+				$device_id
+			),
+			ARRAY_A
+		);
+
+		$grouped = array(
+			'emails' => array(),
+			'phones' => array(),
+			'ips'    => array(),
+			'users'  => array(),
+			'orders' => array(),
+		);
+
+		foreach ( $rows as $row ) {
+			$type  = isset( $row['identity_type'] ) ? (string) $row['identity_type'] : '';
+			$value = isset( $row['identity_value'] ) ? (string) $row['identity_value'] : '';
+
+			if ( '' === $type || '' === $value ) {
+				continue;
+			}
+
+			if ( 'email' === $type ) {
+				$grouped['emails'][] = $value;
+			} elseif ( 'phone' === $type ) {
+				$grouped['phones'][] = $value;
+			} elseif ( 'ip' === $type ) {
+				$grouped['ips'][] = $value;
+			} elseif ( 'user' === $type ) {
+				$grouped['users'][] = $value;
+			} elseif ( 'order' === $type ) {
+				$grouped['orders'][] = $value;
+			}
+		}
+
+		return $grouped;
+	}	
+
+	public function ajax_get_device_details() {
+		$allowed_roles       = get_option( 'wc_blacklist_dashboard_permission', array() );
+		$user_has_permission = false;
+
+		if ( is_array( $allowed_roles ) && ! empty( $allowed_roles ) ) {
+			foreach ( $allowed_roles as $role ) {
+				if ( current_user_can( $role ) ) {
+					$user_has_permission = true;
+					break;
+				}
+			}
+		}
+
+		if ( ! $user_has_permission && ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'You do not have permission to access this data.', 'wc-blacklist-manager' ),
+				),
+				403
+			);
+		}
+
+		check_ajax_referer( 'wc_blacklist_device_details_nonce', 'nonce' );
+
+		$device_id = isset( $_POST['device_id'] ) ? sanitize_text_field( wp_unslash( $_POST['device_id'] ) ) : '';
+
+		if ( '' === $device_id ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'Missing device ID.', 'wc-blacklist-manager' ),
+				),
+				400
+			);
+		}
+
+		$device = $this->wpdb->get_row(
+			$this->wpdb->prepare(
+				"SELECT *
+				FROM {$this->device_table_name}
+				WHERE device_id = %s
+				LIMIT 1",
+				$device_id
+			),
+			ARRAY_A
+		);
+
+		if ( empty( $device ) ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'Device not found.', 'wc-blacklist-manager' ),
+				),
+				404
+			);
+		}
+
+		$device = $this->normalize_device_record_for_response( $device );
+		$links  = $this->get_device_links_grouped( $device_id );
+
+		wp_send_json_success(
+			array(
+				'device' => $device,
+				'links'  => $links,
+			)
+		);
 	}
 }
 

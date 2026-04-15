@@ -73,7 +73,6 @@ if (!class_exists('YoOhw_Settings_Content')) {
         }
 
         public function yoohw_settings_init() {
-            $license_status = WC_Blacklist_Manager_Validator::is_premium_active();
             $settings_instance = new WC_Blacklist_Manager_Settings();
             $main_active = $settings_instance->is_premium_active();
 
@@ -103,7 +102,7 @@ if (!class_exists('YoOhw_Settings_Content')) {
 				'yoohw_settings_section_logs'
 			);
 
-            if ( $license_status === 'activated' && $main_active ) {
+            if ( $main_active ) {
 				register_setting(
 					'yoohw_settings_options',
 					'yoohw_settings_disable_menu',
@@ -163,15 +162,15 @@ if (!class_exists('YoOhw_Settings_Content')) {
 		}
 
         public function section_callback() {
-            echo '<p>' . esc_html__('If you disable the menu then the Licenses tab will be moved to Wordpress Settings.', 'wc-blacklist-manager') . '</p>';
+            echo '<p>If you disable the menu then the Licenses tab will be moved to Wordpress Settings.</p>';
         }
 
         public function disable_menu_field_callback() {
             $setting = get_option('yoohw_settings_disable_menu');
             ?>
             <input type="checkbox" name="yoohw_settings_disable_menu" value="1" <?php checked(1, $setting, true); ?>>
-            <span><?php esc_html_e('Hide the YoOhw Studio information (White label)', 'wc-blacklist-manager'); ?></span>
-            <p class="description"><?php esc_html_e('Enabling this option will hide everything about us. Ex: Menu, documents, support buttons, etc.', 'wc-blacklist-manager'); ?></p>
+            <span>Hide the YoOhw Studio information (White label)</span>
+            <p class="description">Enabling this option will hide everything about us. Ex: Menu, documents, support buttons, etc.</p>
             <?php
         }
 
@@ -182,5 +181,3 @@ if (!class_exists('YoOhw_Settings_Content')) {
 
     new YoOhw_Settings_Content();
 }
-
-?>

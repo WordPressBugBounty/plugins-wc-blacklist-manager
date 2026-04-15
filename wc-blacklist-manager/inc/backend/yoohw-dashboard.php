@@ -41,193 +41,505 @@ if (!class_exists('Yo_Ohw_Menu')) {
 		}
 	
 		public function main_page() {
-			$current_user = wp_get_current_user();
-			$color_scheme = get_user_option('admin_color', $current_user->ID);
-			$color_schemes = $this->get_color_schemes();
-			$colors = $color_schemes[$color_scheme] ?? $color_schemes['fresh'];
+			$current_user   = wp_get_current_user();
+			$color_scheme   = get_user_option( 'admin_color', $current_user->ID );
+			$color_schemes  = $this->get_color_schemes();
+			$colors         = $color_schemes[ $color_scheme ] ?? $color_schemes['fresh'];
 			?>
 			<style>
-				.dashboard-container {
+				.yoohw-dashboard {
+					--yoohw-primary: <?php echo esc_attr( $colors['background'] ); ?>;
+					--yoohw-primary-text: <?php echo esc_attr( $colors['color'] ); ?>;
+					--yoohw-bg: #f6f7fb;
+					--yoohw-card: #ffffff;
+					--yoohw-border: #e2e8f0;
+					--yoohw-text: #1e293b;
+					--yoohw-muted: #64748b;
+					--yoohw-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+					--yoohw-radius: 16px;
+
+					color: var(--yoohw-text);
+					margin-top: 20px;
+					padding-right: 20px;
+				}
+
+				.yoohw-dashboard * {
+					box-sizing: border-box;
+				}
+
+				.yoohw-hero {
+					background: linear-gradient(135deg, var(--yoohw-primary) 0%, #111827 100%);
+					color: #fff;
+					border-radius: 20px;
+					padding: 32px;
+					box-shadow: var(--yoohw-shadow);
+					margin-bottom: 24px;
+					position: relative;
+					overflow: hidden;
+				}
+
+				.yoohw-hero:before {
+					content: "";
+					position: absolute;
+					top: -80px;
+					right: -80px;
+					width: 220px;
+					height: 220px;
+					background: rgba(255, 255, 255, 0.08);
+					border-radius: 50%;
+				}
+
+				.yoohw-hero:after {
+					content: "";
+					position: absolute;
+					bottom: -60px;
+					right: 80px;
+					width: 140px;
+					height: 140px;
+					background: rgba(255, 255, 255, 0.06);
+					border-radius: 50%;
+				}
+
+				.yoohw-hero__content {
+					position: relative;
+					z-index: 1;
+					max-width: 760px;
+				}
+
+				.yoohw-hero h1 {
+					margin: 0 0 10px;
+					font-size: 30px;
+					line-height: 1.2;
+					color: #fff;
+				}
+
+				.yoohw-hero p {
+					margin: 0;
+					font-size: 15px;
+					line-height: 1.7;
+					color: rgba(255,255,255,0.88);
+				}
+
+				.yoohw-hero__actions {
 					display: flex;
 					flex-wrap: wrap;
-					margin-bottom: 20px;
+					gap: 12px;
+					margin-top: 22px;
 				}
-				.dashboard, .posts-list {
-					margin-bottom: 20px;
+
+				.yoohw-btn {
+					display: inline-flex;
+					align-items: center;
+					gap: 8px;
+					padding: 12px 16px;
+					border-radius: 12px;
+					text-decoration: none;
+					font-weight: 600;
+					font-size: 14px;
+					transition: all 0.2s ease;
 				}
-				.dashboard {
-					flex: 3;
+
+				.yoohw-btn:hover {
+					transform: translateY(-1px);
+				}
+
+				.yoohw-btn--light {
+					background: #fff;
+					color: #111827;
+				}
+
+				.yoohw-btn--ghost {
+					background: rgba(255,255,255,0.12);
+					color: #fff;
+					border: 1px solid rgba(255,255,255,0.18);
+				}
+
+				.yoohw-quick-links {
+					display: grid;
+					grid-template-columns: repeat(4, minmax(0, 1fr));
+					gap: 18px;
+					margin-bottom: 28px;
+				}
+
+				.yoohw-link-card {
+					background: var(--yoohw-card);
+					border: 1px solid var(--yoohw-border);
+					border-radius: var(--yoohw-radius);
+					padding: 22px 18px;
+					box-shadow: var(--yoohw-shadow);
+					text-align: left;
+					transition: transform 0.2s ease, box-shadow 0.2s ease;
+				}
+
+				.yoohw-link-card:hover {
+					transform: translateY(-2px);
+					box-shadow: 0 14px 34px rgba(15, 23, 42, 0.12);
+				}
+
+				.yoohw-link-card__icon {
+					width: 46px;
+					height: 46px;
+					border-radius: 12px;
+					display: inline-flex;
+					align-items: center;
+					justify-content: center;
+					background: color-mix(in srgb, var(--yoohw-primary) 14%, white);
+					color: var(--yoohw-primary);
+					margin-bottom: 14px;
+				}
+
+				.yoohw-link-card__icon .dashicons {
+					font-size: 22px;
+					width: 22px;
+					height: 22px;
+				}
+
+				.yoohw-link-card h3 {
+					margin: 0 0 8px;
+					font-size: 16px;
+					line-height: 1.3;
+				}
+
+				.yoohw-link-card p {
+					margin: 0 0 14px;
+					color: var(--yoohw-muted);
+					font-size: 13px;
+					line-height: 1.6;
+				}
+
+				.yoohw-link-card a {
+					color: var(--yoohw-primary);
+					text-decoration: none;
+					font-weight: 600;
+				}
+
+				.yoohw-section {
+					margin-bottom: 32px;
+				}
+
+				.yoohw-section__header {
+					margin-bottom: 16px;
+				}
+
+				.yoohw-section__eyebrow {
+					display: inline-block;
+					margin-bottom: 8px;
+					padding: 5px 10px;
+					background: #eef2ff;
+					color: #4338ca;
+					border-radius: 999px;
+					font-size: 12px;
+					font-weight: 700;
+					letter-spacing: 0.02em;
+					text-transform: uppercase;
+				}
+
+				.yoohw-section h2 {
+					margin: 0 0 6px;
+					font-size: 24px;
+					line-height: 1.25;
+				}
+
+				.yoohw-section p {
+					margin: 0;
+					color: var(--yoohw-muted);
+					font-size: 14px;
+				}
+
+				.yoohw-products-grid {
+					display: grid;
+					grid-template-columns: repeat(4, minmax(0, 1fr));
+					gap: 20px;
+				}
+
+				.yoohw-product-card {
+					background: var(--yoohw-card);
+					border: 1px solid var(--yoohw-border);
+					border-radius: 18px;
+					box-shadow: var(--yoohw-shadow);
+					overflow: hidden;
 					display: flex;
-					padding: 10px 10px 40px;
-					border: 1px solid #ddd;
-					border-radius: 5px;
-					margin-right: 10px;
+					flex-direction: column;
+					min-height: 100%;
+					transition: transform 0.2s ease, box-shadow 0.2s ease;
 				}
-				.dashboard .column {
-					flex: 1;
-					text-align: center;
-					margin-right: 10px;
+
+				.yoohw-product-card:hover {
+					transform: translateY(-3px);
+					box-shadow: 0 16px 36px rgba(15, 23, 42, 0.12);
 				}
-				.dashboard .column:last-child {
-					margin-right: 0;
-				}
-				.dashboard .column .dashicons {
-					font-size: 100px;
-					display: contents;
-				}
-				.posts-list {
-					flex: 1;
-					border: 1px solid #ddd;
-					border-radius: 5px;
-					padding: 10px;
-				}
-				.posts-list h2 {
-					font-size: 20px;
-					font-weight: bold;
-					margin-bottom: 20px;
-				}
-				.posts-list ul {
-					list-style-type: none;
-					padding: 0;
-				}
-				.posts-list li {
-					margin-bottom: 20px;
+
+				.yoohw-product-card__media {
+					aspect-ratio: 16 / 10;
+					background: #f8fafc;
 					display: flex;
 					align-items: center;
+					justify-content: center;
+					padding: 16px;
+					border-bottom: 1px solid var(--yoohw-border);
 				}
-				.posts-list img {
-					width: 70px;
-					height: 70px;
-					margin-right: 10px;
-					border-radius: 5px;
-					object-fit: cover;
+
+				.yoohw-product-card__media img {
+					max-width: 100%;
+					max-height: 100%;
+					object-fit: contain;
 				}
-				.products-grid {
-					display: grid;
-					grid-template-columns: repeat(4, 1fr);
-					gap: 20px;
-					margin-right: 20px;
+
+				.yoohw-product-card__body {
+					padding: 18px;
+					display: flex;
+					flex-direction: column;
+					gap: 10px;
+					flex: 1;
 				}
-				@media (max-width: 768px) {
-					.dashboard, .posts-list {
-						flex: 1 0 100%;
-						margin-right: 0;
+
+				.yoohw-product-card__title {
+					margin: 0;
+					font-size: 16px;
+					line-height: 1.4;
+					min-height: 44px;
+				}
+
+				.yoohw-product-card__price {
+					margin: 0;
+					font-size: 14px;
+					color: var(--yoohw-text);
+				}
+
+				.yoohw-product-card__footer {
+					margin-top: auto;
+				}
+
+				.yoohw-price-old {
+					text-decoration: line-through;
+					color: #dc2626;
+					margin-right: 6px;
+				}
+
+				.yoohw-price-new {
+					color: #16a34a;
+					font-weight: 700;
+				}
+
+				.yoohw-product-card__btn {
+					display: inline-block;
+					width: 100%;
+					text-align: center;
+					padding: 11px 14px;
+					border-radius: 12px;
+					background: var(--yoohw-primary);
+					color: var(--yoohw-primary-text);
+					text-decoration: none;
+					font-weight: 600;
+				}
+
+				.yoohw-loading,
+				.yoohw-empty {
+					background: #fff;
+					border: 1px dashed var(--yoohw-border);
+					border-radius: 16px;
+					padding: 28px;
+					text-align: center;
+					color: var(--yoohw-muted);
+				}
+
+				@media (max-width: 1280px) {
+					.yoohw-quick-links,
+					.yoohw-products-grid {
+						grid-template-columns: repeat(2, minmax(0, 1fr));
 					}
-					.dashboard .column {
-						margin-right: 0;
-						margin-bottom: 10px;
+				}
+
+				@media (max-width: 782px) {
+					.yoohw-dashboard {
+						padding-right: 10px;
 					}
-					.products-grid {
-						grid-template-columns: repeat(2, 1fr);
+
+					.yoohw-hero {
+						padding: 24px 20px;
+					}
+
+					.yoohw-hero h1 {
+						font-size: 24px;
+					}
+
+					.yoohw-quick-links,
+					.yoohw-products-grid {
+						grid-template-columns: 1fr;
 					}
 				}
 			</style>
-		
-			<div class="wrap">
-				<h1>Welcome to YoOhw Studio Dashboard!</h1>
-				<p>Keep updated and explore our works from here.</p>
-				<div class="dashboard-container">
-					<div class="dashboard">
-						<?php echo wp_kses_post( $this->generate_dashboard_links( $colors ) ); ?>
+
+			<div class="wrap yoohw-dashboard">
+				<section class="yoohw-hero">
+					<div class="yoohw-hero__content">
+						<h1>Welcome to YoOhw Studio</h1>
+						<p>
+							Manage your tools, explore our products, access documentation, and get support from one clean dashboard.
+						</p>
+
+						<div class="yoohw-hero__actions">
+							<a class="yoohw-btn yoohw-btn--light" href="https://yoohw.com" target="_blank" rel="noopener noreferrer">
+								<span class="dashicons dashicons-admin-site-alt3"></span>
+								Visit homepage
+							</a>
+							<a class="yoohw-btn yoohw-btn--ghost" href="https://yoohw.com/docs" target="_blank" rel="noopener noreferrer">
+								<span class="dashicons dashicons-portfolio"></span>
+								View documentation
+							</a>
+						</div>
 					</div>
-				</div>
-		
-				<h2 style="font-size: 20px; font-weight: bold; margin-bottom: 20px;">Our products</h2>
-				<p>All products come with a free version and work together effortlessly.</p>
+				</section>
 
-				<h3>For WooCommerce</h3>
-				<div class="products-grid" id="products-grid-woocommerce">
-					<p>Loading products...</p>
+				<div class="yoohw-quick-links">
+					<?php echo wp_kses_post( $this->generate_dashboard_links() ); ?>
 				</div>
 
-				<h3>For WordPress</h3>
-				<div class="products-grid" id="products-grid-wordpress">
-					<p>Loading products...</p>
-				</div>
+				<section class="yoohw-section">
+					<div class="yoohw-section__header">
+						<span class="yoohw-section__eyebrow">Products</span>
+						<h2>For WooCommerce</h2>
+						<p>Powerful tools designed to work smoothly together for WooCommerce stores.</p>
+					</div>
+					<div class="yoohw-products-grid" id="products-grid-woocommerce">
+						<div class="yoohw-loading">Loading products...</div>
+					</div>
+				</section>
+
+				<section class="yoohw-section">
+					<div class="yoohw-section__header">
+						<span class="yoohw-section__eyebrow">Products</span>
+						<h2>For WordPress</h2>
+						<p>Useful extensions and utilities built for WordPress-powered websites.</p>
+					</div>
+					<div class="yoohw-products-grid" id="products-grid-wordpress">
+						<div class="yoohw-loading">Loading products...</div>
+					</div>
+				</section>
 			</div>
-		
+
 			<script>
-			// Pass PHP colors to JavaScript
-			var colors = {
-				background: '<?php echo esc_attr($colors['background']); ?>',
-				color: '<?php echo esc_attr($colors['color']); ?>'
-			};
+				document.addEventListener('DOMContentLoaded', function () {
+					function loadProducts(categoryId, gridSelector) {
+						var grid = document.querySelector(gridSelector);
 
-			// Wait for the DOM to load
-			document.addEventListener('DOMContentLoaded', function(){
-
-				// Helper to fetch and render a category into a given grid
-				function loadProducts(categoryId, gridSelector) {
-					var grid = document.querySelector(gridSelector);
-					grid.innerHTML = '<p>Loading products...</p>';
-
-					fetch("https://yoohw.com/wp-json/yoohw/v1/products?category=" + categoryId)
-					.then(function(response) {
-						return response.json();
-					})
-					.then(function(products) {
-						grid.innerHTML = '';
-						products.forEach(function(product) {
-							grid.innerHTML += generateProductCard(product, colors);
-						});
-						// Ensure always 4 columns
-						var additionalCount = 4 - products.length;
-						for (var i = 0; i < additionalCount; i++) {
-							grid.innerHTML += '<div style="box-sizing:border-box; padding:10px; border:1px solid #ddd; border-radius:5px; visibility:hidden;"></div>';
+						if (!grid) {
+							return;
 						}
-					})
-					.catch(function() {
-						grid.innerHTML = '<div class="error"><p>No additional products found.</p></div>';
-					});
-				}
 
-				// Load WooCommerce (category 17)
-				loadProducts(17, '#products-grid-woocommerce');
+						grid.innerHTML = '<div class="yoohw-loading">Loading products...</div>';
 
-				// Load WordPress (category 70)
-				loadProducts(70, '#products-grid-wordpress');
+						fetch('https://yoohw.com/wp-json/yoohw/v1/products?category=' + encodeURIComponent(categoryId))
+							.then(function (response) {
+								if (!response.ok) {
+									throw new Error('Failed to load');
+								}
+								return response.json();
+							})
+							.then(function (products) {
+								if (!Array.isArray(products) || !products.length) {
+									grid.innerHTML = '<div class="yoohw-empty">No products found.</div>';
+									return;
+								}
 
-			});
-
-			function generateProductCard(product, colors) {
-				var image = '';
-				if (product.images && product.images.length > 0) {
-					image = '<a href="' + product.permalink + '" target="_blank">' +
-								'<img src="' + product.images[0].src + '" alt="' + product.name + '" style="max-width:100%; height:auto; margin-bottom:10px;">' +
-							'</a>';
-				}
-
-				var price_info = getProductPrice(product);
-
-				return '<div style="box-sizing:border-box; padding:10px 10px 20px; background-color: #fff; border:1px solid #ddd; border-radius:5px; text-align:center;">' +
-						image +
-						'<h3 style="font-size:16px; margin-bottom:10px;">' + product.name + '</h3>' +
-						'<p style="font-size:14px; margin-bottom:10px;">Price: ' + price_info + '</p>' +
-						'<a href="' + product.permalink + '" target="_blank" style="display:inline-block; padding:5px 10px; background-color:' + colors.background + '; color:' + colors.color + '; text-decoration:none; border-radius:5px;">View details</a>' +
-					'</div>';
-			}
-
-			function getProductPrice(product) {
-				var currency = '$';
-				if (product.type === 'variable' || product.type === 'variable-subscription' || product.type === 'subscription') {
-					return product.price_data ? product.price_data : 'Price unavailable';
-				} else {
-					if (!product.regular_price || product.regular_price == 0) {
-						return 'Free';
+								grid.innerHTML = products.map(function (product) {
+									return generateProductCard(product);
+								}).join('');
+							})
+							.catch(function () {
+								grid.innerHTML = '<div class="yoohw-empty">Unable to load products right now.</div>';
+							});
 					}
-					if (product.sale_price) {
-						return '<span style="text-decoration:line-through; color:red;">' + currency + product.regular_price + '</span> ' +
-							'<span style="color:green;">' + currency + product.sale_price + '</span>';
-					} else {
+
+					function generateProductCard(product) {
+						var image = '';
+						if (product.images && product.images.length > 0 && product.images[0].src) {
+							image =
+								'<a class="yoohw-product-card__media" href="' + escapeHtmlAttr(product.permalink) + '" target="_blank" rel="noopener noreferrer">' +
+									'<img src="' + escapeHtmlAttr(product.images[0].src) + '" alt="' + escapeHtmlAttr(product.name) + '">' +
+								'</a>';
+						} else {
+							image = '<div class="yoohw-product-card__media"></div>';
+						}
+
+						return '' +
+							'<article class="yoohw-product-card">' +
+								image +
+								'<div class="yoohw-product-card__body">' +
+									'<h3 class="yoohw-product-card__title">' + escapeHtml(product.name || '') + '</h3>' +
+									'<p class="yoohw-product-card__price">' + getProductPrice(product) + '</p>' +
+									'<div class="yoohw-product-card__footer">' +
+										'<a class="yoohw-product-card__btn" href="' + escapeHtmlAttr(product.permalink) + '" target="_blank" rel="noopener noreferrer">View details</a>' +
+									'</div>' +
+								'</div>' +
+							'</article>';
+					}
+
+					function getProductPrice(product) {
+						var currency = '$';
+
+						// Handle variable / subscription products
+						if (
+							product.type === 'variable' ||
+							product.type === 'variable-subscription' ||
+							product.type === 'subscription'
+						) {
+							if (product.price_data) {
+								var prices = extractPrices(product.price_data);
+
+								if (prices.length) {
+									var minPrice = Math.min.apply(null, prices);
+									return 'From ' + currency + minPrice + ' / year';
+								}
+							}
+
+							return 'Price unavailable';
+						}
+
+						// Simple products
+						if (!product.regular_price || product.regular_price == 0) {
+							return 'Free';
+						}
+
+						if (product.sale_price) {
+							return '<span class="yoohw-price-old">' + currency + product.regular_price + '</span>' +
+								'<span class="yoohw-price-new">' + currency + product.sale_price + '</span>';
+						}
+
 						return currency + product.regular_price;
 					}
-				}
-			}
-			</script>
 
+					function extractPrices(priceData) {
+						// Extract all numbers from string like "$149 - $1499"
+						var matches = priceData.match(/[\d,.]+/g);
+
+						if (!matches) return [];
+
+						return matches.map(function (price) {
+							return parseFloat(price.replace(/,/g, ''));
+						});
+					}
+
+					function escapeHtml(value) {
+						return String(value)
+							.replace(/&/g, '&amp;')
+							.replace(/</g, '&lt;')
+							.replace(/>/g, '&gt;')
+							.replace(/"/g, '&quot;')
+							.replace(/'/g, '&#039;');
+					}
+
+					function escapeHtmlAttr(value) {
+						return escapeHtml(value || '');
+					}
+
+					loadProducts(17, '#products-grid-woocommerce');
+					loadProducts(70, '#products-grid-wordpress');
+				});
+			</script>
 			<?php
-		}		
-	
+		}	
+			
 		private function get_color_schemes() {
 			return [
 				'fresh' => ['background' => '#0073aa', 'color' => '#fff'],
@@ -240,18 +552,51 @@ if (!class_exists('Yo_Ohw_Menu')) {
 				'sunrise' => ['background' => '#dd823b', 'color' => '#fff'],
 			];
 		}
-	
-		private function generate_dashboard_links($colors) {
-			return '
-				<div class="column"><p><span class="dashicons dashicons-superhero"></span></p>
-				<a href="https://yoohw.com" target="_blank" style="display: inline-block; padding: 10px; background-color: ' . esc_attr($colors['background']) . '; color: ' . esc_attr($colors['color']) . '; text-decoration: none; border-radius: 5px;">Our homepage</a></div>
-				<div class="column"><p><span class="dashicons dashicons-sos"></span></p>
-				<a href="https://yoohw.com/support" target="_blank" style="display: inline-block; padding: 10px; background-color: ' . esc_attr($colors['background']) . '; color: ' . esc_attr($colors['color']) . '; text-decoration: none; border-radius: 5px;">Support center</a></div>
-				<div class="column"><p><span class="dashicons dashicons-portfolio"></span></p>
-				<a href="https://yoohw.com/docs" target="_blank" style="display: inline-block; padding: 10px; background-color: ' . esc_attr($colors['background']) . '; color: ' . esc_attr($colors['color']) . '; text-decoration: none; border-radius: 5px;">Documentation</a></div>
-				<div class="column"><p><span class="dashicons dashicons-email"></span></p>
-				<a href="https://yoohw.com/contact-us" target="_blank" style="display: inline-block; padding: 10px; background-color: ' . esc_attr($colors['background']) . '; color: ' . esc_attr($colors['color']) . '; text-decoration: none; border-radius: 5px;">Contact us</a></div>';
-				
+			
+		private function generate_dashboard_links() {
+			$cards = [
+				[
+					'icon'        => 'dashicons-admin-site-alt3',
+					'title'       => 'Our Homepage',
+					'description' => 'Visit YoOhw Studio and explore our latest products and updates.',
+					'url'         => 'https://yoohw.com',
+					'label'       => 'Visit website',
+				],
+				[
+					'icon'        => 'dashicons-sos',
+					'title'       => 'Support Center',
+					'description' => 'Get help, open a ticket, and find answers faster.',
+					'url'         => 'https://yoohw.com/support',
+					'label'       => 'Get support',
+				],
+				[
+					'icon'        => 'dashicons-portfolio',
+					'title'       => 'Documentation',
+					'description' => 'Browse setup guides, tutorials, and product documentation.',
+					'url'         => 'https://yoohw.com/docs',
+					'label'       => 'Read docs',
+				],
+				[
+					'icon'        => 'dashicons-email-alt',
+					'title'       => 'Contact Us',
+					'description' => 'Reach out to our team for questions, feedback, or partnerships.',
+					'url'         => 'https://yoohw.com/contact-us',
+					'label'       => 'Contact team',
+				],
+			];
+
+			$output = '';
+
+			foreach ( $cards as $card ) {
+				$output .= '<div class="yoohw-link-card">';
+				$output .= '<div class="yoohw-link-card__icon"><span class="dashicons ' . esc_attr( $card['icon'] ) . '"></span></div>';
+				$output .= '<h3>' . esc_html( $card['title'] ) . '</h3>';
+				$output .= '<p>' . esc_html( $card['description'] ) . '</p>';
+				$output .= '<a href="' . esc_url( $card['url'] ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $card['label'] ) . '</a>';
+				$output .= '</div>';
+			}
+
+			return $output;
 		}
 	}
 

@@ -312,21 +312,21 @@ class WC_Blacklist_Manager_Alert {
 	 * Core gating
 	 * ======================================================= */
 
-private function base_notice_gates_pass(): bool {
-	if ( ! class_exists( 'WooCommerce' ) ) {
-		return false;
-	}
+	private function base_notice_gates_pass(): bool {
+		if ( ! class_exists( 'WooCommerce' ) ) {
+			return false;
+		}
 
-	if ( ! current_user_can( 'manage_options' ) ) {
-		return false;
-	}
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return false;
+		}
 
-	if ( $this->premium_is_activated() ) {
-		return false;
-	}
+		if ( $this->premium_is_activated() ) {
+			return false;
+		}
 
-	return true;
-}
+		return true;
+	}
 
 	/* =========================================================
 	 * Bot signal analysis

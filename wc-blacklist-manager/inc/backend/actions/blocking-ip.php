@@ -12,23 +12,6 @@ class WC_Blacklist_Manager_IP_Blacklisted {
 		add_filter('registration_errors', [$this, 'prevent_blocked_ip_registration'], 10, 3);
 		add_filter('woocommerce_registration_errors', [$this, 'prevent_blocked_ip_registration_woocommerce'], 10, 3);
 		add_filter('preprocess_comment', [$this, 'prevent_comment'], 10, 1);
-	}
-
-	private function get_the_user_ip() {
-		if (!empty($_SERVER['HTTP_CF_CONNECTING_IP'])) {
-			// Cloudflare connecting IP
-			$ip = $_SERVER['HTTP_CF_CONNECTING_IP'];
-		} elseif (!empty($_SERVER['HTTP_CLIENT_IP'])) {
-			// Client IP
-			$ip = $_SERVER['HTTP_CLIENT_IP'];
-		} elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-			// X-Forwarded-For header
-			$ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
-		} else {
-			// Remote address
-			$ip = $_SERVER['REMOTE_ADDR'];
-		}
-		return sanitize_text_field($ip);
 	}	
 
 	public function check_customer_ip_against_blacklist() {
@@ -42,13 +25,7 @@ class WC_Blacklist_Manager_IP_Blacklisted {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'wc_blacklist';
 
-		if ( $premium_active ) {
-			$user_ip = function_exists('get_real_customer_ip')
-				? get_real_customer_ip()
-				: ( $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0' );
-		} else {
-			$user_ip = $this->get_the_user_ip();
-		}
+		$user_ip = get_real_customer_ip();
 			
 		if ( empty( $user_ip ) ) {
 			return;
@@ -120,7 +97,7 @@ class WC_Blacklist_Manager_IP_Blacklisted {
 
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'wc_blacklist';
-		$user_ip    = $this->get_the_user_ip();
+		$user_ip    = get_real_customer_ip();
 
 		if ( empty( $user_ip ) ) {
 			return;
@@ -195,7 +172,7 @@ class WC_Blacklist_Manager_IP_Blacklisted {
 
 			global $wpdb;
 			$table_name = $wpdb->prefix . 'wc_blacklist';
-			$user_ip = $this->get_the_user_ip();
+			$user_ip = get_real_customer_ip();
 
 			if (empty($user_ip)) {
 				$errors->add('ip_error', __('Error retrieving IP address.', 'wc-blacklist-manager'));
@@ -263,7 +240,7 @@ class WC_Blacklist_Manager_IP_Blacklisted {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'wc_blacklist';
 
-		$user_ip = $this->get_the_user_ip();
+		$user_ip = get_real_customer_ip();
 
 		if ( ! empty( $user_ip ) ) {
 			$is_blocked = (bool) $wpdb->get_var(

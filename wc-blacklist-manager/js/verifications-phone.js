@@ -1,172 +1,236 @@
-jQuery(function($){
-  var resendCooldown      = wc_blacklist_manager_verification_data.resendCooldown;
+jQuery(function ($) {
+  var cfg = window.wc_blacklist_manager_phone_verification_data || {};
+  var resendCooldown = parseInt(cfg.resendCooldown, 10) || 60;
+  var resendTimer = null;
   var resendButtonEnabled = false;
+  var phoneVerified = false;
 
-  // 1) Utility to disable/enable the place order button
   function disablePlaceOrderButton() {
     $('form.checkout #place_order').prop('disabled', true).addClass('disabled');
   }
+
   function enablePlaceOrderButton() {
     $('form.checkout #place_order').prop('disabled', false).removeClass('disabled');
   }
 
-  // 2) Countdown for resend
-  function startCountdown(){
+  function getBillingData() {
+    return {
+      billing_first_name: $('input[name="billing_first_name"]').val() || '',
+      billing_last_name: $('input[name="billing_last_name"]').val() || '',
+      billing_address_1: $('input[name="billing_address_1"]').val() || '',
+      billing_address_2: $('input[name="billing_address_2"]').val() || '',
+      billing_city: $('input[name="billing_city"]').val() || '',
+      billing_state: $('select[name="billing_state"]').val() || $('input[name="billing_state"]').val() || '',
+      billing_postcode: $('input[name="billing_postcode"]').val() || '',
+      billing_country: $('select[name="billing_country"]').val() || '',
+      billing_email: $('input[name="billing_email"]').val() || '',
+      billing_phone: $('input[name="billing_phone"]').val() || '',
+      billing_dial_code: $('#billing_dial_code').val() || $('input[name="billing_dial_code"]').val() || ''
+    };
+  }
+
+  function startCountdown(seconds) {
+    clearInterval(resendTimer);
+
+    var timeLeft = typeof seconds === 'number' ? seconds : resendCooldown;
+    resendButtonEnabled = false;
+
     $('#resend_timer').show();
     $('#resend_button').hide();
-    var timeLeft = resendCooldown;
-    var timer = setInterval(function(){
-      if (timeLeft <= 0){
-        clearInterval(timer);
+
+    resendTimer = setInterval(function () {
+      if (timeLeft <= 0) {
+        clearInterval(resendTimer);
         $('#resend_timer').hide();
         $('#resend_button').show();
         resendButtonEnabled = true;
-      } else {
-        $('#resend_timer').text(
-          wc_blacklist_manager_verification_data.resend_in_label
-          + ' ' + timeLeft
-          + ' ' + wc_blacklist_manager_verification_data.seconds_label
-        );
-        timeLeft--;
+        return;
       }
+
+      $('#resend_timer').text(
+        cfg.resend_in_label + ' ' + timeLeft + ' ' + cfg.seconds_label
+      );
+
+      timeLeft--;
     }, 1000);
   }
 
-  // 3) Inject the verification form and wire up buttons
-  function handlePhoneVerification(){
+  function removeVerificationUI() {
+    $('.yobm-phone-verification-error').closest('.woocommerce-error, .woocommerce-NoticeGroup, li, div').remove();
+    $('.yobm-phone-verify-form').remove();
+    $('#phone_verification_message').remove();
+  }
+
+  function ensureVerificationUI() {
+    if (phoneVerified) {
+      enablePlaceOrderButton();
+      return;
+    }
+
     var $error = $('.yobm-phone-verification-error');
-    if ($error.length === 0) {
-      // no error on page: nothing to do
+    if (!$error.length) {
       return;
     }
 
     disablePlaceOrderButton();
 
-    // Append form if not already present
-    if ($error.find('.yobm-verify-form').length === 0){
-      $error.append('\
-        <div class="yobm-verify-form">\
-          <input type="text" id="verification_code" name="verification_code"\
-                 placeholder="'+ wc_blacklist_manager_verification_data.enter_code_placeholder +'"\
-                 style="max-width:120px;margin-top:10px;" />\
-          <button type="button" id="resend_button" class="button" style="display:none;">\
-            '+ wc_blacklist_manager_verification_data.resend_button_label +'\
-          </button>\
-          <button type="button" id="submit_verification_code" class="button">\
-            '+ wc_blacklist_manager_verification_data.verify_button_label +'\
-          </button>\
-          <div id="resend_timer"></div>\
-        </div>\
-        <div id="verification_message" style="display:none;"></div>'
-      );
-      startCountdown();
+    if ($error.find('.yobm-phone-verify-form').length) {
+      $error.find('.yobm-phone-verify-form').show();
+      return;
     }
 
-    // Wire up “Verify” click
-    $('#submit_verification_code').off('click').on('click', function(){
-      var code = $('#verification_code').val().trim();
-      if (! code){
-        alert(wc_blacklist_manager_verification_data.enter_code_alert);
+    var html =
+      '<div class="yobm-phone-verify-form">' +
+        '<input type="text" id="phone_verification_code" name="phone_verification_code" ' +
+          'placeholder="' + cfg.enter_code_placeholder + '" style="max-width:120px;margin-top:10px;" /> ' +
+        '<button type="button" id="resend_button" class="button" style="display:none;">' +
+          cfg.resend_button_label +
+        '</button> ' +
+        '<button type="button" id="submit_phone_verification_code" class="button">' +
+          cfg.verify_button_label +
+        '</button>' +
+        '<div id="resend_timer" style="margin-top:8px;"></div>' +
+      '</div>' +
+      '<div id="phone_verification_message" style="display:none;margin-top:8px;"></div>';
+
+    $error.append(html);
+    startCountdown();
+  }
+
+  function showVerificationMessage(message, isSuccess) {
+    var $message = $('#phone_verification_message');
+    $message.text(message).show();
+
+    if (isSuccess) {
+      $message.removeClass('yobm-error').addClass('yobm-message');
+    } else {
+      $message.removeClass('yobm-message').addClass('yobm-error');
+    }
+  }
+
+  function submitCheckoutAfterVerification() {
+    var $form = $('form.checkout');
+
+    enablePlaceOrderButton();
+
+    if ($form.length) {
+      $form.trigger('submit');
+      return;
+    }
+
+    $('#place_order').trigger('click');
+  }
+
+  $(document.body).on('click', '#submit_phone_verification_code', function () {
+    var code = $.trim($('#phone_verification_code').val());
+
+    if (!code) {
+      alert(cfg.enter_code_alert);
+      return;
+    }
+
+    var data = $.extend({}, getBillingData(), {
+      action: 'verify_phone_code',
+      code: code,
+      security: cfg.nonce
+    });
+
+    $.post(cfg.ajax_url, data, function (resp) {
+      if (!resp || !resp.data) {
+        showVerificationMessage(cfg.code_resend_failed_message, false);
         return;
       }
-      // gather billing data...
-      var billingData = {
-        billing_first_name: $('input[name="billing_first_name"]').val()||'',
-        billing_last_name:  $('input[name="billing_last_name"]').val()||'',
-        billing_address_1: $('input[name="billing_address_1"]').val()||'',
-        billing_address_2: $('input[name="billing_address_2"]').val()||'',
-        billing_city:     $('input[name="billing_city"]').val()||'',
-        billing_state:    $('select[name="billing_state"]').val()||'',
-        billing_postcode: $('input[name="billing_postcode"]').val()||'',
-        billing_country:  $('select[name="billing_country"]').val()||'',
-        billing_email:    $('input[name="billing_email"]').val()||'',
-        billing_phone:    $('input[name="billing_phone"]').val()||'',
-        billing_dial_code: $('#billing_dial_code').val()||''
-      };
-      $.post(
-        wc_blacklist_manager_verification_data.ajax_url,
-        $.extend({
-          action:   'verify_phone_code',
-          code:     code,
-          security: wc_blacklist_manager_verification_data.nonce
-        }, billingData),
-        function(resp){
-          if (resp.success){
-            $('#verification_message').text(resp.data.message).show();
-            enablePlaceOrderButton();
-            // auto-submit after a second
-            setTimeout(function(){ $('#place_order').trigger('click'); }, 1000);
-          } else {
-            $('#verification_message').text(resp.data.message).show();
-          }
-        }
-      );
-    });
 
-    // Wire up “Resend” click
-    $('#resend_button').off('click').on('click', function(){
-      if (! resendButtonEnabled) return;
-      var phoneData = {
-        billing_phone:   $('input[name="billing_phone"]').val()||'',
-        billing_country: $('select[name="billing_country"]').val()||''
-      };
-      $.post(
-        wc_blacklist_manager_verification_data.ajax_url,
-        {
-          action:   'resend_phone_verification_code',
-          security: wc_blacklist_manager_verification_data.nonce
-        },
-        function(resp){
-          if (resp.success){
-            $('#verification_message')
-              .text(wc_blacklist_manager_verification_data.code_resent_message)
-              .show();
-            startCountdown();
-          } else {
-            var msg = resp.data && resp.data.message
-              ? resp.data.message
-              : wc_blacklist_manager_verification_data.code_resend_failed_message;
-            $('#verification_message').text(msg).show();
-          }
-        }
-      );
-    });
-  }
+      showVerificationMessage(resp.data.message, !!resp.success);
 
-  // 4) Observe for errors injected later
-  function observeForPhoneVerificationError(){
-    var obs = new MutationObserver(function(muts, o){
-      if ($('.yobm-phone-verification-error').length){
-        o.disconnect();
-        handlePhoneVerification();
+      if (resp.success) {
+        phoneVerified = true;
+        clearInterval(resendTimer);
+        removeVerificationUI();
+
+        setTimeout(function () {
+          submitCheckoutAfterVerification();
+        }, 300);
+      } else {
+        phoneVerified = false;
+        disablePlaceOrderButton();
       }
+    }).fail(function () {
+      showVerificationMessage(cfg.code_resend_failed_message, false);
+      phoneVerified = false;
+      disablePlaceOrderButton();
     });
-    obs.observe(document.body, { childList: true, subtree: true });
-  }
-
-  // 5) Always run on page load
-  observeForPhoneVerificationError();
-  handlePhoneVerification();
-
-  // 6) Also catch AJAX-driven failures
-  $(document.body).on('checkout_error', function(){
-    handlePhoneVerification();
   });
 
-  // 7) Poll for “failed” status if you still need it
-  setInterval(function(){
-    $.post(
-      wc_blacklist_manager_verification_data.ajax_url,
-      {
-        action:   'check_sms_verification_status',
-        security: wc_blacklist_manager_verification_data.nonce
-      },
-      function(resp){
-        if (resp.success && resp.data && resp.data.failed){
-          alert(wc_blacklist_manager_verification_data.verification_failed_message);
-          location.reload();
-        }
+  $(document.body).on('click', '#resend_button', function () {
+    if (!resendButtonEnabled) {
+      return;
+    }
+
+    var data = $.extend({}, getBillingData(), {
+      action: 'resend_phone_verification_code',
+      security: cfg.nonce
+    });
+
+    $.post(cfg.ajax_url, data, function (resp) {
+      if (!resp || !resp.data) {
+        showVerificationMessage(cfg.code_resend_failed_message, false);
+        return;
       }
-    );
+
+      if (resp.success) {
+        showVerificationMessage(resp.data.message, true);
+        startCountdown();
+      } else {
+        if (resp.data.remaining) {
+          startCountdown(parseInt(resp.data.remaining, 10));
+        }
+        showVerificationMessage(resp.data.message || cfg.code_resend_failed_message, false);
+      }
+    }).fail(function () {
+      showVerificationMessage(cfg.code_resend_failed_message, false);
+    });
+  });
+
+  function observeForPhoneVerificationError() {
+    var observer = new MutationObserver(function () {
+      if (phoneVerified) {
+        return;
+      }
+
+      if ($('.yobm-phone-verification-error').length) {
+        ensureVerificationUI();
+      }
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+  }
+
+  ensureVerificationUI();
+  observeForPhoneVerificationError();
+
+  $(document.body).on('checkout_error updated_checkout', function () {
+    if (!phoneVerified) {
+      ensureVerificationUI();
+    }
+  });
+
+  $(document.body).on('change input', 'input[name="billing_phone"], #billing_dial_code, input[name="billing_dial_code"], select[name="billing_country"]', function () {
+    phoneVerified = false;
+  });
+
+  setInterval(function () {
+    $.post(cfg.ajax_url, {
+      action: 'check_sms_verification_status',
+      security: cfg.nonce
+    }, function (resp) {
+      if (resp.success && resp.data && resp.data.failed) {
+        alert(cfg.verification_failed_message);
+        location.reload();
+      }
+    });
   }, 3000);
 });

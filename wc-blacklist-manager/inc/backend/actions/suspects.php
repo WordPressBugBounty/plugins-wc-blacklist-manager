@@ -65,9 +65,11 @@ class WC_Blacklist_Manager_Suspicious_Actions {
 		$shipping_last_name  = sanitize_text_field( $order->get_shipping_last_name() );
 		$shipping_full_name  = trim( $shipping_first_name . ' ' . $shipping_last_name );
 
-		$phone          = sanitize_text_field( $order->get_billing_phone() );
+		$billing_phone  = sanitize_text_field( $order->get_billing_phone() );
 		$shipping_phone = sanitize_text_field( $order->get_shipping_phone() );
+		
 		$email          = sanitize_email( $order->get_billing_email() );
+		$device_id      = $this->get_order_device_id( $order );
 		$user_ip        = sanitize_text_field( $order->get_customer_ip_address() );
 		$order_edit_url = admin_url( 'post.php?post=' . absint( $order_id ) . '&action=edit' );
 
@@ -104,12 +106,13 @@ class WC_Blacklist_Manager_Suspicious_Actions {
 		$send_email = false;
 		$reasons    = array();
 		$view_data  = array(
+			'device_id'           => $device_id,
 			'ip_address'          => $user_ip,
 			'first_name'          => $first_name,
 			'last_name'           => $last_name,
 			'shipping_first_name' => $shipping_first_name,
 			'shipping_last_name'  => $shipping_last_name,
-			'phone'               => $phone,
+			'phone'               => $billing_phone,
 		);
 
 		if ( ! empty( $shipping_phone ) ) {
@@ -125,10 +128,10 @@ class WC_Blacklist_Manager_Suspicious_Actions {
 
 		// Phone.
 		$phones_to_check = array();
-		if ( ! empty( $phone ) ) {
-			$phones_to_check['billing'] = $phone;
+		if ( ! empty( $billing_phone ) ) {
+			$phones_to_check['billing'] = $billing_phone;
 		}
-		if ( ! empty( $shipping_phone ) && $shipping_phone !== $phone ) {
+		if ( ! empty( $shipping_phone ) && $shipping_phone !== $billing_phone ) {
 			$phones_to_check['shipping'] = $shipping_phone;
 		}
 
@@ -162,8 +165,8 @@ class WC_Blacklist_Manager_Suspicious_Actions {
 			}
 		}
 
-		if ( ! in_array( $phone, $phones_matched, true ) ) {
-			$phone = '';
+		if ( ! in_array( $billing_phone, $phones_matched, true ) ) {
+			$billing_phone = '';
 		}
 		if ( ! in_array( $shipping_phone, $phones_matched, true ) ) {
 			$shipping_phone = '';
@@ -282,6 +285,32 @@ class WC_Blacklist_Manager_Suspicious_Actions {
 			}
 		} else {
 			$user_ip = '';
+		}
+
+		// Device identity.
+		if ( $premium_active && ! empty( $device_id ) && '1' === (string) get_option( 'wc_blacklist_enable_device_identity', '0' ) ) {
+			$sql_device = $wpdb->prepare(
+				"SELECT 1
+				FROM {$table_name}
+				WHERE device_id = %s
+				AND is_blocked = 0
+				LIMIT 1",
+				$device_id
+			);
+
+			$device_suspected = ! empty( $wpdb->get_var( $sql_device ) );
+
+			if ( $device_suspected ) {
+				$send_email = true;
+				$reasons[]  = 'suspected_device_attempt: ' . $device_id;
+
+				update_option( 'wc_blacklist_sum_block_device', (int) get_option( 'wc_blacklist_sum_block_device', 0 ) + 1 );
+				update_option( 'wc_blacklist_sum_block_total', (int) get_option( 'wc_blacklist_sum_block_total', 0 ) + 1 );
+			} else {
+				$device_id = '';
+			}
+		} else {
+			$device_id = '';
 		}
 
 		// Address checks.
@@ -445,7 +474,7 @@ class WC_Blacklist_Manager_Suspicious_Actions {
 		}
 
 		if ( $send_email ) {
-			$phones_to_email = array_filter( array_unique( array( $phone, $shipping_phone ) ) );
+			$phones_to_email = array_filter( array_unique( array( $billing_phone, $shipping_phone ) ) );
 			$phone_for_email = implode( ', ', $phones_to_email );
 
 			$email_sender = new WC_Blacklist_Manager_Email();
@@ -457,7 +486,8 @@ class WC_Blacklist_Manager_Suspicious_Actions {
 				$user_ip,
 				$customer_address,
 				$shipping_address_display,
-				$order_edit_url
+				$order_edit_url,
+				$device_id
 			);
 		}
 	}
@@ -557,6 +587,33 @@ class WC_Blacklist_Manager_Suspicious_Actions {
 		}
 
 		return false;
+	}
+
+	private function get_order_device_id( WC_Order $order ): string {
+		$settings_instance = new WC_Blacklist_Manager_Settings();
+		$premium_active    = $settings_instance->is_premium_active();
+
+		if ( ! $premium_active ) {
+			return '';
+		}
+
+		if ( '1' !== (string) get_option( 'wc_blacklist_enable_device_identity', '0' ) ) {
+			return '';
+		}
+
+		$device_id = (string) $order->get_meta( '_wc_bm_device_id', true );
+
+		if ( empty( $device_id ) ) {
+			return '';
+		}
+
+		$device_id = sanitize_text_field( $device_id );
+
+		if ( ! preg_match( '/^[a-f0-9]{32,64}$/', $device_id ) ) {
+			return '';
+		}
+
+		return $device_id;
 	}
 }
 

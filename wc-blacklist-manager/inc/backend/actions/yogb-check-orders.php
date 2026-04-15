@@ -42,7 +42,9 @@ final class YOGB_BM_Check_Orders {
 	 */
 	public static function init() : void {
 		$enabled = (int) get_option( 'wc_blacklist_enable_global_blacklist', 0 );
-		if ( 1 !== $enabled ) {
+		$development_mode = (int) get_option( 'wc_blacklist_development_mode', '1' );
+
+		if ( 1 !== $enabled || 1 === $development_mode ) {
 			return;
 		}
 

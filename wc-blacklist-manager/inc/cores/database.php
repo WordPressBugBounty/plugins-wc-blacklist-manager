@@ -7,17 +7,21 @@ if (!defined('ABSPATH')) {
 class WC_Blacklist_Manager_DB {
 	private $blacklist_table_name;
 	private $blacklist_addresses_table_name;
+	private $blacklist_devices_table_name;
+	private $blacklist_device_links_table_name;
 	private $whitelist_table_name;
 	private $detection_log_table_name;
 	private $version;
 
 	public function __construct() {
 		global $wpdb;
-		$this->blacklist_table_name           = $wpdb->prefix . 'wc_blacklist';
-		$this->blacklist_addresses_table_name = $wpdb->prefix . 'wc_blacklist_addresses';
-		$this->whitelist_table_name           = $wpdb->prefix . 'wc_whitelist';
-		$this->detection_log_table_name       = $wpdb->prefix . 'wc_blacklist_detection_log';
-		$this->version                        = WC_BLACKLIST_MANAGER_VERSION;
+		$this->blacklist_table_name              = $wpdb->prefix . 'wc_blacklist';
+		$this->blacklist_addresses_table_name    = $wpdb->prefix . 'wc_blacklist_addresses';
+		$this->blacklist_devices_table_name      = $wpdb->prefix . 'wc_blacklist_devices';
+		$this->blacklist_device_links_table_name = $wpdb->prefix . 'wc_blacklist_device_links';
+		$this->whitelist_table_name              = $wpdb->prefix . 'wc_whitelist';
+		$this->detection_log_table_name          = $wpdb->prefix . 'wc_blacklist_detection_log';
+		$this->version                           = WC_BLACKLIST_MANAGER_VERSION;
 
 		register_activation_hook( WC_BLACKLIST_MANAGER_PLUGIN_FILE, [ $this, 'activate' ] );
 		add_action( 'admin_init', [ $this, 'check_version' ] );
@@ -31,6 +35,9 @@ class WC_Blacklist_Manager_DB {
 		$this->install_count_options();
 		$this->create_trigger();
 		$this->create_delete_trigger();
+		$this->create_address_insert_trigger();
+		$this->create_address_delete_trigger();
+		$this->create_address_update_trigger();
 
 		update_option( 'wc_blacklist_manager_version', $this->version );
 
@@ -68,6 +75,9 @@ class WC_Blacklist_Manager_DB {
 			$this->install_count_options();
 			$this->create_trigger();
 			$this->create_delete_trigger();
+			$this->create_address_insert_trigger();
+			$this->create_address_delete_trigger();
+			$this->create_address_update_trigger();
 
 			update_option( 'wc_blacklist_manager_version', $this->version );
 
@@ -94,6 +104,7 @@ class WC_Blacklist_Manager_DB {
 				ip_address varchar(255) DEFAULT '' NOT NULL,
 				domain varchar(255) DEFAULT '' NOT NULL,
 				customer_address text NOT NULL,
+				device_id varchar(64) DEFAULT '' NOT NULL,
 				order_id int(11) DEFAULT NULL,
 				reason_code varchar(100) DEFAULT '' NOT NULL,
 				description text NOT NULL,
@@ -101,6 +112,7 @@ class WC_Blacklist_Manager_DB {
 				sources text NOT NULL,
 				is_blocked boolean NOT NULL DEFAULT FALSE,
 				PRIMARY KEY  (id),
+				KEY device_id (device_id),
 				KEY normalized_phone (normalized_phone),
 				KEY normalized_email (normalized_email),
 				KEY is_blocked (is_blocked)
@@ -137,6 +149,55 @@ class WC_Blacklist_Manager_DB {
 				KEY address_full_lookup (is_blocked, match_type, address_full_norm)
 			) {$charset_collate};";
 
+			$blacklist_devices_sql = "CREATE TABLE {$this->blacklist_devices_table_name} (
+				id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+				device_id varchar(64) NOT NULL,
+				first_seen datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+				last_seen datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+				order_count bigint(20) unsigned NOT NULL DEFAULT 0,
+				user_count bigint(20) unsigned NOT NULL DEFAULT 0,
+				email_count bigint(20) unsigned NOT NULL DEFAULT 0,
+				phone_count bigint(20) unsigned NOT NULL DEFAULT 0,
+				ip_count bigint(20) unsigned NOT NULL DEFAULT 0,
+				last_order_id bigint(20) unsigned NOT NULL DEFAULT 0,
+				last_ip_address varchar(255) DEFAULT '' NOT NULL,
+				last_browser_id varchar(128) DEFAULT '' NOT NULL,
+				last_session_id varchar(128) DEFAULT '' NOT NULL,
+				last_fp_hash varchar(64) DEFAULT '' NOT NULL,
+				last_confidence varchar(20) DEFAULT '' NOT NULL,
+				last_payload_valid tinyint(1) NOT NULL DEFAULT 1,
+				last_validation_reasons text NOT NULL,
+				status varchar(20) NOT NULL DEFAULT '',
+				is_blocked tinyint(1) NOT NULL DEFAULT 0,
+				block_reason varchar(255) DEFAULT '' NOT NULL,
+				date_added datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+				PRIMARY KEY  (id),
+				UNIQUE KEY device_id (device_id),
+				KEY status (status),
+				KEY is_blocked (is_blocked),
+				KEY last_seen (last_seen),
+				KEY last_confidence (last_confidence),
+				KEY last_payload_valid (last_payload_valid)
+			) {$charset_collate};";
+
+			$blacklist_device_links_sql = "CREATE TABLE {$this->blacklist_device_links_table_name} (
+				id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+				device_id varchar(64) NOT NULL,
+				identity_type varchar(20) NOT NULL,
+				identity_value varchar(255) NOT NULL,
+				first_seen datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+				last_seen datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+				order_count bigint(20) unsigned NOT NULL DEFAULT 1,
+				last_order_id bigint(20) unsigned NOT NULL DEFAULT 0,
+				PRIMARY KEY (id),
+				UNIQUE KEY device_identity_unique (device_id, identity_type, identity_value),
+				KEY device_id (device_id),
+				KEY identity_type (identity_type),
+				KEY identity_value (identity_value),
+				KEY device_type (device_id, identity_type),
+				KEY last_seen (last_seen)
+			) {$charset_collate};";
+
 			$whitelist_sql = "CREATE TABLE {$this->whitelist_table_name} (
 				id mediumint(9) NOT NULL AUTO_INCREMENT,
 				first_name varchar(255) DEFAULT '' NOT NULL,
@@ -170,6 +231,8 @@ class WC_Blacklist_Manager_DB {
 
 			dbDelta( $blacklist_sql );
 			dbDelta( $blacklist_addresses_sql );
+			dbDelta( $blacklist_devices_sql );
+			dbDelta( $blacklist_device_links_sql );
 			dbDelta( $whitelist_sql );
 			dbDelta( $detection_log_sql );
 
@@ -219,6 +282,10 @@ class WC_Blacklist_Manager_DB {
 			add_option( 'wc_blacklist_sum_block_email', '0' );
 		}
 
+		if ( false === get_option( 'wc_blacklist_sum_block_device' ) ) {
+			add_option( 'wc_blacklist_sum_block_device', '0' );
+		}
+
 		if ( false === get_option( 'wc_blacklist_sum_block_ip' ) ) {
 			add_option( 'wc_blacklist_sum_block_ip', '0' );
 		}
@@ -263,21 +330,28 @@ class WC_Blacklist_Manager_DB {
 		}
 
 		if ( false === get_option( 'wc_blacklist_sum_phone' ) ) {
-			$phone_count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$this->blacklist_table_name} WHERE `phone_number` != '' AND `first_name` IS NOT NULL" );
+			$phone_count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$this->blacklist_table_name} WHERE `phone_number` != '' AND `phone_number` IS NOT NULL" );
 			add_option( 'wc_blacklist_sum_phone', $phone_count );
 		} else {
 			$phone_count = (int) get_option( 'wc_blacklist_sum_phone' );
 		}
 
 		if ( false === get_option( 'wc_blacklist_sum_email' ) ) {
-			$email_count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$this->blacklist_table_name} WHERE `email_address` != '' AND `first_name` IS NOT NULL" );
+			$email_count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$this->blacklist_table_name} WHERE `email_address` != '' AND `phone_number` IS NOT NULL" );
 			add_option( 'wc_blacklist_sum_email', $email_count );
 		} else {
 			$email_count = (int) get_option( 'wc_blacklist_sum_email' );
 		}
 
+		if ( false === get_option( 'wc_blacklist_sum_device' ) ) {
+			$device_count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$this->blacklist_table_name} WHERE `device_id` != '' AND `device_id` IS NOT NULL" );
+			add_option( 'wc_blacklist_sum_device', $device_count );
+		} else {
+			$device_count = (int) get_option( 'wc_blacklist_sum_device' );
+		}
+
 		if ( false === get_option( 'wc_blacklist_sum_ip' ) ) {
-			$ip_count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$this->blacklist_table_name} WHERE `ip_address` != '' AND `first_name` IS NOT NULL" );
+			$ip_count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$this->blacklist_table_name} WHERE `ip_address` != '' AND `ip_address` IS NOT NULL" );
 			add_option( 'wc_blacklist_sum_ip', $ip_count );
 		} else {
 			$ip_count = (int) get_option( 'wc_blacklist_sum_ip' );
@@ -296,8 +370,7 @@ class WC_Blacklist_Manager_DB {
 			if ( $this->table_exists( $this->blacklist_addresses_table_name ) ) {
 				$new_address_count = (int) $wpdb->get_var(
 					"SELECT COUNT(*)
-					FROM {$this->blacklist_addresses_table_name}
-					WHERE is_blocked = 1"
+					FROM {$this->blacklist_addresses_table_name}"
 				);
 			}
 
@@ -325,149 +398,233 @@ class WC_Blacklist_Manager_DB {
 	 * Create an AFTER INSERT trigger on the blacklist table.
 	 * This trigger updates the option values for each field, and then updates the total counter by summing the valid fields.
 	 */
-	public function create_trigger() {
-		global $wpdb;
+public function create_trigger() {
+	global $wpdb;
 
-		$trigger_name = 'after_insert_blacklist_row';
+	$trigger_name = 'after_insert_blacklist_row';
 
-		$wpdb->query( "DROP TRIGGER IF EXISTS {$trigger_name}" );
+	$wpdb->query( "DROP TRIGGER IF EXISTS {$trigger_name}" );
 
-		$trigger_sql = "
-			CREATE TRIGGER {$trigger_name}
-			AFTER INSERT ON {$this->blacklist_table_name}
-			FOR EACH ROW
-			BEGIN
-				IF NEW.first_name IS NOT NULL AND TRIM(NEW.first_name) <> '' THEN
-					UPDATE {$wpdb->options}
-					SET option_value = CAST(option_value AS UNSIGNED) + 1
-					WHERE option_name = 'wc_blacklist_sum_name';
-				END IF;
+	$trigger_sql = "
+		CREATE TRIGGER {$trigger_name}
+		AFTER INSERT ON {$this->blacklist_table_name}
+		FOR EACH ROW
+		BEGIN
+			IF NEW.first_name IS NOT NULL AND TRIM(NEW.first_name) <> '' THEN
+				UPDATE {$wpdb->options}
+				SET option_value = CAST(option_value AS UNSIGNED) + 1
+				WHERE option_name = 'wc_blacklist_sum_name';
+			END IF;
 
-				IF NEW.phone_number IS NOT NULL AND TRIM(NEW.phone_number) <> '' THEN
-					UPDATE {$wpdb->options}
-					SET option_value = CAST(option_value AS UNSIGNED) + 1
-					WHERE option_name = 'wc_blacklist_sum_phone';
-				END IF;
+			IF NEW.phone_number IS NOT NULL AND TRIM(NEW.phone_number) <> '' THEN
+				UPDATE {$wpdb->options}
+				SET option_value = CAST(option_value AS UNSIGNED) + 1
+				WHERE option_name = 'wc_blacklist_sum_phone';
+			END IF;
 
-				IF NEW.email_address IS NOT NULL AND TRIM(NEW.email_address) <> '' THEN
-					UPDATE {$wpdb->options}
-					SET option_value = CAST(option_value AS UNSIGNED) + 1
-					WHERE option_name = 'wc_blacklist_sum_email';
-				END IF;
+			IF NEW.email_address IS NOT NULL AND TRIM(NEW.email_address) <> '' THEN
+				UPDATE {$wpdb->options}
+				SET option_value = CAST(option_value AS UNSIGNED) + 1
+				WHERE option_name = 'wc_blacklist_sum_email';
+			END IF;
 
-				IF NEW.ip_address IS NOT NULL AND TRIM(NEW.ip_address) <> '' THEN
-					UPDATE {$wpdb->options}
-					SET option_value = CAST(option_value AS UNSIGNED) + 1
-					WHERE option_name = 'wc_blacklist_sum_ip';
-				END IF;
+			IF NEW.device_id IS NOT NULL AND TRIM(NEW.device_id) <> '' THEN
+				UPDATE {$wpdb->options}
+				SET option_value = CAST(option_value AS UNSIGNED) + 1
+				WHERE option_name = 'wc_blacklist_sum_device';
+			END IF;
 
-				IF NEW.customer_address IS NOT NULL AND TRIM(NEW.customer_address) <> '' THEN
-					UPDATE {$wpdb->options}
-					SET option_value = CAST(option_value AS UNSIGNED) + 1
-					WHERE option_name = 'wc_blacklist_sum_address';
-				END IF;
+			IF NEW.ip_address IS NOT NULL AND TRIM(NEW.ip_address) <> '' THEN
+				UPDATE {$wpdb->options}
+				SET option_value = CAST(option_value AS UNSIGNED) + 1
+				WHERE option_name = 'wc_blacklist_sum_ip';
+			END IF;
 
-				IF NEW.domain IS NOT NULL AND TRIM(NEW.domain) <> '' THEN
-					UPDATE {$wpdb->options}
-					SET option_value = CAST(option_value AS UNSIGNED) + 1
-					WHERE option_name = 'wc_blacklist_sum_domain';
-				END IF;
+			IF NEW.domain IS NOT NULL AND TRIM(NEW.domain) <> '' THEN
+				UPDATE {$wpdb->options}
+				SET option_value = CAST(option_value AS UNSIGNED) + 1
+				WHERE option_name = 'wc_blacklist_sum_domain';
+			END IF;
+
+			UPDATE {$wpdb->options}
+			SET option_value = CAST(option_value AS UNSIGNED) + (
+				(CASE WHEN NEW.first_name IS NOT NULL AND TRIM(NEW.first_name) <> '' THEN 1 ELSE 0 END) +
+				(CASE WHEN NEW.phone_number IS NOT NULL AND TRIM(NEW.phone_number) <> '' THEN 1 ELSE 0 END) +
+				(CASE WHEN NEW.email_address IS NOT NULL AND TRIM(NEW.email_address) <> '' THEN 1 ELSE 0 END) +
+				(CASE WHEN NEW.device_id IS NOT NULL AND TRIM(NEW.device_id) <> '' THEN 1 ELSE 0 END) +
+				(CASE WHEN NEW.ip_address IS NOT NULL AND TRIM(NEW.ip_address) <> '' THEN 1 ELSE 0 END) +
+				(CASE WHEN NEW.domain IS NOT NULL AND TRIM(NEW.domain) <> '' THEN 1 ELSE 0 END)
+			)
+			WHERE option_name = 'wc_blacklist_sum_total';
+		END;
+	";
+
+	$wpdb->query( $trigger_sql );
+}
+
+public function create_delete_trigger() {
+	global $wpdb;
+
+	$trigger_name = 'after_delete_blacklist_row';
+
+	$wpdb->query( "DROP TRIGGER IF EXISTS {$trigger_name}" );
+
+	$trigger_sql = "
+		CREATE TRIGGER {$trigger_name}
+		AFTER DELETE ON {$this->blacklist_table_name}
+		FOR EACH ROW
+		BEGIN
+			IF OLD.first_name IS NOT NULL AND TRIM(OLD.first_name) <> '' THEN
+				UPDATE {$wpdb->options}
+				SET option_value = IF(CAST(option_value AS UNSIGNED) > 0, CAST(option_value AS UNSIGNED) - 1, 0)
+				WHERE option_name = 'wc_blacklist_sum_name';
+			END IF;
+
+			IF OLD.phone_number IS NOT NULL AND TRIM(OLD.phone_number) <> '' THEN
+				UPDATE {$wpdb->options}
+				SET option_value = IF(CAST(option_value AS UNSIGNED) > 0, CAST(option_value AS UNSIGNED) - 1, 0)
+				WHERE option_name = 'wc_blacklist_sum_phone';
+			END IF;
+
+			IF OLD.email_address IS NOT NULL AND TRIM(OLD.email_address) <> '' THEN
+				UPDATE {$wpdb->options}
+				SET option_value = IF(CAST(option_value AS UNSIGNED) > 0, CAST(option_value AS UNSIGNED) - 1, 0)
+				WHERE option_name = 'wc_blacklist_sum_email';
+			END IF;
+
+			IF OLD.device_id IS NOT NULL AND TRIM(OLD.device_id) <> '' THEN
+				UPDATE {$wpdb->options}
+				SET option_value = IF(CAST(option_value AS UNSIGNED) > 0, CAST(option_value AS UNSIGNED) - 1, 0)
+				WHERE option_name = 'wc_blacklist_sum_device';
+			END IF;
+
+			IF OLD.ip_address IS NOT NULL AND TRIM(OLD.ip_address) <> '' THEN
+				UPDATE {$wpdb->options}
+				SET option_value = IF(CAST(option_value AS UNSIGNED) > 0, CAST(option_value AS UNSIGNED) - 1, 0)
+				WHERE option_name = 'wc_blacklist_sum_ip';
+			END IF;
+
+			IF OLD.domain IS NOT NULL AND TRIM(OLD.domain) <> '' THEN
+				UPDATE {$wpdb->options}
+				SET option_value = IF(CAST(option_value AS UNSIGNED) > 0, CAST(option_value AS UNSIGNED) - 1, 0)
+				WHERE option_name = 'wc_blacklist_sum_domain';
+			END IF;
+
+			UPDATE {$wpdb->options}
+			SET option_value = IF(
+				CAST(option_value AS UNSIGNED) >= (
+					(CASE WHEN OLD.first_name IS NOT NULL AND TRIM(OLD.first_name) <> '' THEN 1 ELSE 0 END) +
+					(CASE WHEN OLD.phone_number IS NOT NULL AND TRIM(OLD.phone_number) <> '' THEN 1 ELSE 0 END) +
+					(CASE WHEN OLD.email_address IS NOT NULL AND TRIM(OLD.email_address) <> '' THEN 1 ELSE 0 END) +
+					(CASE WHEN OLD.device_id IS NOT NULL AND TRIM(OLD.device_id) <> '' THEN 1 ELSE 0 END) +
+					(CASE WHEN OLD.ip_address IS NOT NULL AND TRIM(OLD.ip_address) <> '' THEN 1 ELSE 0 END) +
+					(CASE WHEN OLD.domain IS NOT NULL AND TRIM(OLD.domain) <> '' THEN 1 ELSE 0 END)
+				),
+				CAST(option_value AS UNSIGNED) - (
+					(CASE WHEN OLD.first_name IS NOT NULL AND TRIM(OLD.first_name) <> '' THEN 1 ELSE 0 END) +
+					(CASE WHEN OLD.phone_number IS NOT NULL AND TRIM(OLD.phone_number) <> '' THEN 1 ELSE 0 END) +
+					(CASE WHEN OLD.email_address IS NOT NULL AND TRIM(OLD.email_address) <> '' THEN 1 ELSE 0 END) +
+					(CASE WHEN OLD.device_id IS NOT NULL AND TRIM(OLD.device_id) <> '' THEN 1 ELSE 0 END) +
+					(CASE WHEN OLD.ip_address IS NOT NULL AND TRIM(OLD.ip_address) <> '' THEN 1 ELSE 0 END) +
+					(CASE WHEN OLD.domain IS NOT NULL AND TRIM(OLD.domain) <> '' THEN 1 ELSE 0 END)
+				),
+				0
+			)
+			WHERE option_name = 'wc_blacklist_sum_total';
+		END;
+	";
+
+	$wpdb->query( $trigger_sql );
+}
+
+public function create_address_insert_trigger() {
+	global $wpdb;
+
+	$trigger_name = 'after_insert_blacklist_address_row';
+
+	$wpdb->query( "DROP TRIGGER IF EXISTS {$trigger_name}" );
+
+	$trigger_sql = "
+		CREATE TRIGGER {$trigger_name}
+		AFTER INSERT ON {$this->blacklist_addresses_table_name}
+		FOR EACH ROW
+		BEGIN
+			IF NEW.is_blocked = 1 THEN
+				UPDATE {$wpdb->options}
+				SET option_value = CAST(option_value AS UNSIGNED) + 1
+				WHERE option_name = 'wc_blacklist_sum_address';
 
 				UPDATE {$wpdb->options}
-				SET option_value = CAST(option_value AS UNSIGNED) + (
-					(CASE WHEN NEW.first_name IS NOT NULL AND TRIM(NEW.first_name) <> '' THEN 1 ELSE 0 END) +
-					(CASE WHEN NEW.phone_number IS NOT NULL AND TRIM(NEW.phone_number) <> '' THEN 1 ELSE 0 END) +
-					(CASE WHEN NEW.email_address IS NOT NULL AND TRIM(NEW.email_address) <> '' THEN 1 ELSE 0 END) +
-					(CASE WHEN NEW.ip_address IS NOT NULL AND TRIM(NEW.ip_address) <> '' THEN 1 ELSE 0 END) +
-					(CASE WHEN NEW.customer_address IS NOT NULL AND TRIM(NEW.customer_address) <> '' THEN 1 ELSE 0 END) +
-					(CASE WHEN NEW.domain IS NOT NULL AND TRIM(NEW.domain) <> '' THEN 1 ELSE 0 END)
-				)
+				SET option_value = CAST(option_value AS UNSIGNED) + 1
 				WHERE option_name = 'wc_blacklist_sum_total';
-			END;
-		";
+			END IF;
+		END;
+	";
 
-		$wpdb->query( $trigger_sql );
-	}
+	$wpdb->query( $trigger_sql );
+}
 
-	/**
-	 * Create an AFTER DELETE trigger on the blacklist table.
-	 * This trigger decrements the appropriate counters for each field
-	 * and subtracts the sum from the total counter.
-	 */
-	public function create_delete_trigger() {
-		global $wpdb;
+public function create_address_delete_trigger() {
+	global $wpdb;
 
-		$trigger_name = 'after_delete_blacklist_row';
+	$trigger_name = 'after_delete_blacklist_address_row';
 
-		$wpdb->query( "DROP TRIGGER IF EXISTS {$trigger_name}" );
+	$wpdb->query( "DROP TRIGGER IF EXISTS {$trigger_name}" );
 
-		$trigger_sql = "
-			CREATE TRIGGER {$trigger_name}
-			AFTER DELETE ON {$this->blacklist_table_name}
-			FOR EACH ROW
-			BEGIN
-				IF OLD.first_name IS NOT NULL AND TRIM(OLD.first_name) <> '' THEN
-					UPDATE {$wpdb->options}
-					SET option_value = IF(CAST(option_value AS UNSIGNED) > 0, CAST(option_value AS UNSIGNED) - 1, 0)
-					WHERE option_name = 'wc_blacklist_sum_name';
-				END IF;
-
-				IF OLD.phone_number IS NOT NULL AND TRIM(OLD.phone_number) <> '' THEN
-					UPDATE {$wpdb->options}
-					SET option_value = IF(CAST(option_value AS UNSIGNED) > 0, CAST(option_value AS UNSIGNED) - 1, 0)
-					WHERE option_name = 'wc_blacklist_sum_phone';
-				END IF;
-
-				IF OLD.email_address IS NOT NULL AND TRIM(OLD.email_address) <> '' THEN
-					UPDATE {$wpdb->options}
-					SET option_value = IF(CAST(option_value AS UNSIGNED) > 0, CAST(option_value AS UNSIGNED) - 1, 0)
-					WHERE option_name = 'wc_blacklist_sum_email';
-				END IF;
-
-				IF OLD.ip_address IS NOT NULL AND TRIM(OLD.ip_address) <> '' THEN
-					UPDATE {$wpdb->options}
-					SET option_value = IF(CAST(option_value AS UNSIGNED) > 0, CAST(option_value AS UNSIGNED) - 1, 0)
-					WHERE option_name = 'wc_blacklist_sum_ip';
-				END IF;
-
-				IF OLD.customer_address IS NOT NULL AND TRIM(OLD.customer_address) <> '' THEN
-					UPDATE {$wpdb->options}
-					SET option_value = IF(CAST(option_value AS UNSIGNED) > 0, CAST(option_value AS UNSIGNED) - 1, 0)
-					WHERE option_name = 'wc_blacklist_sum_address';
-				END IF;
-
-				IF OLD.domain IS NOT NULL AND TRIM(OLD.domain) <> '' THEN
-					UPDATE {$wpdb->options}
-					SET option_value = IF(CAST(option_value AS UNSIGNED) > 0, CAST(option_value AS UNSIGNED) - 1, 0)
-					WHERE option_name = 'wc_blacklist_sum_domain';
-				END IF;
+	$trigger_sql = "
+		CREATE TRIGGER {$trigger_name}
+		AFTER DELETE ON {$this->blacklist_addresses_table_name}
+		FOR EACH ROW
+		BEGIN
+			IF OLD.is_blocked = 1 THEN
+				UPDATE {$wpdb->options}
+				SET option_value = IF(CAST(option_value AS UNSIGNED) > 0, CAST(option_value AS UNSIGNED) - 1, 0)
+				WHERE option_name = 'wc_blacklist_sum_address';
 
 				UPDATE {$wpdb->options}
-				SET option_value = IF(
-					CAST(option_value AS UNSIGNED) >= (
-						(CASE WHEN OLD.first_name IS NOT NULL AND TRIM(OLD.first_name) <> '' THEN 1 ELSE 0 END) +
-						(CASE WHEN OLD.phone_number IS NOT NULL AND TRIM(OLD.phone_number) <> '' THEN 1 ELSE 0 END) +
-						(CASE WHEN OLD.email_address IS NOT NULL AND TRIM(OLD.email_address) <> '' THEN 1 ELSE 0 END) +
-						(CASE WHEN OLD.ip_address IS NOT NULL AND TRIM(OLD.ip_address) <> '' THEN 1 ELSE 0 END) +
-						(CASE WHEN OLD.customer_address IS NOT NULL AND TRIM(OLD.customer_address) <> '' THEN 1 ELSE 0 END) +
-						(CASE WHEN OLD.domain IS NOT NULL AND TRIM(OLD.domain) <> '' THEN 1 ELSE 0 END)
-					),
-					CAST(option_value AS UNSIGNED) - (
-						(CASE WHEN OLD.first_name IS NOT NULL AND TRIM(OLD.first_name) <> '' THEN 1 ELSE 0 END) +
-						(CASE WHEN OLD.phone_number IS NOT NULL AND TRIM(OLD.phone_number) <> '' THEN 1 ELSE 0 END) +
-						(CASE WHEN OLD.email_address IS NOT NULL AND TRIM(OLD.email_address) <> '' THEN 1 ELSE 0 END) +
-						(CASE WHEN OLD.ip_address IS NOT NULL AND TRIM(OLD.ip_address) <> '' THEN 1 ELSE 0 END) +
-						(CASE WHEN OLD.customer_address IS NOT NULL AND TRIM(OLD.customer_address) <> '' THEN 1 ELSE 0 END) +
-						(CASE WHEN OLD.domain IS NOT NULL AND TRIM(OLD.domain) <> '' THEN 1 ELSE 0 END)
-					),
-					0
-				)
+				SET option_value = IF(CAST(option_value AS UNSIGNED) > 0, CAST(option_value AS UNSIGNED) - 1, 0)
 				WHERE option_name = 'wc_blacklist_sum_total';
-			END;
-		";
+			END IF;
+		END;
+	";
 
-		$wpdb->query( $trigger_sql );
-	}
+	$wpdb->query( $trigger_sql );
+}
+
+public function create_address_update_trigger() {
+	global $wpdb;
+
+	$trigger_name = 'after_update_blacklist_address_row';
+
+	$wpdb->query( "DROP TRIGGER IF EXISTS {$trigger_name}" );
+
+	$trigger_sql = "
+		CREATE TRIGGER {$trigger_name}
+		AFTER UPDATE ON {$this->blacklist_addresses_table_name}
+		FOR EACH ROW
+		BEGIN
+			IF OLD.is_blocked = 0 AND NEW.is_blocked = 1 THEN
+				UPDATE {$wpdb->options}
+				SET option_value = CAST(option_value AS UNSIGNED) + 1
+				WHERE option_name = 'wc_blacklist_sum_address';
+
+				UPDATE {$wpdb->options}
+				SET option_value = CAST(option_value AS UNSIGNED) + 1
+				WHERE option_name = 'wc_blacklist_sum_total';
+			ELSEIF OLD.is_blocked = 1 AND NEW.is_blocked = 0 THEN
+				UPDATE {$wpdb->options}
+				SET option_value = IF(CAST(option_value AS UNSIGNED) > 0, CAST(option_value AS UNSIGNED) - 1, 0)
+				WHERE option_name = 'wc_blacklist_sum_address';
+
+				UPDATE {$wpdb->options}
+				SET option_value = IF(CAST(option_value AS UNSIGNED) > 0, CAST(option_value AS UNSIGNED) - 1, 0)
+				WHERE option_name = 'wc_blacklist_sum_total';
+			END IF;
+		END;
+	";
+
+	$wpdb->query( $trigger_sql );
+}
 
 	private function set_first_install_date() {
 		if ( false === get_option( 'wc_blacklist_manager_first_install_date' ) ) {

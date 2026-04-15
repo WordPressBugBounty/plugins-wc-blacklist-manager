@@ -55,7 +55,7 @@ class WC_Blacklist_Manager_Blocklist_Actions {
 		}
 
 		if ( $premium_active ) {
-			$user_ip            = $this->get_the_user_ip();
+			$user_ip            = get_real_customer_ip();
 			$billing_first_name = isset( $_POST['billing_first_name'] ) ? sanitize_text_field( wp_unslash( $_POST['billing_first_name'] ) ) : '';
 			$billing_last_name  = isset( $_POST['billing_last_name'] ) ? sanitize_text_field( wp_unslash( $_POST['billing_last_name'] ) ) : '';
 
@@ -645,7 +645,7 @@ class WC_Blacklist_Manager_Blocklist_Actions {
 		}
 
 		if ( $premium_active ) {
-			$user_ip   = $this->get_the_user_ip();
+			$user_ip   = get_real_customer_ip();
 			$view_data = array(
 				'ip_address'       => $user_ip,
 				'email'            => $email,
@@ -1003,7 +1003,7 @@ class WC_Blacklist_Manager_Blocklist_Actions {
 				)
 			);
 
-			$user_ip = $this->get_the_user_ip();
+			$user_ip = get_real_customer_ip();
 
 			$view_data = array(
 				'ip_address'       => $user_ip,
@@ -1070,23 +1070,6 @@ class WC_Blacklist_Manager_Blocklist_Actions {
 		}
 
 		return $commentdata;
-	}
-
-	private function get_the_user_ip() {
-		if (!empty($_SERVER['HTTP_CF_CONNECTING_IP'])) {
-			// Cloudflare connecting IP
-			$ip = $_SERVER['HTTP_CF_CONNECTING_IP'];
-		} elseif (!empty($_SERVER['HTTP_CLIENT_IP'])) {
-			// Client IP
-			$ip = $_SERVER['HTTP_CLIENT_IP'];
-		} elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-			// X-Forwarded-For header
-			$ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
-		} else {
-			// Remote address
-			$ip = $_SERVER['REMOTE_ADDR'];
-		}
-		return sanitize_text_field($ip);
 	}
 }
 

@@ -124,17 +124,21 @@ class WC_Blacklist_Manager_Backend {
 		include_once plugin_dir_path(__FILE__) . '../backend/verifications.php';
 		include_once plugin_dir_path(__FILE__) . '../backend/notifications.php';
 		include_once plugin_dir_path(__FILE__) . '../backend/settings.php';
-		include_once plugin_dir_path(__FILE__) . '../backend/yoohw-dashboard.php';
-		include_once plugin_dir_path(__FILE__) . '../backend/yoohw-news.php';
-		include_once plugin_dir_path(__FILE__) . '../backend/yoohw-settings.php';
-		include_once plugin_dir_path(__FILE__) . '../backend/yoohw-license.php';
 		include_once plugin_dir_path(__FILE__) . '../backend/order-action-button.php';
 		include_once plugin_dir_path(__FILE__) . '../backend/order-risk-score.php';
 		include_once plugin_dir_path(__FILE__) . '../backend/actions/sub/helper.php';
 		include_once plugin_dir_path(__FILE__) . '../backend/helpers/normalize.php';
+		include_once plugin_dir_path(__FILE__) . '../backend/helpers/gbl-normalize.php';
 		include_once plugin_dir_path(__FILE__) . '../backend/helpers/checkout-phone.php';
+		include_once plugin_dir_path(__FILE__) . '../backend/helpers/get-customer-ip.php';
+		include_once plugin_dir_path(__FILE__) . '../backend/helpers/device-identity.php';
 		include_once plugin_dir_path(__FILE__) . '../backend/helpers/new-order-email.php';
+
 		include_once plugin_dir_path(__FILE__) . '../backend/emails/admin-new-order.php';
+
+		include_once plugin_dir_path(__FILE__) . '../backend/yoohw-dashboard.php';
+		include_once plugin_dir_path(__FILE__) . '../backend/yoohw-license.php';
+		include_once plugin_dir_path(__FILE__) . '../backend/yoohw-settings.php';
 
 		require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-register.php';
 		require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-reports.php';

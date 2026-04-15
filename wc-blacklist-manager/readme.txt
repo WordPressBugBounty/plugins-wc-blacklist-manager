@@ -3,9 +3,9 @@ Contributors: yoohw, baonguyen0310
 Tags: blacklist customers, spam prevention, fraud prevention, woocommerce anti fraud, Prevent fake orders
 Requires at least: 6.3
 Tested up to: 6.9
-WC tested up to: 10.6
+WC tested up to: 10.7
 Requires PHP: 7.4
-Stable tag: 2.2.2
+Stable tag: 2.2.3
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -13,7 +13,7 @@ Anti-fraud, checkout verification and spam prevention plugin for WooCommerce and
 
 == Description ==
 
-**Blacklist Manager** is a powerful anti-fraud and spam-prevention plugin for **WooCommerce** and **WordPress** forms. WooCommerce Anti-Fraud & Checkout Verification & Spam Prevention blocks fraudulent orders, fake registrations, and spam form submissions by banning **IPs**, **email addresses**, and **phone numbers** at checkout or on contact forms. With **real-time blacklist** checks, you can **stop chargebacks**, **unwanted sign-ups**, and **abusive bots** before they hit your store. 
+**Blacklist Manager** is a powerful anti-fraud and spam-prevention plugin for **WooCommerce** and **WordPress** forms. WooCommerce Anti-Fraud & Checkout Verification & Spam Prevention blocks fraudulent orders, fake registrations, and spam form submissions by banning **IPs**, **email addresses**, and **phone numbers** —and now also detecting fraud using advanced **Device Identity** tracking across orders. at checkout or on contact forms. With **real-time blacklist** checks, you can **stop chargebacks**, **unwanted sign-ups**, and **abusive bots** before they hit your store. 
 
 Easily blacklist **phone numbers**, **email addresses**, **IP addresses**, and **email domains** to block **unwanted users** from placing orders, submitting forms, canceling transactions, or registering accounts. Whether you're running an online store or collecting leads through forms, **Blacklist Manager** adds a critical layer of defense to your site.
 
@@ -42,6 +42,8 @@ Building on the robust features of the free version, the premium version offers 
 **Advanced Blocking**
 
 * **Customer Name Blocking**: Adds the first and last name of the customer to the blocklist.
+* **Device Identity Tracking (New)**: Track customer devices across orders using advanced fingerprinting. Detect suspicious behavior even when emails, phone numbers, or addresses change.
+* **Device-Level Blocking**: Identify and block suspicious devices based on their activity, linked identities, and behavior patterns across orders.
 * **Address Blacklisting**: Block orders from specific billing and shipping addresses listed in your blocklist.
 * **Block Comment / Review**: Completely block comments and reviews from blacklisted emails, IPs, or domains.
 * **Prevent Submission**: Block form submissions from Contact Form 7, Gravity Forms, and WPForms if the IP address is on the Blocklist.
@@ -58,6 +60,23 @@ The Global Blacklist Decisions service helps protect your store by checking cust
 
 [Know more about the Global Blacklist Decisions](https://yoohw.com/global-blacklist-plan/)
 
+**Device Identity & Behavioral Fraud Detection (New)**
+
+Take fraud detection beyond static data with our new Device Identity system. Instead of relying only on email, phone, or IP, Blacklist Manager now tracks how devices interact with your store across multiple orders.
+
+This system builds a relationship between devices and identities, allowing you to detect hidden patterns and stop fraud earlier.
+
+Key capabilities include:
+
+* **Device Fingerprinting**: Capture device_id, session_id, and fingerprint signals to uniquely identify customer devices.
+* **Cross-Identity Tracking**: Link one device to multiple emails, phone numbers, IPs, and user accounts.
+* **Device vs Identity Detection**: Detect when the same device is used with different emails, phones, or addresses.
+* **Device Identity Spread Analysis**: Identify devices connected to an unusually high number of identities—a strong indicator of fraud or abuse.
+* **Device-Based Order Attempts**: Detect repeated orders from the same device even when identities change.
+* **Admin Device Dashboard**: View device activity, linked identities, and behavior directly from the admin panel.
+
+This feature enables behavioral fraud detection—catching suspicious patterns that traditional blacklist systems cannot detect.
+
 **Fully Automation**
 
 Fully Automated-Protecting against fraud and unauthorized transactions, hands-free to focus on growing your E-commerce website!
@@ -65,6 +84,9 @@ Fully Automated-Protecting against fraud and unauthorized transactions, hands-fr
 * **Set risk score thresholds**: Manually adjust each rule's risk value!
 * **Choose the right score**: Select a score for every option to let your own rules work.
 * **Check phone and email**: Check the phone number and email address that were used in multiple orders but with a different IP or customer address.
+* **Device behavior rules**: Detect when a single device is used across multiple identities (email, phone, address).
+* **Device spread detection**: Identify abnormal activity when one device links to too many users or orders.
+* **Device-based order attempts**: Detect repeated checkout attempts from the same device even with different details.
 * **Check order value & attempts**: Make sure the order value isn't abnormal and the customer has placed too many orders within the time period.
 * **Suspects the IP address**: Detect the customer that uses a VPN or proxy server and the IP's country mismatches with the billing country.
 * **Detect IP coordinates**: Action if the IP coordinates radius does not match the address coordinates radius.
@@ -82,6 +104,7 @@ Gain full visibility into every interaction and decision with Powerful Recording
 With comprehensive logging, the plugin records:
 
 * **Detection Attempts**: Every time a user triggers a blacklist rule—whether by email, phone, IP, or address—it’s logged with a timestamp for easy traceability.
+* **Device Activity Logs**: Track device-level activity, linked identities, and order behavior for deeper investigation.
 * **Admin Actions**: Logs when entries are added, edited, removed, or manually overridden by store staff, ensuring accountability across your team.
 * **Checkout Blocks**: Captures blocked checkout attempts along with detailed user input and cart contents, so you always know what was stopped—and why.
 
@@ -228,6 +251,20 @@ A: There is no set limit within the plugin, but practical limitations depend on 
 A: No, the plugin is optimized for performance. It performs blacklist checks efficiently and only at appropriate times (like form submission or checkout), so it won’t noticeably impact your site speed.
 
 == Changelog ==
+
+= 2.2.3 (Apr 15, 2026) =
+* New: Added email & phone verification for WooCommerce Blocks checkout with inline notice UI and auto retry.
+* Update: Updated verification flow for full Classic + Blocks support; improved phone normalization with country fallback.
+* Update: Global Blacklist checks now fully cover email, phone number, IP address, and physical address across all tiers.
+* Update: Merge multiple JS files into one optimized script with consistent AJAX and modal behavior.
+* Improve: The method for retrieving customer IP addresses has been strengthened for improved accuracy.
+* Improve: The Global Blacklist metabox no longer appears on the order page when Global Blacklist checks are disabled.
+* Improve: Global Blacklist checks are bypassed when Development Mode is enabled.
+* Improve: Improved UX, resend logic, and verification state handling; better support for custom dial code and Blocks data.
+* Improve: Optimized blacklist actions on the edit order page to reduce memory usage.
+* Improve: Added request-level caching for premium status, permissions, and order state.
+* Improve: Reused one computed blacklist state for buttons and notices.
+* Improve: Improve UX, stability, and maintainability by reducing duplicated code and better error handling.
 
 = 2.2.2 (Mar 28, 2026) =
 * New: Added Blacklist action buttons (remove / manage entries) directly in the order screen for faster workflow.

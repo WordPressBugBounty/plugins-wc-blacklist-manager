@@ -153,6 +153,20 @@ if (!defined('ABSPATH')) {
 							</tr>
 							<tr>
 								<th>
+									• <?php echo esc_html__( 'Device', 'wc-blacklist-manager' ); ?>
+								</th>
+								<?php if ($premium_active): ?>
+									<?php if ($device_blacklist_enabled === '1'): ?>
+										<td><?php echo esc_html( get_option( 'wc_blacklist_sum_device', 0 ) ); ?></td>
+									<?php else : ?>
+										<td><span class="sum-disabled"><?php echo esc_html__( 'Disabled', 'wc-blacklist-manager' ); ?></span></td>
+									<?php endif; ?>
+								<?php else : ?>
+									<td><span class="sum-premium"><?php echo esc_html__( 'Premium', 'wc-blacklist-manager' ); ?></span></td>
+								<?php endif; ?>
+							</tr>
+							<tr>
+								<th>
 									• <?php echo esc_html__( 'IP address', 'wc-blacklist-manager' ); ?>
 								</th>
 								<?php if ($ip_blocking_enabled === '1' || $ip_blocking_enabled === '2'): ?>
@@ -319,6 +333,20 @@ if (!defined('ABSPATH')) {
 							</tr>
 							<tr>
 								<th>
+									• <?php echo esc_html__( 'Device', 'wc-blacklist-manager' ); ?>
+								</th>
+								<?php if ($premium_active): ?>
+									<?php if ($device_blacklist_enabled === '1'): ?>
+										<td><?php echo esc_html( get_option( 'wc_blacklist_sum_block_device', 0 ) ); ?></td>
+									<?php else : ?>
+										<td><span class="sum-disabled"><?php echo esc_html__( 'Disabled', 'wc-blacklist-manager' ); ?></span></td>
+									<?php endif; ?>
+								<?php else : ?>
+									<td><span class="sum-premium"><?php echo esc_html__( 'Premium', 'wc-blacklist-manager' ); ?></span></td>
+								<?php endif; ?>
+							</tr>
+							<tr>
+								<th>
 									• <?php echo esc_html__( 'IP address', 'wc-blacklist-manager' ); ?>
 								</th>
 								<?php if ($ip_blocking_enabled === '1' || $ip_blocking_enabled === '2'): ?>
@@ -402,6 +430,9 @@ if (!defined('ABSPATH')) {
 	<nav class="nav-tab-wrapper">
 		<a href="#blacklisted" class="nav-tab nav-tab-active" data-tab="blacklisted"><?php echo esc_html__('Suspects', 'wc-blacklist-manager'); ?></a>
 		<a href="#blocked" class="nav-tab" data-tab="blocked"><?php echo esc_html__('Blocklist', 'wc-blacklist-manager'); ?></a>
+		<?php if ( $premium_active && get_option( 'wc_blacklist_enable_device_identity', '0' ) === '1' ): ?>
+			<a href="#device" class="nav-tab" data-tab="device"><?php echo esc_html__('Device', 'wc-blacklist-manager'); ?></a>
+		<?php endif; ?>
 		<?php if ($ip_blacklist_enabled): ?>
 			<a href="#ip-banned" class="nav-tab" data-tab="ip-banned"><?php echo esc_html__('IP address', 'wc-blacklist-manager'); ?></a>
 		<?php endif; ?>
@@ -651,6 +682,272 @@ if (!defined('ABSPATH')) {
 				</div>
 			</form>
 		</div>
+		<?php if ( $premium_active && get_option( 'wc_blacklist_enable_device_identity', '0' ) === '1' ): ?>
+			<div id="device" class="tab-pane" style="display: none;">
+				<h2><?php echo esc_html__( 'Device entries', 'wc-blacklist-manager' ); ?></h2>
+				<p class="description"><?php echo esc_html__( 'This tab shows tracked device identities and their activity across the site.', 'wc-blacklist-manager' ); ?></p>
+
+				<?php
+				$device_details_nonce = wp_create_nonce( 'wc_blacklist_device_details_nonce' );
+				$device_ajax_url      = admin_url( 'admin-ajax.php' );
+				?>
+				<table class="wp-list-table widefat fixed striped">
+					<thead>
+						<tr>
+							<th style="width: 22%;"><?php echo esc_html__( 'Device ID', 'wc-blacklist-manager' ); ?></th>
+							<th style="width: 7%;"><?php echo esc_html__( 'Orders', 'wc-blacklist-manager' ); ?></th>
+							<th style="width: 7%;"><?php echo esc_html__( 'Users', 'wc-blacklist-manager' ); ?></th>
+							<th style="width: 7%;"><?php echo esc_html__( 'Emails', 'wc-blacklist-manager' ); ?></th>
+							<th style="width: 7%;"><?php echo esc_html__( 'Phones', 'wc-blacklist-manager' ); ?></th>
+							<th style="width: 7%;"><?php echo esc_html__( 'IPs', 'wc-blacklist-manager' ); ?></th>
+							<th style="width: 9%;"><?php echo esc_html__( 'Confidence', 'wc-blacklist-manager' ); ?></th>
+							<th style="width: 8%;"><?php echo esc_html__( 'Payload', 'wc-blacklist-manager' ); ?></th>
+							<th style="width: 9%;"><?php echo esc_html__( 'Last order', 'wc-blacklist-manager' ); ?></th>
+							<th style="width: 10%;"><?php echo esc_html__( 'Last seen', 'wc-blacklist-manager' ); ?></th>
+							<th style="width: 7%;"><?php echo esc_html__( 'Status', 'wc-blacklist-manager' ); ?></th>
+						</tr>
+					</thead>
+					<tbody>
+						<?php if ( ! empty( $device_entries ) ) : ?>
+							<?php foreach ( $device_entries as $entry ) : ?>
+								<tr class="wc-blacklist-device-row" data-device-id="<?php echo esc_attr( $entry->device_id ); ?>" style="cursor:pointer;">
+									<td>
+										<code style="font-size:11px;word-break:break-all;"><?php echo esc_html( $entry->device_id ); ?></code>
+									</td>
+									<td><?php echo esc_html( intval( $entry->order_count ) ); ?></td>
+									<td><?php echo esc_html( intval( $entry->user_count ) ); ?></td>
+									<td><?php echo esc_html( intval( isset( $entry->email_count ) ? $entry->email_count : 0 ) ); ?></td>
+									<td><?php echo esc_html( intval( isset( $entry->phone_count ) ? $entry->phone_count : 0 ) ); ?></td>
+									<td><?php echo esc_html( intval( $entry->ip_count ) ); ?></td>
+									<td>
+										<?php
+										$confidence_label = ! empty( $entry->last_confidence ) ? ucfirst( (string) $entry->last_confidence ) : '—';
+										echo esc_html( $confidence_label );
+										?>
+									</td>
+									<td>
+										<?php
+										if ( isset( $entry->last_payload_valid ) && (int) $entry->last_payload_valid === 1 ) {
+											echo esc_html__( 'Valid', 'wc-blacklist-manager' );
+										} elseif ( isset( $entry->last_payload_valid ) ) {
+											echo esc_html__( 'Invalid', 'wc-blacklist-manager' );
+										} else {
+											echo '—';
+										}
+										?>
+									</td>
+									<td>
+										<?php if ( ! empty( $entry->last_order_id ) ) : ?>
+											<a href="<?php echo esc_url( admin_url( 'post.php?post=' . absint( $entry->last_order_id ) . '&action=edit' ) ); ?>">
+												#<?php echo esc_html( absint( $entry->last_order_id ) ); ?>
+											</a>
+										<?php else : ?>
+											—
+										<?php endif; ?>
+									</td>
+									<td><?php echo ! empty( $entry->last_seen ) ? esc_html( date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $entry->last_seen ) ) ) : '—'; ?></td>
+									<td>
+										<?php
+										$status_label = __( 'Tracked', 'wc-blacklist-manager' );
+
+										if ( isset( $entry->status ) && 'blocked' === $entry->status ) {
+											$status_label = __( 'Blocked', 'wc-blacklist-manager' );
+										} elseif ( isset( $entry->status ) && 'suspect' === $entry->status ) {
+											$status_label = __( 'Suspect', 'wc-blacklist-manager' );
+										}
+
+										echo esc_html( $status_label );
+										?>
+									</td>
+								</tr>
+							<?php endforeach; ?>
+						<?php else : ?>
+							<tr>
+								<td colspan="11"><?php echo esc_html__( 'No device entries found.', 'wc-blacklist-manager' ); ?></td>
+							</tr>
+						<?php endif; ?>
+					</tbody>
+				</table>
+
+				<div class="tablenav">
+					<div class="tablenav-pages">
+						<span class="displaying-num"><?php echo esc_html( $total_items_device . ' items' ); ?></span>
+						<span class="pagination-links">
+							<a class="button" href="<?php echo esc_url( add_query_arg( array( 'paged_device' => 1, 'tab' => 'device' ) ) ); ?>" title="<?php echo esc_attr__( 'Go to the first page', 'wc-blacklist-manager' ); ?>">&laquo;</a>
+							<a class="button" href="<?php echo esc_url( add_query_arg( array( 'paged_device' => max( 1, $current_page_device - 1 ), 'tab' => 'device' ) ) ); ?>" title="<?php echo esc_attr__( 'Go to the previous page', 'wc-blacklist-manager' ); ?>">&lsaquo;</a>
+							<span class="paging-input"><?php echo esc_html( $current_page_device . ' of ' . $total_pages_device ); ?></span>
+							<a class="button" href="<?php echo esc_url( add_query_arg( array( 'paged_device' => min( $total_pages_device, $current_page_device + 1 ), 'tab' => 'device' ) ) ); ?>" title="<?php echo esc_attr__( 'Go to the next page', 'wc-blacklist-manager' ); ?>">&rsaquo;</a>
+							<a class="button" href="<?php echo esc_url( add_query_arg( array( 'paged_device' => $total_pages_device, 'tab' => 'device' ) ) ); ?>" title="<?php echo esc_attr__( 'Go to the last page', 'wc-blacklist-manager' ); ?>">&raquo;</a>
+						</span>
+					</div>
+				</div>
+			</div>
+
+			<div id="wc-blacklist-device-modal-backdrop" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100000;"></div>
+			<div id="wc-blacklist-device-modal" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:760px;max-width:calc(100vw - 40px);max-height:calc(100vh - 40px);overflow:auto;background:#fff;border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.2);z-index:100001;">
+				<div style="padding:16px 18px;border-bottom:1px solid #e0e0e0;display:flex;align-items:center;justify-content:space-between;">
+					<strong><?php echo esc_html__( 'Device details', 'wc-blacklist-manager' ); ?></strong>
+					<button type="button" id="wc-blacklist-device-modal-close" class="button-link" style="text-decoration:none;font-size:18px;line-height:1;">&times;</button>
+				</div>
+				<div id="wc-blacklist-device-modal-content" style="padding:16px 18px;">
+					<p><?php echo esc_html__( 'Loading...', 'wc-blacklist-manager' ); ?></p>
+				</div>
+				<div style="padding:12px 18px;border-top:1px solid #e0e0e0;text-align:right;">
+					<button type="button" class="button" id="wc-blacklist-device-modal-ok"><?php echo esc_html__( 'Close', 'wc-blacklist-manager' ); ?></button>
+				</div>
+			</div>
+
+			<script type="text/javascript">
+			jQuery(document).ready(function($) {
+				var ajaxUrl = <?php echo wp_json_encode( $device_ajax_url ); ?>;
+				var ajaxNonce = <?php echo wp_json_encode( $device_details_nonce ); ?>;
+
+				function escHtml(str) {
+					return $('<div/>').text(str == null ? '' : String(str)).html();
+				}
+
+				function renderList(items, type) {
+					if (!items || !items.length) {
+						return '<span style="color:#777;">—</span>';
+					}
+
+					var html = '<ul style="margin:0;padding-left:18px;">';
+
+					items.forEach(function(item) {
+						if (type === 'orders') {
+							var orderId = parseInt(item, 10);
+							if (orderId > 0) {
+								html += '<li><a href="' + escHtml(<?php echo wp_json_encode( admin_url( 'post.php?post=' ) ); ?> + orderId + '&action=edit') + '" target="_blank">#' + escHtml(orderId) + '</a></li>';
+							}
+						} else {
+							html += '<li>' + escHtml(item) + '</li>';
+						}
+					});
+
+					html += '</ul>';
+					return html;
+				}
+
+				function truncateMiddle(value, start, end) {
+					value = value == null ? '' : String(value);
+					start = start || 16;
+					end = end || 12;
+
+					if (value.length <= (start + end + 3)) {
+						return value;
+					}
+
+					return value.substring(0, start) + '...' + value.substring(value.length - end);
+				}
+
+				function renderDeviceContent(payload) {
+					var device = payload.device || {};
+					var links  = payload.links || {};
+
+					var statusText = <?php echo wp_json_encode( __( 'Tracked', 'wc-blacklist-manager' ) ); ?>;
+					if (device.status === 'blocked') {
+						statusText = <?php echo wp_json_encode( __( 'Blocked', 'wc-blacklist-manager' ) ); ?>;
+					} else if (device.status === 'suspect') {
+						statusText = <?php echo wp_json_encode( __( 'Suspect', 'wc-blacklist-manager' ) ); ?>;
+					}
+
+					var payloadValidText = <?php echo wp_json_encode( __( 'Yes', 'wc-blacklist-manager' ) ); ?>;
+					if (parseInt(device.last_payload_valid, 10) !== 1) {
+						payloadValidText = <?php echo wp_json_encode( __( 'No', 'wc-blacklist-manager' ) ); ?>;
+					}
+
+					var confidenceText = device.last_confidence ? String(device.last_confidence).charAt(0).toUpperCase() + String(device.last_confidence).slice(1) : '—';
+
+					var validationReasons = Array.isArray(device.last_validation_reasons_list) ? device.last_validation_reasons_list : [];
+
+					var html = '';
+					html += '<div style="display:grid;grid-template-columns:170px 1fr;gap:10px 14px;margin-bottom:18px;">';
+					html += '<div><strong><?php echo esc_js( __( 'Device ID', 'wc-blacklist-manager' ) ); ?></strong></div><div><code style="font-size:11px;word-break:break-all;">' + escHtml(device.device_id || '') + '</code></div>';
+					html += '<div><strong><?php echo esc_js( __( 'First seen', 'wc-blacklist-manager' ) ); ?></strong></div><div>' + escHtml(device.first_seen || '—') + '</div>';
+					html += '<div><strong><?php echo esc_js( __( 'Last seen', 'wc-blacklist-manager' ) ); ?></strong></div><div>' + escHtml(device.last_seen || '—') + '</div>';
+					html += '<div><strong><?php echo esc_js( __( 'Orders', 'wc-blacklist-manager' ) ); ?></strong></div><div>' + escHtml(device.order_count || 0) + '</div>';
+					html += '<div><strong><?php echo esc_js( __( 'Users', 'wc-blacklist-manager' ) ); ?></strong></div><div>' + escHtml(device.user_count || 0) + '</div>';
+					html += '<div><strong><?php echo esc_js( __( 'Emails', 'wc-blacklist-manager' ) ); ?></strong></div><div>' + escHtml(device.email_count || 0) + '</div>';
+					html += '<div><strong><?php echo esc_js( __( 'Phones', 'wc-blacklist-manager' ) ); ?></strong></div><div>' + escHtml(device.phone_count || 0) + '</div>';
+					html += '<div><strong><?php echo esc_js( __( 'IPs', 'wc-blacklist-manager' ) ); ?></strong></div><div>' + escHtml(device.ip_count || 0) + '</div>';
+					html += '<div><strong><?php echo esc_js( __( 'Last order ID', 'wc-blacklist-manager' ) ); ?></strong></div><div>' + (device.last_order_id ? '#' + escHtml(device.last_order_id) : '—') + '</div>';
+					html += '<div><strong><?php echo esc_js( __( 'Last IP', 'wc-blacklist-manager' ) ); ?></strong></div><div>' + escHtml(device.last_ip_address || '—') + '</div>';
+					html += '<div><strong><?php echo esc_js( __( 'Confidence', 'wc-blacklist-manager' ) ); ?></strong></div><div>' + escHtml(confidenceText) + '</div>';
+					html += '<div><strong><?php echo esc_js( __( 'Payload valid', 'wc-blacklist-manager' ) ); ?></strong></div><div>' + escHtml(payloadValidText) + '</div>';
+					html += '<div><strong><?php echo esc_js( __( 'Browser ID', 'wc-blacklist-manager' ) ); ?></strong></div><div><code style="font-size:11px;word-break:break-all;">' + escHtml(truncateMiddle(device.last_browser_id || '')) + '</code></div>';
+					html += '<div><strong><?php echo esc_js( __( 'Session ID', 'wc-blacklist-manager' ) ); ?></strong></div><div><code style="font-size:11px;word-break:break-all;">' + escHtml(truncateMiddle(device.last_session_id || '')) + '</code></div>';
+					html += '<div><strong><?php echo esc_js( __( 'Fingerprint hash', 'wc-blacklist-manager' ) ); ?></strong></div><div><code style="font-size:11px;word-break:break-all;">' + escHtml(truncateMiddle(device.last_fp_hash || '')) + '</code></div>';
+					html += '<div><strong><?php echo esc_js( __( 'Status', 'wc-blacklist-manager' ) ); ?></strong></div><div>' + escHtml(statusText) + '</div>';
+
+					if (device.block_reason) {
+						html += '<div><strong><?php echo esc_js( __( 'Block reason', 'wc-blacklist-manager' ) ); ?></strong></div><div>' + escHtml(device.block_reason) + '</div>';
+					}
+
+					if (validationReasons.length) {
+						html += '<div><strong><?php echo esc_js( __( 'Validation reasons', 'wc-blacklist-manager' ) ); ?></strong></div><div>' + escHtml(validationReasons.join(', ')) + '</div>';
+					}
+
+					html += '</div>';
+
+					html += '<hr />';
+					html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;">';
+					html += '<div><h3 style="margin-top:0;"><?php echo esc_js( __( 'Linked emails', 'wc-blacklist-manager' ) ); ?></h3>' + renderList(links.emails || [], 'emails') + '</div>';
+					html += '<div><h3 style="margin-top:0;"><?php echo esc_js( __( 'Linked phones', 'wc-blacklist-manager' ) ); ?></h3>' + renderList(links.phones || [], 'phones') + '</div>';
+					html += '<div><h3 style="margin-top:0;"><?php echo esc_js( __( 'Linked IPs', 'wc-blacklist-manager' ) ); ?></h3>' + renderList(links.ips || [], 'ips') + '</div>';
+					html += '<div><h3 style="margin-top:0;"><?php echo esc_js( __( 'Linked users', 'wc-blacklist-manager' ) ); ?></h3>' + renderList(links.users || [], 'users') + '</div>';
+					html += '</div>';
+
+					if ((links.orders || []).length) {
+						html += '<hr />';
+						html += '<div><h3 style="margin-top:0;"><?php echo esc_js( __( 'Linked orders', 'wc-blacklist-manager' ) ); ?></h3>' + renderList(links.orders || [], 'orders') + '</div>';
+					}
+
+					return html;
+				}
+
+				function openDeviceModal() {
+					$('#wc-blacklist-device-modal-backdrop').show();
+					$('#wc-blacklist-device-modal').show();
+				}
+
+				function closeDeviceModal() {
+					$('#wc-blacklist-device-modal-backdrop').hide();
+					$('#wc-blacklist-device-modal').hide();
+				}
+
+				$(document).on('click', '.wc-blacklist-device-row', function() {
+					var deviceId = $(this).data('device-id');
+
+					if (!deviceId) {
+						return;
+					}
+
+					$('#wc-blacklist-device-modal-content').html('<p><?php echo esc_js( __( 'Loading...', 'wc-blacklist-manager' ) ); ?></p>');
+					openDeviceModal();
+
+					$.post(ajaxUrl, {
+						action: 'wc_blacklist_get_device_details',
+						nonce: ajaxNonce,
+						device_id: deviceId
+					}).done(function(response) {
+						if (response && response.success && response.data) {
+							$('#wc-blacklist-device-modal-content').html(renderDeviceContent(response.data));
+						} else {
+							var msg = response && response.data && response.data.message ? response.data.message : <?php echo wp_json_encode( __( 'Failed to load device details.', 'wc-blacklist-manager' ) ); ?>;
+							$('#wc-blacklist-device-modal-content').html('<p>' + escHtml(msg) + '</p>');
+						}
+					}).fail(function() {
+						$('#wc-blacklist-device-modal-content').html('<p><?php echo esc_js( __( 'Failed to load device details.', 'wc-blacklist-manager' ) ); ?></p>');
+					});
+				});
+
+				$(document).on('click', '#wc-blacklist-device-modal-close, #wc-blacklist-device-modal-ok, #wc-blacklist-device-modal-backdrop', function(e) {
+					e.preventDefault();
+					closeDeviceModal();
+				});
+			});
+			</script>
+		<?php endif; ?>
 		<?php if ($ip_blacklist_enabled): ?>
 			<div id="ip-banned" class="tab-pane" style="display: none;">
 				<h2><?php echo esc_html__('IP entries', 'wc-blacklist-manager'); ?></h2>
@@ -809,298 +1106,298 @@ if (!defined('ABSPATH')) {
 		<?php endif; ?>
 
 		<?php if ($premium_active && $customer_address_blocking_enabled && $woocommerce_active): ?>
-<div id="customer-address" class="tab-pane" style="display: none;">
-	<h2><?php echo esc_html__( 'Address entries', 'wc-blacklist-manager' ); ?></h2>
+			<div id="customer-address" class="tab-pane" style="display: none;">
+				<h2><?php echo esc_html__( 'Address entries', 'wc-blacklist-manager' ); ?></h2>
 
-	<button type="button" id="add-address-btn" class="button button-primary">
-		<?php echo esc_html__( 'Add address', 'wc-blacklist-manager' ); ?>
-	</button>
+				<button type="button" id="add-address-btn" class="button button-primary">
+					<?php echo esc_html__( 'Add address', 'wc-blacklist-manager' ); ?>
+				</button>
 
-	<?php
-	$allowed_countries    = wc()->countries->get_allowed_countries();
-	$single_country       = count( $allowed_countries ) === 1;
-	$single_country_code  = $single_country ? key( $allowed_countries ) : '';
-	?>
+				<?php
+				$allowed_countries    = wc()->countries->get_allowed_countries();
+				$single_country       = count( $allowed_countries ) === 1;
+				$single_country_code  = $single_country ? key( $allowed_countries ) : '';
+				?>
 
-	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="add-address-form">
-		<?php wp_nonce_field( 'add_address_nonce_action', 'add_address_nonce_field' ); ?>
-		<input type="hidden" name="action" value="add_address_action">
+				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="add-address-form">
+					<?php wp_nonce_field( 'add_address_nonce_action', 'add_address_nonce_field' ); ?>
+					<input type="hidden" name="action" value="add_address_action">
 
-		<div id="add-address-container" style="display: none; margin-top: 20px;">
-			<p class="description">
-				<?php echo esc_html__( 'You can add a full address, or only a postcode + country, or only a state + country.', 'wc-blacklist-manager' ); ?>
-			</p>
+					<div id="add-address-container" style="display: none; margin-top: 20px;">
+						<p class="description">
+							<?php echo esc_html__( 'You can add a full address, or only a postcode + country, or only a state + country.', 'wc-blacklist-manager' ); ?>
+						</p>
 
-			<div class="country-state-container">
-				<?php if ( ! $single_country ) : ?>
-					<select id="country-select" name="country" class="wc-enhanced-select" style="max-width: 500px; width: 200px;" required>
-						<option value=""><?php echo esc_html__( 'Select a country...', 'wc-blacklist-manager' ); ?></option>
-						<?php foreach ( $allowed_countries as $country_code => $country_name ) : ?>
-							<option value="<?php echo esc_attr( $country_code ); ?>">
-								<?php echo esc_html( $country_name ); ?>
-							</option>
-						<?php endforeach; ?>
-					</select>
-				<?php else : ?>
-					<input type="hidden" id="country-select" name="country" value="<?php echo esc_attr( $single_country_code ); ?>" />
-					<span style="max-width: 500px; width: 200px; display: inline-flex; align-items: center; font-weight: 600;">
-						<?php echo esc_html( $allowed_countries[ $single_country_code ] ); ?>
-					</span>
-				<?php endif; ?>
+						<div class="country-state-container">
+							<?php if ( ! $single_country ) : ?>
+								<select id="country-select" name="country" class="wc-enhanced-select" style="max-width: 500px; width: 200px;" required>
+									<option value=""><?php echo esc_html__( 'Select a country...', 'wc-blacklist-manager' ); ?></option>
+									<?php foreach ( $allowed_countries as $country_code => $country_name ) : ?>
+										<option value="<?php echo esc_attr( $country_code ); ?>">
+											<?php echo esc_html( $country_name ); ?>
+										</option>
+									<?php endforeach; ?>
+								</select>
+							<?php else : ?>
+								<input type="hidden" id="country-select" name="country" value="<?php echo esc_attr( $single_country_code ); ?>" />
+								<span style="max-width: 500px; width: 200px; display: inline-flex; align-items: center; font-weight: 600;">
+									<?php echo esc_html( $allowed_countries[ $single_country_code ] ); ?>
+								</span>
+							<?php endif; ?>
 
-				<span id="hide-state-selection">
-					<select id="state-select" name="state" class="wc-enhanced-select" style="max-width: 500px; width: 200px; display: none;">
-						<option value=""><?php echo esc_html__( 'Select a state...', 'wc-blacklist-manager' ); ?></option>
-					</select>
-				</span>
+							<span id="hide-state-selection">
+								<select id="state-select" name="state" class="wc-enhanced-select" style="max-width: 500px; width: 200px; display: none;">
+									<option value=""><?php echo esc_html__( 'Select a state...', 'wc-blacklist-manager' ); ?></option>
+								</select>
+							</span>
 
-				<input
-					type="text"
-					id="state-input"
-					name="state_input"
-					placeholder="<?php echo esc_attr__( 'State / Province', 'wc-blacklist-manager' ); ?>"
-					style="max-width: 500px; width: 200px; display: none;"
-				/>
-				<br>
+							<input
+								type="text"
+								id="state-input"
+								name="state_input"
+								placeholder="<?php echo esc_attr__( 'State / Province', 'wc-blacklist-manager' ); ?>"
+								style="max-width: 500px; width: 200px; display: none;"
+							/>
+							<br>
+						</div>
+
+						<div class="address-1-2-container">
+							<input
+								type="text"
+								id="address-1-input"
+								name="address_1_input"
+								placeholder="<?php echo esc_attr__( 'Address 1', 'wc-blacklist-manager' ); ?>"
+								style="max-width: 500px; width: 200px;"
+							/>
+							<input
+								type="text"
+								id="address-2-input"
+								name="address_2_input"
+								placeholder="<?php echo esc_attr__( 'Address 2', 'wc-blacklist-manager' ); ?>"
+								style="max-width: 500px; width: 200px;"
+							/>
+						</div>
+
+						<div class="city-postcode-container">
+							<input
+								type="text"
+								id="city-input"
+								name="city_input"
+								placeholder="<?php echo esc_attr__( 'City', 'wc-blacklist-manager' ); ?>"
+								style="max-width: 500px; width: 200px;"
+							/>
+							<input
+								type="text"
+								id="postcode-input"
+								name="postcode_input"
+								placeholder="<?php echo esc_attr__( 'Postcode / ZIP', 'wc-blacklist-manager' ); ?>"
+								style="max-width: 500px; width: 200px;"
+							/>
+						</div>
+
+						<button type="submit" class="button button-primary" style="margin-bottom: 20px;">
+							<?php echo esc_html__( 'Submit', 'wc-blacklist-manager' ); ?>
+						</button>
+					</div>
+				</form>
+
+				<script type="text/javascript">
+				jQuery(document).ready(function($) {
+					function updateStateField(country) {
+						var stateSelect = $('#state-select');
+						var stateInput = $('#state-input');
+						var stateSpan = $('#hide-state-selection');
+
+						stateSelect.empty().append('<option value=""><?php echo esc_html__( 'Select a state...', 'wc-blacklist-manager' ); ?></option>');
+
+						if (country) {
+							var states = <?php echo wp_json_encode( wc()->countries->get_states() ); ?>;
+
+							if (states[country] && Object.keys(states[country]).length > 0) {
+								$.each(states[country], function(code, name) {
+									stateSelect.append('<option value="' + code + '">' + name + '</option>');
+								});
+								stateSelect.show();
+								stateSpan.show();
+								stateInput.hide();
+							} else {
+								stateSelect.hide();
+								stateSpan.hide();
+								stateInput.show();
+							}
+						} else {
+							stateSelect.hide();
+							stateSpan.hide();
+							stateInput.hide();
+						}
+					}
+
+					<?php if ( $single_country ) : ?>
+						updateStateField('<?php echo esc_js( $single_country_code ); ?>');
+					<?php else : ?>
+						$('#country-select').on('change', function() {
+							updateStateField($(this).val());
+						});
+					<?php endif; ?>
+				});
+				</script>
+
+				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="bulk-action-form-address">
+					<?php wp_nonce_field( 'yobm_nonce_action', 'yobm_nonce_field' ); ?>
+					<input type="hidden" name="action" value="handle_bulk_action_address">
+
+					<div class="tablenav top">
+						<div class="actions bulkactions">
+							<select name="bulk_action" id="bulk_action_address">
+								<option value=""><?php echo esc_html__( 'Bulk Actions', 'wc-blacklist-manager' ); ?></option>
+								<option value="delete"><?php echo esc_html__( 'Delete', 'wc-blacklist-manager' ); ?></option>
+							</select>
+							<input
+								type="submit"
+								class="button action"
+								value="<?php echo esc_attr__( 'Apply', 'wc-blacklist-manager' ); ?>"
+								onclick="if(document.getElementById('bulk_action_address').value === 'delete'){ return confirm('<?php echo esc_js( __( 'Are you sure you want to delete the selected entries?', 'wc-blacklist-manager' ) ); ?>'); }"
+							>
+						</div>
+					</div>
+
+					<table class="wp-list-table widefat fixed striped">
+						<thead>
+							<tr>
+								<th style="max-width: 24px;" class="check-column">
+									<input type="checkbox" id="select_all_address" />
+								</th>
+								<th style="width: 14%;"><?php echo esc_html__( 'Type', 'wc-blacklist-manager' ); ?></th>
+								<th style="width: 36%;"><?php echo esc_html__( 'Address', 'wc-blacklist-manager' ); ?></th>
+								<th style="width: 18%;"><?php echo esc_html__( 'Region', 'wc-blacklist-manager' ); ?></th>
+								<th style="width: 16%;"><?php echo esc_html__( 'Date added', 'wc-blacklist-manager' ); ?></th>
+								<th style="width: 8%;"><?php echo esc_html__( 'Status', 'wc-blacklist-manager' ); ?></th>
+								<th style="width: 100px;"><?php echo esc_html__( 'Actions', 'wc-blacklist-manager' ); ?></th>
+							</tr>
+						</thead>
+						<tbody>
+							<?php if ( count( $address_blocking_entries ) > 0 ) : ?>
+								<?php foreach ( $address_blocking_entries as $entry ) : ?>
+									<?php
+									$match_type_labels = array(
+										'address'  => __( 'Full address', 'wc-blacklist-manager' ),
+										'postcode' => __( 'Postcode', 'wc-blacklist-manager' ),
+										'state'    => __( 'State / Province', 'wc-blacklist-manager' ),
+									);
+
+									$match_type_label = isset( $match_type_labels[ $entry->match_type ] )
+										? $match_type_labels[ $entry->match_type ]
+										: $entry->match_type;
+
+									$region_parts = array();
+
+									if ( ! empty( $entry->state_code ) ) {
+										$region_parts[] = $entry->state_code;
+									}
+
+									if ( ! empty( $entry->postcode_norm ) ) {
+										$region_parts[] = $entry->postcode_norm;
+									}
+
+									if ( ! empty( $entry->country_code ) ) {
+										$region_parts[] = $entry->country_code;
+									}
+
+									$region_display = ! empty( $region_parts )
+										? implode( ', ', $region_parts )
+										: '—';
+
+									$address_display = ! empty( $entry->address_display )
+										? $entry->address_display
+										: '—';
+									?>
+									<tr>
+										<th scope="row" class="check-column">
+											<input type="checkbox" name="entry_ids[]" value="<?php echo esc_attr( $entry->id ); ?>" />
+										</th>
+
+										<td>
+											<strong><?php echo esc_html( $match_type_label ); ?></strong>
+											<?php if ( ! empty( $entry->notes ) ) : ?>
+												<br>
+												<span class="description"><?php echo esc_html( $entry->notes ); ?></span>
+											<?php endif; ?>
+										</td>
+
+										<td>
+											<?php echo esc_html( $address_display ); ?>
+										</td>
+
+										<td>
+											<?php echo esc_html( $region_display ); ?>
+										</td>
+
+										<td>
+											<?php echo esc_html( date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $entry->date_added ) ) ); ?>
+										</td>
+
+										<td>
+											<?php echo esc_html( $entry->is_blocked ? __( 'Blocked', 'wc-blacklist-manager' ) : __( 'Suspect', 'wc-blacklist-manager' ) ); ?>
+										</td>
+
+										<td>
+											<a
+												href="<?php echo esc_url( wp_nonce_url( add_query_arg( array( 'action' => 'delete_address', 'id' => $entry->id, 'tab' => 'customer-address' ) ), 'delete_address_action', '_wpnonce' ) ); ?>"
+												class="button button-secondary icon-button"
+												onclick="return confirm('<?php echo esc_js( __( 'Are you sure you want to remove this address entry?', 'wc-blacklist-manager' ) ); ?>')"
+											>
+												<span class="dashicons dashicons-remove"></span>
+											</a>
+										</td>
+									</tr>
+								<?php endforeach; ?>
+							<?php else : ?>
+								<tr>
+									<td colspan="7">
+										<?php echo esc_html__( 'No address blocking entries found.', 'wc-blacklist-manager' ); ?>
+									</td>
+								</tr>
+							<?php endif; ?>
+						</tbody>
+					</table>
+
+					<div class="tablenav">
+						<div class="tablenav-pages">
+							<span class="displaying-num">
+								<?php
+								printf(
+									/* translators: %s: number of items */
+									esc_html__( '%s items', 'wc-blacklist-manager' ),
+									number_format_i18n( $total_items_address_blocking )
+								);
+								?>
+							</span>
+							<span class="pagination-links">
+								<a class="button" href="<?php echo esc_url( add_query_arg( array( 'paged_address_blocking' => 1 ) ) ); ?>" title="<?php echo esc_attr__( 'Go to the first page', 'wc-blacklist-manager' ); ?>">&laquo;</a>
+								<a class="button" href="<?php echo esc_url( add_query_arg( array( 'paged_address_blocking' => max( 1, $current_page_address_blocking - 1 ) ) ) ); ?>" title="<?php echo esc_attr__( 'Go to the previous page', 'wc-blacklist-manager' ); ?>">&lsaquo;</a>
+								<span class="paging-input">
+									<?php echo esc_html( $current_page_address_blocking . ' of ' . $total_pages_address_blocking ); ?>
+								</span>
+								<a class="button" href="<?php echo esc_url( add_query_arg( array( 'paged_address_blocking' => min( $total_pages_address_blocking, $current_page_address_blocking + 1 ) ) ) ); ?>" title="<?php echo esc_attr__( 'Go to the next page', 'wc-blacklist-manager' ); ?>">&rsaquo;</a>
+								<a class="button" href="<?php echo esc_url( add_query_arg( array( 'paged_address_blocking' => $total_pages_address_blocking ) ) ); ?>" title="<?php echo esc_attr__( 'Go to the last page', 'wc-blacklist-manager' ); ?>">&raquo;</a>
+							</span>
+						</div>
+					</div>
+				</form>
 			</div>
 
-			<div class="address-1-2-container">
-				<input
-					type="text"
-					id="address-1-input"
-					name="address_1_input"
-					placeholder="<?php echo esc_attr__( 'Address 1', 'wc-blacklist-manager' ); ?>"
-					style="max-width: 500px; width: 200px;"
-				/>
-				<input
-					type="text"
-					id="address-2-input"
-					name="address_2_input"
-					placeholder="<?php echo esc_attr__( 'Address 2', 'wc-blacklist-manager' ); ?>"
-					style="max-width: 500px; width: 200px;"
-				/>
-			</div>
+			<script type="text/javascript">
+			document.addEventListener('DOMContentLoaded', function() {
+				var addAddressBtn = document.getElementById('add-address-btn');
+				var addAddressContainer = document.getElementById('add-address-container');
 
-			<div class="city-postcode-container">
-				<input
-					type="text"
-					id="city-input"
-					name="city_input"
-					placeholder="<?php echo esc_attr__( 'City', 'wc-blacklist-manager' ); ?>"
-					style="max-width: 500px; width: 200px;"
-				/>
-				<input
-					type="text"
-					id="postcode-input"
-					name="postcode_input"
-					placeholder="<?php echo esc_attr__( 'Postcode / ZIP', 'wc-blacklist-manager' ); ?>"
-					style="max-width: 500px; width: 200px;"
-				/>
-			</div>
-
-			<button type="submit" class="button button-primary" style="margin-bottom: 20px;">
-				<?php echo esc_html__( 'Submit', 'wc-blacklist-manager' ); ?>
-			</button>
-		</div>
-	</form>
-
-	<script type="text/javascript">
-	jQuery(document).ready(function($) {
-		function updateStateField(country) {
-			var stateSelect = $('#state-select');
-			var stateInput = $('#state-input');
-			var stateSpan = $('#hide-state-selection');
-
-			stateSelect.empty().append('<option value=""><?php echo esc_html__( 'Select a state...', 'wc-blacklist-manager' ); ?></option>');
-
-			if (country) {
-				var states = <?php echo wp_json_encode( wc()->countries->get_states() ); ?>;
-
-				if (states[country] && Object.keys(states[country]).length > 0) {
-					$.each(states[country], function(code, name) {
-						stateSelect.append('<option value="' + code + '">' + name + '</option>');
+				if (addAddressBtn && addAddressContainer) {
+					addAddressBtn.addEventListener('click', function() {
+						addAddressContainer.style.display = (addAddressContainer.style.display === 'none' || addAddressContainer.style.display === '') ? 'block' : 'none';
 					});
-					stateSelect.show();
-					stateSpan.show();
-					stateInput.hide();
-				} else {
-					stateSelect.hide();
-					stateSpan.hide();
-					stateInput.show();
 				}
-			} else {
-				stateSelect.hide();
-				stateSpan.hide();
-				stateInput.hide();
-			}
-		}
-
-		<?php if ( $single_country ) : ?>
-			updateStateField('<?php echo esc_js( $single_country_code ); ?>');
-		<?php else : ?>
-			$('#country-select').on('change', function() {
-				updateStateField($(this).val());
 			});
-		<?php endif; ?>
-	});
-	</script>
-
-	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="bulk-action-form-address">
-		<?php wp_nonce_field( 'yobm_nonce_action', 'yobm_nonce_field' ); ?>
-		<input type="hidden" name="action" value="handle_bulk_action_address">
-
-		<div class="tablenav top">
-			<div class="actions bulkactions">
-				<select name="bulk_action" id="bulk_action_address">
-					<option value=""><?php echo esc_html__( 'Bulk Actions', 'wc-blacklist-manager' ); ?></option>
-					<option value="delete"><?php echo esc_html__( 'Delete', 'wc-blacklist-manager' ); ?></option>
-				</select>
-				<input
-					type="submit"
-					class="button action"
-					value="<?php echo esc_attr__( 'Apply', 'wc-blacklist-manager' ); ?>"
-					onclick="if(document.getElementById('bulk_action_address').value === 'delete'){ return confirm('<?php echo esc_js( __( 'Are you sure you want to delete the selected entries?', 'wc-blacklist-manager' ) ); ?>'); }"
-				>
-			</div>
-		</div>
-
-		<table class="wp-list-table widefat fixed striped">
-			<thead>
-				<tr>
-					<th style="max-width: 24px;" class="check-column">
-						<input type="checkbox" id="select_all_address" />
-					</th>
-					<th style="width: 14%;"><?php echo esc_html__( 'Type', 'wc-blacklist-manager' ); ?></th>
-					<th style="width: 36%;"><?php echo esc_html__( 'Address', 'wc-blacklist-manager' ); ?></th>
-					<th style="width: 18%;"><?php echo esc_html__( 'Region', 'wc-blacklist-manager' ); ?></th>
-					<th style="width: 16%;"><?php echo esc_html__( 'Date added', 'wc-blacklist-manager' ); ?></th>
-					<th style="width: 8%;"><?php echo esc_html__( 'Status', 'wc-blacklist-manager' ); ?></th>
-					<th style="width: 100px;"><?php echo esc_html__( 'Actions', 'wc-blacklist-manager' ); ?></th>
-				</tr>
-			</thead>
-			<tbody>
-				<?php if ( count( $address_blocking_entries ) > 0 ) : ?>
-					<?php foreach ( $address_blocking_entries as $entry ) : ?>
-						<?php
-						$match_type_labels = array(
-							'address'  => __( 'Full address', 'wc-blacklist-manager' ),
-							'postcode' => __( 'Postcode', 'wc-blacklist-manager' ),
-							'state'    => __( 'State / Province', 'wc-blacklist-manager' ),
-						);
-
-						$match_type_label = isset( $match_type_labels[ $entry->match_type ] )
-							? $match_type_labels[ $entry->match_type ]
-							: $entry->match_type;
-
-						$region_parts = array();
-
-						if ( ! empty( $entry->state_code ) ) {
-							$region_parts[] = $entry->state_code;
-						}
-
-						if ( ! empty( $entry->postcode_norm ) ) {
-							$region_parts[] = $entry->postcode_norm;
-						}
-
-						if ( ! empty( $entry->country_code ) ) {
-							$region_parts[] = $entry->country_code;
-						}
-
-						$region_display = ! empty( $region_parts )
-							? implode( ', ', $region_parts )
-							: '—';
-
-						$address_display = ! empty( $entry->address_display )
-							? $entry->address_display
-							: '—';
-						?>
-						<tr>
-							<th scope="row" class="check-column">
-								<input type="checkbox" name="entry_ids[]" value="<?php echo esc_attr( $entry->id ); ?>" />
-							</th>
-
-							<td>
-								<strong><?php echo esc_html( $match_type_label ); ?></strong>
-								<?php if ( ! empty( $entry->notes ) ) : ?>
-									<br>
-									<span class="description"><?php echo esc_html( $entry->notes ); ?></span>
-								<?php endif; ?>
-							</td>
-
-							<td>
-								<?php echo esc_html( $address_display ); ?>
-							</td>
-
-							<td>
-								<?php echo esc_html( $region_display ); ?>
-							</td>
-
-							<td>
-								<?php echo esc_html( date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $entry->date_added ) ) ); ?>
-							</td>
-
-							<td>
-								<?php echo esc_html( $entry->is_blocked ? __( 'Blocked', 'wc-blacklist-manager' ) : __( 'Suspect', 'wc-blacklist-manager' ) ); ?>
-							</td>
-
-							<td>
-								<a
-									href="<?php echo esc_url( wp_nonce_url( add_query_arg( array( 'action' => 'delete_address', 'id' => $entry->id, 'tab' => 'customer-address' ) ), 'delete_address_action', '_wpnonce' ) ); ?>"
-									class="button button-secondary icon-button"
-									onclick="return confirm('<?php echo esc_js( __( 'Are you sure you want to remove this address entry?', 'wc-blacklist-manager' ) ); ?>')"
-								>
-									<span class="dashicons dashicons-remove"></span>
-								</a>
-							</td>
-						</tr>
-					<?php endforeach; ?>
-				<?php else : ?>
-					<tr>
-						<td colspan="7">
-							<?php echo esc_html__( 'No address blocking entries found.', 'wc-blacklist-manager' ); ?>
-						</td>
-					</tr>
-				<?php endif; ?>
-			</tbody>
-		</table>
-
-		<div class="tablenav">
-			<div class="tablenav-pages">
-				<span class="displaying-num">
-					<?php
-					printf(
-						/* translators: %s: number of items */
-						esc_html__( '%s items', 'wc-blacklist-manager' ),
-						number_format_i18n( $total_items_address_blocking )
-					);
-					?>
-				</span>
-				<span class="pagination-links">
-					<a class="button" href="<?php echo esc_url( add_query_arg( array( 'paged_address_blocking' => 1 ) ) ); ?>" title="<?php echo esc_attr__( 'Go to the first page', 'wc-blacklist-manager' ); ?>">&laquo;</a>
-					<a class="button" href="<?php echo esc_url( add_query_arg( array( 'paged_address_blocking' => max( 1, $current_page_address_blocking - 1 ) ) ) ); ?>" title="<?php echo esc_attr__( 'Go to the previous page', 'wc-blacklist-manager' ); ?>">&lsaquo;</a>
-					<span class="paging-input">
-						<?php echo esc_html( $current_page_address_blocking . ' of ' . $total_pages_address_blocking ); ?>
-					</span>
-					<a class="button" href="<?php echo esc_url( add_query_arg( array( 'paged_address_blocking' => min( $total_pages_address_blocking, $current_page_address_blocking + 1 ) ) ) ); ?>" title="<?php echo esc_attr__( 'Go to the next page', 'wc-blacklist-manager' ); ?>">&rsaquo;</a>
-					<a class="button" href="<?php echo esc_url( add_query_arg( array( 'paged_address_blocking' => $total_pages_address_blocking ) ) ); ?>" title="<?php echo esc_attr__( 'Go to the last page', 'wc-blacklist-manager' ); ?>">&raquo;</a>
-				</span>
-			</div>
-		</div>
-	</form>
-</div>
-
-<script type="text/javascript">
-document.addEventListener('DOMContentLoaded', function() {
-	var addAddressBtn = document.getElementById('add-address-btn');
-	var addAddressContainer = document.getElementById('add-address-container');
-
-	if (addAddressBtn && addAddressContainer) {
-		addAddressBtn.addEventListener('click', function() {
-			addAddressContainer.style.display = (addAddressContainer.style.display === 'none' || addAddressContainer.style.display === '') ? 'block' : 'none';
-		});
-	}
-});
-</script>
+			</script>
 		<?php endif; ?>
 		
 		<?php if ($domain_blocking_enabled): ?>
@@ -1109,7 +1406,16 @@ document.addEventListener('DOMContentLoaded', function() {
 				<p class="description"><?php echo esc_html__('This is the blocklist of email domains.', 'wc-blacklist-manager'); ?></p>
 				
 				<!-- Form for adding domains -->
-				<button type="button" id="add-domain-btn" class="button button-primary"><?php echo esc_html__('Add domain(s)', 'wc-blacklist-manager'); ?></button>
+				<button type="button" id="add-domain-btn" class="button button-primary"><?php echo esc_html__('Add domain(s)', 'wc-blacklist-manager'); ?></button> 
+				<?php if ($premium_active): ?>
+					<button 
+						type="button" 
+						class="button button-secondary"
+						onclick="window.location.href='<?php echo admin_url('admin.php?page=wc-blacklist-manager-settings#domain_top_level_row'); ?>';"
+					>
+						<?php echo esc_html__('Add Top-level domain(s)', 'wc-blacklist-manager'); ?>
+					</button>
+				<?php endif; ?>
 				<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" id="add-domain-form">
 					<?php wp_nonce_field('add_domain_nonce_action', 'add_domain_nonce_field'); ?>
 					<input type="hidden" name="action" value="add_domain_action">

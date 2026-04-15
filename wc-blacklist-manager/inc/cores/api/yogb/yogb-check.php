@@ -393,24 +393,10 @@ final class YOGB_BM_Check {
 	/**
 	 * Per-tier identity types allowed to be sent to /check.
 	 *
-	 * free       → email + ip
-	 * basic      → email + phone + ip
-	 * pro        → email + phone + ip + address
-	 * enterprise → email + phone + ip + address
+	 * All tiers → email + phone + ip + address
 	 */
 	private static function get_allowed_types_for_tier( string $tier ) : array {
-		switch ( $tier ) {
-			case 'basic':
-				return [ 'email', 'phone', 'ip' ];
-
-			case 'pro':
-			case 'enterprise':
-				return [ 'email', 'phone', 'ip', 'address' ];
-
-			case 'free':
-			default:
-				return [ 'email', 'ip' ];
-		}
+		return [ 'email', 'phone', 'ip', 'address' ];
 	}
 
 	/**

@@ -5,7 +5,7 @@ if (!defined('ABSPATH')) {
 }
 
 class WC_Blacklist_Manager_Email {
-	public function send_email_order_suspect($order_id, $customer_name, $phone, $email, $user_ip, $customer_address, $shipping_address, $order_edit_url) {
+	public function send_email_order_suspect($order_id, $customer_name, $phone, $email, $user_ip, $customer_address, $shipping_address, $order_edit_url, $device_id) {
 		if ( 'yes' !== get_option( 'wc_blacklist_email_notification', 'no' ) ) {
 			return;
 		}
@@ -35,6 +35,12 @@ class WC_Blacklist_Manager_Email {
 			$content .= '• ' . sprintf(
 				__( 'Suspected email: %s', 'wc-blacklist-manager' ),
 				$email
+			) . '<br>';
+		}
+		if ( ! empty( $device_id ) ) {
+			$content .= '• ' . sprintf(
+				__( 'Suspected device: %s', 'wc-blacklist-manager' ),
+				$device_id
 			) . '<br>';
 		}
 		if ( ! empty( $user_ip ) ) {
@@ -120,7 +126,8 @@ class WC_Blacklist_Manager_Email {
 		$shipping = '', 
 		$disposable_phone = '', 
 		$disposable_email = '', 
-		$proxy_vpn = ''
+		$proxy_vpn = '',
+		$device = ''
 		) {
 		if ( 'yes' !== get_option( 'wc_blacklist_email_blocking_notification', 'no' ) ) {
 			return;
@@ -156,6 +163,9 @@ class WC_Blacklist_Manager_Email {
         }
 		if (!empty($proxy_vpn)) {
             self::$block_data['proxy_vpn'] = $proxy_vpn;
+        }
+		if (!empty($device)) {
+            self::$block_data['device'] = $device;
         }
 
         // Schedule sending the email once per request.
@@ -220,6 +230,9 @@ class WC_Blacklist_Manager_Email {
         }
 		if (!empty(self::$block_data['proxy_vpn'])) {
             $content .= '• ' . sprintf(__('Proxy or VPN: %s', 'wc-blacklist-manager'), esc_html(self::$block_data['proxy_vpn'])) . '<br>';
+        }
+		if (!empty(self::$block_data['device'])) {
+            $content .= '• ' . sprintf(__('Device ID: %s', 'wc-blacklist-manager'), esc_html(self::$block_data['device'])) . '<br>';
         }
 
         // If no suspect data was accumulated, don't send an email.

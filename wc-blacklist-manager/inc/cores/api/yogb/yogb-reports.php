@@ -3,7 +3,7 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 
 final class YOGB_BM_Report {
 	// Server REST prefix (keep route part without /wp-json in the signature path)
-	const SERVER_BASE  = 'https://globalblacklist.org';
+	const SERVER_BASE  = 'https://yosandbox.top/globalblacklist';
 	const REST_ROUTE   = '/yoohw-gbl/v1';
 	const OPT_KEY      = 'yogb_bm_api_key';
 	const OPT_SECRET   = 'yogb_bm_api_secret';
@@ -130,9 +130,18 @@ final class YOGB_BM_Report {
 	 */
 	public static function build_identities_from_order( WC_Order $order ) : array {
 		$billing_country = sanitize_text_field( $order->get_billing_country() );
-		$email           = sanitize_email( $order->get_billing_email() );
-		$phone_raw       = sanitize_text_field( $order->get_billing_phone() );
-		$ip              = sanitize_text_field( $order->get_customer_ip_address() );
+
+		$email_raw = (string) $order->get_billing_email();
+		$email     = function_exists( 'yobm_gbl_normalize_email' )
+			? yobm_gbl_normalize_email( $email_raw )
+			: sanitize_email( $email_raw );
+
+		$phone_raw = sanitize_text_field( $order->get_billing_phone() );
+		$ip_raw    = sanitize_text_field( $order->get_customer_ip_address() );
+
+		$ip = function_exists( 'yobm_gbl_normalize_ip' )
+			? yobm_gbl_normalize_ip( $ip_raw )
+			: trim( (string) $ip_raw );
 
 		$billing_address = yobm_normalize_address_parts(
 			array(
@@ -162,7 +171,9 @@ final class YOGB_BM_Report {
 		$phone = '';
 		if ( '' !== $phone_raw ) {
 			$dial_code        = yobm_get_country_dial_code( $billing_country );
-			$normalized_phone = yobm_normalize_phone( $phone_raw, $dial_code );
+			$normalized_phone = function_exists( 'yobm_gbl_normalize_phone' )
+				? yobm_gbl_normalize_phone( $phone_raw, $dial_code )
+				: yobm_normalize_phone( $phone_raw, $dial_code );
 
 			if ( '' !== $normalized_phone ) {
 				$phone = '+' . $normalized_phone;
@@ -171,7 +182,7 @@ final class YOGB_BM_Report {
 
 		$idents = array();
 
-		if ( $email ) {
+		if ( '' !== $email ) {
 			$idents[] = array(
 				'type'  => 'email',
 				'value' => $email,
@@ -179,11 +190,12 @@ final class YOGB_BM_Report {
 
 			$at = strrpos( $email, '@' );
 			if ( false !== $at ) {
-				$domain = strtolower( substr( $email, $at + 1 ) );
-				$domain = preg_replace( '/^www\./', '', $domain );
-				$domain = trim( (string) $domain, ". \t\n\r\0\x0B" );
+				$domain = substr( $email, $at + 1 );
+				$domain = function_exists( 'yobm_gbl_normalize_domain' )
+					? yobm_gbl_normalize_domain( $domain )
+					: strtolower( trim( (string) $domain ) );
 
-				if ( '' !== $domain && false !== strpos( $domain, '.' ) ) {
+				if ( '' !== $domain ) {
 					$idents[] = array(
 						'type'  => 'domain',
 						'value' => $domain,
@@ -192,28 +204,28 @@ final class YOGB_BM_Report {
 			}
 		}
 
-		if ( $phone ) {
+		if ( '' !== $phone ) {
 			$idents[] = array(
 				'type'  => 'phone',
 				'value' => $phone,
 			);
 		}
 
-		if ( $ip ) {
+		if ( '' !== $ip ) {
 			$idents[] = array(
 				'type'  => 'ip',
 				'value' => $ip,
 			);
 		}
 
-		if ( $bill_addr ) {
+		if ( '' !== $bill_addr ) {
 			$idents[] = array(
 				'type'  => 'address',
 				'value' => $bill_addr,
 			);
 		}
 
-		if ( $ship_addr && $ship_addr !== $bill_addr ) {
+		if ( '' !== $ship_addr && $ship_addr !== $bill_addr ) {
 			$idents[] = array(
 				'type'  => 'address',
 				'value' => $ship_addr,
@@ -284,14 +296,25 @@ final class YOGB_BM_Report {
 		$billing_country = sanitize_text_field( $order->get_billing_country() );
 		$currency        = sanitize_text_field( $order->get_currency() );
 		$total           = (float) $order->get_total();
-		$ip              = sanitize_text_field( $order->get_customer_ip_address() );
-		$email           = sanitize_email( $order->get_billing_email() );
-		$phone_raw       = sanitize_text_field( $order->get_billing_phone() );
+
+		$email_raw = (string) $order->get_billing_email();
+		$email     = function_exists( 'yobm_gbl_normalize_email' )
+			? yobm_gbl_normalize_email( $email_raw )
+			: sanitize_email( $email_raw );
+
+		$phone_raw = sanitize_text_field( $order->get_billing_phone() );
+
+		$ip_raw = sanitize_text_field( $order->get_customer_ip_address() );
+		$ip     = function_exists( 'yobm_gbl_normalize_ip' )
+			? yobm_gbl_normalize_ip( $ip_raw )
+			: trim( (string) $ip_raw );
 
 		$phone = '';
 		if ( '' !== $phone_raw ) {
 			$dial_code        = yobm_get_country_dial_code( $billing_country );
-			$normalized_phone = yobm_normalize_phone( $phone_raw, $dial_code );
+			$normalized_phone = function_exists( 'yobm_gbl_normalize_phone' )
+				? yobm_gbl_normalize_phone( $phone_raw, $dial_code )
+				: yobm_normalize_phone( $phone_raw, $dial_code );
 
 			if ( '' !== $normalized_phone ) {
 				$phone = '+' . $normalized_phone;
@@ -325,17 +348,50 @@ final class YOGB_BM_Report {
 		$ttl_days = (int) get_option( 'yogb_bm_default_ttl_days', 365 );
 		$ttl_days = max( 1, min( 1095, $ttl_days ) );
 
+		// Device meta captured by the plugin-side device identity class.
+		$device_id      = strtolower( trim( (string) $order->get_meta( '_wc_bm_device_id', true ) ) );
+		$device_version = trim( (string) $order->get_meta( '_wc_bm_device_version', true ) );
+		$browser_id     = trim( (string) $order->get_meta( '_wc_bm_device_browser_id', true ) );
+		$session_id     = trim( (string) $order->get_meta( '_wc_bm_session_id', true ) );
+		$fp_hash        = strtolower( trim( (string) $order->get_meta( '_wc_bm_device_fp_hash', true ) ) );
+		$confidence     = sanitize_key( (string) $order->get_meta( '_wc_bm_device_confidence', true ) );
+		$payload_valid  = trim( (string) $order->get_meta( '_wc_bm_device_payload_valid', true ) );
+
+		$device_flags = $order->get_meta( '_wc_bm_device_flags', true );
+		if ( ! is_array( $device_flags ) ) {
+			$device_flags = $device_flags ? array( (string) $device_flags ) : array();
+		}
+		$device_flags = array_values(
+			array_unique(
+				array_filter(
+					array_map( 'sanitize_text_field', $device_flags )
+				)
+			)
+		);
+
+		$device_validation_reasons = $order->get_meta( '_wc_bm_device_validation_reasons', true );
+		if ( ! is_array( $device_validation_reasons ) ) {
+			$device_validation_reasons = $device_validation_reasons ? array( (string) $device_validation_reasons ) : array();
+		}
+		$device_validation_reasons = array_values(
+			array_unique(
+				array_filter(
+					array_map( 'sanitize_text_field', $device_validation_reasons )
+				)
+			)
+		);
+
 		foreach ( $idents as $ident ) {
 			$ctx = array(
-				'reason_code'          => sanitize_key( $reason_code ),
-				'description'          => (string) $description,
-				'order_amount'         => $total,
-				'currency'             => $currency,
-				'country'              => $billing_country,
-				'ip'                   => $ip,
-				'email'                => $email,
-				'phone'                => $phone,
-				'address_norm_version' => 2,
+				'reason_code'  => $reason_code,
+				'description'  => $description,
+				'order_id'     => (int) $order->get_id(),
+				'order_amount' => $total,
+				'currency'     => $currency,
+				'country'      => $billing_country,
+				'email_norm'   => $email,
+				'phone_norm'   => $phone,
+				'ip_norm'      => $ip,
 
 				'billing_address_norm' => array(
 					'full'          => isset( $billing_address['address_full_norm'] ) ? (string) $billing_address['address_full_norm'] : '',
@@ -372,6 +428,18 @@ final class YOGB_BM_Report {
 				$ctx['evidence_hash'] = $evidence_hash;
 			}
 
+			// Device stays contextual except for the canonical device_id identity.
+			$ctx['device'] = array(
+				'version'            => $device_version !== '' ? $device_version : 'v1',
+				'browser_id'         => $browser_id,
+				'fingerprint_hash'   => $fp_hash,
+				'session_id'         => $session_id,
+				'confidence'         => $confidence,
+				'flags'              => $device_flags,
+				'payload_valid'      => $payload_valid,
+				'validation_reasons' => $device_validation_reasons,
+			);
+
 			$related_identities = array();
 
 			foreach ( $idents as $candidate ) {
@@ -399,6 +467,16 @@ final class YOGB_BM_Report {
 				);
 			}
 
+			// Append the canonical device identity as a supporting identity.
+			if ( '' !== $device_id && $payload_valid === 'yes' ) {
+				$related_identities[] = array(
+					'type'        => 'device',
+					'value'       => $device_id,
+					'role'        => 'secondary',
+					'link_source' => 'report',
+				);
+			}
+
 			$related_identities = self::dedupe_related_identities( $related_identities );
 
 			$payloads[] = array(
@@ -420,14 +498,24 @@ final class YOGB_BM_Report {
 	 */
 	public static function build_check_payload_from_order( WC_Order $order ) : array {
 		$billing_country = sanitize_text_field( $order->get_billing_country() );
-		$email           = sanitize_email( $order->get_billing_email() );
-		$phone_raw       = sanitize_text_field( $order->get_billing_phone() );
-		$ip              = sanitize_text_field( $order->get_customer_ip_address() );
+		$email_raw = (string) $order->get_billing_email();
+		$email     = function_exists( 'yobm_gbl_normalize_email' )
+			? yobm_gbl_normalize_email( $email_raw )
+			: sanitize_email( $email_raw );
+
+		$phone_raw = sanitize_text_field( $order->get_billing_phone() );
+
+		$ip_raw = sanitize_text_field( $order->get_customer_ip_address() );
+		$ip     = function_exists( 'yobm_gbl_normalize_ip' )
+			? yobm_gbl_normalize_ip( $ip_raw )
+			: trim( (string) $ip_raw );
 
 		$phone = '';
 		if ( '' !== $phone_raw ) {
 			$dial_code        = yobm_get_country_dial_code( $billing_country );
-			$normalized_phone = yobm_normalize_phone( $phone_raw, $dial_code );
+			$normalized_phone = function_exists( 'yobm_gbl_normalize_phone' )
+				? yobm_gbl_normalize_phone( $phone_raw, $dial_code )
+				: yobm_normalize_phone( $phone_raw, $dial_code );
 
 			if ( '' !== $normalized_phone ) {
 				$phone = '+' . $normalized_phone;
@@ -435,11 +523,11 @@ final class YOGB_BM_Report {
 		}
 
 		$email_domain = '';
-		if ( $email && false !== strpos( $email, '@' ) ) {
+		if ( '' !== $email && false !== strpos( $email, '@' ) ) {
 			$at           = strrpos( $email, '@' );
-			$email_domain = strtolower( substr( $email, $at + 1 ) );
-			$email_domain = preg_replace( '/^www\./', '', $email_domain );
-			$email_domain = trim( (string) $email_domain, ". \t\n\r\0\x0B" );
+			$email_domain = function_exists( 'yobm_gbl_normalize_domain' )
+				? yobm_gbl_normalize_domain( substr( $email, $at + 1 ) )
+				: strtolower( trim( (string) substr( $email, $at + 1 ) ) );
 
 			if ( '' === $email_domain || false === strpos( $email_domain, '.' ) ) {
 				$email_domain = '';
@@ -531,9 +619,20 @@ final class YOGB_BM_Report {
 		$site_dom = is_string($host) ? strtolower($host) : '';
 
 		// Identity fingerprints only (no raw PII)
-		$email_norm = strtolower( trim( sanitize_email( $order->get_billing_email() ) ) );
-		$phone_e164 = preg_replace('/\D+/', '', (string) $order->get_billing_phone() );
-		$ip_raw     = sanitize_text_field( $order->get_customer_ip_address() );
+		$email_norm = function_exists( 'yobm_gbl_normalize_email' )
+			? yobm_gbl_normalize_email( (string) $order->get_billing_email() )
+			: strtolower( trim( sanitize_email( $order->get_billing_email() ) ) );
+
+		$billing_country = sanitize_text_field( $order->get_billing_country() );
+		$dial_code       = yobm_get_country_dial_code( $billing_country );
+		$phone_digits    = function_exists( 'yobm_gbl_normalize_phone' )
+			? yobm_gbl_normalize_phone( (string) $order->get_billing_phone(), $dial_code )
+			: yobm_normalize_phone( (string) $order->get_billing_phone(), $dial_code );
+		$phone_e164      = '' !== $phone_digits ? '+' . $phone_digits : '';
+
+		$ip_raw = function_exists( 'yobm_gbl_normalize_ip' )
+			? yobm_gbl_normalize_ip( (string) $order->get_customer_ip_address() )
+			: sanitize_text_field( $order->get_customer_ip_address() );
 
 		$idents = [
 			'email_sha256'      => $email_norm ? hash('sha256', $email_norm) : null,

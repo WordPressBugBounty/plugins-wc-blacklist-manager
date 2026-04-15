@@ -2,6 +2,20 @@
 
 == Changelog ==
 
+= 2.2.3 (Apr 15, 2026) =
+* New: Added email & phone verification for WooCommerce Blocks checkout with inline notice UI and auto retry.
+* Update: Updated verification flow for full Classic + Blocks support; improved phone normalization with country fallback.
+* Update: Global Blacklist checks now fully cover email, phone number, IP address, and physical address across all tiers.
+* Update: Merge multiple JS files into one optimized script with consistent AJAX and modal behavior.
+* Improve: The method for retrieving customer IP addresses has been strengthened for improved accuracy.
+* Improve: The Global Blacklist metabox no longer appears on the order page when Global Blacklist checks are disabled.
+* Improve: Global Blacklist checks are bypassed when Development Mode is enabled.
+* Improve: Improved UX, resend logic, and verification state handling; better support for custom dial code and Blocks data.
+* Improve: Optimized blacklist actions on the edit order page to reduce memory usage.
+* Improve: Added request-level caching for premium status, permissions, and order state.
+* Improve: Reused one computed blacklist state for buttons and notices.
+* Improve: Improve UX, stability, and maintainability by reducing duplicated code and better error handling.
+
 = 2.2.2 (Mar 28, 2026) =
 * New: Added Blacklist action buttons (remove / manage entries) directly in the order screen for faster workflow.
 * New: Introduced Development Mode (default for new installs) to prevent aggressive blocking during initial setup.

@@ -88,6 +88,17 @@ if (!defined('ABSPATH')) {
 				<?php endif; ?>
 				<tr>
 					<th scope="row">
+						<span class="dashicons dashicons-admin-site premium-text"></span>
+						<label class="premium-text"><?php echo esc_html__('Device identity', 'wc-blacklist-manager'); ?></label>
+					</th>
+					<td>
+						<input type="checkbox" disabled>
+						<label class="premium-text"><?php echo esc_html__('Enable device-based protection using identity tracking', 'wc-blacklist-manager'); ?></label><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a>
+						<p class="premium-text"><?php echo esc_html__('When enabled, the plugin can detect and act on blacklisted devices across the site.', 'wc-blacklist-manager'); ?></p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">
 						<span class="dashicons dashicons-admin-site"></span>
 						<label for="block_user_registration"><?php echo esc_html__('Registration action', 'wc-blacklist-manager'); ?></label>
 					</th>
@@ -540,7 +551,7 @@ if (!defined('ABSPATH')) {
 
 			<h2 id="global_blacklist"><?php echo esc_html__( 'Global Blacklist', 'wc-blacklist-manager' ); ?></h2>
 
-			<p class="description"><?php echo esc_html__( 'The Global Blacklist service helps you detect suspicious customer information during checkout, reducing fraud, blocking bad actors, and lowering the risk of chargebacks across your store.', 'wc-blacklist-manager' ); ?></p>
+			<p class="description"><?php echo esc_html__( 'The Global Blacklist enhances your site’s local blacklist by identifying real customers already flagged as high-risk (not bots). It helps detect suspicious information during checkout, allowing you to block bad actors, reduce fraud, and minimize chargebacks more effectively.', 'wc-blacklist-manager' ); ?></p>
 
 			<table class="form-table">
 				<tr>
@@ -813,6 +824,50 @@ if (!defined('ABSPATH')) {
 					</tr>
 				</table>
 
+				<h2><span class="premium-text"><?php echo esc_html__( 'Store API rate limit (extra protection layer)', 'wc-blacklist-manager' ); ?></span><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a></h2>
+
+				<p class="premium-text"><?php echo esc_html__( 'Adds an extra protection layer against repeated checkout abuse, card testing, and high-frequency bot attacks. Recommended for stores experiencing spam or attack activity. May affect rapid repeated checkout attempts (e.g. retries).', 'wc-blacklist-manager' ); ?></p>
+
+				<table class="form-table">
+					<tr>
+						<th scope="row">
+							<label class="premium-text"><?php echo esc_html__( 'Enable/Disable', 'wc-blacklist-manager' ); ?></label>
+						</th>
+						<td>
+							<input type="checkbox" disabled>
+							<label class="premium-text"><?php echo esc_html__( 'Enable Store API checkout rate limiting for stronger protection against repeated automated attacks', 'wc-blacklist-manager' ); ?></label>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row">
+							<label class="premium-text"><?php echo esc_html__( 'Request limit', 'wc-blacklist-manager' ); ?></label>
+						</th>
+						<td>
+							<input type="number" disabled>
+							<p class="premium-text"><?php echo esc_html__( 'Maximum number of allowed checkout-related requests within the time window below.', 'wc-blacklist-manager' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row">
+							<label class="premium-text"><?php echo esc_html__( 'Time window', 'wc-blacklist-manager' ); ?></label>
+						</th>
+						<td>
+							<input type="number" disabled> 
+							<span class="premium-text"><?php echo esc_html__( 'second(s)', 'wc-blacklist-manager' ); ?></span>
+							<p class="premium-text"><?php echo esc_html__( 'How long the request window lasts before the rate limit resets.', 'wc-blacklist-manager' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row">
+							<label class="premium-text"><?php echo esc_html__( 'Proxy support', 'wc-blacklist-manager' ); ?></label>
+						</th>
+						<td>
+							<input type="checkbox" disabled>
+							<label class="premium-text"><?php echo esc_html__( 'Enable this if your site is behind Cloudflare, a reverse proxy, or a load balancer that forwards the real client IP correctly', 'wc-blacklist-manager' ); ?></label>
+						</td>
+					</tr>
+				</table>
+
 				<h2><span class="premium-text"><?php echo esc_html__('Session continuity validation', 'wc-blacklist-manager'); ?></span><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a></h2>
 
 				<p class="premium-text"><?php echo esc_html__('Designed to stop bots that try to “jump straight to checkout” — protecting your store from fake orders without slowing down real buyers.', 'wc-blacklist-manager'); ?></p>
@@ -887,10 +942,10 @@ if (!defined('ABSPATH')) {
 				<p class="premium-text"><?php echo esc_html__('This feature is automatically doing the rules actions if the customer details or action match with their rules. Know about the actions:', 'wc-blacklist-manager'); ?></p>
 		
 				<p class="premium-text" style="margin-left: 15px;">
-					1. <?php echo esc_html('<strong>Email alert:</strong> Sending the emails to admin to let you know a new order was placed that matched the rule.', 'wc-blacklist-manager'); ?><br>
-					2. <?php echo esc_html('<strong>Add to suspects:</strong> Sending the emails and auto-adding the customers to the <strong>suspects list</strong> if they placed a new order that matched the rule.', 'wc-blacklist-manager'); ?><br>
-					3. <?php echo esc_html('<strong>Add to blocklist:</strong> Sending the emails and auto-adding the customers to the <strong>blocklist</strong> if they placed a new order that matched the rule.', 'wc-blacklist-manager'); ?><br>
-					4. <?php echo esc_html('<strong>Treat as score:</strong> Do no action, but treat the rule as a score that you can manage in the "Scoring" tab.', 'wc-blacklist-manager'); ?><br>
+					1. <?php echo wp_kses_post('<strong>Email alert:</strong> Sending the emails to admin to let you know a new order was placed that matched the rule.', 'wc-blacklist-manager'); ?><br>
+					2. <?php echo wp_kses_post('<strong>Add to suspects:</strong> Sending the emails and auto-adding the customers to the <strong>suspects list</strong> if they placed a new order that matched the rule.', 'wc-blacklist-manager'); ?><br>
+					3. <?php echo wp_kses_post('<strong>Add to blocklist:</strong> Sending the emails and auto-adding the customers to the <strong>blocklist</strong> if they placed a new order that matched the rule.', 'wc-blacklist-manager'); ?><br>
+					4. <?php echo wp_kses_post('<strong>Treat as score:</strong> Do no action, but treat the rule as a score that you can manage in the "Scoring" tab.', 'wc-blacklist-manager'); ?><br>
 				</p>
 
 				<p class="premium-text"><?php echo esc_html__('Note that the automated actions only trigger after an order was placed.', 'wc-blacklist-manager'); ?></p>
@@ -901,7 +956,7 @@ if (!defined('ABSPATH')) {
 					<!-- Phone/Email vs Address -->
 					<tr>
 						<th scope="row">
-							<label class="premium-text"><?php echo esc_html__('Phone/Email vs Address', 'wc-blacklist-manager'); ?></label>
+							<label class="premium-text"><?php echo esc_html__('Phone/Email vs Address', 'wc-blacklist-manager'); ?> *</label>
 						</th>
 						<td>
 							<input type="checkbox" disabled>
@@ -913,7 +968,7 @@ if (!defined('ABSPATH')) {
 					<!-- Phone/Email vs IP -->
 					<tr>
 						<th scope="row">
-							<label class="premium-text"><?php echo esc_html__('Phone/Email vs IP', 'wc-blacklist-manager'); ?></label>
+							<label class="premium-text"><?php echo esc_html__('Phone/Email vs IP', 'wc-blacklist-manager'); ?> *</label>
 						</th>
 						<td>
 							<input type="checkbox" disabled>
@@ -922,15 +977,39 @@ if (!defined('ABSPATH')) {
 						</td>
 					</tr>
 
-					<!-- Check orders in -->
+					<!-- Device vs Email/Phone -->
 					<tr>
 						<th scope="row">
-							<label class="premium-text"><?php echo esc_html__('Check orders in', 'wc-blacklist-manager'); ?></label>
+							<label class="premium-text"><?php echo esc_html__('Device vs Email/Phone', 'wc-blacklist-manager'); ?> *</label>
 						</th>
 						<td>
-							<input type="number" class="small-text" disabled>
-							<label class="premium-text"><?php echo esc_html__('day(s). Maximum is 90 days.', 'wc-blacklist-manager'); ?></label>
-							<p class="premium-text"><?php echo esc_html__('This option is in addition to the two options above.', 'wc-blacklist-manager'); ?></p>
+							<input type="checkbox" disabled>
+							<label class="premium-text"><?php echo esc_html__('Action if the same device, but different email or phone', 'wc-blacklist-manager'); ?></label>
+							<p class="premium-text"><?php echo esc_html__('The customer places a new order using a device that was used before, but with a different email address or phone number.', 'wc-blacklist-manager'); ?></p>
+						</td>
+					</tr>
+
+					<!-- Device vs Address -->
+					<tr>
+						<th scope="row">
+							<label class="premium-text"><?php echo esc_html__('Device vs Address', 'wc-blacklist-manager'); ?> *</label>
+						</th>
+						<td>
+							<input type="checkbox" disabled>
+							<label class="premium-text"><?php echo esc_html__('Action if the same device, but different address', 'wc-blacklist-manager'); ?></label>
+							<p class="premium-text"><?php echo esc_html__('The customer places a new order using a device that was used before, but with a different billing or shipping address.', 'wc-blacklist-manager'); ?></p>
+						</td>
+					</tr>
+
+					<!-- Device identity spread -->
+					<tr>
+						<th scope="row">
+							<label class="premium-text"><?php echo esc_html__('Device identity spread', 'wc-blacklist-manager'); ?></label>
+						</th>
+						<td>
+							<input type="checkbox" disabled>
+							<label class="premium-text"><?php echo esc_html__('Action if the same device is linked to too many identities', 'wc-blacklist-manager'); ?></label>
+							<p class="premium-text"><?php echo esc_html__('The customer places a new order using a device that has already been linked to too many different emails, phone numbers, or user accounts.', 'wc-blacklist-manager'); ?></p>
 						</td>
 					</tr>
 
@@ -1080,11 +1159,35 @@ if (!defined('ABSPATH')) {
 							<p class="premium-text"><?php echo esc_html__('Flag or block transactions made with cards issued from high-risk countries to prevent potential fraud.', 'wc-blacklist-manager'); ?></p>
 						</td>
 					</tr>
+
+					<!-- PayPal payer vs Customer -->
+					<tr>
+						<th scope="row">
+							<label class="premium-text"><?php echo esc_html__('PayPal payer vs Customer', 'wc-blacklist-manager'); ?></label>
+						</th>
+						<td>
+							<input type="checkbox" disabled>
+							<label class="premium-text"><?php echo esc_html__('Action if the same payer email, but different customer details', 'wc-blacklist-manager'); ?></label>
+							<p class="premium-text"><?php echo esc_html__('The customer places a new order using the same PayPal payer email but a different name, email, phone, or address than their previous order.', 'wc-blacklist-manager'); ?></p>
+						</td>
+					</tr>
 				</table>
 
 				<h2><span class="premium-text"><?php echo esc_html__('Additional options', 'wc-blacklist-manager'); ?></span><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a></h2>
 
 				<table class="form-table">
+					<!-- Check orders in -->
+					<tr>
+						<th scope="row">
+							<label class="premium-text"><?php echo esc_html__('Check orders in', 'wc-blacklist-manager'); ?></label>
+						</th>
+						<td>
+							<input type="number" class="small-text" disabled>
+							<label class="premium-text"><?php echo esc_html__('day(s). Maximum is 90 days.', 'wc-blacklist-manager'); ?></label>
+							<p class="premium-text"><?php echo esc_html__('This option is in addition to the options marked with an asterisk (*) above.', 'wc-blacklist-manager'); ?></p>
+						</td>
+					</tr>
+
 					<tr>
 						<th scope="row">
 							<label class="premium-text"><?php echo esc_html__('Auto cancel order', 'wc-blacklist-manager'); ?></label>
@@ -1130,9 +1233,12 @@ if (!defined('ABSPATH')) {
 					</tr>
 				</table>
 
-				<h2><span class="premium-text"><?php echo esc_html__('Score rule', 'wc-blacklist-manager'); ?></span><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a></h2>
+				<h2><span class="premium-text"><?php echo esc_html__('Score rules', 'wc-blacklist-manager'); ?></span><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a></h2>
 
-				<p class="premium-text"><?php echo esc_html__('Each score rule will be displayed based on the automation option set as "Treat as score".', 'wc-blacklist-manager'); ?></p>
+				<p class="premium-text">
+					<?php echo esc_html__( 'To learn more about a breakdown of each automatic check in Blacklist Manager, with a plain-language explanation, a concrete use-case example, and a “risk score” (1 = low priority, 5 = always flag) you can use as a default when tuning your rules.', 'wc-blacklist-manager' ); ?>
+					<a href="https://yoohw.com/docs/woocommerce-blacklist-manager/settings/scoring/2/" target="_blank"><?php echo esc_html__( 'Learn how to get started', 'wc-blacklist-manager' ); ?></a>
+				</p>
 
 				<table class="form-table">
 
@@ -1164,6 +1270,42 @@ if (!defined('ABSPATH')) {
 					<tr>
 						<th scope="row">
 							<label class="premium-text"><?php echo esc_html__('Phone/Email vs IP', 'wc-blacklist-manager'); ?></label>
+						</th>
+						<td>
+							<select disabled>
+								<option>5</option>
+							</select>
+						</td>
+					</tr>
+
+					<!-- Device vs Email/Phone -->
+					<tr>
+						<th scope="row">
+							<label class="premium-text"><?php echo esc_html__('Device vs Email/Phone', 'wc-blacklist-manager'); ?></label>
+						</th>
+						<td>
+							<select disabled>
+								<option>5</option>
+							</select>
+						</td>
+					</tr>
+
+					<!-- Device vs Address -->
+					<tr>
+						<th scope="row">
+							<label class="premium-text"><?php echo esc_html__('Device vs Address', 'wc-blacklist-manager'); ?></label>
+						</th>
+						<td>
+							<select disabled>
+								<option>5</option>
+							</select>
+						</td>
+					</tr>
+
+					<!-- Device identity spread -->
+					<tr>
+						<th scope="row">
+							<label class="premium-text"><?php echo esc_html__('Device identity spread', 'wc-blacklist-manager'); ?></label>
 						</th>
 						<td>
 							<select disabled>
@@ -1298,14 +1440,17 @@ if (!defined('ABSPATH')) {
 							<label class="premium-text"><?php echo esc_html__('Total score', 'wc-blacklist-manager'); ?></label>
 						</th>
 						<td>
-						<label class="premium-text">60</label>
+						<label class="premium-text">80</label>
 						</td>
 					</tr>					
 				</table>
 
 				<h2><span class="premium-text"><?php echo esc_html__('Risk score thresholds', 'wc-blacklist-manager'); ?></span><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a></h2>
 
-				<p class="premium-text"><?php echo esc_html__('When a new order has been placed, the risk score will be calculated and trigger the action that follows these thresholds.', 'wc-blacklist-manager'); ?></p>
+				<p class="premium-text">
+					<?php echo esc_html__( 'When a new order is placed, the risk score will be calculated and compared against these shared thresholds. The possible total score may vary depending on the payment gateway used for the order.', 'wc-blacklist-manager' ); ?> 
+					<a href="https://yoohw.com/docs/woocommerce-blacklist-manager/settings/scoring/2/#suggested_thresholds" target="_blank"><?php echo esc_html__( 'Learn the correct approach', 'wc-blacklist-manager' ); ?></a>
+				</p>
 
 				<table class="form-table">
 					<tr>
@@ -1318,7 +1463,7 @@ if (!defined('ABSPATH')) {
 							</div>
 						</th>
 						<td>
-							<label class="premium-text">0 / 60</label>
+							<label class="premium-text">0 / 80</label>
 							<p class="premium-text"><?php echo esc_html('You will see this score badge in the order page and new order email notification.', 'wc-blacklist-manager'); ?></p>
 						</td>
 					</tr>
@@ -1333,7 +1478,7 @@ if (!defined('ABSPATH')) {
 							</div>
 						</th>
 						<td>
-							<input type="number" class="small-text" disabled> <label class="premium-text">/ 60</label>
+							<input type="number" class="small-text" disabled> <label class="premium-text">/ 80</label>
 							<p class="premium-text"><?php echo esc_html('You will see this score badge in the order page and new order email notification.', 'wc-blacklist-manager'); ?></p>
 						</td>
 					</tr>
@@ -1348,7 +1493,7 @@ if (!defined('ABSPATH')) {
 							</div>
 						</th>
 						<td>
-							<input type="number" class="small-text" disabled> <label class="premium-text">/ 60</label>
+							<input type="number" class="small-text" disabled> <label class="premium-text">/ 80</label>
 							<p class="premium-text"><?php echo esc_html('Auto-adding the customers to the <strong>suspects list</strong> if they placed a new order that matched this score.', 'wc-blacklist-manager'); ?></p>
 						</td>
 					</tr>
@@ -1363,7 +1508,7 @@ if (!defined('ABSPATH')) {
 							</div>
 						</th>
 						<td>
-							<input type="number" class="small-text" disabled> <label class="premium-text">/ 60</label>
+							<input type="number" class="small-text" disabled> <label class="premium-text">/ 80</label>
 							<p class="premium-text"><?php echo esc_html('Auto-adding the customers to the <strong>blocklist</strong> if they placed a new order that matched this score and auto-cancelling if the "Auto cancel order" (Automation) option is enabled.', 'wc-blacklist-manager'); ?></p>
 						</td>
 					</tr>					
@@ -1411,18 +1556,15 @@ if (!defined('ABSPATH')) {
 						<p class="premium-text"><?php esc_html_e('Enter Google reCAPTCHA site key and secret key.', 'wc-blacklist-manager'); ?> <a href="https://yoohw.com/docs/woocommerce-blacklist-manager/settings/integrations/6/" target="_blank"><?php esc_html_e('How to get the keys?', 'wc-blacklist-manager'); ?></a><br>
 					</td>
 				</tr>
-				<?php if ($woocommerce_active): ?>
-					<tr valign="top">
-						<th scope="row">
-							<label class="premium-text"><?php esc_html_e('Checkout API', 'wc-blacklist-manager'); ?></label>
-						</th>
-						<td>
-							<input type="checkbox" disabled>
-							<label class="premium-text"><?php esc_html_e('Enable requiring CAPTCHA for checkout through API', 'wc-blacklist-manager'); ?></label>
-							<p class="premium-text"><?php esc_html_e('Check this option to avoid the bot\'s auto-placing orders through API.', 'wc-blacklist-manager'); ?></p>
-						</td>
-					</tr>
-				<?php endif; ?>
+				<tr valign="top">
+					<th scope="row">
+						<label class="premium-text"><?php esc_html_e('Score theshold', 'wc-blacklist-manager'); ?></label>
+					</th>
+					<td>
+						<input type="number" disabled>
+						<p class="premium-text"><?php esc_html_e('Enter the Google reCAPTCHA v3 score threshold. Interactions scoring below this value will be considered suspicious.', 'wc-blacklist-manager'); ?></p>
+					</td>
+				</tr>
 				<tr valign="top">
 					<th scope="row">
 						<label class="premium-text"><?php esc_html_e('Login form', 'wc-blacklist-manager'); ?></label>
@@ -1633,7 +1775,7 @@ if (!defined('ABSPATH')) {
 						</th>
 						<td>
 							<input type="checkbox" disabled/>
-							<label class="premium-text"></label>
+							<label class="premium-text"><?php esc_html_e('Require verification of the PayPal payer email if it doesn\'t match the customer\'s email', 'wc-blacklist-manager'); ?></label>
 							<p class="premium-text"><?php esc_html_e('If checked, a verification email will be sent and the order will be placed on hold until the payer verifies their email.', 'wc-blacklist-manager'); ?></p>
 						</td>
 					</tr>

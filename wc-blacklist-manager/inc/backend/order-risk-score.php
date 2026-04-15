@@ -9,6 +9,10 @@ use Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableControlle
 class WC_Blacklist_Manager_Order_Risk_Score {
 
 	public function __construct() {
+		if (get_option( 'wc_blacklist_enable_global_blacklist', '0' ) !== '1' ) {
+			return;
+		}
+
 		add_action( 'add_meta_boxes', array( $this, 'add_order_risk_score_meta_box' ), 1 );
 	}
 
@@ -79,26 +83,10 @@ class WC_Blacklist_Manager_Order_Risk_Score {
 			return;
 		}
 
-		$is_global_enabled = ( '1' === get_option( 'wc_blacklist_enable_global_blacklist', '0' ) );
-
 		$enable_url = wp_nonce_url(
 			admin_url( 'admin-post.php?action=enable_global_blacklist' ),
 			'enable_global_blacklist'
 		);
-
-		if ( ! $is_global_enabled ) : ?>
-			<div class="bm-order-risk-meta bm-order-risk-meta--disabled">
-				<p><strong><?php esc_html_e( 'Global Blacklist is currently disabled.', 'wc-blacklist-manager' ); ?></strong></p>
-				<p><?php esc_html_e( 'Enable the Global Blacklist to start checking orders against your site’s global reputation data.', 'wc-blacklist-manager' ); ?></p>
-				<p>
-					<a href="<?php echo esc_url( $enable_url ); ?>" class="button button-secondary">
-						<?php esc_html_e( 'Enable Global Blacklist', 'wc-blacklist-manager' ); ?>
-					</a>
-				</p>
-			</div>
-			<?php
-			return;
-		endif;
 
 		$opt_api_key     = class_exists( 'YOGB_BM_Registrar' ) ? YOGB_BM_Registrar::OPT_API_KEY : 'yogb_bm_api_key';
 		$opt_api_secret  = class_exists( 'YOGB_BM_Registrar' ) ? YOGB_BM_Registrar::OPT_API_SECRET : 'yogb_bm_api_secret';
@@ -299,20 +287,6 @@ class WC_Blacklist_Manager_Order_Risk_Score {
 				break;
 		}
 
-		$coverage_message = '';
-		switch ( $tier ) {
-			case 'free':
-				$coverage_message = __( 'Checked with Email + IP', 'wc-blacklist-manager' );
-				break;
-			case 'basic':
-				$coverage_message = __( 'Checked with Email + Phone + IP', 'wc-blacklist-manager' );
-				break;
-			case 'pro':
-			case 'enterprise':
-				$coverage_message = __( 'Checked with Email + Phone + IP + Address', 'wc-blacklist-manager' );
-				break;
-		}
-
 		$main_reason_text = '';
 		if ( ! empty( $reason_summaries ) ) {
 			$main_reason_text = $reason_summaries[0];
@@ -365,6 +339,11 @@ class WC_Blacklist_Manager_Order_Risk_Score {
 						<?php esc_html_e( 'Upgrade', 'wc-blacklist-manager' ); ?>
 					</a>
 				<?php endif; ?>
+				<span 
+					class="woocommerce-help-tip" 
+					tabindex="0" 
+					data-tip="<?php esc_attr_e('Global Blacklist works alongside your site’s local blacklist to add extra protection by identifying real customers already flagged on our global blacklist (not bots), helping you block known high-risk users more accurately.', 'wc-blacklist-manager'); ?>">
+				</span>
 				<br />
 				<small class="bm-order-risk-tier-usage<?php echo $has_reached_limit ? ' bm-order-risk-tier-usage--limit' : ''; ?>">
 					<?php echo esc_html( $tier_usage_text ); ?>
@@ -404,11 +383,6 @@ class WC_Blacklist_Manager_Order_Risk_Score {
 			<div class="bm-gbl-merchant-section">
 				<div class="bm-gbl-merchant-section__title"><?php esc_html_e( 'Recommended action', 'wc-blacklist-manager' ); ?></div>
 				<p><?php echo esc_html( $action_text ); ?></p>
-			</div>
-
-			<div class="bm-gbl-merchant-section">
-				<div class="bm-gbl-merchant-section__title"><?php esc_html_e( 'Coverage', 'wc-blacklist-manager' ); ?></div>
-				<p><?php echo esc_html( $coverage_message ); ?></p>
 			</div>
 
 			<?php if ( ! empty( $matched_types ) ) : ?>
@@ -560,7 +534,7 @@ class WC_Blacklist_Manager_Order_Risk_Score {
 					sprintf(
 						__(
 							'Need broader coverage? <a href="%s" target="_blank" rel="noopener noreferrer">Upgrade to include more identity checks.</a>',
-							'wc-blacklist-manager-premium'
+							'wc-blacklist-manager'
 						),
 						esc_url( $upgrade_url )
 					),
