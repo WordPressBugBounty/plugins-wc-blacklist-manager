@@ -5,7 +5,7 @@ Requires at least: 6.3
 Tested up to: 6.9
 WC tested up to: 10.7
 Requires PHP: 7.4
-Stable tag: 2.2.3
+Stable tag: 2.2.3.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -68,7 +68,7 @@ This system builds a relationship between devices and identities, allowing you t
 
 Key capabilities include:
 
-* **Device Fingerprinting**: Capture device_id, session_id, and fingerprint signals to uniquely identify customer devices.
+* **Device Fingerprinting**: Capture `device_id`, `session_id`, and fingerprint signals to uniquely identify customer devices.
 * **Cross-Identity Tracking**: Link one device to multiple emails, phone numbers, IPs, and user accounts.
 * **Device vs Identity Detection**: Detect when the same device is used with different emails, phones, or addresses.
 * **Device Identity Spread Analysis**: Identify devices connected to an unusually high number of identities—a strong indicator of fraud or abuse.

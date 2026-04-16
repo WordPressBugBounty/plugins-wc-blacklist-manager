@@ -3,7 +3,7 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 
 final class YOGB_BM_Report {
 	// Server REST prefix (keep route part without /wp-json in the signature path)
-	const SERVER_BASE  = 'https://yosandbox.top/globalblacklist';
+	const SERVER_BASE  = 'https://globalblacklist.org';
 	const REST_ROUTE   = '/yoohw-gbl/v1';
 	const OPT_KEY      = 'yogb_bm_api_key';
 	const OPT_SECRET   = 'yogb_bm_api_secret';
