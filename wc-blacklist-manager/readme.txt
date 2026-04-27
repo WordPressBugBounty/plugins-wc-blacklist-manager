@@ -5,7 +5,7 @@ Requires at least: 6.3
 Tested up to: 6.9
 WC tested up to: 10.7
 Requires PHP: 7.4
-Stable tag: 2.2.3.1
+Stable tag: 2.2.4
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -21,7 +21,7 @@ Originally built for WooCommerce, it now extends its protection to popular form 
 
 [Global Blacklist](https://yoohw.com/global-blacklist-plan/) | [Premium version](https://yoohw.com/product/blacklist-manager-premium/) | [Documentation](https://yoohw.com/docs/category/woocommerce-blacklist-manager/) | [Support](https://yoohw.com/support/)  | [Demo](https://sandbox.yoohw.com/demo/yobm_demo.html)
 
-== Features ==
+== Core Features ==
 
 * **Real-Time Blacklist Blocking**: Instantly block customers by IP, email, or phone number during checkout or form submission.
 * **Easy Blacklist Management**: Easily add the phone number, email address, ip address from the order page; multi ip addresses/domains addition into blocking list.
@@ -182,7 +182,9 @@ Our premier solution for combating fraud and unauthorized transactions: we've in
 * [Payment Plugins for Stripe WooCommerce](https://wordpress.org/plugins/woo-stripe-payment/)
 * [WooCommerce PayPal Payments](https://wordpress.org/plugins/woocommerce-paypal-payments/)
 * [Payment Plugins for PayPal WooCommerce](https://wordpress.org/plugins/pymntpl-paypal-woocommerce/)
+* [Braintree for WooCommerce Payment Gateway](https://wordpress.org/plugins/woocommerce-gateway-paypal-powered-by-braintree/)
 * [Mollie Payments for WooCommerce](https://wordpress.org/plugins/mollie-payments-for-woocommerce/)
+* [WooPayments: Integrated WooCommerce Payments](https://wordpress.org/plugins/woocommerce-payments/)
 
 = Service integrations =
 
@@ -251,6 +253,17 @@ A: There is no set limit within the plugin, but practical limitations depend on 
 A: No, the plugin is optimized for performance. It performs blacklist checks efficiently and only at appropriate times (like form submission or checkout), so it won’t noticeably impact your site speed.
 
 == Changelog ==
+
+= 2.2.4 (Apr 27, 2026) =
+* New: Added an option to extend blacklist protection to WooCommerce REST API orders created by external apps or integrations.
+* Update: Added and run the backfill normalized email address to the existing database.
+* Fix: Resolved issues where some blocked orders could still be created before being removed.
+* Improve: Better protection during checkout — blocked customers are now stopped earlier, before an order is created.
+* Improve: Enhanced compatibility with WooCommerce Blocks checkout to ensure consistent protection across all checkout types.
+* Improve: More reliable blocking behavior across checkout, registration, and API requests.
+* Improve: Faster and more efficient validation to reduce unnecessary processing during checkout.
+* Improve: Better handling of different request types to ensure protection works across more scenarios.
+* Improve: Overall stability and performance improvements for blacklist and verification features.
 
 = 2.2.3 (Apr 15, 2026) =
 * New: Added email & phone verification for WooCommerce Blocks checkout with inline notice UI and auto retry.

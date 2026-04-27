@@ -37,10 +37,7 @@ if (!defined('ABSPATH')) {
 		<form method="post" action="">
 			<?php wp_nonce_field('wc_blacklist_settings_action', 'wc_blacklist_settings_nonce'); ?>
 
-			<h2><?php echo esc_html__('Blacklist', 'wc-blacklist-manager'); ?></h2>
-
-			<p class="description"><?php echo esc_html__('This setting is for both suspects and blocklist.', 'wc-blacklist-manager'); ?></p>
-
+			<h2><?php echo esc_html__('General options', 'wc-blacklist-manager'); ?></h2>
 			<table class="form-table">
 				<tr>
 					<th scope="row">
@@ -53,27 +50,6 @@ if (!defined('ABSPATH')) {
 					</td>
 				</tr>
 				<?php if ($woocommerce_active): ?>
-					<tr>
-						<th scope="row">
-							<span class="dashicons dashicons-cart"></span>
-							<label for="blacklist_action"><?php echo esc_html__('Order action', 'wc-blacklist-manager'); ?></label>
-						</th>
-						<td>
-							<select id="blacklist_action" name="blacklist_action">
-								<option value="none" <?php selected($settings['blacklist_action'], 'none'); ?>><?php echo esc_html__('None', 'wc-blacklist-manager'); ?></option>
-								<option value="cancel" <?php selected($settings['blacklist_action'], 'cancel'); ?>><?php echo esc_html__('Cancel order', 'wc-blacklist-manager'); ?></option>
-								<option value="prevent" <?php selected($settings['blacklist_action'], 'prevent'); ?>><?php echo esc_html__('Prevent order', 'wc-blacklist-manager'); ?></option>
-							</select>
-							<p class="description"><?php echo esc_html__('Cancel the order / Prevent customers from checking out if they use the phone number or email address is on the blocklist.', 'wc-blacklist-manager'); ?></p>
-						</td>
-					</tr>
-					<tr id="time_delay_row" style="<?php echo ($settings['blacklist_action'] === 'cancel') ? '' : 'display: none;'; ?>">
-						<th scope="row"><label for="order_delay"><?php echo esc_html__('Time delay', 'wc-blacklist-manager'); ?></label></th>
-						<td>
-							<input type="number" id="order_delay" name="order_delay" value="<?php echo esc_attr($settings['order_delay']); ?>" class="small-text" min="0">
-							<?php echo esc_html__('minute(s)', 'wc-blacklist-manager'); ?>
-						</td>
-					</tr>
 					<tr>
 						<th scope="row">
 							<span class="dashicons dashicons-cart premium-text"></span>
@@ -97,6 +73,46 @@ if (!defined('ABSPATH')) {
 						<p class="premium-text"><?php echo esc_html__('When enabled, the plugin can detect and act on blacklisted devices across the site.', 'wc-blacklist-manager'); ?></p>
 					</td>
 				</tr>
+				<?php if ($woocommerce_active): ?>
+					<tr>
+						<th scope="row">
+							<span class="dashicons dashicons-rest-api"></span>
+							<label for="woo_rest_api"><?php echo esc_html__( 'WooCommerce REST API', 'wc-blacklist-manager' ); ?></label>
+						</th>
+						<td>
+							<input type="checkbox" id="woo_rest_api" name="woo_rest_api" value="1" <?php checked( $settings['woo_rest_api'] ); ?>>
+							<label for="woo_rest_api"><?php echo esc_html__( 'Enable blacklist protection for WooCommerce REST API requests', 'wc-blacklist-manager' ); ?></label>
+							<p class="description"><?php echo esc_html__( 'If enabled, the plugin will check and block blacklisted customers when orders are created via the WooCommerce REST API, instead of only through the normal checkout flow.', 'wc-blacklist-manager' ); ?></p>
+						</td>
+					</tr>
+				<?php endif; ?>
+			</table>
+
+			<h2><?php echo esc_html__('Email address & Phone number', 'wc-blacklist-manager'); ?></h2>
+			<table class="form-table">
+				<?php if ($woocommerce_active): ?>
+					<tr>
+						<th scope="row">
+							<span class="dashicons dashicons-cart"></span>
+							<label for="blacklist_action"><?php echo esc_html__('Order action', 'wc-blacklist-manager'); ?></label>
+						</th>
+						<td>
+							<select id="blacklist_action" name="blacklist_action">
+								<option value="none" <?php selected($settings['blacklist_action'], 'none'); ?>><?php echo esc_html__('None', 'wc-blacklist-manager'); ?></option>
+								<option value="cancel" <?php selected($settings['blacklist_action'], 'cancel'); ?>><?php echo esc_html__('Cancel order', 'wc-blacklist-manager'); ?></option>
+								<option value="prevent" <?php selected($settings['blacklist_action'], 'prevent'); ?>><?php echo esc_html__('Prevent order', 'wc-blacklist-manager'); ?></option>
+							</select>
+							<p class="description"><?php echo esc_html__('Cancel the order / Prevent customers from checking out if they use the phone number or email address is on the blocklist.', 'wc-blacklist-manager'); ?></p>
+						</td>
+					</tr>
+					<tr id="time_delay_row" style="<?php echo ($settings['blacklist_action'] === 'cancel') ? '' : 'display: none;'; ?>">
+						<th scope="row"><label for="order_delay"><?php echo esc_html__('Time delay', 'wc-blacklist-manager'); ?></label></th>
+						<td>
+							<input type="number" id="order_delay" name="order_delay" value="<?php echo esc_attr($settings['order_delay']); ?>" class="small-text" min="0">
+							<?php echo esc_html__('minute(s)', 'wc-blacklist-manager'); ?>
+						</td>
+					</tr>
+				<?php endif; ?>
 				<tr>
 					<th scope="row">
 						<span class="dashicons dashicons-admin-site"></span>
@@ -120,10 +136,10 @@ if (!defined('ABSPATH')) {
 					<td>
 						<input type="checkbox" id="comment_blocking_enabled" name="comment_blocking_enabled" value="1" <?php checked($settings['comment_blocking_enabled']); ?>>
 						<?php if ($woocommerce_active): ?>
-							<label for="comment_blocking_enabled"><?php echo esc_html__('Prevent users from submitting comment and review if they are on the blocklist', 'wc-blacklist-manager'); ?></label>
+							<label for="comment_blocking_enabled"><?php echo esc_html__('Prevent users from submitting comment and review if their email is on the blocklist', 'wc-blacklist-manager'); ?></label>
 							<p class="description"><?php echo esc_html__('It will prevent blocked users from submiting comment or product review on both WordPress and WooCommerce.', 'wc-blacklist-manager'); ?></p>
 						<?php else: ?>
-							<label for="comment_blocking_enabled"><?php echo esc_html__('Prevent users from submitting comment if they are on the blocklist', 'wc-blacklist-manager'); ?></label>
+							<label for="comment_blocking_enabled"><?php echo esc_html__('Prevent users from submitting comment if their email is on the blocklist', 'wc-blacklist-manager'); ?></label>
 							<p class="description"><?php echo esc_html__('It will prevent blocked users from submiting comment on your site.', 'wc-blacklist-manager'); ?></p>
 						<?php endif; ?>
 					</td>
@@ -136,7 +152,7 @@ if (!defined('ABSPATH')) {
 						</th>
 						<td>
 							<input type="checkbox" id="form_blocking_enabled" name="form_blocking_enabled" value="1" <?php checked($settings['form_blocking_enabled']); ?>>
-							<label for="form_blocking_enabled"><?php echo esc_html__('Enable the blacklist (suspects and blocklist) for Contact Forms 7, Gravity Forms, and WPForms', 'wc-blacklist-manager'); ?></label>
+							<label for="form_blocking_enabled"><?php echo esc_html__('Prevent visitors from submitting if their email or phone is on the blocklist for Contact Form 7, Gravity Forms, and WPForms', 'wc-blacklist-manager'); ?></label>
 							<p class="description"><?php echo esc_html__('Notify the admin if a suspected phone or email is submitting, and prevent submitting if they were blocked.', 'wc-blacklist-manager'); ?></p>
 						</td>
 					</tr>

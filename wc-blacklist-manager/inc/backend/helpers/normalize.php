@@ -232,16 +232,22 @@ if ( ! function_exists( 'yobm_extract_house_number_norm' ) ) {
 
 		/*
 		 * Examples:
-		 * 12 king st      => 12
-		 * 12a king st     => 12a
-		 * 12-a king st    => 12a
-		 * 12 a king st    => 12a
+		 * 12 king st        => 12
+		 * 12a king st       => 12a
+		 * 12-a king st      => 12a
+		 * 12 a king st      => 12a
+		 * no 12 king st     => 12
+		 * 12/3 king st      => 12 3
+		 * 12-14 king st     => 12 14
 		 */
-		if ( preg_match( '/^(\d+)\s*[- ]?\s*([a-z])?\b/u', $address_line_norm, $m ) ) {
-			$number = isset( $m[1] ) ? $m[1] : '';
-			$suffix = isset( $m[2] ) ? $m[2] : '';
+		$address_line_norm = preg_replace( '/^no\s+/u', '', $address_line_norm );
 
-			return trim( $number . $suffix );
+		if ( preg_match( '/^(\d+[a-z]?)(?:\s+(\d+[a-z]?))?\b/u', $address_line_norm, $m ) ) {
+			$primary   = isset( $m[1] ) ? $m[1] : '';
+			$secondary = isset( $m[2] ) ? $m[2] : '';
+			$parts     = array_filter( array( $primary, $secondary ), 'strlen' );
+
+			return trim( implode( ' ', $parts ) );
 		}
 
 		return '';
@@ -297,6 +303,83 @@ if ( ! function_exists( 'yobm_build_address_premise_norm' ) ) {
 	}
 }
 
+
+if ( ! function_exists( 'yobm_normalize_ordinal_tokens' ) ) {
+	function yobm_normalize_ordinal_tokens( $value ) {
+		$replacements = array(
+			'/\bfirst\b/u'        => '1st',
+			'/\bsecond\b/u'       => '2nd',
+			'/\bthird\b/u'        => '3rd',
+			'/\bfourth\b/u'       => '4th',
+			'/\bfifth\b/u'        => '5th',
+			'/\bsixth\b/u'        => '6th',
+			'/\bseventh\b/u'      => '7th',
+			'/\beighth\b/u'       => '8th',
+			'/\bninth\b/u'        => '9th',
+			'/\btenth\b/u'        => '10th',
+			'/\beleventh\b/u'     => '11th',
+			'/\btwelfth\b/u'      => '12th',
+			'/\bthirteenth\b/u'   => '13th',
+			'/\bfourteenth\b/u'   => '14th',
+			'/\bfifteenth\b/u'    => '15th',
+			'/\bsixteenth\b/u'    => '16th',
+			'/\bseventeenth\b/u'  => '17th',
+			'/\beighteenth\b/u'   => '18th',
+			'/\bnineteenth\b/u'   => '19th',
+			'/\btwentieth\b/u'    => '20th',
+		);
+
+		return preg_replace( array_keys( $replacements ), array_values( $replacements ), $value );
+	}
+}
+
+if ( ! function_exists( 'yobm_normalize_roman_numerals' ) ) {
+	function yobm_normalize_roman_numerals( $value ) {
+		$replacements = array(
+			'/\bxii\b/u'  => '12',
+			'/\bxi\b/u'   => '11',
+			'/\bx\b/u'    => '10',
+			'/\bix\b/u'   => '9',
+			'/\bviii\b/u' => '8',
+			'/\bvii\b/u'  => '7',
+			'/\bvi\b/u'   => '6',
+			'/\bv\b/u'    => '5',
+			'/\biv\b/u'   => '4',
+			'/\biii\b/u'  => '3',
+			'/\bii\b/u'   => '2',
+			'/\bi\b/u'    => '1',
+		);
+
+		return preg_replace( array_keys( $replacements ), array_values( $replacements ), $value );
+	}
+}
+
+if ( ! function_exists( 'yobm_dedupe_address_tokens' ) ) {
+	function yobm_dedupe_address_tokens( $value ) {
+		$tokens = preg_split( '/\s+/u', trim( (string) $value ) );
+		$tokens = is_array( $tokens ) ? $tokens : array();
+		$result = array();
+		$prev   = null;
+
+		foreach ( $tokens as $token ) {
+			$token = trim( (string) $token );
+
+			if ( '' === $token ) {
+				continue;
+			}
+
+			if ( $token === $prev ) {
+				continue;
+			}
+
+			$result[] = $token;
+			$prev     = $token;
+		}
+
+		return implode( ' ', $result );
+	}
+}
+
 if ( ! function_exists( 'yobm_normalize_postcode' ) ) {
 	/**
 	 * Normalize a postcode / ZIP for matching.
@@ -334,6 +417,15 @@ if ( ! function_exists( 'yobm_normalize_address_tokens' ) ) {
 			return '';
 		}
 
+		$value = preg_replace( '/[‘’‚‛´`]/u', "'", $value );
+		$value = preg_replace( '/[“”„‟]/u', '"', $value );
+		$value = preg_replace( '/[‐‑‒–—―]/u', '-', $value );
+		$value = preg_replace( '/\b(p\.?\s*o\.?\s*box)\b/u', ' pobox ', $value );
+		$value = preg_replace( '/\bpost\s*office\s*box\b/u', ' pobox ', $value );
+		$value = preg_replace( '/\bpostbox\b/u', ' pobox ', $value );
+		$value = preg_replace( '/\blocked\s*bag\b/u', ' pobox ', $value );
+		$value = preg_replace( '/\bno\.?\s*(\d+)/u', ' $1', $value );
+		$value = preg_replace( '/#\s*(\d+[a-z]?)/u', ' $1', $value );
 		$value = str_replace(
 			array( ',', '.', ';', ':', '#', '/', '\\', '-', '_', '(', ')', '[', ']', '{', '}' ),
 			' ',
@@ -341,6 +433,8 @@ if ( ! function_exists( 'yobm_normalize_address_tokens' ) ) {
 		);
 
 		$value = preg_replace( '/[^\p{L}\p{N}\s]/u', ' ', $value );
+		$value = yobm_normalize_ordinal_tokens( $value );
+		$value = yobm_normalize_roman_numerals( $value );
 		$value = preg_replace( '/\b(\d+)\s*[- ]\s*([a-z])\b/u', '$1$2', $value );
 		$value = preg_replace( '/\s+/u', ' ', $value );
 		$value = trim( $value );
@@ -350,41 +444,137 @@ if ( ! function_exists( 'yobm_normalize_address_tokens' ) ) {
 		}
 
 		$replacements = array(
-			// directions
-			'/\bnorth\b/u' => 'n',
-			'/\bsouth\b/u' => 's',
-			'/\beast\b/u'  => 'e',
-			'/\bwest\b/u'  => 'w',
-			'/\bnortheast\b/u' => 'ne',
-			'/\bnorthwest\b/u' => 'nw',
-			'/\bsoutheast\b/u' => 'se',
-			'/\bsouthwest\b/u' => 'sw',
+			// directions.
+			'/\bnorth\s*east\b/u'    => 'ne',
+			'/\bnorth\s*west\b/u'    => 'nw',
+			'/\bsouth\s*east\b/u'    => 'se',
+			'/\bsouth\s*west\b/u'    => 'sw',
+			'/\bnorth[-\s]*east\b/u' => 'ne',
+			'/\bnorth[-\s]*west\b/u' => 'nw',
+			'/\bsouth[-\s]*east\b/u' => 'se',
+			'/\bsouth[-\s]*west\b/u' => 'sw',
+			'/\bnortheast\b/u'        => 'ne',
+			'/\bnorthwest\b/u'        => 'nw',
+			'/\bsoutheast\b/u'        => 'se',
+			'/\bsouthwest\b/u'        => 'sw',
+			'/\bnorth\b/u'            => 'n',
+			'/\bsouth\b/u'            => 's',
+			'/\beast\b/u'             => 'e',
+			'/\bwest\b/u'             => 'w',
 
-			// street suffixes
-			'/\bstreet\b/u'    => 'st',
-			'/\broad\b/u'      => 'rd',
-			'/\bavenue\b/u'    => 'ave',
-			'/\bboulevard\b/u' => 'blvd',
-			'/\bdrive\b/u'     => 'dr',
-			'/\blane\b/u'      => 'ln',
-			'/\bcourt\b/u'     => 'ct',
-			'/\bplace\b/u'     => 'pl',
-			'/\bterrace\b/u'   => 'ter',
-			'/\bparkway\b/u'   => 'pkwy',
-			'/\bhighway\b/u'   => 'hwy',
+			// common street suffixes / roadway terms.
+			'/\bstreet\b/u'           => 'st',
+			'/\bst\.?\b/u'           => 'st',
+			'/\bstrasse\b/u'          => 'str',
+			'/\bstraße\b/u'           => 'str',
+			'/\bstr\.?\b/u'          => 'str',
+			'/\broad\b/u'             => 'rd',
+			'/\brd\.?\b/u'           => 'rd',
+			'/\bavenue\b/u'           => 'ave',
+			'/\bav\.?\b/u'           => 'ave',
+			'/\bave\.?\b/u'          => 'ave',
+			'/\bavenu\b/u'            => 'ave',
+			'/\bboulevard\b/u'        => 'blvd',
+			'/\bboulvard\b/u'         => 'blvd',
+			'/\bblvd\.?\b/u'         => 'blvd',
+			'/\bdrive\b/u'            => 'dr',
+			'/\bdr\.?\b/u'           => 'dr',
+			'/\blane\b/u'             => 'ln',
+			'/\bln\.?\b/u'           => 'ln',
+			'/\bcourt\b/u'            => 'ct',
+			'/\bct\.?\b/u'           => 'ct',
+			'/\bplace\b/u'            => 'pl',
+			'/\bpl\.?\b/u'           => 'pl',
+			'/\bterrace\b/u'          => 'ter',
+			'/\bter\.?\b/u'          => 'ter',
+			'/\bparkway\b/u'          => 'pkwy',
+			'/\bpkwy\.?\b/u'         => 'pkwy',
+			'/\bhighway\b/u'          => 'hwy',
+			'/\bhwy\.?\b/u'          => 'hwy',
+			'/\bway\b/u'              => 'way',
+			'/\bclose\b/u'            => 'cl',
+			'/\bcl\.?\b/u'           => 'cl',
+			'/\bcrescent\b/u'         => 'cres',
+			'/\bcres\.?\b/u'         => 'cres',
+			'/\bcircle\b/u'           => 'cir',
+			'/\bcir\.?\b/u'          => 'cir',
+			'/\bsquare\b/u'           => 'sq',
+			'/\bsq\.?\b/u'           => 'sq',
+			'/\btrail\b/u'            => 'trl',
+			'/\btrl\.?\b/u'          => 'trl',
+			'/\bturnpike\b/u'         => 'tpke',
+			'/\btpke\.?\b/u'         => 'tpke',
+			'/\bexpressway\b/u'       => 'expy',
+			'/\bexpy\.?\b/u'         => 'expy',
+			'/\bfreeway\b/u'          => 'fwy',
+			'/\bfwy\.?\b/u'          => 'fwy',
+			'/\ballee\b/u'            => 'aly',
+			'/\ball[ée]e?\b/u'        => 'aly',
+			'/\balley\b/u'            => 'aly',
+			'/\baly\.?\b/u'          => 'aly',
+			'/\broute\b/u'            => 'rte',
+			'/\brte\.?\b/u'          => 'rte',
+			'/\bquay\b/u'             => 'qy',
+			'/\bqy\.?\b/u'           => 'qy',
+			'/\bchemin\b/u'           => 'ch',
+			'/\bimpasse\b/u'          => 'imp',
+			'/\bcours\b/u'            => 'crs',
+			'/\bcamino\b/u'           => 'cam',
+			'/\bcarretera\b/u'        => 'carr',
+			'/\bpaseo\b/u'            => 'pso',
 
-			// unit markers normalized, not removed here
-			'/\bapartment\b/u' => 'apt',
-			'/\bsuite\b/u'     => 'ste',
-			'/\bunit\b/u'      => 'unit',
-			'/\bflat\b/u'      => 'flat',
-			'/\broom\b/u'      => 'rm',
-			'/\bfloor\b/u'     => 'fl',
-			'/\bbuilding\b/u'  => 'bldg',
+			// building / unit markers normalized, not removed here.
+			'/\bapartment\b/u'        => 'apt',
+			'/\bappartement\b/u'      => 'apt',
+			'/\bappartamento\b/u'     => 'apt',
+			'/\bapt\.?\b/u'          => 'apt',
+			'/\bsuite\b/u'            => 'ste',
+			'/\bste\.?\b/u'          => 'ste',
+			'/\bunit\b/u'             => 'unit',
+			'/\bflat\b/u'             => 'flat',
+			'/\broom\b/u'             => 'rm',
+			'/\brm\.?\b/u'           => 'rm',
+			'/\bfloor\b/u'            => 'fl',
+			'/\bfl\.?\b/u'           => 'fl',
+			'/\bbuilding\b/u'         => 'bldg',
+			'/\bbldg\.?\b/u'         => 'bldg',
+			'/\bblock\b/u'            => 'block',
+			'/\bblk\.?\b/u'          => 'block',
+			'/\btower\b/u'            => 'tower',
+			'/\btwr\.?\b/u'          => 'tower',
+			'/\bwing\b/u'             => 'wing',
+			'/\blobby\b/u'            => 'lobby',
+			'/\bdept\.?\b/u'         => 'dept',
+			'/\bdepartment\b/u'       => 'dept',
+			'/\bwarehouse\b/u'        => 'whse',
+			'/\bwhse\.?\b/u'         => 'whse',
+			'/\bindustrial unit\b/u'  => 'unit',
+			'/\boffice\b/u'           => 'ofc',
+			'/\bofc\.?\b/u'          => 'ofc',
+			'/\bpenthouse\b/u'        => 'ph',
+			'/\bcondo\b/u'            => 'condo',
+			'/\blot\b/u'              => 'lot',
+			'/\bshop\b/u'             => 'shop',
+
+			// locality / numbering terms.
+			'/\bpobox\b/u'            => 'pobox',
+			'/\bnumber\b/u'           => 'no',
+			'/\bnummer\b/u'           => 'no',
+			'/\bnum\b/u'              => 'no',
+			'/\bno\.?\b/u'           => 'no',
+
+			// a broader neutral set of common non-english address terms.
+			'/\brue\b/u'              => 'rue',
+			'/\bvia\b/u'              => 'via',
+			'/\bcalle\b/u'            => 'calle',
+			'/\bplaza\b/u'            => 'plz',
+			'/\bpiazza\b/u'           => 'plz',
+			'/\bplatz\b/u'            => 'plz',
 		);
 
 		$value = preg_replace( array_keys( $replacements ), array_values( $replacements ), $value );
 		$value = preg_replace( '/\s+/u', ' ', $value );
+		$value = yobm_dedupe_address_tokens( $value );
 		$value = trim( $value );
 
 		return $value;
@@ -458,9 +648,9 @@ if ( ! function_exists( 'yobm_build_address_core_norm' ) ) {
 		}
 
 		$patterns = array(
-			'/\b(?:apt|unit|ste|flat|rm|fl|block|bldg|tower)\s+[a-z0-9\-]+\b$/u',
-			'/^\b(?:apt|unit|ste|flat|rm|fl|block|bldg|tower)\s+[a-z0-9\-]+\b\s*/u',
-			'/\s+#\s*[a-z0-9\-]+\b$/u',
+			'/\b(?:apt|unit|ste|flat|rm|fl|block|bldg|tower|wing|lobby|dept|whse|ofc|office|ph|lot|shop)\s+[a-z0-9\-]+\b$/u',
+			'/^\b(?:apt|unit|ste|flat|rm|fl|block|bldg|tower|wing|lobby|dept|whse|ofc|office|ph|lot|shop)\s+[a-z0-9\-]+\b\s*/u',
+			'/\b(?:apt|unit|ste|flat|rm|fl|block|bldg|tower|wing|lobby|dept|whse|ofc|office|ph|lot|shop)\s*[a-z0-9\-]+\b(?=\s+(?:st|str|rd|ave|blvd|dr|ln|ct|pl|ter|pkwy|hwy|way|cl|cres|cir|sq|trl|tpke|expy|fwy|aly|rte|qy|ch|imp|crs|cam|carr|pso)\b)/u',
 		);
 
 		$core = preg_replace( $patterns, ' ', $address_line_norm );

@@ -51,6 +51,7 @@ class WC_Blacklist_Manager_Settings {
 
 		return [
 			'development_mode' => get_option('wc_blacklist_development_mode', 0),
+			'woo_rest_api' => get_option('wc_blacklist_enable_woo_rest_api', 0),
 			'blacklist_action' => get_option('wc_blacklist_action', 'none'),
 			'block_user_registration' => get_option('wc_blacklist_block_user_registration', 0),
 			'order_delay' => max(0, get_option('wc_blacklist_order_delay', 0)),
@@ -87,6 +88,7 @@ class WC_Blacklist_Manager_Settings {
 	private function handle_post_submission() {
 		if ($_SERVER['REQUEST_METHOD'] === 'POST' && check_admin_referer('wc_blacklist_settings_action', 'wc_blacklist_settings_nonce')) {
 			update_option('wc_blacklist_development_mode', isset($_POST['development_mode']) ? 1 : 0);
+			update_option('wc_blacklist_enable_woo_rest_api', isset($_POST['woo_rest_api']) ? 1 : 0);
 			update_option('wc_blacklist_action', $_POST['blacklist_action'] ?? 'none');
 			update_option('wc_blacklist_block_user_registration', isset($_POST['block_user_registration']) ? 1 : 0);
 			$order_delay = intval( wp_unslash( $_POST['order_delay'] ?? 0 ) );

@@ -527,29 +527,6 @@ class WC_Blacklist_Manager_Order_Risk_Score {
 				<?php endif; ?>
 			</details>
 
-			<?php
-			if ( $can_upgrade && in_array( $tier, array( 'free', 'basic' ), true ) ) {
-				echo '<p class="bm-gbl-coverage" style="margin-top:10px;">';
-				echo wp_kses(
-					sprintf(
-						__(
-							'Need broader coverage? <a href="%s" target="_blank" rel="noopener noreferrer">Upgrade to include more identity checks.</a>',
-							'wc-blacklist-manager'
-						),
-						esc_url( $upgrade_url )
-					),
-					array(
-						'a' => array(
-							'href'   => array(),
-							'target' => array(),
-							'rel'    => array(),
-						),
-					)
-				);
-				echo '</p>';
-			}
-			?>
-
 			<style>
 				.bm-gbl-summary-card {
 					margin: 12px 0;

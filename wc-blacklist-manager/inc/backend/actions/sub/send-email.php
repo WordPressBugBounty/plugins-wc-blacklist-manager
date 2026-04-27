@@ -348,7 +348,7 @@ class WC_Blacklist_Manager_Email {
 		return false;
     }
 
-	public static function send_email_registration_block( $phone = '', $email = '', $user_ip = '', $domain = '', $disposable_email = '', $proxy_vpn = '' ) {
+	public static function send_email_registration_block( $phone = '', $email = '', $user_ip = '', $domain = '', $disposable_email = '', $proxy_vpn = '', $device_id = '' ) {
 		$settings_instance = new WC_Blacklist_Manager_Settings();
 		$premium_active = $settings_instance->is_premium_active();
 
@@ -361,7 +361,8 @@ class WC_Blacklist_Manager_Email {
 		  && empty( $user_ip ) 
 		  && empty( $domain ) 
 		  && empty( $disposable_email )
-		  && empty( $proxy_vpn ) ) {
+		  && empty( $proxy_vpn )
+		  && empty( $device_id ) ) {
 			return;
 		}
 	
@@ -383,6 +384,9 @@ class WC_Blacklist_Manager_Email {
 		}
 		if ( ! empty( $proxy_vpn ) ) {
 			self::$block_data['proxy_vpn'] = $proxy_vpn;
+		}
+		if ( ! empty( $device_id ) ) {
+			self::$block_data['device_id'] = $device_id;
 		}
 	
 		// Schedule sending the email once per request.
@@ -420,6 +424,9 @@ class WC_Blacklist_Manager_Email {
         }
 		if (!empty(self::$block_data['proxy_vpn'])) {
             $content .= '• ' . sprintf(__('Proxy or VPN: %s', 'wc-blacklist-manager'), esc_html(self::$block_data['proxy_vpn'])) . '<br>';
+        }
+		if (!empty(self::$block_data['device_id'])) {
+            $content .= '• ' . sprintf(__('Device ID: %s', 'wc-blacklist-manager'), esc_html(self::$block_data['device_id'])) . '<br>';
         }
 
         // If no suspect data was accumulated, don't send an email.
@@ -528,7 +535,7 @@ class WC_Blacklist_Manager_Email {
 		return false;
     }
 
-	public static function send_email_comment_block( $email = '', $user_ip = '', $domain = '', $disposable_email = '', $proxy_vpn = '' ) {
+	public static function send_email_comment_block( $email = '', $user_ip = '', $domain = '', $disposable_email = '', $proxy_vpn = '', $device_id = '' ) {
 		$settings_instance = new WC_Blacklist_Manager_Settings();
 		$premium_active = $settings_instance->is_premium_active();
 
@@ -540,7 +547,8 @@ class WC_Blacklist_Manager_Email {
 		  && empty( $user_ip ) 
 		  && empty( $domain ) 
 		  && empty( $disposable_email )
-		  && empty( $proxy_vpn ) ) {
+		  && empty( $proxy_vpn )
+		  && empty( $device_id ) ) {
 			return;
 		}
 	
@@ -559,6 +567,9 @@ class WC_Blacklist_Manager_Email {
 		}
 		if ( ! empty( $proxy_vpn ) ) {
 			self::$block_data['proxy_vpn'] = $proxy_vpn;
+		}
+		if ( ! empty( $device_id ) ) {
+			self::$block_data['device_id'] = $device_id;
 		}
 	
 		// Schedule sending the email once per request.
@@ -593,6 +604,9 @@ class WC_Blacklist_Manager_Email {
         }
 		if (!empty(self::$block_data['proxy_vpn'])) {
             $content .= '• ' . sprintf(__('Proxy or VPN: %s', 'wc-blacklist-manager'), esc_html(self::$block_data['proxy_vpn'])) . '<br>';
+        }
+		if (!empty(self::$block_data['device_id'])) {
+            $content .= '• ' . sprintf(__('Device ID: %s', 'wc-blacklist-manager'), esc_html(self::$block_data['device_id'])) . '<br>';
         }
 
         // If no suspect data was accumulated, don't send an email.

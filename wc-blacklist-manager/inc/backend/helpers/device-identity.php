@@ -48,6 +48,7 @@ class WC_Blacklist_Manager_Device_Identity {
 
 		add_action( 'init', array( $this, 'maybe_set_device_cookie' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
+		add_action( 'login_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 
 		// Core device capture to order meta lives here.
 		add_action( 'woocommerce_checkout_create_order', array( $this, 'save_order_device_data' ), 20, 2 );
@@ -102,6 +103,10 @@ class WC_Blacklist_Manager_Device_Identity {
 			return true;
 		}
 
+		if ( $this->is_comment_context() ) {
+			return true;
+		}
+
 		return false;
 	}
 
@@ -151,6 +156,18 @@ class WC_Blacklist_Manager_Device_Identity {
 		return $this->is_wp_login_request() && 'register' === $action;
 	}
 
+	protected function is_comment_context() {
+		if ( is_singular() && comments_open() ) {
+			return true;
+		}
+
+		if ( function_exists( 'is_product' ) && is_product() ) {
+			return true;
+		}
+
+		return false;
+	}
+
 	/**
 	 * Enqueue device identity JS.
 	 *
@@ -183,6 +200,7 @@ class WC_Blacklist_Manager_Device_Identity {
 				'is_checkout' => $this->is_checkout_context(),
 				'is_register' => $this->is_register_context(),
 				'is_login'    => $this->is_login_context(),
+				'is_comment'  => $this->is_comment_context(),
 			)
 		);
 	}

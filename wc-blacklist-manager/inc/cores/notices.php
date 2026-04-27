@@ -136,7 +136,7 @@ class WC_Blacklist_Manager_Notices {
 					<p><b>🚀 Blacklist Manager Premium — Total Fraud & Spam Defence for WooCommerce</b></p>
 						
 					<p>
-						Unlock advanced blocking (Customer name & address), disposable email/phone & VPN detection, AI-driven bot shield, risk-score automation, multi-site blacklist sync, power payment protection, and forensic activity logs — everything you need to keep scammers out and revenue in.
+						Unlock advanced blocking (Customer name & address), disposable email/phone, device identity & VPN detection, AI-driven bot shield, risk-score automation, multi-site blacklist sync, power payment protection, and forensic activity logs — everything you need to keep scammers out and revenue in.
 					</p>
 
 					<p><a href="#" onclick="WC_Blacklist_Manager_Admin_Notice.dismissAdsNotice()" class="button-secondary">Dismiss</a> <a href="https://yoohw.com/product/blacklist-manager-premium/" class="button-primary">🌟 Unlock Premium Now</a></p>
@@ -152,6 +152,9 @@ class WC_Blacklist_Manager_Notices {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
+
+		$settings_instance = new WC_Blacklist_Manager_Settings();
+		$premium_active    = $settings_instance->is_premium_active();
 
 		// Only when Global Blacklist is enabled.
 		$enabled = (int) get_option( 'wc_blacklist_enable_global_blacklist', 0 );
@@ -180,6 +183,12 @@ class WC_Blacklist_Manager_Notices {
 
 		$upgrade_url = 'https://yoohw.com/global-blacklist-plan/';
 
+		$message = 'Further orders will no longer be screened against our global fraud network, <b>increasing the risk of chargebacks and payment disputes</b>. Upgrade your plan now to keep orders protected and revenue safe.';
+
+		if ( $premium_active ) {
+			$message .= ' As a Blacklist Manager Premium user, you can get <b>up to 50% off</b> when upgrading to a higher Global Blacklist plan.';
+		}
+
 		printf(
 			'<div class="notice notice-warning is-dismissible yobm-gbd-limit">
 				<p><strong>%1$s</strong></p>
@@ -190,7 +199,7 @@ class WC_Blacklist_Manager_Notices {
 				</p>
 			</div>',
 			esc_html( 'Global Blacklist Decisions monthly limit reached' ),
-			wp_kses_post( 'Further orders will no longer be screened against our global fraud network, <b>increasing the risk of chargebacks and payment disputes</b>. Upgrade your plan now to keep orders protected and revenue safe.' ),
+			wp_kses_post( $message ),
 			esc_url( $upgrade_url ),
 			esc_html( 'Upgrade plan' ),
 			esc_html( 'Dismiss' )

@@ -22,7 +22,12 @@ if (!defined('ABSPATH')) {
 					<td>
 						<input type="checkbox" id="email_verification_enabled" name="email_verification_enabled" value="1" <?php checked(!empty($data['email_verification_enabled'])); ?>>
 						<label for="email_verification_enabled"><?php echo esc_html__('Enable email address verification during checkout', 'wc-blacklist-manager'); ?></label>
-						<p class="description"><?php echo esc_html__('Require the customer to verify their email address by code before checking out.', 'wc-blacklist-manager'); ?></p>
+						<p class="description">
+							<?php echo esc_html__('Require the customer to verify their email address by code before checking out.', 'wc-blacklist-manager'); ?><br />
+							<span style="color:#b32d2e;">
+								<?php echo esc_html__('Note: This feature uses WooCommerce core email sending. It is strongly recommended to configure a trusted SMTP service instead of relying on your hosting default mail function to ensure reliable delivery.', 'wc-blacklist-manager'); ?>
+							</span>
+						</p>
 					</td>
 				</tr>
 				<tr id="email_verification_action_row" style="<?php echo (!empty($data['email_verification_enabled'])) ? '' : 'display: none;'; ?>">

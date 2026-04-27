@@ -570,11 +570,11 @@ if (!class_exists('Yo_Ohw_Menu')) {
 					'label'       => 'Get support',
 				],
 				[
-					'icon'        => 'dashicons-portfolio',
-					'title'       => 'Documentation',
-					'description' => 'Browse setup guides, tutorials, and product documentation.',
-					'url'         => 'https://yoohw.com/docs',
-					'label'       => 'Read docs',
+					'icon'        => 'dashicons-admin-tools',
+					'title'       => 'Custom Work',
+					'description' => 'Need something specific? Hire us for custom features, integrations, or tailored solutions.',
+					'url'         => 'https://yoohw.com/custom-works/',
+					'label'       => 'Hire us',
 				],
 				[
 					'icon'        => 'dashicons-email-alt',

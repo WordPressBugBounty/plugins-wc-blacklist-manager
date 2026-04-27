@@ -9,6 +9,7 @@ class WC_Blacklist_Manager_Suspicious_Actions {
 	public function __construct() {
 		add_action( 'woocommerce_checkout_order_processed', array( $this, 'schedule_check_and_notify_any' ), 10, 1 );
 		add_action( 'woocommerce_store_api_checkout_order_processed', array( $this, 'schedule_check_and_notify_any' ), 10, 1 );
+		add_action( 'woocommerce_rest_insert_shop_order_object', array( $this, 'schedule_check_and_notify_rest_order' ), 10, 3 );
 
 		add_action( 'wc_blacklist_check_and_notify', array( $this, 'check_order_and_notify' ), 10, 1 );
 	}
@@ -24,6 +25,23 @@ class WC_Blacklist_Manager_Suspicious_Actions {
 			return;
 		}
 
+		if ( $order_id <= 0 ) {
+			return;
+		}
+
+		$order = wc_get_order( $order_id );
+		if ( ! $order ) {
+			return;
+		}
+
+		// Prevent duplicate queueing for the same order.
+		if ( 'yes' === (string) $order->get_meta( '_wc_blacklist_suspect_check_scheduled', true ) ) {
+			return;
+		}
+
+		$order->update_meta_data( '_wc_blacklist_suspect_check_scheduled', 'yes' );
+		$order->save_meta_data();
+
 		if ( ! function_exists( 'as_enqueue_async_action' ) ) {
 			if ( defined( 'WC_ABSPATH' ) && file_exists( WC_ABSPATH . 'packages/action-scheduler/action-scheduler.php' ) ) {
 				require_once WC_ABSPATH . 'packages/action-scheduler/action-scheduler.php';
@@ -35,6 +53,18 @@ class WC_Blacklist_Manager_Suspicious_Actions {
 		} else {
 			$this->check_order_and_notify( $order_id );
 		}
+	}
+
+	public function schedule_check_and_notify_rest_order( $order, $request, $creating ) {
+		if ( ! $creating ) {
+			return;
+		}
+
+		if ( ! $order instanceof \WC_Order ) {
+			return;
+		}
+
+		$this->schedule_check_and_notify_any( $order );
 	}
 
 	/**
@@ -490,6 +520,10 @@ class WC_Blacklist_Manager_Suspicious_Actions {
 				$device_id
 			);
 		}
+
+		$order->update_meta_data( '_wc_blacklist_suspect_check_completed', 'yes' );
+		$order->delete_meta_data( '_wc_blacklist_suspect_check_scheduled' );
+		$order->save_meta_data();
 	}
 
 	private function address_exists_by_hash( $address_table_name, $address_hash ) {

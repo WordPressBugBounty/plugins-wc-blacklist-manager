@@ -264,6 +264,11 @@ if (!defined('ABSPATH')) {
 							<a href="<?php echo esc_url( $enable_url ); ?>">
 								[<?php echo esc_html__( 'Enable', 'wc-blacklist-manager' ); ?>]
 							</a>
+							<span 
+								class="woocommerce-help-tip" 
+								tabindex="0" 
+								data-tip="<?php esc_attr_e('Global Blacklist works alongside your site’s local blacklist to add extra protection by identifying real customers already flagged on our global blacklist (not bots), helping you block known high-risk users more accurately.', 'wc-blacklist-manager'); ?>">
+							</span>
 						</span>
 					<?php else : ?>
 						<?php if ( $missing_connection ) : ?>
@@ -278,6 +283,11 @@ if (!defined('ABSPATH')) {
 								<a href="<?php echo esc_url( admin_url( 'admin.php?page=wc-blacklist-manager-settings#global_blacklist' ) ); ?>">
 									[<?php echo esc_html__('Review', 'wc-blacklist-manager'); ?>]
 								</a>
+								<span 
+									class="woocommerce-help-tip" 
+									tabindex="0" 
+									data-tip="<?php esc_attr_e('Global Blacklist works alongside your site’s local blacklist to add extra protection by identifying real customers already flagged on our global blacklist (not bots), helping you block known high-risk users more accurately.', 'wc-blacklist-manager'); ?>">
+								</span>
 							</span>							
 						<?php else : ?>
 							<span class="bm-notice bm-notice--active">
@@ -288,6 +298,12 @@ if (!defined('ABSPATH')) {
 									alt="<?php esc_attr_e( 'Global Blacklist Decisions enabled', 'wc-blacklist-manager' ); ?>"
 								/>
 								<?php echo esc_html__( 'Your site is protected by Global Blacklist Decisions.', 'wc-blacklist-manager' ); ?>
+
+								<span 
+									class="woocommerce-help-tip" 
+									tabindex="0" 
+									data-tip="<?php esc_attr_e('Global Blacklist works alongside your site’s local blacklist to add extra protection by identifying real customers already flagged on our global blacklist (not bots), helping you block known high-risk users more accurately.', 'wc-blacklist-manager'); ?>">
+								</span>
 
 								<span class="yogb-tier-badge yogb-tier-<?php echo esc_attr( $tier ); ?>">
 									<span class="yogb-tier-dot"></span>

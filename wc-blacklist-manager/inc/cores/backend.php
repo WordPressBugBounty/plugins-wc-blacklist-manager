@@ -76,6 +76,17 @@ class WC_Blacklist_Manager_Backend {
 			);
 
 			wp_add_inline_script( 'wc-blacklist-script', 'var messageTimeout = 3000;' );
+
+			wp_add_inline_script( 'woocommerce_admin', "
+				jQuery(function($){
+					$('.woocommerce-help-tip').tipTip({
+						attribute: 'data-tip',
+						fadeIn: 50,
+						fadeOut: 50,
+						delay: 200
+					});
+				});
+			");
 		}
 	}
 
