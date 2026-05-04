@@ -2,14 +2,14 @@
 # This file is distributed under the GPL v2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Blacklist Manager 2.2.3.3\n"
+"Project-Id-Version: Blacklist Manager 2.2.5\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/wc-blacklist-manager\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-04-24T04:59:58+00:00\n"
+"POT-Creation-Date: 2026-05-04T00:31:27+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.9.0\n"
 "X-Domain: wc-blacklist-manager\n"
@@ -484,215 +484,231 @@ msgstr ""
 msgid "Phone number not found."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:195
-#: inc/backend/actions/yogb-check-orders.php:310
+#: inc/backend/actions/yogb-check-orders.php:200
+#: inc/backend/actions/yogb-check-orders.php:315
 msgid "Your order cannot be placed at this time due to our fraud protection rules. Please contact the store owner for assistance."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:423
+#: inc/backend/actions/yogb-check-orders.php:428
 msgid "Global Blacklist Decisions check skipped: monthly limit exceeded for tier \"%1$s\" (HTTP %2$d)."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:453
+#: inc/backend/actions/yogb-check-orders.php:458
 msgid "Global Blacklist Decisions check could not be completed (HTTP %1$d). Order allowed by default."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:557
+#: inc/backend/actions/yogb-check-orders.php:489
+#: inc/backend/order-action-button.php:970
+#: inc/backend/order-action-button.php:1253
+msgid "Invalid order."
+msgstr ""
+
+#: inc/backend/actions/yogb-check-orders.php:493
+msgid "You do not have permission to recheck this order."
+msgstr ""
+
+#: inc/backend/actions/yogb-check-orders.php:501
+#: inc/backend/order-action-button.php:1671
+#: inc/backend/order-risk-score.php:82
+msgid "Order not found."
+msgstr ""
+
+#: inc/backend/actions/yogb-check-orders.php:600
 msgid "%1$s matched through %2$s."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:563
+#: inc/backend/actions/yogb-check-orders.php:606
 msgid "%s matched."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:569
+#: inc/backend/actions/yogb-check-orders.php:612
 msgid "Risk: %s."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:575
+#: inc/backend/actions/yogb-check-orders.php:618
 msgid "Reports: %d."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:582
+#: inc/backend/actions/yogb-check-orders.php:625
 msgid "Related records: %d."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:589
+#: inc/backend/actions/yogb-check-orders.php:632
 msgid "Matched detail: %s."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:596
+#: inc/backend/actions/yogb-check-orders.php:639
 msgid "Last reported: %s."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:604
+#: inc/backend/actions/yogb-check-orders.php:647
 msgid "Scores — direct %1$s, related +%2$s, effective %3$s."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:613
+#: inc/backend/actions/yogb-check-orders.php:656
 msgid "Related neighbors: %d."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:648
+#: inc/backend/actions/yogb-check-orders.php:691
 msgid "%1$s — %2$d"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:666
+#: inc/backend/actions/yogb-check-orders.php:709
 msgid "Past reasons for %1$s: %2$s."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:683
-#: inc/backend/actions/yogb-check-orders.php:751
+#: inc/backend/actions/yogb-check-orders.php:726
+#: inc/backend/actions/yogb-check-orders.php:794
 msgid "Match detail: %s."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:712
+#: inc/backend/actions/yogb-check-orders.php:755
 msgid "%1$s report: %2$s."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:720
+#: inc/backend/actions/yogb-check-orders.php:763
 msgid "Source: %s."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:727
+#: inc/backend/actions/yogb-check-orders.php:770
 msgid "Status: %s."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:734
+#: inc/backend/actions/yogb-check-orders.php:777
 msgid "Date: %s."
 msgstr ""
 
 #. translators: 1: decision, 2: tier
-#: inc/backend/actions/yogb-check-orders.php:800
+#: inc/backend/actions/yogb-check-orders.php:843
 msgid "Global Blacklist decision: %1$s (tier: %2$s)."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:817
+#: inc/backend/actions/yogb-check-orders.php:860
 msgid "Primary signal (%1$s): direct %2$s, linked +%3$s, effective %4$s, neighbors %5$d, risk %6$s."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:818
+#: inc/backend/actions/yogb-check-orders.php:861
 msgid "unknown"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:823
-#: inc/backend/order-risk-score.php:299
-#: inc/backend/order-risk-score.php:611
+#: inc/backend/actions/yogb-check-orders.php:866
+#: inc/backend/order-risk-score.php:402
+#: inc/backend/order-risk-score.php:714
 msgid "low"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:830
+#: inc/backend/actions/yogb-check-orders.php:873
 msgid "mode %s"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:837
+#: inc/backend/actions/yogb-check-orders.php:880
 msgid "variant %s"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:844
+#: inc/backend/actions/yogb-check-orders.php:887
 msgid "nodes %d"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:851
+#: inc/backend/actions/yogb-check-orders.php:894
 msgid "How found: %s."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:860
+#: inc/backend/actions/yogb-check-orders.php:903
 msgid "Decision reasons:"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:867
+#: inc/backend/actions/yogb-check-orders.php:910
 msgid "Signal summary:"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:874
+#: inc/backend/actions/yogb-check-orders.php:917
 msgid "Identity risk summary:"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:881
+#: inc/backend/actions/yogb-check-orders.php:924
 msgid "Individual reports:"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:898
+#: inc/backend/actions/yogb-check-orders.php:941
 msgid "Order cancelled: blocked by Global Blacklist Decisions."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:908
+#: inc/backend/actions/yogb-check-orders.php:951
 msgid "Order placed on hold: requires review by Global Blacklist Decisions."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:925
+#: inc/backend/actions/yogb-check-orders.php:968
 #: inc/backend/emails/admin-new-order.php:515
-#: inc/backend/order-risk-score.php:656
+#: inc/backend/order-risk-score.php:759
 msgid "Exact match"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:928
+#: inc/backend/actions/yogb-check-orders.php:971
 #: inc/backend/emails/admin-new-order.php:518
-#: inc/backend/order-risk-score.php:659
+#: inc/backend/order-risk-score.php:762
 msgid "Main address match"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:931
+#: inc/backend/actions/yogb-check-orders.php:974
 #: inc/backend/emails/admin-new-order.php:521
-#: inc/backend/order-risk-score.php:662
+#: inc/backend/order-risk-score.php:765
 msgid "Unit / apartment match"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:934
+#: inc/backend/actions/yogb-check-orders.php:977
 #: inc/backend/emails/admin-new-order.php:524
-#: inc/backend/order-risk-score.php:665
+#: inc/backend/order-risk-score.php:768
 msgid "Related match"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:938
+#: inc/backend/actions/yogb-check-orders.php:981
 #: inc/backend/emails/admin-new-order.php:177
 #: inc/backend/emails/admin-new-order.php:295
 #: inc/backend/emails/admin-new-order.php:528
-#: inc/backend/order-risk-score.php:669
+#: inc/backend/order-risk-score.php:772
 msgid "No match"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:945
+#: inc/backend/actions/yogb-check-orders.php:988
 #: inc/backend/emails/admin-new-order.php:535
-#: inc/backend/order-risk-score.php:676
+#: inc/backend/order-risk-score.php:779
 msgid "Submitted details"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:948
+#: inc/backend/actions/yogb-check-orders.php:991
 #: inc/backend/emails/admin-new-order.php:538
-#: inc/backend/order-risk-score.php:679
+#: inc/backend/order-risk-score.php:782
 msgid "Main address"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:951
+#: inc/backend/actions/yogb-check-orders.php:994
 #: inc/backend/emails/admin-new-order.php:541
-#: inc/backend/order-risk-score.php:682
+#: inc/backend/order-risk-score.php:785
 msgid "Unit / apartment"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:954
+#: inc/backend/actions/yogb-check-orders.php:997
 #: inc/backend/emails/admin-new-order.php:544
-#: inc/backend/order-risk-score.php:685
+#: inc/backend/order-risk-score.php:788
 #: inc/backend/views/dashboard-form.php:1299
 msgid "Full address"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:964
+#: inc/backend/actions/yogb-check-orders.php:1007
 #: inc/backend/emails/admin-new-order.php:493
-#: inc/backend/order-risk-score.php:641
+#: inc/backend/order-risk-score.php:744
 msgid "Email"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:967
+#: inc/backend/actions/yogb-check-orders.php:1010
 #: inc/backend/emails/admin-new-order.php:496
-#: inc/backend/order-risk-score.php:643
+#: inc/backend/order-risk-score.php:746
 msgid "Phone"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:970
+#: inc/backend/actions/yogb-check-orders.php:1013
 #: inc/backend/emails/admin-new-order.php:499
-#: inc/backend/order-risk-score.php:645
+#: inc/backend/order-risk-score.php:748
 #: inc/backend/views/dashboard-form.php:170
 #: inc/backend/views/dashboard-form.php:366
 #: inc/backend/views/dashboard-form.php:453
@@ -701,9 +717,9 @@ msgstr ""
 msgid "IP address"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:973
+#: inc/backend/actions/yogb-check-orders.php:1016
 #: inc/backend/emails/admin-new-order.php:502
-#: inc/backend/order-risk-score.php:647
+#: inc/backend/order-risk-score.php:750
 #: inc/backend/views/dashboard-form.php:180
 #: inc/backend/views/dashboard-form.php:376
 #: inc/backend/views/dashboard-form.php:456
@@ -712,19 +728,19 @@ msgstr ""
 msgid "Address"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:976
+#: inc/backend/actions/yogb-check-orders.php:1019
 #: inc/backend/emails/admin-new-order.php:505
 #: inc/backend/views/dashboard-form.php:459
 #: inc/backend/views/dashboard-form.php:1460
-#: inc/backend/views/settings-form.php:2041
+#: inc/backend/views/settings-form.php:2065
 msgid "Domain"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:979
+#: inc/backend/actions/yogb-check-orders.php:1022
 #: inc/backend/emails/admin-new-order.php:464
 #: inc/backend/emails/admin-new-order.php:508
-#: inc/backend/order-risk-score.php:404
-#: inc/backend/order-risk-score.php:449
+#: inc/backend/order-risk-score.php:507
+#: inc/backend/order-risk-score.php:552
 #: inc/backend/views/dashboard-form.php:513
 #: inc/backend/views/dashboard-form.php:650
 #: inc/backend/views/dashboard-form.php:1049
@@ -735,7 +751,7 @@ msgstr ""
 #: inc/backend/activity.php:34
 #: inc/backend/activity.php:35
 #: inc/backend/views/activity-log.php:45
-#: inc/backend/views/settings-form.php:1861
+#: inc/backend/views/settings-form.php:1885
 msgid "Activity logs"
 msgstr ""
 
@@ -761,7 +777,7 @@ msgstr ""
 
 #: inc/backend/dashboard.php:71
 #: inc/backend/dashboard.php:72
-#: inc/backend/views/settings-form.php:1830
+#: inc/backend/views/settings-form.php:1854
 msgid "Dashboard"
 msgstr ""
 
@@ -958,14 +974,14 @@ msgid "Main signal: %s"
 msgstr ""
 
 #: inc/backend/emails/admin-new-order.php:178
-#: inc/backend/order-risk-score.php:309
-#: inc/backend/order-risk-score.php:483
+#: inc/backend/order-risk-score.php:412
+#: inc/backend/order-risk-score.php:586
 msgid "Match type: %s"
 msgstr ""
 
 #: inc/backend/emails/admin-new-order.php:182
-#: inc/backend/order-risk-score.php:316
-#: inc/backend/order-risk-score.php:488
+#: inc/backend/order-risk-score.php:419
+#: inc/backend/order-risk-score.php:591
 msgid "Matched detail: %s"
 msgstr ""
 
@@ -986,7 +1002,7 @@ msgid "Neighbors: %d"
 msgstr ""
 
 #: inc/backend/emails/admin-new-order.php:207
-#: inc/backend/order-risk-score.php:420
+#: inc/backend/order-risk-score.php:523
 msgid "Last reported: %s"
 msgstr ""
 
@@ -1028,7 +1044,7 @@ msgid "Related records"
 msgstr ""
 
 #: inc/backend/emails/admin-new-order.php:341
-#: inc/backend/order-risk-score.php:390
+#: inc/backend/order-risk-score.php:493
 msgid "Matched checks"
 msgstr ""
 
@@ -1061,7 +1077,7 @@ msgid "Upgrade plan"
 msgstr ""
 
 #: inc/backend/emails/admin-new-order.php:420
-#: inc/backend/order-risk-score.php:256
+#: inc/backend/order-risk-score.php:359
 msgid "High risk"
 msgstr ""
 
@@ -1070,7 +1086,7 @@ msgid "Review this order carefully before fulfilling it."
 msgstr ""
 
 #: inc/backend/emails/admin-new-order.php:431
-#: inc/backend/order-risk-score.php:263
+#: inc/backend/order-risk-score.php:366
 msgid "Needs review"
 msgstr ""
 
@@ -1079,7 +1095,7 @@ msgid "Some details matched previous suspicious activity and should be reviewed.
 msgstr ""
 
 #: inc/backend/emails/admin-new-order.php:442
-#: inc/backend/order-risk-score.php:270
+#: inc/backend/order-risk-score.php:373
 msgid "Clear"
 msgstr ""
 
@@ -1088,7 +1104,7 @@ msgid "No blocking result was returned for this order."
 msgstr ""
 
 #: inc/backend/emails/admin-new-order.php:453
-#: inc/backend/order-risk-score.php:277
+#: inc/backend/order-risk-score.php:380
 msgid "Check skipped"
 msgstr ""
 
@@ -1143,7 +1159,7 @@ msgstr ""
 #: inc/backend/notifications.php:71
 #: inc/backend/notifications.php:72
 #: inc/backend/notifications.php:91
-#: inc/backend/views/settings-form.php:1847
+#: inc/backend/views/settings-form.php:1871
 msgid "Notifications"
 msgstr ""
 
@@ -1378,7 +1394,7 @@ msgid "Suspect"
 msgstr ""
 
 #: inc/backend/order-action-button.php:890
-#: inc/backend/views/settings-form.php:1079
+#: inc/backend/views/settings-form.php:1103
 msgid "Add to blocklist"
 msgstr ""
 
@@ -1412,11 +1428,6 @@ msgstr ""
 #: inc/backend/order-action-button.php:1244
 #: inc/backend/order-action-button.php:1649
 msgid "Invalid order ID."
-msgstr ""
-
-#: inc/backend/order-action-button.php:970
-#: inc/backend/order-action-button.php:1253
-msgid "Invalid order."
 msgstr ""
 
 #: inc/backend/order-action-button.php:977
@@ -1469,11 +1480,6 @@ msgstr ""
 msgid "Nothing to add to the blocklist."
 msgstr ""
 
-#: inc/backend/order-action-button.php:1671
-#: inc/backend/order-risk-score.php:82
-msgid "Order not found."
-msgstr ""
-
 #: inc/backend/order-action-button.php:1707
 msgid "No blacklist entry found for this order."
 msgstr ""
@@ -1518,209 +1524,226 @@ msgstr ""
 msgid "To see Global Blacklist results here, finish connecting your site on the <a href=\"%1$s\" target=\"_blank\" rel=\"noopener noreferrer\">Global Blacklist settings page</a>."
 msgstr ""
 
-#: inc/backend/order-risk-score.php:141
+#: inc/backend/order-risk-score.php:150
+#: inc/backend/order-risk-score.php:458
+msgid "Fraud check result"
+msgstr ""
+
+#: inc/backend/order-risk-score.php:155
+msgid "Pending check"
+msgstr ""
+
+#: inc/backend/order-risk-score.php:160
+msgid "The Global Blacklist check has not completed for this order yet. This can happen shortly after the order is created because the check runs in the background by schedule."
+msgstr ""
+
+#: inc/backend/order-risk-score.php:194
+msgid "Recheck now"
+msgstr ""
+
+#: inc/backend/order-risk-score.php:200
+msgid "The check is being processed. You can manually recheck in a moment if needed."
+msgstr ""
+
+#: inc/backend/order-risk-score.php:244
 #: inc/backend/views/dashboard-form.php:240
 msgid "Basic"
 msgstr ""
 
-#: inc/backend/order-risk-score.php:145
+#: inc/backend/order-risk-score.php:248
 #: inc/backend/views/dashboard-form.php:243
 msgid "Pro"
 msgstr ""
 
-#: inc/backend/order-risk-score.php:149
+#: inc/backend/order-risk-score.php:252
 #: inc/backend/views/dashboard-form.php:246
 msgid "Enterprise"
 msgstr ""
 
-#: inc/backend/order-risk-score.php:154
+#: inc/backend/order-risk-score.php:257
 #: inc/backend/views/dashboard-form.php:250
-#: inc/backend/views/settings-form.php:1648
-#: inc/backend/views/settings-form.php:1683
-#: inc/backend/views/settings-form.php:1698
+#: inc/backend/views/settings-form.php:1672
+#: inc/backend/views/settings-form.php:1707
 #: inc/backend/views/settings-form.php:1722
+#: inc/backend/views/settings-form.php:1746
 msgid "Free"
 msgstr ""
 
-#: inc/backend/order-risk-score.php:167
+#: inc/backend/order-risk-score.php:270
 msgid "%1$d / %2$d checks used this month. Your monthly limit has been reached."
 msgstr ""
 
-#: inc/backend/order-risk-score.php:172
+#: inc/backend/order-risk-score.php:275
 msgid "%1$d / %2$d checks used this month."
 msgstr ""
 
-#: inc/backend/order-risk-score.php:178
+#: inc/backend/order-risk-score.php:281
 msgid "%1$d checks used this month (unlimited tier)."
 msgstr ""
 
-#: inc/backend/order-risk-score.php:257
+#: inc/backend/order-risk-score.php:360
 msgid "This order matched strong fraud-related signals in the Global Blacklist network."
 msgstr ""
 
-#: inc/backend/order-risk-score.php:258
+#: inc/backend/order-risk-score.php:361
 msgid "Do not fulfill this order until it has been manually verified."
 msgstr ""
 
-#: inc/backend/order-risk-score.php:264
+#: inc/backend/order-risk-score.php:367
 msgid "Some order details matched previous fraud-related reports. Manual review is recommended."
 msgstr ""
 
-#: inc/backend/order-risk-score.php:265
+#: inc/backend/order-risk-score.php:368
 msgid "Review the order details before shipping or completing the order."
 msgstr ""
 
-#: inc/backend/order-risk-score.php:271
+#: inc/backend/order-risk-score.php:374
 msgid "No blocking decision was returned for this order."
 msgstr ""
 
-#: inc/backend/order-risk-score.php:272
+#: inc/backend/order-risk-score.php:375
 msgid "Proceed as normal."
 msgstr ""
 
-#: inc/backend/order-risk-score.php:278
+#: inc/backend/order-risk-score.php:381
 msgid "This order was not checked because your monthly Global Blacklist limit was reached."
 msgstr ""
 
-#: inc/backend/order-risk-score.php:279
+#: inc/backend/order-risk-score.php:382
 msgid "Upgrade your plan if you need more checks this month."
 msgstr ""
 
-#: inc/backend/order-risk-score.php:284
+#: inc/backend/order-risk-score.php:387
 msgid "No record"
 msgstr ""
 
-#: inc/backend/order-risk-score.php:285
+#: inc/backend/order-risk-score.php:388
 msgid "No Global Blacklist result has been stored for this order yet."
 msgstr ""
 
-#: inc/backend/order-risk-score.php:286
+#: inc/backend/order-risk-score.php:389
 msgid "No action is required unless you want to run a check manually."
 msgstr ""
 
-#: inc/backend/order-risk-score.php:297
+#: inc/backend/order-risk-score.php:400
 msgid "The strongest match was %1$s with %2$s risk."
 msgstr ""
 
-#: inc/backend/order-risk-score.php:323
+#: inc/backend/order-risk-score.php:426
 msgid "Related identity records: %s"
 msgstr ""
 
-#: inc/backend/order-risk-score.php:339
-#: inc/backend/views/settings-form.php:668
+#: inc/backend/order-risk-score.php:442
+#: inc/backend/views/settings-form.php:692
 msgid "Upgrade"
 msgstr ""
 
-#: inc/backend/order-risk-score.php:345
+#: inc/backend/order-risk-score.php:448
 #: inc/backend/views/dashboard-form.php:270
 #: inc/backend/views/dashboard-form.php:289
 #: inc/backend/views/dashboard-form.php:305
 msgid "Global Blacklist works alongside your site’s local blacklist to add extra protection by identifying real customers already flagged on our global blacklist (not bots), helping you block known high-risk users more accurately."
 msgstr ""
 
-#: inc/backend/order-risk-score.php:355
-msgid "Fraud check result"
-msgstr ""
-
-#: inc/backend/order-risk-score.php:368
+#: inc/backend/order-risk-score.php:471
 msgid "What this means"
 msgstr ""
 
-#: inc/backend/order-risk-score.php:372
+#: inc/backend/order-risk-score.php:475
 msgid "No additional match details are available for this order."
 msgstr ""
 
-#: inc/backend/order-risk-score.php:378
+#: inc/backend/order-risk-score.php:481
 msgid "How this was matched"
 msgstr ""
 
-#: inc/backend/order-risk-score.php:384
+#: inc/backend/order-risk-score.php:487
 msgid "Recommended action"
 msgstr ""
 
-#: inc/backend/order-risk-score.php:396
+#: inc/backend/order-risk-score.php:499
 msgid "View advanced details"
 msgstr ""
 
-#: inc/backend/order-risk-score.php:401
+#: inc/backend/order-risk-score.php:504
 msgid "Strongest match"
 msgstr ""
 
-#: inc/backend/order-risk-score.php:404
+#: inc/backend/order-risk-score.php:507
 msgid "Type: %s"
 msgstr ""
 
-#: inc/backend/order-risk-score.php:406
+#: inc/backend/order-risk-score.php:509
 msgid "Risk: %s"
 msgstr ""
 
-#: inc/backend/order-risk-score.php:406
+#: inc/backend/order-risk-score.php:509
 msgid "Low"
 msgstr ""
 
-#: inc/backend/order-risk-score.php:408
+#: inc/backend/order-risk-score.php:511
 msgid "Matched checks: %s"
 msgstr ""
 
-#: inc/backend/order-risk-score.php:411
-#: inc/backend/order-risk-score.php:467
+#: inc/backend/order-risk-score.php:514
+#: inc/backend/order-risk-score.php:570
 msgid "Direct: %s"
 msgstr ""
 
-#: inc/backend/order-risk-score.php:413
-#: inc/backend/order-risk-score.php:469
+#: inc/backend/order-risk-score.php:516
+#: inc/backend/order-risk-score.php:572
 msgid "Linked: +%s"
 msgstr ""
 
-#: inc/backend/order-risk-score.php:415
-#: inc/backend/order-risk-score.php:471
+#: inc/backend/order-risk-score.php:518
+#: inc/backend/order-risk-score.php:574
 msgid "Effective: %s"
 msgstr ""
 
-#: inc/backend/order-risk-score.php:418
-#: inc/backend/order-risk-score.php:475
+#: inc/backend/order-risk-score.php:521
+#: inc/backend/order-risk-score.php:578
 msgid "Neighbors: %s"
 msgstr ""
 
-#: inc/backend/order-risk-score.php:465
+#: inc/backend/order-risk-score.php:568
 msgid "Reports: %s"
 msgstr ""
 
-#: inc/backend/order-risk-score.php:477
+#: inc/backend/order-risk-score.php:580
 msgid "Last: %s"
 msgstr ""
 
-#: inc/backend/order-risk-score.php:493
+#: inc/backend/order-risk-score.php:596
 msgid "Related records: %s"
 msgstr ""
 
-#: inc/backend/order-risk-score.php:503
+#: inc/backend/order-risk-score.php:606
 msgid "Why this order was flagged"
 msgstr ""
 
-#: inc/backend/order-risk-score.php:512
+#: inc/backend/order-risk-score.php:615
 msgid "Match history"
 msgstr ""
 
-#: inc/backend/order-risk-score.php:521
+#: inc/backend/order-risk-score.php:624
 msgid "Past related reports"
 msgstr ""
 
-#: inc/backend/order-risk-score.php:600
+#: inc/backend/order-risk-score.php:703
 msgid "very high"
 msgstr ""
 
-#: inc/backend/order-risk-score.php:604
+#: inc/backend/order-risk-score.php:707
 msgid "elevated"
 msgstr ""
 
-#: inc/backend/order-risk-score.php:608
+#: inc/backend/order-risk-score.php:711
 msgid "moderate"
 msgstr ""
 
 #: inc/backend/settings.php:21
 #: inc/backend/settings.php:22
-#: inc/backend/views/settings-form.php:1862
+#: inc/backend/views/settings-form.php:1886
 #: wc-blacklist-manager.php:45
 msgid "Settings"
 msgstr ""
@@ -1936,7 +1959,7 @@ msgstr ""
 #: inc/backend/views/dashboard-form.php:896
 #: inc/backend/views/dashboard-form.php:1005
 #: inc/backend/views/dashboard-form.php:1290
-#: inc/backend/views/settings-form.php:2044
+#: inc/backend/views/settings-form.php:2068
 msgid "Status"
 msgstr ""
 
@@ -2102,7 +2125,7 @@ msgstr ""
 #: inc/backend/views/dashboard-form.php:1006
 #: inc/backend/views/dashboard-form.php:1291
 #: inc/backend/views/dashboard-form.php:1462
-#: inc/backend/views/settings-form.php:2045
+#: inc/backend/views/settings-form.php:2069
 msgid "Actions"
 msgstr ""
 
@@ -2194,7 +2217,7 @@ msgstr ""
 
 #: inc/backend/views/dashboard-form.php:714
 #: inc/backend/views/dashboard-form.php:884
-#: inc/backend/views/settings-form.php:969
+#: inc/backend/views/settings-form.php:993
 msgid "Orders"
 msgstr ""
 
@@ -2962,7 +2985,7 @@ msgstr ""
 #: inc/backend/views/settings-form.php:359
 #: inc/backend/views/settings-form.php:447
 #: inc/backend/views/settings-form.php:463
-#: inc/backend/views/settings-form.php:595
+#: inc/backend/views/settings-form.php:619
 #: inc/backend/views/verifications-form.php:94
 #: inc/backend/views/verifications-form.php:107
 #: inc/backend/views/verifications-form.php:121
@@ -3111,935 +3134,939 @@ msgstr ""
 msgid "Order checking"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:579
+#: inc/backend/views/settings-form.php:596
 msgid "Enable order checking for contact details on the global blacklist"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:585
+#: inc/backend/views/settings-form.php:601
+msgid "Order checking is automatically enabled for paid Global Blacklist tiers."
+msgstr ""
+
+#: inc/backend/views/settings-form.php:609
 msgid "Decision mode"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:589
+#: inc/backend/views/settings-form.php:613
 msgid "Light"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:590
+#: inc/backend/views/settings-form.php:614
 msgid "Moderate"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:591
+#: inc/backend/views/settings-form.php:615
 msgid "Strict"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:595
+#: inc/backend/views/settings-form.php:619
 msgid "Select a fit mode for your site."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:603
+#: inc/backend/views/settings-form.php:627
 msgid "Site Global ID"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:608
+#: inc/backend/views/settings-form.php:632
 msgid "Use this ID when purchasing the non-free plan."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:615
+#: inc/backend/views/settings-form.php:639
 msgid "Site key"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:624
+#: inc/backend/views/settings-form.php:648
 msgid "Secret key"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:643
+#: inc/backend/views/settings-form.php:667
 msgid "Show secret key"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:652
+#: inc/backend/views/settings-form.php:676
 msgid "Tier"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:683
+#: inc/backend/views/settings-form.php:707
 msgid "Connection status"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:688
+#: inc/backend/views/settings-form.php:712
 msgid "Not connected to Global Blacklist"
 msgstr ""
 
 #. translators: %1$s: opening <strong>, %2$s: closing </strong>, %3$s: contact URL
-#: inc/backend/views/settings-form.php:695
+#: inc/backend/views/settings-form.php:719
 msgid "This site has not completed registration with the Global Blacklist service. %1$sOrder checking%2$s will not work until a Site Global ID and API keys are issued. If you need help, please <a href=\"%3$s\" target=\"_blank\" rel=\"noopener noreferrer\">contact us here</a>."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:717
+#: inc/backend/views/settings-form.php:741
 msgid "Retry registration now"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:817
-#: inc/backend/views/settings-form.php:949
-#: inc/backend/views/settings-form.php:1228
-#: inc/backend/views/settings-form.php:1534
-#: inc/backend/views/settings-form.php:1728
-#: inc/backend/views/settings-form.php:1815
-#: inc/backend/views/settings-form.php:1876
-#: inc/backend/views/settings-form.php:1969
+#: inc/backend/views/settings-form.php:841
+#: inc/backend/views/settings-form.php:973
+#: inc/backend/views/settings-form.php:1252
+#: inc/backend/views/settings-form.php:1558
+#: inc/backend/views/settings-form.php:1752
+#: inc/backend/views/settings-form.php:1839
+#: inc/backend/views/settings-form.php:1900
+#: inc/backend/views/settings-form.php:1993
 #: inc/backend/views/verifications-form.php:700
 msgid "Save Settings"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:827
+#: inc/backend/views/settings-form.php:851
 msgid "Frontend execution proof (recommended)"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:829
+#: inc/backend/views/settings-form.php:853
 msgid "A powerful, invisible layer of protection that stops bots before they reach checkout — no challenges, no friction, no disruption to real buyers."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:834
-#: inc/backend/views/settings-form.php:850
-#: inc/backend/views/settings-form.php:894
-#: inc/backend/views/settings-form.php:919
-#: inc/backend/views/settings-form.php:1939
-#: inc/backend/views/settings-form.php:1954
+#: inc/backend/views/settings-form.php:858
+#: inc/backend/views/settings-form.php:874
+#: inc/backend/views/settings-form.php:918
+#: inc/backend/views/settings-form.php:943
+#: inc/backend/views/settings-form.php:1963
+#: inc/backend/views/settings-form.php:1978
 msgid "Enable/Disable"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:838
+#: inc/backend/views/settings-form.php:862
 msgid "Enable this to stop scripted and automated checkouts without affecting real customers"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:843
+#: inc/backend/views/settings-form.php:867
 msgid "Store API rate limit (extra protection layer)"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:845
+#: inc/backend/views/settings-form.php:869
 msgid "Adds an extra protection layer against repeated checkout abuse, card testing, and high-frequency bot attacks. Recommended for stores experiencing spam or attack activity. May affect rapid repeated checkout attempts (e.g. retries)."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:854
+#: inc/backend/views/settings-form.php:878
 msgid "Enable Store API checkout rate limiting for stronger protection against repeated automated attacks"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:859
+#: inc/backend/views/settings-form.php:883
 msgid "Request limit"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:863
+#: inc/backend/views/settings-form.php:887
 msgid "Maximum number of allowed checkout-related requests within the time window below."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:868
+#: inc/backend/views/settings-form.php:892
 msgid "Time window"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:872
+#: inc/backend/views/settings-form.php:896
 msgid "second(s)"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:873
+#: inc/backend/views/settings-form.php:897
 msgid "How long the request window lasts before the rate limit resets."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:878
+#: inc/backend/views/settings-form.php:902
 msgid "Proxy support"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:882
+#: inc/backend/views/settings-form.php:906
 msgid "Enable this if your site is behind Cloudflare, a reverse proxy, or a load balancer that forwards the real client IP correctly"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:887
+#: inc/backend/views/settings-form.php:911
 msgid "Session continuity validation"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:889
+#: inc/backend/views/settings-form.php:913
 msgid "Designed to stop bots that try to “jump straight to checkout” — protecting your store from fake orders without slowing down real buyers."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:898
+#: inc/backend/views/settings-form.php:922
 msgid "Enable this to block direct-to-checkout bot attacks while keeping the checkout smooth for real customers"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:903
+#: inc/backend/views/settings-form.php:927
 msgid "Anomalies threshold"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:906
+#: inc/backend/views/settings-form.php:930
 msgid "(1 - 10)"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:907
+#: inc/backend/views/settings-form.php:931
 msgid "Risk score required to block checkout. Lower values block more aggressively; higher values are more tolerant of unusual browsers."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:912
+#: inc/backend/views/settings-form.php:936
 msgid "Browser fingerprint anomalies"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:914
+#: inc/backend/views/settings-form.php:938
 msgid "Advanced bot detection that looks beyond surface behavior — identifying automation even when it tries to blend in like a real customer."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:923
+#: inc/backend/views/settings-form.php:947
 msgid "Enable this option to detect advanced bots that bypass CAPTCHA and normal session checks"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:928
+#: inc/backend/views/settings-form.php:952
 msgid "Cart to checkout minimum"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:931
+#: inc/backend/views/settings-form.php:955
 msgid "second. Max: 300 (5 min)"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:932
+#: inc/backend/views/settings-form.php:956
 msgid "Minimum time required between viewing the checkout page and placing an order. Helps block instant, automated checkout submissions."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:933
-#: inc/backend/views/settings-form.php:943
+#: inc/backend/views/settings-form.php:957
+#: inc/backend/views/settings-form.php:967
 msgid "<b>Note:</b> Lower values are more permissive. Higher values provide stronger bot protection but may affect very fast shoppers."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:938
+#: inc/backend/views/settings-form.php:962
 msgid "Add to checkout minimum"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:941
+#: inc/backend/views/settings-form.php:965
 msgid "second. Max: 900 (15 min)"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:942
+#: inc/backend/views/settings-form.php:966
 msgid "Minimum time required between adding the first product to the cart and placing an order. Prevents bots from skipping normal shopping behavior."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:958
+#: inc/backend/views/settings-form.php:982
 msgid "This feature is automatically doing the rules actions if the customer details or action match with their rules. Know about the actions:"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:967
-msgid "Note that the automated actions only trigger after an order was placed."
-msgstr ""
-
-#: inc/backend/views/settings-form.php:975
-#: inc/backend/views/settings-form.php:1276
-msgid "Phone/Email vs Address"
-msgstr ""
-
-#: inc/backend/views/settings-form.php:979
-msgid "Action if the same phone or email, but different address"
-msgstr ""
-
-#: inc/backend/views/settings-form.php:980
-msgid "The customer places a new order using the same phone number or email address but a different billing address than their previous order."
-msgstr ""
-
-#: inc/backend/views/settings-form.php:987
-#: inc/backend/views/settings-form.php:1288
-msgid "Phone/Email vs IP"
-msgstr ""
-
 #: inc/backend/views/settings-form.php:991
-msgid "Action if the same phone or email, but different IP address"
-msgstr ""
-
-#: inc/backend/views/settings-form.php:992
-msgid "The customer places a new order using the same phone number or email address but a different IP address than their previous order."
+msgid "Note that the automated actions only trigger after an order was placed."
 msgstr ""
 
 #: inc/backend/views/settings-form.php:999
 #: inc/backend/views/settings-form.php:1300
-msgid "Device vs Email/Phone"
+msgid "Phone/Email vs Address"
 msgstr ""
 
 #: inc/backend/views/settings-form.php:1003
-msgid "Action if the same device, but different email or phone"
+msgid "Action if the same phone or email, but different address"
 msgstr ""
 
 #: inc/backend/views/settings-form.php:1004
-msgid "The customer places a new order using a device that was used before, but with a different email address or phone number."
+msgid "The customer places a new order using the same phone number or email address but a different billing address than their previous order."
 msgstr ""
 
 #: inc/backend/views/settings-form.php:1011
 #: inc/backend/views/settings-form.php:1312
-msgid "Device vs Address"
+msgid "Phone/Email vs IP"
 msgstr ""
 
 #: inc/backend/views/settings-form.php:1015
-msgid "Action if the same device, but different address"
+msgid "Action if the same phone or email, but different IP address"
 msgstr ""
 
 #: inc/backend/views/settings-form.php:1016
-msgid "The customer places a new order using a device that was used before, but with a different billing or shipping address."
+msgid "The customer places a new order using the same phone number or email address but a different IP address than their previous order."
 msgstr ""
 
 #: inc/backend/views/settings-form.php:1023
 #: inc/backend/views/settings-form.php:1324
-msgid "Device identity spread"
+msgid "Device vs Email/Phone"
 msgstr ""
 
 #: inc/backend/views/settings-form.php:1027
-msgid "Action if the same device is linked to too many identities"
+msgid "Action if the same device, but different email or phone"
 msgstr ""
 
 #: inc/backend/views/settings-form.php:1028
-msgid "The customer places a new order using a device that has already been linked to too many different emails, phone numbers, or user accounts."
+msgid "The customer places a new order using a device that was used before, but with a different email address or phone number."
 msgstr ""
 
 #: inc/backend/views/settings-form.php:1035
 #: inc/backend/views/settings-form.php:1336
-msgid "Billing vs Shipping"
+msgid "Device vs Address"
 msgstr ""
 
 #: inc/backend/views/settings-form.php:1039
-msgid "Action if the billing address and shipping address are not the same"
+msgid "Action if the same device, but different address"
 msgstr ""
 
 #: inc/backend/views/settings-form.php:1040
-msgid "The customer places a new order using the billing and shipping addresses that are different."
+msgid "The customer places a new order using a device that was used before, but with a different billing or shipping address."
 msgstr ""
 
 #: inc/backend/views/settings-form.php:1047
 #: inc/backend/views/settings-form.php:1348
-msgid "Order value"
+msgid "Device identity spread"
 msgstr ""
 
 #: inc/backend/views/settings-form.php:1051
-msgid "Action if the order value is higher X times than the average"
+msgid "Action if the same device is linked to too many identities"
 msgstr ""
 
 #: inc/backend/views/settings-form.php:1052
-msgid "The customer places a new order with a total value is higher by X times than your store order average."
+msgid "The customer places a new order using a device that has already been linked to too many different emails, phone numbers, or user accounts."
 msgstr ""
 
 #: inc/backend/views/settings-form.php:1059
 #: inc/backend/views/settings-form.php:1360
-msgid "Order attempts"
+msgid "Billing vs Shipping"
 msgstr ""
 
 #: inc/backend/views/settings-form.php:1063
-msgid "Action if a customer placed too many orders within the time period"
+msgid "Action if the billing address and shipping address are not the same"
 msgstr ""
 
 #: inc/backend/views/settings-form.php:1064
-msgid "The customer places a new order with the same phone or email or IP address or billing address (optional) more than X times during Y hours."
+msgid "The customer places a new order using the billing and shipping addresses that are different."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1070
-msgid "Add as suspect"
+#: inc/backend/views/settings-form.php:1071
+#: inc/backend/views/settings-form.php:1372
+msgid "Order value"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1074
-msgid "Auto-adding the customer to the suspect list for these order statuses."
+#: inc/backend/views/settings-form.php:1075
+msgid "Action if the order value is higher X times than the average"
+msgstr ""
+
+#: inc/backend/views/settings-form.php:1076
+msgid "The customer places a new order with a total value is higher by X times than your store order average."
 msgstr ""
 
 #: inc/backend/views/settings-form.php:1083
-msgid "Auto-adding the customer to the blocklist for these order statuses."
+#: inc/backend/views/settings-form.php:1384
+msgid "Order attempts"
+msgstr ""
+
+#: inc/backend/views/settings-form.php:1087
+msgid "Action if a customer placed too many orders within the time period"
 msgstr ""
 
 #: inc/backend/views/settings-form.php:1088
-msgid "IP addresses"
+msgid "The customer places a new order with the same phone or email or IP address or billing address (optional) more than X times during Y hours."
 msgstr ""
 
 #: inc/backend/views/settings-form.php:1094
-#: inc/backend/views/settings-form.php:1372
-msgid "Hosting IP"
+msgid "Add as suspect"
 msgstr ""
 
 #: inc/backend/views/settings-form.php:1098
-msgid "Action if the order placed through the hosting IP"
+msgid "Auto-adding the customer to the suspect list for these order statuses."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1099
-msgid "The order has been placed by the IP that belongs to a cloud or data center provider."
+#: inc/backend/views/settings-form.php:1107
+msgid "Auto-adding the customer to the blocklist for these order statuses."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1106
-#: inc/backend/views/settings-form.php:1384
-msgid "Using proxy or VPN"
-msgstr ""
-
-#: inc/backend/views/settings-form.php:1110
-msgid "Action if the order placed through Proxy, VPN or TOR"
-msgstr ""
-
-#: inc/backend/views/settings-form.php:1111
-msgid "The customer places a new order with the IP address using a VPN or proxy."
+#: inc/backend/views/settings-form.php:1112
+msgid "IP addresses"
 msgstr ""
 
 #: inc/backend/views/settings-form.php:1118
 #: inc/backend/views/settings-form.php:1396
-msgid "IP vs Country"
+msgid "Hosting IP"
 msgstr ""
 
 #: inc/backend/views/settings-form.php:1122
-msgid "Action if the IP does not match the billing country"
+msgid "Action if the order placed through the hosting IP"
 msgstr ""
 
 #: inc/backend/views/settings-form.php:1123
-msgid "Verifying if the customer IP address country, as determined through a trusted third-party API, matches the billing country."
+msgid "The order has been placed by the IP that belongs to a cloud or data center provider."
 msgstr ""
 
 #: inc/backend/views/settings-form.php:1130
 #: inc/backend/views/settings-form.php:1408
-msgid "IP vs Address"
+msgid "Using proxy or VPN"
 msgstr ""
 
 #: inc/backend/views/settings-form.php:1134
-msgid "Action if the IP coordinates radius does not match address coordinates radius about X mile/km"
+msgid "Action if the order placed through Proxy, VPN or TOR"
 msgstr ""
 
 #: inc/backend/views/settings-form.php:1135
-msgid "Verify if the customer IP address coordinates fall within the same radius as the billing coordinates using the Google Maps API."
+msgid "The customer places a new order with the IP address using a VPN or proxy."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1140
-#: inc/backend/views/settings-form.php:1766
-msgid "Payment gateways"
+#: inc/backend/views/settings-form.php:1142
+#: inc/backend/views/settings-form.php:1420
+msgid "IP vs Country"
 msgstr ""
 
 #: inc/backend/views/settings-form.php:1146
-#: inc/backend/views/settings-form.php:1420
-msgid "Card vs Billing country"
+msgid "Action if the IP does not match the billing country"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1150
-msgid "Action if the card country does not match the billing country"
+#: inc/backend/views/settings-form.php:1147
+msgid "Verifying if the customer IP address country, as determined through a trusted third-party API, matches the billing country."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1151
-msgid "Verify if the payment card country is the same with the billing country of the new order."
+#: inc/backend/views/settings-form.php:1154
+#: inc/backend/views/settings-form.php:1432
+msgid "IP vs Address"
 msgstr ""
 
 #: inc/backend/views/settings-form.php:1158
-#: inc/backend/views/settings-form.php:1432
-msgid "AVS checks"
+msgid "Action if the IP coordinates radius does not match address coordinates radius about X mile/km"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1162
-msgid "Action if the Address Verification Service checks are not pass"
+#: inc/backend/views/settings-form.php:1159
+msgid "Verify if the customer IP address coordinates fall within the same radius as the billing coordinates using the Google Maps API."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1162
-msgid "Learn more about AVS?"
-msgstr ""
-
-#: inc/backend/views/settings-form.php:1163
-msgid "Take appropriate action if the Address Verification Service (AVS) checks fail, such as flagging the order for review."
+#: inc/backend/views/settings-form.php:1164
+#: inc/backend/views/settings-form.php:1790
+msgid "Payment gateways"
 msgstr ""
 
 #: inc/backend/views/settings-form.php:1170
 #: inc/backend/views/settings-form.php:1444
-msgid "High risk country"
+msgid "Card vs Billing country"
 msgstr ""
 
 #: inc/backend/views/settings-form.php:1174
-msgid "Action if the payment using the card from High risk countries"
+msgid "Action if the card country does not match the billing country"
 msgstr ""
 
 #: inc/backend/views/settings-form.php:1175
-msgid "Flag or block transactions made with cards issued from high-risk countries to prevent potential fraud."
+msgid "Verify if the payment card country is the same with the billing country of the new order."
 msgstr ""
 
 #: inc/backend/views/settings-form.php:1182
-msgid "PayPal payer vs Customer"
+#: inc/backend/views/settings-form.php:1456
+msgid "AVS checks"
 msgstr ""
 
 #: inc/backend/views/settings-form.php:1186
-msgid "Action if the same payer email, but different customer details"
+msgid "Action if the Address Verification Service checks are not pass"
+msgstr ""
+
+#: inc/backend/views/settings-form.php:1186
+msgid "Learn more about AVS?"
 msgstr ""
 
 #: inc/backend/views/settings-form.php:1187
-msgid "The customer places a new order using the same PayPal payer email but a different name, email, phone, or address than their previous order."
+msgid "Take appropriate action if the Address Verification Service (AVS) checks fail, such as flagging the order for review."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1192
-msgid "Additional options"
+#: inc/backend/views/settings-form.php:1194
+#: inc/backend/views/settings-form.php:1468
+msgid "High risk country"
 msgstr ""
 
 #: inc/backend/views/settings-form.php:1198
+msgid "Action if the payment using the card from High risk countries"
+msgstr ""
+
+#: inc/backend/views/settings-form.php:1199
+msgid "Flag or block transactions made with cards issued from high-risk countries to prevent potential fraud."
+msgstr ""
+
+#: inc/backend/views/settings-form.php:1206
+msgid "PayPal payer vs Customer"
+msgstr ""
+
+#: inc/backend/views/settings-form.php:1210
+msgid "Action if the same payer email, but different customer details"
+msgstr ""
+
+#: inc/backend/views/settings-form.php:1211
+msgid "The customer places a new order using the same PayPal payer email but a different name, email, phone, or address than their previous order."
+msgstr ""
+
+#: inc/backend/views/settings-form.php:1216
+msgid "Additional options"
+msgstr ""
+
+#: inc/backend/views/settings-form.php:1222
 msgid "Check orders in"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1202
+#: inc/backend/views/settings-form.php:1226
 msgid "day(s). Maximum is 90 days."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1203
+#: inc/backend/views/settings-form.php:1227
 msgid "This option is in addition to the options marked with an asterisk (*) above."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1209
+#: inc/backend/views/settings-form.php:1233
 msgid "Auto cancel order"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1213
+#: inc/backend/views/settings-form.php:1237
 msgid "Enable the automatic cancel order for the \"Add to blocklist\" action"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1214
+#: inc/backend/views/settings-form.php:1238
 msgid "If the action has set as \"Add to blocklist\", then also cancel the order if it matches the action rule."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1219
+#: inc/backend/views/settings-form.php:1243
 msgid "Cancel delay timer"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1237
+#: inc/backend/views/settings-form.php:1261
 msgid "Risk order scoring"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1242
+#: inc/backend/views/settings-form.php:1266
 msgid "Enable order risk"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1246
+#: inc/backend/views/settings-form.php:1270
 msgid "Enable scoring the risk for the orders."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1247
+#: inc/backend/views/settings-form.php:1271
 msgid "You will also see the risk score column in orders page, and risk score metabox in edit order page."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1252
+#: inc/backend/views/settings-form.php:1276
 msgid "Score rules"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1255
+#: inc/backend/views/settings-form.php:1279
 msgid "To learn more about a breakdown of each automatic check in Blacklist Manager, with a plain-language explanation, a concrete use-case example, and a “risk score” (1 = low priority, 5 = always flag) you can use as a default when tuning your rules."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1256
+#: inc/backend/views/settings-form.php:1280
 msgid "Learn how to get started"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1264
+#: inc/backend/views/settings-form.php:1288
 msgid "First time order"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1456
+#: inc/backend/views/settings-form.php:1480
 msgid "Total score"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1464
+#: inc/backend/views/settings-form.php:1488
 msgid "Risk score thresholds"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1467
+#: inc/backend/views/settings-form.php:1491
 msgid "When a new order is placed, the risk score will be calculated and compared against these shared thresholds. The possible total score may vary depending on the payment gateway used for the order."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1468
+#: inc/backend/views/settings-form.php:1492
 msgid "Learn the correct approach"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1478
+#: inc/backend/views/settings-form.php:1502
 msgid "Safe order"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1493
+#: inc/backend/views/settings-form.php:1517
 msgid "Moderately risky"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1508
+#: inc/backend/views/settings-form.php:1532
 msgid "Highly risky"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1523
+#: inc/backend/views/settings-form.php:1547
 msgid "Severe risky"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1544
+#: inc/backend/views/settings-form.php:1568
 msgid "Anti-bots by CAPTCHA"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1545
+#: inc/backend/views/settings-form.php:1569
 msgid "Prevent the bots from spamming orders on your site."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1550
+#: inc/backend/views/settings-form.php:1574
 msgid "Select Captcha"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1554
+#: inc/backend/views/settings-form.php:1578
 msgid "reCaptcha v3"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1560
+#: inc/backend/views/settings-form.php:1584
 msgid "Site key (v3)"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1568
+#: inc/backend/views/settings-form.php:1592
 msgid "Secret key (v3)"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1572
+#: inc/backend/views/settings-form.php:1596
 msgid "Enter Google reCAPTCHA site key and secret key."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1572
+#: inc/backend/views/settings-form.php:1596
 msgid "How to get the keys?"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1577
+#: inc/backend/views/settings-form.php:1601
 msgid "Score theshold"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1581
+#: inc/backend/views/settings-form.php:1605
 msgid "Enter the Google reCAPTCHA v3 score threshold. Interactions scoring below this value will be considered suspicious."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1586
+#: inc/backend/views/settings-form.php:1610
 msgid "Login form"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1590
+#: inc/backend/views/settings-form.php:1614
 msgid "Enable requiring CAPTCHA for login form"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1592
+#: inc/backend/views/settings-form.php:1616
 msgid "Check this option to enable CAPTCHA for both WordPress and WooCommerce login forms."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1594
+#: inc/backend/views/settings-form.php:1618
 msgid "Check this option to enable CAPTCHA for WordPress login form."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1600
+#: inc/backend/views/settings-form.php:1624
 msgid "Register form"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1604
+#: inc/backend/views/settings-form.php:1628
 msgid "Enable requiring CAPTCHA for register form"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1606
+#: inc/backend/views/settings-form.php:1630
 msgid "Check this option to enable CAPTCHA for both WordPress and WooCommerce register forms."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1608
+#: inc/backend/views/settings-form.php:1632
 msgid "Check this option to enable CAPTCHA for WordPress register form."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1614
+#: inc/backend/views/settings-form.php:1638
 msgid "Comment form"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1619
+#: inc/backend/views/settings-form.php:1643
 msgid "Enable requiring CAPTCHA for comment and review form"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1620
+#: inc/backend/views/settings-form.php:1644
 msgid "Check this option to enable CAPTCHA for comment and review forms of WordPress and WooCommerce."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1622
+#: inc/backend/views/settings-form.php:1646
 msgid "Enable requiring CAPTCHA for comment form"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1623
+#: inc/backend/views/settings-form.php:1647
 msgid "Check this option to enable CAPTCHA for comment form of WordPress."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1629
+#: inc/backend/views/settings-form.php:1653
 msgid "Google API"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1634
+#: inc/backend/views/settings-form.php:1658
 msgid "Google Maps Geocoding"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1638
+#: inc/backend/views/settings-form.php:1662
 msgid "Enable to coordinates conversion using Google Maps Geocoding API."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1643
+#: inc/backend/views/settings-form.php:1667
 msgid "Google Maps API key"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1647
+#: inc/backend/views/settings-form.php:1671
 msgid "Enter your Google Maps Geocoding API key."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1647
-#: inc/backend/views/settings-form.php:1682
-#: inc/backend/views/settings-form.php:1697
+#: inc/backend/views/settings-form.php:1671
+#: inc/backend/views/settings-form.php:1706
+#: inc/backend/views/settings-form.php:1721
 msgid "How to get the API?"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1648
+#: inc/backend/views/settings-form.php:1672
 msgid "28,500 maploads per month for no charge."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1648
-#: inc/backend/views/settings-form.php:1683
-#: inc/backend/views/settings-form.php:1698
+#: inc/backend/views/settings-form.php:1672
+#: inc/backend/views/settings-form.php:1707
 #: inc/backend/views/settings-form.php:1722
+#: inc/backend/views/settings-form.php:1746
 msgid "Click here for more info."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1653
+#: inc/backend/views/settings-form.php:1677
 msgid "Address autocomplete"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1657
+#: inc/backend/views/settings-form.php:1681
 msgid "Enable address autocomplete using Google Maps API in checkout page."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1658
+#: inc/backend/views/settings-form.php:1682
 msgid "We are highly recommended to use this to ensure accuracy and clarity."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1663
-#: inc/backend/views/settings-form.php:1668
+#: inc/backend/views/settings-form.php:1687
+#: inc/backend/views/settings-form.php:1692
 msgid "Usercheck"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1672
+#: inc/backend/views/settings-form.php:1696
 msgid "Enable blocking disposable email address using usercheck.com."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1673
+#: inc/backend/views/settings-form.php:1697
 msgid "You do not need to add a key to make it work, but it is limited to 5 requests per hour."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1678
+#: inc/backend/views/settings-form.php:1702
 msgid "Usercheck API key"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1682
+#: inc/backend/views/settings-form.php:1706
 msgid "Enter your usercheck.com API key."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1683
+#: inc/backend/views/settings-form.php:1707
 msgid "1000 requests per month for no charge."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1688
+#: inc/backend/views/settings-form.php:1712
 msgid "ZeroBounce"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1693
+#: inc/backend/views/settings-form.php:1717
 msgid "ZeroBounce API key"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1697
+#: inc/backend/views/settings-form.php:1721
 msgid "Enter your zerobounce.net API key."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1698
 #: inc/backend/views/settings-form.php:1722
+#: inc/backend/views/settings-form.php:1746
 msgid "100 requests per month for no charge."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1703
-#: inc/backend/views/settings-form.php:1708
+#: inc/backend/views/settings-form.php:1727
+#: inc/backend/views/settings-form.php:1732
 msgid "NumCheckr"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1712
+#: inc/backend/views/settings-form.php:1736
 msgid "Enable blocking disposable phone numbers using numcheckr.com."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1717
+#: inc/backend/views/settings-form.php:1741
 msgid "NumCheckr API Token"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1721
+#: inc/backend/views/settings-form.php:1745
 msgid "Enter your numcheckr.com API token."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1738
+#: inc/backend/views/settings-form.php:1762
 msgid "Payment methods"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1743
+#: inc/backend/views/settings-form.php:1767
 msgid "Disable for suspects"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1771
+#: inc/backend/views/settings-form.php:1795
 msgid "Payment detection"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1775
+#: inc/backend/views/settings-form.php:1799
 msgid "Enable verification of customer information through payment gateways"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1784
+#: inc/backend/views/settings-form.php:1808
 msgid "Display the Stripe fraud analysis on the risk score metabox"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1785
+#: inc/backend/views/settings-form.php:1809
 msgid "Stripe fraud analysis is only available when the Order Risk option is enabled in the Scoring tab."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1794
+#: inc/backend/views/settings-form.php:1818
 msgid "Require verification of the PayPal payer email if it doesn't match the customer's email"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1795
+#: inc/backend/views/settings-form.php:1819
 msgid "If checked, a verification email will be sent and the order will be placed on hold until the payer verifies their email."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1800
+#: inc/backend/views/settings-form.php:1824
 msgid "Country settings"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1805
+#: inc/backend/views/settings-form.php:1829
 msgid "High risk countries"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1809
+#: inc/backend/views/settings-form.php:1833
 msgid "Choose high risk payment countries."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1825
+#: inc/backend/views/settings-form.php:1849
 msgid "Blacklist manager permission"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1842
+#: inc/backend/views/settings-form.php:1866
 msgid "<b>Note</b>: User roles with permission to control the dashboard will also have access to manage the blacklist actions panel on the Order page."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1884
+#: inc/backend/views/settings-form.php:1908
 msgid "Import / Export"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1886
+#: inc/backend/views/settings-form.php:1910
 msgid "Import or export blacklist entries from the data."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1891
+#: inc/backend/views/settings-form.php:1915
 msgid "Import CSV"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1897
+#: inc/backend/views/settings-form.php:1921
 msgid "Import"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1903
+#: inc/backend/views/settings-form.php:1927
 msgid "Download the CSV sample file and add the entries to the correct column."
 msgstr ""
 
 #. translators: %1$s: documentation link
-#: inc/backend/views/settings-form.php:1909
+#: inc/backend/views/settings-form.php:1933
 msgid "Read <a href=\"%1$s\" target=\"_blank\">this article</a> for more details."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1918
+#: inc/backend/views/settings-form.php:1942
 msgid "Export CSV"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1923
+#: inc/backend/views/settings-form.php:1947
 msgid "Export"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1929
+#: inc/backend/views/settings-form.php:1953
 msgid "Activity log retention"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1930
+#: inc/backend/views/settings-form.php:1954
 msgid "Save space by deleting logs regularly."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1936
+#: inc/backend/views/settings-form.php:1960
 msgid "Clean by amount"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1940
+#: inc/backend/views/settings-form.php:1964
 msgid "Set up an automated cleanup routine that is triggered when a certain amount of logs have been saved."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1947
+#: inc/backend/views/settings-form.php:1971
 msgid "Keep only this many newest logs (older logs will be deleted)."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1951
+#: inc/backend/views/settings-form.php:1975
 msgid "Clean by time"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1955
+#: inc/backend/views/settings-form.php:1979
 msgid "Set up an automated cleanup routine that is triggered after a certain amount of time has passed."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1962
+#: inc/backend/views/settings-form.php:1986
 msgid "Delete logs older than this many days."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1978
+#: inc/backend/views/settings-form.php:2002
 msgid "Blacklist connection"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1983
+#: inc/backend/views/settings-form.php:2007
 msgid "Connection mode\t"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1987
+#: inc/backend/views/settings-form.php:2011
 msgid "Host site"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1993
+#: inc/backend/views/settings-form.php:2017
 msgid "Host site URL"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:1997
+#: inc/backend/views/settings-form.php:2021
 #: inc/backend/views/verifications-form.php:256
 #: inc/backend/views/verifications-form.php:640
 msgid "Copy"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:2002
+#: inc/backend/views/settings-form.php:2026
 msgid "Host site key"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:2006
+#: inc/backend/views/settings-form.php:2030
 #: inc/backend/views/verifications-form.php:255
 msgid "Generate a key"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:2009
+#: inc/backend/views/settings-form.php:2033
 msgid "Generate a new key to start using blacklist connection."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:2012
+#: inc/backend/views/settings-form.php:2036
 #: inc/backend/views/verifications-form.php:268
 msgid "How it works?"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:2019
+#: inc/backend/views/settings-form.php:2043
 msgid "Sub site connection"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:2024
+#: inc/backend/views/settings-form.php:2048
 msgid "Auto approval"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:2028
+#: inc/backend/views/settings-form.php:2052
 msgid "Enable to automatically set the sub site connection as 'Connected'"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:2029
+#: inc/backend/views/settings-form.php:2053
 msgid "If checked, your host site will be connected with the subsites without needing your permission."
 msgstr ""
 
-#: inc/backend/views/settings-form.php:2034
+#: inc/backend/views/settings-form.php:2058
 msgid "Sub site list"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:2040
+#: inc/backend/views/settings-form.php:2064
 msgid "ID"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:2042
+#: inc/backend/views/settings-form.php:2066
 msgid "Key"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:2043
+#: inc/backend/views/settings-form.php:2067
 msgid "Connected date"
 msgstr ""
 
-#: inc/backend/views/settings-form.php:2050
+#: inc/backend/views/settings-form.php:2074
 msgid "No subsites found."
 msgstr ""
 
@@ -4628,15 +4655,15 @@ msgstr ""
 msgid "You’re running v%s"
 msgstr ""
 
-#: inc/cores/notices.php:215
+#: inc/cores/notices.php:238
 msgid "activate it"
 msgstr ""
 
 #. translators: %s: Activate premium plugin link
-#: inc/cores/notices.php:220
+#: inc/cores/notices.php:243
 msgid "License activated, but the Premium add-on is not activated or installed on your site yet. Please %s, or login to your account on our website to download and install it."
 msgstr ""
 
-#: inc/cores/notices.php:235
+#: inc/cores/notices.php:258
 msgid "Go to My account"
 msgstr ""

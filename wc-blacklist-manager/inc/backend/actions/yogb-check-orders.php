@@ -80,6 +80,11 @@ final class YOGB_BM_Check_Orders {
 			1
 		);
 
+		add_action(
+			'admin_post_yogb_gbl_manual_order_check',
+			[ __CLASS__, 'handle_manual_order_check' ]
+		);
+
 		if ( 'strict' === $mode ) {
 			add_action(
 				'woocommerce_after_checkout_validation',
@@ -475,6 +480,44 @@ final class YOGB_BM_Check_Orders {
 		$order->save();
 
 		do_action( 'yogb_after_gbl_check', $order->get_id(), 'yogb_gbl_run_check_async' );
+	}
+
+	public static function handle_manual_order_check() : void {
+		$order_id = isset( $_GET['order_id'] ) ? absint( $_GET['order_id'] ) : 0;
+
+		if ( $order_id <= 0 ) {
+			wp_die( esc_html__( 'Invalid order.', 'wc-blacklist-manager' ) );
+		}
+
+		if ( ! current_user_can( 'edit_shop_order', $order_id ) ) {
+			wp_die( esc_html__( 'You do not have permission to recheck this order.', 'wc-blacklist-manager' ) );
+		}
+
+		check_admin_referer( 'yogb_gbl_manual_order_check_' . $order_id );
+
+		$order = wc_get_order( $order_id );
+
+		if ( ! $order instanceof WC_Order ) {
+			wp_die( esc_html__( 'Order not found.', 'wc-blacklist-manager' ) );
+		}
+
+		// Allow manual recheck even if a previous async attempt marked it checked.
+		$order->delete_meta_data( '_yogb_gbl_checked' );
+		$order->save();
+
+		self::run_global_check_async( $order_id );
+
+		wp_safe_redirect(
+			add_query_arg(
+				[
+					'post'   => $order_id,
+					'action' => 'edit',
+					'yogb_rechecked' => 1,
+				],
+				admin_url( 'post.php' )
+			)
+		);
+		exit;
 	}
 
 	/**

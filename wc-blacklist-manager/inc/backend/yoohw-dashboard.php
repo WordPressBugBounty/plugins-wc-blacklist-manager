@@ -275,7 +275,6 @@ if (!class_exists('Yo_Ohw_Menu')) {
 					display: flex;
 					align-items: center;
 					justify-content: center;
-					padding: 16px;
 					border-bottom: 1px solid var(--yoohw-border);
 				}
 
@@ -556,10 +555,10 @@ if (!class_exists('Yo_Ohw_Menu')) {
 		private function generate_dashboard_links() {
 			$cards = [
 				[
-					'icon'        => 'dashicons-admin-site-alt3',
-					'title'       => 'Our Homepage',
-					'description' => 'Visit YoOhw Studio and explore our latest products and updates.',
-					'url'         => 'https://yoohw.com',
+					'icon'        => 'dashicons-text',
+					'title'       => 'Our Express',
+					'description' => 'Visit YoExpress and explore our latest products and updates.',
+					'url'         => 'https://yoexpress.top',
 					'label'       => 'Visit website',
 				],
 				[

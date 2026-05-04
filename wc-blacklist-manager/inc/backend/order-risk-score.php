@@ -128,6 +128,109 @@ class WC_Blacklist_Manager_Order_Risk_Score {
 			return;
 		endif;
 
+		$order_id = $order->get_id();
+
+		$has_gbl_result = false;
+
+		$decision_probe = trim( (string) $order->get_meta( '_yogb_gbl_decision', true ) );
+		$raw_probe      = trim( (string) $order->get_meta( '_yogb_gbl_raw', true ) );
+
+		if ( '' !== $decision_probe ) {
+			$has_gbl_result = true;
+		} elseif ( '' !== $raw_probe && '{}' !== $raw_probe ) {
+			$has_gbl_result = true;
+		}
+
+		// The Global Blacklist order check may run by scheduled action/cron.
+		// On newly created orders, the result meta may not exist yet.
+		if ( ! $has_gbl_result ) : ?>
+			<div class="bm-order-risk-meta bm-order-risk-meta--pending">
+				<div class="bm-gbl-summary-card bm-gbl-summary-card--pending">
+					<div class="bm-gbl-summary-card__label">
+						<?php esc_html_e( 'Fraud check result', 'wc-blacklist-manager' ); ?>
+					</div>
+
+					<div class="bm-gbl-summary-card__value">
+						<span class="bm-decision-badge bm-decision-none">
+							<?php esc_html_e( 'Pending check', 'wc-blacklist-manager' ); ?>
+						</span>
+					</div>
+
+					<div class="bm-gbl-summary-card__text">
+						<?php esc_html_e( 'The Global Blacklist check has not completed for this order yet. This can happen shortly after the order is created because the check runs in the background by schedule.', 'wc-blacklist-manager' ); ?>
+					</div>
+				</div>
+
+				<?php
+				$created = $order->get_date_created();
+				$can_show_recheck = true;
+
+				if ( $created ) {
+					$order_age = time() - $created->getTimestamp();
+
+					$min_age = 2 * MINUTE_IN_SECONDS; // or 3 min if you want stricter
+
+					if ( $order_age < $min_age ) {
+						$can_show_recheck = false;
+					}
+				}
+
+				$recheck_url = wp_nonce_url(
+					add_query_arg(
+						[
+							'action'   => 'yogb_gbl_manual_order_check',
+							'order_id' => $order_id,
+						],
+						admin_url( 'admin-post.php' )
+					),
+					'yogb_gbl_manual_order_check_' . $order_id
+				);
+				?>
+
+				<p>
+					<?php if ( $can_show_recheck ) : ?>
+						<p>
+							<a href="<?php echo esc_url( $recheck_url ); ?>" class="button button-secondary">
+								<?php esc_html_e( 'Recheck now', 'wc-blacklist-manager' ); ?>
+							</a>
+						</p>
+					<?php else : ?>
+						<p>
+							<small>
+								<?php esc_html_e( 'The check is being processed. You can manually recheck in a moment if needed.', 'wc-blacklist-manager' ); ?>
+							</small>
+						</p>
+					<?php endif; ?>
+				</p>
+
+				<style>
+					.bm-gbl-summary-card--pending {
+						margin: 12px 0;
+						padding: 12px;
+						border: 1px solid #dcdcde;
+						border-left: 4px solid #72aee6;
+						border-radius: 6px;
+						background: #f6f7f7;
+					}
+					.bm-gbl-summary-card__label {
+						font-size: 12px;
+						font-weight: 600;
+						color: #50575e;
+						margin-bottom: 6px;
+					}
+					.bm-gbl-summary-card__value {
+						float: right;
+					}
+					.bm-gbl-summary-card__text {
+						font-size: 13px;
+						line-height: 1.5;
+					}
+				</style>
+			</div>
+			<?php
+			return;
+		endif;
+
 		$tier_meta = (string) $order->get_meta( '_yogb_gbl_tier', true );
 		$tier      = '' !== $tier_meta ? strtolower( trim( $tier_meta ) ) : 'free';
 

@@ -40,19 +40,29 @@ final class YOGB_BM_Tier_Sync {
 
 		$server_base = rtrim( $server_base, '/' );
 		$rest_route  = '/' . ltrim( $rest_route, '/' );
-		$ts          = (string) time();
-		$sig         = base64_encode(
+
+		// Make sure REST base includes /wp-json.
+		if ( false === strpos( $server_base, '/wp-json' ) ) {
+			$server_base .= '/wp-json';
+		}
+
+		$ts  = (string) time();
+		$sig = base64_encode(
 			hash_hmac( 'sha256', $api_key . "\n" . $ts, $secret, true )
 		);
 
-		$url = add_query_arg(
+		$query = http_build_query(
 			[
-				'api_key' => rawurlencode( $api_key ),
-				'ts'      => rawurlencode( $ts ),
-				'sig'     => rawurlencode( $sig ),
+				'api_key' => $api_key,
+				'ts'      => $ts,
+				'sig'     => $sig,
 			],
-			$server_base . $rest_route . '/client/tier'
+			'',
+			'&',
+			PHP_QUERY_RFC3986
 		);
+
+		$url = $server_base . $rest_route . '/client/tier?' . $query;
 
 		$res = wp_safe_remote_get(
 			$url,
@@ -66,6 +76,8 @@ final class YOGB_BM_Tier_Sync {
 		}
 
 		$http_code = (int) wp_remote_retrieve_response_code( $res );
+		$body_raw  = (string) wp_remote_retrieve_body( $res );
+
 		if ( 200 !== $http_code ) {
 			return;
 		}
@@ -91,7 +103,7 @@ final class YOGB_BM_Tier_Sync {
 			return;
 		}
 
-		YOGB_BM_Tier_Webhook::apply_tier_payload(
+		$result = YOGB_BM_Tier_Webhook::apply_tier_payload(
 			$payload,
 			[
 				'source' => 'pull',

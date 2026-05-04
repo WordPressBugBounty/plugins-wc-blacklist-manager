@@ -98,7 +98,7 @@ class WC_Blacklist_Manager_Notices {
 		// Check if user is administrator and notice hasn't been dismissed
 		if (current_user_can('manage_options') && get_user_meta($user_id, 'wc_blacklist_manager_first_time_notice_dismissed', true) !== 'yes') {
 		    echo '<div class="notice error yobm-first-time is-dismissible">
-				  <p style="color:#d63638;">Blacklist Manager is a security and guardian plugin! Kindly read our <a href="https://yoohw.com/docs/category/woocommerce-blacklist-manager/" target="_blank">Documentation</a> carefully before <a href="' . esc_url(admin_url('admin.php?page=wc-blacklist-manager-settings')) . '">visiting the Settings page</a> to configure the plugin.<br>To avoid unexpected workflows or any help needed, please reach out to our technique support team.</p>
+				  <p style="color:#d63638;">Blacklist Manager is a security and guardian plugin! Kindly read our <a href="https://yoohw.com/docs/category/blacklist-manager/" target="_blank">Documentation</a> carefully before <a href="' . esc_url(admin_url('admin.php?page=wc-blacklist-manager-settings')) . '">visiting the Settings page</a> to configure the plugin.<br>To avoid unexpected workflows or any help needed, please reach out to our technique support team.</p>
 				  <p><a href="#" onclick="WC_Blacklist_Manager_Admin_Notice.dismissFirstTimeNotice()">I understand and do not show this notice again!</a></p>
 			  </div>';
 		}
@@ -186,7 +186,28 @@ class WC_Blacklist_Manager_Notices {
 		$message = 'Further orders will no longer be screened against our global fraud network, <b>increasing the risk of chargebacks and payment disputes</b>. Upgrade your plan now to keep orders protected and revenue safe.';
 
 		if ( $premium_active ) {
-			$message .= ' As a Blacklist Manager Premium user, you can get <b>up to 50% off</b> when upgrading to a higher Global Blacklist plan.';
+			$message .= '<br>As a Blacklist Manager Premium user, you can get <b>up to 50% off</b> when upgrading to a higher Global Blacklist plan.';
+		}
+
+		$message .= '<p><b>What is the Global Blacklist?</b><br>';
+
+		$message .= 'The <strong>Global Blacklist</strong> is a shared fraud intelligence network powered by <strong>thousands of online stores</strong>, continuously reporting suspicious activities, abusive customers, and fraudulent behaviors (fake orders, chargebacks, payment abuse, etc.).';
+
+		$message .= ' It provides detailed risk information, identifies potentially risky customers, and suggests the best action to take so you can make safer order decisions with more confidence.</p>';
+
+		$disable_btn = '';
+
+		if ( $premium_active ) {
+			$disable_url = wp_nonce_url(
+				admin_url( 'admin-post.php?action=disable_global_blacklist' ),
+				'disable_global_blacklist'
+			);
+
+			$disable_btn = sprintf(
+				'<a href="%1$s" class="button" onclick="return confirm(\'This will stop Global Blacklist checks for all new orders. Continue?\');">%2$s</a>',
+				esc_url( $disable_url ),
+				esc_html__( 'Disable Global Blacklist', 'wc-blacklist-manager-premium' )
+			);
 		}
 
 		printf(
@@ -195,6 +216,7 @@ class WC_Blacklist_Manager_Notices {
 				<p>%2$s</p>
 				<p>
 					<a href="#" class="button button-secondary" onclick="WC_Blacklist_Manager_Admin_Notice.dismissGBDLimitNotice(); return false;">%5$s</a>
+					%6$s
 					<a href="%3$s" class="button button-primary" target="_blank">%4$s</a>
 				</p>
 			</div>',
@@ -202,7 +224,8 @@ class WC_Blacklist_Manager_Notices {
 			wp_kses_post( $message ),
 			esc_url( $upgrade_url ),
 			esc_html( 'Upgrade plan' ),
-			esc_html( 'Dismiss' )
+			esc_html( 'Dismiss' ),
+			$disable_btn
 		);
 	}
 

@@ -575,8 +575,32 @@ if (!defined('ABSPATH')) {
 						<label for="enable_global_blacklist"><?php echo esc_html__( 'Order checking', 'wc-blacklist-manager' ); ?></label>
 					</th>
 					<td>
-						<input type="checkbox" id="enable_global_blacklist" name="enable_global_blacklist" value="1" <?php checked( $settings['enable_global_blacklist'] ); ?>>
-						<label for="enable_global_blacklist"><?php echo esc_html__( 'Enable order checking for contact details on the global blacklist', 'wc-blacklist-manager' ); ?></label>
+						<?php
+						$is_paid_tier = in_array( $tier, array( 'basic', 'pro', 'enterprise' ), true );
+						?>
+
+						<input
+							type="checkbox"
+							id="enable_global_blacklist"
+							name="enable_global_blacklist"
+							value="1"
+							<?php checked( $is_paid_tier ? true : $settings['enable_global_blacklist'] ); ?>
+							<?php disabled( $is_paid_tier ); ?>
+						>
+
+						<?php if ( $is_paid_tier ) : ?>
+							<input type="hidden" name="enable_global_blacklist" value="1">
+						<?php endif; ?>
+
+						<label for="enable_global_blacklist">
+							<?php echo esc_html__( 'Enable order checking for contact details on the global blacklist', 'wc-blacklist-manager' ); ?>
+						</label>
+
+						<?php if ( $is_paid_tier ) : ?>
+							<p class="description">
+								<?php esc_html_e( 'Order checking is automatically enabled for paid Global Blacklist tiers.', 'wc-blacklist-manager' ); ?>
+							</p>
+						<?php endif; ?>
 					</td>
 				</tr>
 

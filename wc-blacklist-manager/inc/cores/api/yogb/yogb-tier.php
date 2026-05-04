@@ -199,7 +199,9 @@ final class YOGB_BM_Tier_Webhook {
 			];
 		}
 
-		// Same version, but different event replay / retry: accept only if state matches.
+		// Same version.
+		// For webhook/push: accept only if state matches.
+		// For client pull snapshot: allow server snapshot to repair stale local tier.
 		if ( $tier_version === $local_version ) {
 			if ( $tier === $local_tier ) {
 				if ( '' !== $event_id ) {
@@ -216,6 +218,27 @@ final class YOGB_BM_Tier_Webhook {
 				];
 			}
 
+			if ( isset( $context['source'] ) && 'pull' === $context['source'] ) {
+				update_option( self::OPTION_TIER, $tier, false );
+				update_option( self::OPTION_TIER_UPDATED_AT, current_time( 'mysql' ), false );
+				update_option( self::OPTION_TIER_LAST_SOURCE, 'pull', false );
+
+				if ( '' !== $event_id ) {
+					update_option( self::OPTION_TIER_LAST_EVENT, $event_id, false );
+					self::mark_event_processed( $event_id );
+				}
+
+				return [
+					'ok'            => true,
+					'status'        => 'same_version_repaired_by_pull',
+					'previous_tier' => $local_tier,
+					'tier'          => $tier,
+					'tier_version'  => $tier_version,
+					'event_id'      => $event_id,
+					'code'          => 200,
+				];
+			}
+
 			return [
 				'ok'               => false,
 				'error'            => 'same_version_conflict',
@@ -228,6 +251,12 @@ final class YOGB_BM_Tier_Webhook {
 
 		// Newer version: apply it.
 		update_option( self::OPTION_TIER, $tier, false );
+
+
+		if ( 'free' !== $tier ) {
+			update_option( 'wc_blacklist_enable_global_blacklist', '1', false );
+		}
+
 		update_option( self::OPTION_TIER_VERSION, $tier_version, false );
 		update_option( self::OPTION_TIER_UPDATED_AT, current_time( 'mysql' ), false );
 		update_option( self::OPTION_TIER_LAST_SOURCE, sanitize_text_field( (string) ( $context['source'] ?? 'unknown' ) ), false );

@@ -5,7 +5,7 @@ Requires at least: 6.3
 Tested up to: 6.9
 WC tested up to: 10.7
 Requires PHP: 7.4
-Stable tag: 2.2.4
+Stable tag: 2.2.5
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -34,6 +34,11 @@ Originally built for WooCommerce, it now extends its protection to popular form 
 * **Email Verification**: Customers are required to verify their email by entering a code sent to them during checkout to complete their order.
 * **Phone Verification**: Customers must verify their phone number by entering an SMS code received during checkout before proceeding with their order.
 * **User Blocking**: When the order has been placed by a user and has been added to the Blocklist, then the user is also set as blocked.
+* **WooCommerce REST API Protection**: Block blacklisted IPs, emails, phone numbers, and domains from creating orders through WooCommerce REST API integrations or external apps.
+
+**Universal Checkout Compatibility**
+
+Our plugin is compatible with all types of checkout pages, including WooCommerce Classic, [Block-based Checkout](https://woocommerce.com/checkout-blocks/), and third-party checkout plugins.
 
 == Premium Features ==
 
@@ -152,10 +157,6 @@ Ideal for multi-store and websites owners and agencies managing numerous client 
 
 [See more about Blacklist Connection feature](https://yoohw.com/docs/woocommerce-blacklist-manager/settings/connection/)
 
-**Universal Checkout Compatibility**
-
-Our plugin is compatible with all types of checkout pages, including WooCommerce Classic, [Block-based Checkout](https://woocommerce.com/checkout-blocks/), and third-party checkout plugins. It also features address autocompletion on the checkout page to ensure accuracy and clarity through seamless Google Maps API integration.
-
 **Permission Settings**
 
 The Permission Settings feature of our plugin allows you to set both default and custom user roles to control access to the Dashboard, Notifications, and Settings. Tailor the access levels to ensure that only the appropriate users can manage and view the plugin's critical features.
@@ -253,6 +254,11 @@ A: There is no set limit within the plugin, but practical limitations depend on 
 A: No, the plugin is optimized for performance. It performs blacklist checks efficiently and only at appropriate times (like form submission or checkout), so it won’t noticeably impact your site speed.
 
 == Changelog ==
+
+= 2.2.5 (May 4, 2026) =
+* Fix: Resolved a 404 error when syncing Global Blacklist tiers.
+* Improve: Added a “Pending” status while orders are being checked against the Global Blacklist.
+* Improve: Added a “Recheck” action for orders that do not yet have a check result.
 
 = 2.2.4 (Apr 27, 2026) =
 * New: Added an option to extend blacklist protection to WooCommerce REST API orders created by external apps or integrations.
