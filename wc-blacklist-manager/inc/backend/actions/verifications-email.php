@@ -56,6 +56,9 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 		add_action( 'wc_blacklist_manager_cleanup_verification_code', array( $this, 'cleanup_expired_code' ), 10, 2 );
 
 		add_filter( 'rest_authentication_errors', array( $this, 'validate_blocks_checkout_request' ), 20 );
+		add_filter( 'rest_request_before_callbacks', array( $this, 'validate_blocks_checkout_rest_request' ), 20, 3 );
+
+		$this->debug_log( 'hooks_registered' );
 	}
 
 	public function set_verifications_strings() {
@@ -65,13 +68,13 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 	}
 
 	public function initialize_session() {
-		if ( class_exists( 'WC_Session' ) && WC()->session && ! WC()->session->has_session() ) {
+		if ( function_exists( 'WC' ) && class_exists( 'WC_Session' ) && WC()->session && ! WC()->session->has_session() ) {
 			WC()->session->set_customer_session_cookie( true );
 		}
 	}
 
 	public function enqueue_verification_scripts() {
-		if ( ! is_checkout() ) {
+		if ( ! function_exists( 'is_checkout' ) || ! is_checkout() ) {
 			return;
 		}
 
@@ -103,7 +106,7 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 	}
 
 	public function enqueue_blocks_verification_scripts() {
-		if ( ! is_checkout() ) {
+		if ( ! function_exists( 'is_checkout' ) || ! is_checkout() ) {
 			return;
 		}
 
@@ -143,22 +146,21 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 			return;
 		}
 
-		if ( ! is_checkout() ) {
-			return;
-		}
-
 		$email = isset( $_POST['billing_email'] ) ? sanitize_email( wp_unslash( $_POST['billing_email'] ) ) : '';
 
 		if ( empty( $email ) ) {
+			$this->debug_log( 'classic_missing_email' );
 			return;
 		}
 
 		if ( ! $this->requires_email_verification( $email ) ) {
 			$this->clear_verification_state_if_email_mismatch( $email );
+			$this->debug_log( 'classic_not_required', $email );
 			return;
 		}
 
 		if ( $this->is_email_verified_for_checkout( $email ) ) {
+			$this->debug_log( 'classic_already_verified', $email );
 			return;
 		}
 
@@ -172,7 +174,15 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 			empty( $state['sent_at'] ) ||
 			$this->is_state_expired( $state )
 		) {
-			$this->send_verification_code( $email );
+			$send_result = $this->send_verification_code( $email );
+
+			if ( is_wp_error( $send_result ) ) {
+				$this->debug_log( 'classic_send_failed', $email, array( 'error' => $send_result->get_error_code() ) );
+				wc_add_notice( $send_result->get_error_message(), 'error' );
+				return;
+			}
+
+			$this->debug_log( 'classic_code_sent', $email );
 		}
 
 		if ( empty( wc_get_notices( 'error' ) ) ) {
@@ -180,11 +190,24 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 				'<span class="yobm-email-verification-error">' . esc_html( $this->get_verification_required_message() ) . '</span>',
 				'error'
 			);
+			$this->debug_log( 'classic_required_notice_added', $email );
 		}
 	}
 
 	private function get_verification_required_message() {
 		return __( 'Please verify your email before placing the order.', 'wc-blacklist-manager' );
+	}
+
+	private function debug_log( $message, $email = '', $data = array() ) {
+		if ( ! function_exists( 'wc_blacklist_manager_debug_log' ) ) {
+			return;
+		}
+
+		if ( '' !== $email ) {
+			$data['email_hash'] = md5( strtolower( (string) $email ) );
+		}
+
+		wc_blacklist_manager_debug_log( 'email_verification', $message, $data );
 	}
 
 	private function requires_email_verification( $email ) {
@@ -353,6 +376,34 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 		return time() >= absint( $state['resend_available_at'] );
 	}
 
+	private function get_request_ip_for_rate_limit() {
+		if ( function_exists( 'get_real_customer_ip' ) ) {
+			$ip = get_real_customer_ip();
+			if ( '' !== $ip ) {
+				return $ip;
+			}
+		}
+
+		return isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : 'unknown';
+	}
+
+	private function check_send_rate_limit( $email ) {
+		$limit = (int) apply_filters( 'wc_blacklist_email_verification_send_limit', 5, $email );
+		$limit = max( 1, $limit );
+		$key   = 'yobm_email_verification_send_' . md5( strtolower( (string) $email ) . '|' . $this->get_request_ip_for_rate_limit() );
+		$count = (int) get_transient( $key );
+
+		if ( $count >= $limit ) {
+			return new WP_Error(
+				'yobm_email_verification_rate_limited',
+				__( 'Too many verification code requests. Please wait before trying again.', 'wc-blacklist-manager' )
+			);
+		}
+
+		set_transient( $key, $count + 1, HOUR_IN_SECONDS );
+		return true;
+	}
+
 	private function maybe_schedule_cleanup_event( $timestamp, $email ) {
 		$args = array( get_current_user_id(), $email );
 
@@ -376,7 +427,12 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 			! $this->is_state_expired( $state ) &&
 			! empty( $state['code'] )
 		) {
-			return;
+			return true;
+		}
+
+		$rate_limit = $this->check_send_rate_limit( $email );
+		if ( is_wp_error( $rate_limit ) ) {
+			return $rate_limit;
 		}
 
 		$verification_code = (string) wp_rand( 100000, 999999 );
@@ -393,10 +449,24 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 
 		$this->set_verification_state( $new_state );
 		$this->maybe_schedule_cleanup_event( $timestamp, $email );
-		$this->send_verification_email( $email, $verification_code );
+		$send_result = $this->send_verification_email( $email, $verification_code );
+
+		if ( is_wp_error( $send_result ) ) {
+			$this->clear_verification_state();
+			return $send_result;
+		}
+
+		return true;
 	}
 
 	private function send_verification_email( $email, $verification_code ) {
+		if ( ! function_exists( 'WC' ) || ! WC() ) {
+			return new WP_Error(
+				'yobm_email_verification_mailer_unavailable',
+				__( 'Unable to send the verification code. Please try again later.', 'wc-blacklist-manager' )
+			);
+		}
+
 		$settings_instance = new WC_Blacklist_Manager_Settings();
 		$premium_active    = $settings_instance->is_premium_active();
 
@@ -406,6 +476,13 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 		$last_name  = isset( $_POST['billing_last_name'] ) ? sanitize_text_field( wp_unslash( $_POST['billing_last_name'] ) ) : '';
 
 		$mailer = WC()->mailer();
+
+		if ( ! $mailer ) {
+			return new WP_Error(
+				'yobm_email_verification_mailer_unavailable',
+				__( 'Unable to send the verification code. Please try again later.', 'wc-blacklist-manager' )
+			);
+		}
 
 		if ( $premium_active ) {
 			$subject  = isset( $email_settings['subject'] ) ? $email_settings['subject'] : $this->default_email_subject;
@@ -436,12 +513,21 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 		$emailer = new WC_Email();
 		$styled  = $emailer->style_inline( $wrapped );
 
-		$mailer->send(
+		$sent = $mailer->send(
 			$email,
 			$subject,
 			$styled,
 			array( 'Content-Type: text/html; charset=UTF-8' )
 		);
+
+		if ( ! $sent ) {
+			return new WP_Error(
+				'yobm_email_verification_send_failed',
+				__( 'Unable to send the verification code. Please try again later.', 'wc-blacklist-manager' )
+			);
+		}
+
+		return true;
 	}
 
 	public function verify_email_code() {
@@ -691,9 +777,19 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 			);
 		}
 
-		$this->send_verification_code( $submitted_email, true );
+			$send_result = $this->send_verification_code( $submitted_email, true );
 
-		wp_send_json_success(
+			if ( is_wp_error( $send_result ) ) {
+				wp_send_json_error(
+					array(
+						'message' => $send_result->get_error_message(),
+						'failed'  => true,
+					),
+					429
+				);
+			}
+
+			wp_send_json_success(
 			array(
 				'message' => __( 'A new code has been sent to your email.', 'wc-blacklist-manager' ),
 			)
@@ -731,9 +827,19 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 			empty( $state['code'] ) ||
 			empty( $state['sent_at'] ) ||
 			$this->is_state_expired( $state )
-		) {
-			$this->send_verification_code( $email, true );
-		}
+			) {
+				$send_result = $this->send_verification_code( $email, true );
+
+				if ( is_wp_error( $send_result ) ) {
+					wp_send_json_error(
+						array(
+							'message' => $send_result->get_error_message(),
+							'failed'  => true,
+						),
+						429
+					);
+				}
+			}
 
 		wp_send_json_success(
 			array(
@@ -761,19 +867,11 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 		$this->clear_verification_state();
 	}
 
-	public function validate_blocks_checkout_request( $result ) {
-		if ( isset( $_SERVER['REQUEST_METHOD'] ) && 'POST' !== $_SERVER['REQUEST_METHOD'] ) {
-			return $result;
-		}
+	private function is_blocks_checkout_route( $route ) {
+		return is_string( $route ) && (bool) preg_match( '#/wc/store(?:/v\d+)?/checkout#', $route );
+	}
 
-		$route = isset( $GLOBALS['wp']->query_vars['rest_route'] ) ? $GLOBALS['wp']->query_vars['rest_route'] : '';
-
-		if ( ! is_string( $route ) || ! preg_match( '#/wc/store(?:/v\d+)?/checkout#', $route ) ) {
-			return $result;
-		}
-
-		$request_body = json_decode( \WP_REST_Server::get_raw_data(), true );
-
+	private function validate_blocks_checkout_payload( $result, $request_body ) {
 		if ( ! is_array( $request_body ) ) {
 			return $result;
 		}
@@ -787,10 +885,12 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 		}
 
 		if ( empty( $billing_email ) ) {
+			$this->debug_log( 'blocks_missing_email' );
 			return $result;
 		}
 
 		if ( ! $this->requires_email_verification( $billing_email ) ) {
+			$this->debug_log( 'blocks_not_required', $billing_email );
 			return $result;
 		}
 
@@ -806,6 +906,7 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 		$client_email    = ! empty( $extension_data['email'] ) ? sanitize_email( $extension_data['email'] ) : '';
 
 		if ( ! $client_verified || empty( $client_email ) || $client_email !== $billing_email ) {
+			$this->debug_log( 'blocks_client_not_verified', $billing_email );
 			return new WP_Error(
 				'yobm_email_verification_required',
 				$this->get_verification_required_message(),
@@ -814,6 +915,7 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 		}
 
 		if ( ! $this->is_email_verified_for_checkout( $billing_email ) ) {
+			$this->debug_log( 'blocks_server_not_verified', $billing_email );
 			return new WP_Error(
 				'yobm_email_verification_required',
 				$this->get_verification_required_message(),
@@ -822,6 +924,42 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 		}
 
 		return $result;
+	}
+
+	public function validate_blocks_checkout_rest_request( $response, $handler, $request ) {
+		if ( is_wp_error( $response ) ) {
+			return $response;
+	}
+
+		if ( ! $request instanceof WP_REST_Request ) {
+			return $response;
+		}
+
+		if ( 'POST' !== $request->get_method() ) {
+			return $response;
+		}
+
+		if ( ! $this->is_blocks_checkout_route( $request->get_route() ) ) {
+			return $response;
+		}
+
+		return $this->validate_blocks_checkout_payload( $response, $request->get_json_params() );
+	}
+
+	public function validate_blocks_checkout_request( $result ) {
+		if ( isset( $_SERVER['REQUEST_METHOD'] ) && 'POST' !== $_SERVER['REQUEST_METHOD'] ) {
+			return $result;
+		}
+
+		$route = isset( $GLOBALS['wp']->query_vars['rest_route'] ) ? $GLOBALS['wp']->query_vars['rest_route'] : '';
+
+		if ( ! $this->is_blocks_checkout_route( $route ) ) {
+			return $result;
+		}
+
+		$request_body = json_decode( \WP_REST_Server::get_raw_data(), true );
+
+		return $this->validate_blocks_checkout_payload( $result, $request_body );
 	}
 }
 

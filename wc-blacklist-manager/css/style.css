@@ -1,16 +1,12 @@
 /* Icons */
 .icon-button {
     display: inline-flex !important;
-    align-items: center;
-    justify-content: center;
 }
 .red-button {
     background: #d63638 !important;
     color: white !important;
     border-color: #b02e31 !important;
     display: inline-flex !important;
-    align-items: center;
-    justify-content: center;
 }
 .red-button:hover {
     background: rgb(192, 1, 1) !important;
@@ -347,6 +343,80 @@ th.column-name {
 
 .summary-child > div {
     flex: 1;
+}
+
+.yobm-add-new-form .form-table {
+	table-layout: fixed;
+	max-width: 640px;
+	margin-top: 10px;
+}
+
+.yobm-add-new-form .form-table th {
+	width: 140px;
+	padding: 16px 16px 16px 0;
+	vertical-align: middle;
+}
+
+.yobm-add-new-form .form-table td {
+	padding: 12px 0;
+	vertical-align: middle;
+}
+
+.yobm-add-new-form input[type="text"],
+.yobm-add-new-form input[type="email"],
+.yobm-add-new-form input[type="tel"],
+.yobm-add-new-form select,
+.yobm-add-new-form .iti {
+	width: 100% !important;
+	max-width: 360px;
+	box-sizing: border-box;
+}
+
+.yobm-add-new-form .iti input[type="tel"] {
+	max-width: none;
+}
+
+.yobm-name-fields {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 8px;
+	width: 100%;
+	max-width: 360px;
+}
+
+.yobm-name-fields input {
+	min-width: 0;
+}
+
+.yobm-status-options {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 18px;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	max-width: 360px;
+}
+
+.yobm-status-options label {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	min-height: 28px;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	cursor: pointer;
+	box-sizing: border-box;
+}
+
+.yobm-status-options input[type="radio"] {
+	margin: 0;
+}
+
+.yobm-add-new-form .yobm-submit-row th,
+.yobm-add-new-form .yobm-submit-row td {
+	padding-top: 10px;
 }
 
 .sum-premium {
@@ -726,6 +796,49 @@ th.column-name {
     margin-bottom: 0;
   }
 
+  .yobm-add-new-form .form-table {
+    max-width: none;
+  }
+
+  .yobm-add-new-form .form-table tr {
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    background: transparent;
+  }
+
+  .yobm-add-new-form .form-table th {
+    width: 100%;
+  }
+
+  .yobm-add-new-form input[type="text"],
+  .yobm-add-new-form input[type="email"],
+  .yobm-add-new-form input[type="tel"],
+  .yobm-add-new-form select,
+  .yobm-add-new-form .iti,
+  .yobm-name-fields,
+  .yobm-status-options {
+    max-width: none;
+  }
+
+  .yobm-name-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .yobm-add-new-form #new_first_name,
+  .yobm-add-new-form #new_last_name {
+    margin: 0;
+  }
+
+  .yobm-add-new-form .yobm-submit-row th {
+    display: none;
+  }
+
+  .yobm-status-options label {
+    flex: 0 1 auto;
+    justify-content: flex-start;
+  }
+
   .wp-list-table-wrapper,
   .wp-list-table {
     width: 100%;
@@ -782,5 +895,9 @@ th.column-name {
 @media screen and (min-width: 783px) {
   #new_first_name {
     margin-right: 8px;
+  }
+
+  .yobm-name-fields #new_first_name {
+    margin-right: 0;
   }
 }

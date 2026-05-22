@@ -327,30 +327,52 @@ class WC_Blacklist_Manager_Notices {
 		wp_add_inline_script('jquery', $script);
 	}
 	
-	public function never_show_notice() {
-		check_ajax_referer('never_show_wc_blacklist_manager_notice_nonce', 'security');
-		$user_id = get_current_user_id();
-		update_user_meta($user_id, 'wc_blacklist_manager_never_show_again', 'yes');
-	}
-	
-	public function dismiss_first_time_notice() {
-		check_ajax_referer('dismiss_first_time_notice_nonce', 'security');
-		$user_id = get_current_user_id();
-		update_user_meta($user_id, 'wc_blacklist_manager_first_time_notice_dismissed', 'yes');
-	}
+		public function never_show_notice() {
+			check_ajax_referer('never_show_wc_blacklist_manager_notice_nonce', 'security');
 
-	public function dismiss_ads_notice() {
-		check_ajax_referer('dismiss_ads_notice_nonce', 'security');
-		$user_id = get_current_user_id();
-		$current_time = current_time( 'timestamp' );
+			if ( ! current_user_can( 'manage_options' ) ) {
+				wp_send_json_error( array( 'message' => __( 'Permission denied.', 'wc-blacklist-manager' ) ), 403 );
+			}
 
-        update_user_meta( $user_id, 'blacklist_manager_premium_ads_time', $current_time );
-	}
+			$user_id = get_current_user_id();
+			update_user_meta($user_id, 'wc_blacklist_manager_never_show_again', 'yes');
+			wp_send_json_success();
+		}
+		
+		public function dismiss_first_time_notice() {
+			check_ajax_referer('dismiss_first_time_notice_nonce', 'security');
 
-	public function dismiss_gbd_limit_notice() {
-		check_ajax_referer( 'dismiss_gbd_limit_notice_nonce', 'security' );
+			if ( ! current_user_can( 'manage_options' ) ) {
+				wp_send_json_error( array( 'message' => __( 'Permission denied.', 'wc-blacklist-manager' ) ), 403 );
+			}
 
-		$tier      = (string) get_option( 'yogb_bm_tier', 'free' );
+			$user_id = get_current_user_id();
+			update_user_meta($user_id, 'wc_blacklist_manager_first_time_notice_dismissed', 'yes');
+			wp_send_json_success();
+		}
+
+		public function dismiss_ads_notice() {
+			check_ajax_referer('dismiss_ads_notice_nonce', 'security');
+
+			if ( ! current_user_can( 'manage_options' ) ) {
+				wp_send_json_error( array( 'message' => __( 'Permission denied.', 'wc-blacklist-manager' ) ), 403 );
+			}
+
+			$user_id = get_current_user_id();
+			$current_time = current_time( 'timestamp' );
+
+	        update_user_meta( $user_id, 'blacklist_manager_premium_ads_time', $current_time );
+			wp_send_json_success();
+		}
+
+		public function dismiss_gbd_limit_notice() {
+			check_ajax_referer( 'dismiss_gbd_limit_notice_nonce', 'security' );
+
+			if ( ! current_user_can( 'manage_options' ) ) {
+				wp_send_json_error( array( 'message' => __( 'Permission denied.', 'wc-blacklist-manager' ) ), 403 );
+			}
+
+			$tier      = (string) get_option( 'yogb_bm_tier', 'free' );
 		$tier      = strtolower( trim( $tier ) );
 		$month_key = gmdate( 'Ym' );
 

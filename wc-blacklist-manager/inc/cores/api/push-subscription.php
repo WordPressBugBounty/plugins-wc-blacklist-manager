@@ -94,7 +94,7 @@ class WC_Blacklist_Manager_Push_Subscription {
             'blocking' => false,      // <– critical: don’t block page load
         ];
 
-        wp_remote_post( self::SUBSCRIBE_API_ENDPOINT, $args );
+        wp_safe_remote_post( self::SUBSCRIBE_API_ENDPOINT, $args );
 
         // Optional: only log in debug mode, to avoid noisy logs on 400s
         /*

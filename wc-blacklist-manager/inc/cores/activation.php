@@ -348,8 +348,8 @@ if ( ! class_exists( 'WC_Blacklist_Manager_Validator' ) ) {
 			];
 
 			$post_json = function( $url, array $headers, array $body, $timeout ) {
-				return wp_remote_post(
-					$url,
+					return wp_safe_remote_post(
+						$url,
 					[
 						'headers' => array_merge(
 							[

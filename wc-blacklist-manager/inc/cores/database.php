@@ -337,7 +337,7 @@ class WC_Blacklist_Manager_DB {
 		}
 
 		if ( false === get_option( 'wc_blacklist_sum_email' ) ) {
-			$email_count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$this->blacklist_table_name} WHERE `email_address` != '' AND `phone_number` IS NOT NULL" );
+			$email_count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$this->blacklist_table_name} WHERE `email_address` != '' AND `email_address` IS NOT NULL" );
 			add_option( 'wc_blacklist_sum_email', $email_count );
 		} else {
 			$email_count = (int) get_option( 'wc_blacklist_sum_email' );
@@ -382,14 +382,14 @@ class WC_Blacklist_Manager_DB {
 		}
 
 		if ( false === get_option( 'wc_blacklist_sum_domain' ) ) {
-			$domain_count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$this->blacklist_table_name} WHERE `domain` != '' AND `first_name` IS NOT NULL" );
+			$domain_count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$this->blacklist_table_name} WHERE `domain` != '' AND `domain` IS NOT NULL" );
 			add_option( 'wc_blacklist_sum_domain', $domain_count );
 		} else {
 			$domain_count = (int) get_option( 'wc_blacklist_sum_domain' );
 		}
 
 		if ( false === get_option( 'wc_blacklist_sum_total' ) ) {
-			$total = $name_count + $phone_count + $email_count + $ip_count + $address_count + $domain_count;
+			$total = $name_count + $phone_count + $email_count + $device_count + $ip_count + $address_count + $domain_count;
 			add_option( 'wc_blacklist_sum_total', $total );
 		}
 	}
@@ -398,12 +398,42 @@ class WC_Blacklist_Manager_DB {
 	 * Create an AFTER INSERT trigger on the blacklist table.
 	 * This trigger updates the option values for each field, and then updates the total counter by summing the valid fields.
 	 */
+	private function get_trigger_name( $suffix ) {
+		global $wpdb;
+
+		$trigger_name = preg_replace( '/[^A-Za-z0-9_]/', '_', $wpdb->prefix . 'wcbl_' . $suffix );
+
+		return substr( $trigger_name, 0, 64 );
+	}
+
+	private function recreate_trigger( $trigger_name, $trigger_sql, $legacy_names = array() ) {
+		global $wpdb;
+
+		$trigger_names = array_merge( (array) $legacy_names, array( $trigger_name ) );
+
+		foreach ( $trigger_names as $name ) {
+			$name = preg_replace( '/[^A-Za-z0-9_]/', '_', (string) $name );
+
+			if ( '' !== $name ) {
+				$wpdb->query( "DROP TRIGGER IF EXISTS {$name}" );
+			}
+		}
+
+		$result = $wpdb->query( $trigger_sql );
+
+		if ( false === $result && ! empty( $wpdb->last_error ) ) {
+			update_option(
+				'wc_blacklist_manager_trigger_error',
+				sanitize_text_field( $trigger_name . ': ' . $wpdb->last_error ),
+				false
+			);
+		}
+	}
+
 	public function create_trigger() {
 		global $wpdb;
 
-		$trigger_name = 'after_insert_blacklist_row';
-
-		$wpdb->query( "DROP TRIGGER IF EXISTS {$trigger_name}" );
+		$trigger_name = $this->get_trigger_name( 'after_insert_blacklist_row' );
 
 		$trigger_sql = "
 			CREATE TRIGGER {$trigger_name}
@@ -459,15 +489,13 @@ class WC_Blacklist_Manager_DB {
 			END;
 		";
 
-		$wpdb->query( $trigger_sql );
+		$this->recreate_trigger( $trigger_name, $trigger_sql, array( 'after_insert_blacklist_row' ) );
 	}
 
 	public function create_delete_trigger() {
 		global $wpdb;
 
-		$trigger_name = 'after_delete_blacklist_row';
-
-		$wpdb->query( "DROP TRIGGER IF EXISTS {$trigger_name}" );
+		$trigger_name = $this->get_trigger_name( 'after_delete_blacklist_row' );
 
 		$trigger_sql = "
 			CREATE TRIGGER {$trigger_name}
@@ -534,15 +562,13 @@ class WC_Blacklist_Manager_DB {
 			END;
 		";
 
-		$wpdb->query( $trigger_sql );
+		$this->recreate_trigger( $trigger_name, $trigger_sql, array( 'after_delete_blacklist_row' ) );
 	}
 
 	public function create_address_insert_trigger() {
 		global $wpdb;
 
-		$trigger_name = 'after_insert_blacklist_address_row';
-
-		$wpdb->query( "DROP TRIGGER IF EXISTS {$trigger_name}" );
+		$trigger_name = $this->get_trigger_name( 'after_insert_blacklist_address_row' );
 
 		$trigger_sql = "
 			CREATE TRIGGER {$trigger_name}
@@ -561,15 +587,13 @@ class WC_Blacklist_Manager_DB {
 			END;
 		";
 
-		$wpdb->query( $trigger_sql );
+		$this->recreate_trigger( $trigger_name, $trigger_sql, array( 'after_insert_blacklist_address_row' ) );
 	}
 
 	public function create_address_delete_trigger() {
 		global $wpdb;
 
-		$trigger_name = 'after_delete_blacklist_address_row';
-
-		$wpdb->query( "DROP TRIGGER IF EXISTS {$trigger_name}" );
+		$trigger_name = $this->get_trigger_name( 'after_delete_blacklist_address_row' );
 
 		$trigger_sql = "
 			CREATE TRIGGER {$trigger_name}
@@ -588,15 +612,13 @@ class WC_Blacklist_Manager_DB {
 			END;
 		";
 
-		$wpdb->query( $trigger_sql );
+		$this->recreate_trigger( $trigger_name, $trigger_sql, array( 'after_delete_blacklist_address_row' ) );
 	}
 
 	public function create_address_update_trigger() {
 		global $wpdb;
 
-		$trigger_name = 'after_update_blacklist_address_row';
-
-		$wpdb->query( "DROP TRIGGER IF EXISTS {$trigger_name}" );
+		$trigger_name = $this->get_trigger_name( 'after_update_blacklist_address_row' );
 
 		$trigger_sql = "
 			CREATE TRIGGER {$trigger_name}
@@ -623,7 +645,7 @@ class WC_Blacklist_Manager_DB {
 			END;
 		";
 
-		$wpdb->query( $trigger_sql );
+		$this->recreate_trigger( $trigger_name, $trigger_sql, array( 'after_update_blacklist_address_row' ) );
 	}
 
 	private function set_first_install_date() {

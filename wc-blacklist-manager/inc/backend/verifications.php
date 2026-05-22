@@ -49,6 +49,10 @@ class WC_Blacklist_Manager_Verifications {
 	}
 
 	public function verifications_page_content() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'wc-blacklist-manager' ) );
+		}
+
 		$settings_instance = new WC_Blacklist_Manager_Settings();
 		$premium_active = $settings_instance->is_premium_active();
 		$active_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'verify';
@@ -61,13 +65,13 @@ class WC_Blacklist_Manager_Verifications {
 			<h1>
 				<?php echo esc_html__('Verifications', 'wc-blacklist-manager'); ?>
 				<?php if (get_option('yoohw_settings_disable_menu') != 1): ?>
-					<a href="https://yoohw.com/docs/category/woocommerce-blacklist-manager/verifications/" target="_blank" class="button button-secondary" style="display: inline-flex; align-items: center;"><span class="dashicons dashicons-editor-help"></span> Documents</a>
+					<a href="https://docs.yoohw.com/category/blacklist-manager/" target="_blank" class="button button-secondary yoohw-docs-btn" style="display: inline-flex;"><span class="dashicons dashicons-editor-help"></span> <?php echo esc_html__('Docs', 'wc-blacklist-manager'); ?></a>
 				<?php endif; ?>
 				<?php if (!$premium_active): ?>
-					<a href="https://yoohw.com/contact-us/" target="_blank" class="button button-secondary"><?php esc_html_e('Support / Suggestion', 'wc-blacklist-manager'); ?></a>
+					<a href="https://yoohw.com/contact-us/" target="_blank" class="button button-secondary"><?php echo esc_html__('Support', 'wc-blacklist-manager'); ?></a>
 				<?php endif; ?>
 				<?php if ($premium_active && get_option('yoohw_settings_disable_menu') != 1): ?>
-					<a href="https://yoohw.com/support/" target="_blank" class="button button-secondary">Premium support</a>
+					<a href="https://yoohw.com/support/" target="_blank" class="button button-secondary"><?php echo esc_html__('Support', 'wc-blacklist-manager'); ?></a>
 				<?php endif; ?>
 			</h1>
 
@@ -129,6 +133,10 @@ class WC_Blacklist_Manager_Verifications {
 
 	private function handle_form_submission() {
 		if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['wc_blacklist_verifications_nonce'])) {
+			if ( ! current_user_can( 'manage_options' ) ) {
+				return '';
+			}
+
 			// Unslash and sanitize the nonce field
 			$nonce = sanitize_text_field(wp_unslash($_POST['wc_blacklist_verifications_nonce']));
 			
@@ -290,6 +298,12 @@ class WC_Blacklist_Manager_Verifications {
 	}
 	  
 	public function handle_generate_sms_key() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error([
+				'message' => __('You do not have permission to perform this action.', 'wc-blacklist-manager')
+			], 403);
+		}
+
 		// Verify nonce before processing
 		if (
 			!isset($_POST['security']) ||
@@ -323,11 +337,12 @@ class WC_Blacklist_Manager_Verifications {
 			'site_email' => $site_email,
 		);
 	
-		$response = wp_remote_post($api_url, array(
-			'method'  => 'POST',
-			'body'    => wp_json_encode($body),
-			'headers' => array('Content-Type' => 'application/json'),
-		));
+			$response = wp_safe_remote_post($api_url, array(
+				'method'  => 'POST',
+				'body'    => wp_json_encode($body),
+				'headers' => array('Content-Type' => 'application/json'),
+				'timeout' => 10,
+			));
 	
 		// Check for WP errors in API call
 		if (is_wp_error($response)) {
@@ -365,6 +380,8 @@ class WC_Blacklist_Manager_Verifications {
 		if (!current_user_can('manage_options')) {
 			wp_die(esc_html('You do not have sufficient permissions to access this page.', 'wc-blacklist-manager'));
 		}
+
+		check_admin_referer( 'wc_blacklist_refresh_merging' );
 	
 		// Delete the option
 		delete_option('wc_blacklist_whitelist_merged_success');

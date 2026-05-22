@@ -167,7 +167,7 @@ if (!defined('ABSPATH')) {
 		<?php if ($premium_active): ?>
 			<h2><?php echo esc_html__( 'Access prevention messages', 'wc-blacklist-manager' ); ?></h2>
 
-			<p class="description"><?php echo esc_html__('Messages display for prevented visitors and users.', 'wc-blacklist-manager'); ?></p>
+			<p class="description"><?php echo esc_html__('Messages display for prevented visitors and users.', 'wc-blacklist-manager'); ?> <a href="https://docs.yoohw.com/configure-access-prevention-messages/" target="_blank"><?php echo esc_html__('Learn more', 'wc-blacklist-manager'); ?></a></p>
 
 			<table class="form-table">
 				<tbody>
@@ -205,7 +205,7 @@ if (!defined('ABSPATH')) {
 		<?php if (!$premium_active): ?>
 			<h2><span class='premium-text'><?php echo esc_html__( 'Access prevention messages', 'wc-blacklist-manager' ); ?><span><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a></h2>
 
-			<p class="premium-text"><?php echo esc_html__('Messages display for prevented visitors and users.', 'wc-blacklist-manager'); ?></p>
+			<p class="premium-text"><?php echo esc_html__('Messages display for prevented visitors and users.', 'wc-blacklist-manager'); ?> <a href="https://docs.yoohw.com/configure-access-prevention-messages/" target="_blank"><?php echo esc_html__('Learn more', 'wc-blacklist-manager'); ?></a></p>
 
 			<table class="form-table">
 				<tbody>

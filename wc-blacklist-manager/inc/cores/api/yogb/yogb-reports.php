@@ -799,7 +799,7 @@ final class YOGB_BM_Report {
 		 */
 		$args = apply_filters( 'yogb_bm_http_request_args', $args, $route, $payload );
 
-		$res = wp_remote_post( $url, $args );
+			$res = wp_safe_remote_post( $url, $args );
 
 		if ( is_wp_error( $res ) ) {
 			// Timeout / DNS / SSL / connection issues.

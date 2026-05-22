@@ -28,6 +28,10 @@ class WC_Blacklist_Manager_Settings {
 	}
 
 	public function render_settings_page() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'wc-blacklist-manager' ) );
+		}
+
 		$this->handle_post_submission();
 		$settings = $this->get_settings();
 		$premium_active = $this->is_premium_active();
@@ -86,10 +90,10 @@ class WC_Blacklist_Manager_Settings {
 	}
 
 	private function handle_post_submission() {
-		if ($_SERVER['REQUEST_METHOD'] === 'POST' && check_admin_referer('wc_blacklist_settings_action', 'wc_blacklist_settings_nonce')) {
+		if ( isset( $_SERVER['REQUEST_METHOD'] ) && $_SERVER['REQUEST_METHOD'] === 'POST' && current_user_can( 'manage_options' ) && check_admin_referer('wc_blacklist_settings_action', 'wc_blacklist_settings_nonce')) {
 			update_option('wc_blacklist_development_mode', isset($_POST['development_mode']) ? 1 : 0);
 			update_option('wc_blacklist_enable_woo_rest_api', isset($_POST['woo_rest_api']) ? 1 : 0);
-			update_option('wc_blacklist_action', $_POST['blacklist_action'] ?? 'none');
+			update_option('wc_blacklist_action', sanitize_text_field( wp_unslash( $_POST['blacklist_action'] ?? 'none' ) ) );
 			update_option('wc_blacklist_block_user_registration', isset($_POST['block_user_registration']) ? 1 : 0);
 			$order_delay = intval( wp_unslash( $_POST['order_delay'] ?? 0 ) );
 			update_option( 'wc_blacklist_order_delay', max( 0, $order_delay ) );

@@ -83,12 +83,23 @@ class WC_Blacklist_Manager_Activity_Log_Table extends WP_List_Table {
 	}
 
 	public function column_source( $item ) {
-		$source   = $item->source;
+		$source   = sanitize_key( (string) $item->source );
 		$img_html = '';
 		$text     = $source;
 		$link     = '';
 
-		if ( preg_match( '/^(woo|cf7|gravity|wpforms)_(.+)$/', $source, $m ) ) {
+		$checkout_sources = [
+			'woo_checkout'            => __( 'Woo checkout', 'wc-blacklist-manager' ),
+			'woo_api_checkout'        => __( 'Woo Store API checkout', 'wc-blacklist-manager' ),
+			'woo_store_api'           => __( 'Woo Store API', 'wc-blacklist-manager' ),
+			'woo_store_api_checkout'  => __( 'Woo Store API checkout', 'wc-blacklist-manager' ),
+		];
+
+		if ( isset( $checkout_sources[ $source ] ) ) {
+			$img_url  = plugins_url( '../../../../img/woo.svg', __FILE__ );
+			$img_html = '<img src="' . esc_url( $img_url ) . '" alt="' . esc_attr__( 'WooCommerce', 'wc-blacklist-manager' ) . '" width="16">';
+			$text     = $checkout_sources[ $source ];
+		} elseif ( preg_match( '/^(woo|cf7|gravity|wpforms)_(.+)$/', $source, $m ) ) {
 			$prefix    = $m[1];
 			$remainder = $m[2];
 			$map       = [
@@ -134,6 +145,9 @@ class WC_Blacklist_Manager_Activity_Log_Table extends WP_List_Table {
 		if ( 'verify' === $action ) {
 			return '<span class="bm-status-verify">' . esc_html__( 'Verify', 'wc-blacklist-manager' ) . '</span>';
 		}
+		if ( 'rate_limit' === $action ) {
+			return '<span class="bm-status-block">' . esc_html__( 'Rate limit', 'wc-blacklist-manager' ) . '</span>';
+		}
 		if ( 'remove' === $action ) {
 			return '<span class="bm-status-verify">' . esc_html__( 'Remove', 'wc-blacklist-manager' ) . '</span>';
 		}
@@ -144,6 +158,11 @@ class WC_Blacklist_Manager_Activity_Log_Table extends WP_List_Table {
 	}
 
 	public function column_details( $item ) {
+		$structured = $this->structured_details_summary( $item );
+		if ( '' !== $structured ) {
+			return $structured;
+		}
+
 		$entries = preg_split( '/,\s(?=\w+:)/', (string) $item->details );
 		$out     = [];
 
@@ -167,6 +186,144 @@ class WC_Blacklist_Manager_Activity_Log_Table extends WP_List_Table {
 		}
 
 		return implode( ', ', $out );
+	}
+
+	private function structured_details_summary( $item ): string {
+		$view = json_decode( (string) ( $item->view ?? '' ), true );
+
+		if ( is_array( $view ) ) {
+			$schema = sanitize_key( (string) ( $view['schema'] ?? '' ) );
+			$mode   = sanitize_key( (string) ( $view['mode'] ?? '' ) );
+
+			if ( 'bmp_antibot_risk_v1' === $schema ) {
+				return $this->antibot_summary_from_view( $view );
+			}
+
+			if ( 'store_api_rate_limit' === $mode ) {
+				return $this->rate_limit_summary_from_view( $view );
+			}
+		}
+
+		return $this->legacy_details_summary( (string) ( $item->details ?? '' ) );
+	}
+
+	private function antibot_summary_from_view( array $view ): string {
+		$score     = isset( $view['score'] ) ? (int) $view['score'] : 0;
+		$threshold = isset( $view['threshold'] ) ? (int) $view['threshold'] : 0;
+		$mode      = $this->checkout_mode_label( sanitize_key( (string) ( $view['mode'] ?? '' ) ) );
+		$action    = ! empty( $view['block'] ) ? __( 'Blocked', 'wc-blacklist-manager' ) : ucfirst( sanitize_key( (string) ( $view['action'] ?? 'logged' ) ) );
+		$signals   = $this->signal_labels_from_reasons( (array) ( $view['reasons'] ?? [] ) );
+
+		return sprintf(
+			'<strong>%s</strong> %s. %s: <strong>%d/%d</strong>. %s: %s. %s: %s.',
+			esc_html__( 'Checkout anti-bot:', 'wc-blacklist-manager' ),
+			esc_html( $action ),
+			esc_html__( 'Risk', 'wc-blacklist-manager' ),
+			$score,
+			$threshold,
+			esc_html__( 'Mode', 'wc-blacklist-manager' ),
+			esc_html( $mode ),
+			esc_html__( 'Main signals', 'wc-blacklist-manager' ),
+			esc_html( $signals )
+		);
+	}
+
+	private function rate_limit_summary_from_view( array $view ): string {
+		$rate_limit = isset( $view['rate_limit'] ) && is_array( $view['rate_limit'] ) ? $view['rate_limit'] : [];
+		$request    = isset( $view['request'] ) && is_array( $view['request'] ) ? $view['request'] : [];
+		$limit      = isset( $rate_limit['limit'] ) ? (int) $rate_limit['limit'] : 0;
+		$seconds    = isset( $rate_limit['seconds'] ) ? (int) $rate_limit['seconds'] : 0;
+		$route      = sanitize_text_field( (string) ( $request['route'] ?? $request['path'] ?? '' ) );
+
+		return sprintf(
+			'<strong>%s</strong> %s. %s: <strong>%d/%ds</strong>. %s: %s.',
+			esc_html__( 'Store API rate limit:', 'wc-blacklist-manager' ),
+			esc_html__( 'Blocked excessive checkout/API traffic', 'wc-blacklist-manager' ),
+			esc_html__( 'Limit', 'wc-blacklist-manager' ),
+			$limit,
+			$seconds,
+			esc_html__( 'Route', 'wc-blacklist-manager' ),
+			esc_html( '' !== $route ? $route : __( 'Store API', 'wc-blacklist-manager' ) )
+		);
+	}
+
+	private function legacy_details_summary( string $details ): string {
+		if ( 0 === strpos( $details, 'block_antibot_risk_attempt:' ) ) {
+			$data = $this->parse_legacy_key_values( $details );
+			$score = isset( $data['score'] ) ? (int) $data['score'] : 0;
+			$threshold = isset( $data['threshold'] ) ? (int) $data['threshold'] : 0;
+			$mode = $this->checkout_mode_label( sanitize_key( (string) ( $data['mode'] ?? '' ) ) );
+			$signals = $this->signal_labels_from_reasons( ! empty( $data['reasons'] ) ? explode( ',', (string) $data['reasons'] ) : [] );
+
+			return sprintf(
+				'<strong>%s</strong> %s. %s: <strong>%d/%d</strong>. %s: %s. %s: %s.',
+				esc_html__( 'Checkout anti-bot:', 'wc-blacklist-manager' ),
+				esc_html__( 'Blocked', 'wc-blacklist-manager' ),
+				esc_html__( 'Risk', 'wc-blacklist-manager' ),
+				$score,
+				$threshold,
+				esc_html__( 'Mode', 'wc-blacklist-manager' ),
+				esc_html( $mode ),
+				esc_html__( 'Main signals', 'wc-blacklist-manager' ),
+				esc_html( $signals )
+			);
+		}
+
+		if ( 0 === strpos( $details, 'rate_limit_exceeded:' ) ) {
+			return '<strong>' . esc_html__( 'Store API rate limit:', 'wc-blacklist-manager' ) . '</strong> ' . esc_html__( 'Blocked excessive checkout/API traffic.', 'wc-blacklist-manager' );
+		}
+
+		return '';
+	}
+
+	private function parse_legacy_key_values( string $details ): array {
+		$data = [];
+
+		if ( preg_match_all( '/([a-z_]+)=([^\\s]+)/', $details, $matches, PREG_SET_ORDER ) ) {
+			foreach ( $matches as $match ) {
+				$data[ sanitize_key( $match[1] ) ] = sanitize_text_field( $match[2] );
+			}
+		}
+
+		return $data;
+	}
+
+	private function checkout_mode_label( string $mode ): string {
+		if ( 'blocks' === $mode ) {
+			return __( 'Blocks', 'wc-blacklist-manager' );
+		}
+
+		if ( 'classic' === $mode ) {
+			return __( 'Classic', 'wc-blacklist-manager' );
+		}
+
+		return '' !== $mode ? ucfirst( str_replace( '_', ' ', $mode ) ) : __( 'Checkout', 'wc-blacklist-manager' );
+	}
+
+	private function signal_labels_from_reasons( array $reasons ): string {
+		$labels = [
+			'js_proof'           => __( 'Browser proof', 'wc-blacklist-manager' ),
+			'fingerprint'        => __( 'Browser fingerprint', 'wc-blacklist-manager' ),
+			'session_continuity' => __( 'Session continuity', 'wc-blacklist-manager' ),
+			'core_device'        => __( 'Device intelligence', 'wc-blacklist-manager' ),
+			'velocity'           => __( 'Checkout velocity', 'wc-blacklist-manager' ),
+			'payment_abuse'      => __( 'Payment abuse', 'wc-blacklist-manager' ),
+			'risk_engine'        => __( 'Risk engine', 'wc-blacklist-manager' ),
+		];
+		$found = [];
+
+		foreach ( $reasons as $reason ) {
+			$source = strtok( sanitize_text_field( (string) $reason ), ':' );
+			$source = sanitize_key( false === $source ? (string) $reason : $source );
+
+			if ( isset( $labels[ $source ] ) ) {
+				$found[ $source ] = $labels[ $source ];
+			}
+		}
+
+		return ! empty( $found )
+			? implode( ', ', array_slice( array_values( $found ), 0, 3 ) )
+			: __( 'Risk signals', 'wc-blacklist-manager' );
 	}
 
 	public function column_view( $item ) {

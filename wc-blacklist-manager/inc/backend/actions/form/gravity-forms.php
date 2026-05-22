@@ -83,26 +83,21 @@ class WC_Blacklist_Manager_Gravity_Forms {
                     }
                 }
                 // Check for Proxy/VPN if not already found and enabled.
-                if (get_option('wc_blacklist_block_proxy_vpn_form') == '1') {
-                    $url = 'http://ip-api.com/json/' . $ip_address . '?fields=status,message,proxy';
-                    $response = wp_remote_get($url, array('timeout' => 5));
-                    if (!is_wp_error($response)) {
-                        $body = wp_remote_retrieve_body($response);
-                        $data = json_decode($body, true);
-                        if (isset($data['status']) && $data['status'] === 'success' && !empty($data['proxy']) && $data['proxy'] == true) {
-                            $sum_block_ip = get_option('wc_blacklist_sum_block_ip', 0);
-                            update_option('wc_blacklist_sum_block_ip', $sum_block_ip + 1);
-                            $sum_block_total = get_option('wc_blacklist_sum_block_total', 0);
-                            update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
+                if (get_option('wc_blacklist_block_proxy_vpn_form') == '1' && function_exists( 'yobm_get_ip_api_data' )) {
+                    $data = yobm_get_ip_api_data( $ip_address, 'status,message,proxy' );
+                    if (isset($data['status']) && $data['status'] === 'success' && !empty($data['proxy']) && $data['proxy'] == true) {
+                        $sum_block_ip = get_option('wc_blacklist_sum_block_ip', 0);
+                        update_option('wc_blacklist_sum_block_ip', $sum_block_ip + 1);
+                        $sum_block_total = get_option('wc_blacklist_sum_block_total', 0);
+                        update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
 
-                            if ($premium_active) {
-                                $reason_proxy_vpn   = 'blocked_proxy_vpn_attempt: ' . $ip_address;
-                                WC_Blacklist_Manager_Premium_Activity_Logs_Insert::gravity_block('', '', '', '', '', '', $reason_proxy_vpn);
-                            }
-
-                            $found = true;
-                            $this->proxy_violation = true;
+                        if ($premium_active) {
+                            $reason_proxy_vpn   = 'blocked_proxy_vpn_attempt: ' . $ip_address;
+                            WC_Blacklist_Manager_Premium_Activity_Logs_Insert::gravity_block('', '', '', '', '', '', $reason_proxy_vpn);
                         }
+
+                        $found = true;
+                        $this->proxy_violation = true;
                     }
                 }
             }

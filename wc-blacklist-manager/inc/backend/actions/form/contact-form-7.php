@@ -289,15 +289,12 @@ class WC_Blacklist_Manager_Contact_Form_7 {
             return $spam;
         }
                 
-        $url = 'http://ip-api.com/json/' . $ip_address . '?fields=status,message,proxy';
-        $response = wp_remote_get( $url, array( 'timeout' => 5 ) );
-        if ( is_wp_error( $response ) ) {
+        if ( ! function_exists( 'yobm_get_ip_api_data' ) ) {
             return $spam;
         }
-        
-        $body = wp_remote_retrieve_body( $response );
-        $data = json_decode( $body, true );
-        
+
+        $data = yobm_get_ip_api_data( $ip_address, 'status,message,proxy' );
+
         if ( ! is_array( $data ) ) {
             return $spam;
         }

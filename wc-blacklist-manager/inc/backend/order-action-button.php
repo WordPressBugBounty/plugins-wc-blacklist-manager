@@ -63,25 +63,11 @@ class WC_Blacklist_Manager_Order_Actions {
 			return $this->permission_cache;
 		}
 
-		if ( current_user_can( 'manage_options' ) ) {
-			$this->permission_cache = true;
-			return true;
-		}
+		$this->permission_cache = function_exists( 'wc_blacklist_manager_user_can_manage_area' )
+			? wc_blacklist_manager_user_can_manage_area( 'wc_blacklist_dashboard_permission' )
+			: current_user_can( 'manage_options' );
 
-		$allowed_roles = get_option( 'wc_blacklist_dashboard_permission', array() );
-		$allowed       = false;
-
-		if ( is_array( $allowed_roles ) && ! empty( $allowed_roles ) ) {
-			foreach ( $allowed_roles as $role ) {
-				if ( current_user_can( $role ) ) {
-					$allowed = true;
-					break;
-				}
-			}
-		}
-
-		$this->permission_cache = $allowed;
-		return $allowed;
+		return $this->permission_cache;
 	}
 
 	/**
@@ -1014,11 +1000,15 @@ class WC_Blacklist_Manager_Order_Actions {
 		$created_address_ids = array();
 		$new_blacklist_id    = 0;
 
-		if ( ! empty( $insert_data ) ) {
-			$wpdb->insert( $table_name, $insert_data );
-			$new_blacklist_id = (int) $wpdb->insert_id;
+			if ( ! empty( $insert_data ) ) {
+				$wpdb->insert( $table_name, $insert_data );
+				$new_blacklist_id = (int) $wpdb->insert_id;
 
-			if ( $new_blacklist_id > 0 ) {
+				if ( function_exists( 'wc_blacklist_manager_clear_match_cache' ) ) {
+					wc_blacklist_manager_clear_match_cache( $insert_data );
+				}
+
+				if ( $new_blacklist_id > 0 ) {
 				$created_main_ids[] = $new_blacklist_id;
 
 				if ( $premium_active && 'host' === get_option( 'wc_blacklist_connection_mode' ) && '0' === $dev_mode ) {
@@ -1271,11 +1261,18 @@ class WC_Blacklist_Manager_Order_Actions {
 		$moved_main_ids    = array();
 		$moved_address_ids = array();
 
-		if ( ! empty( $suspect_main_ids ) || ! empty( $suspect_address_ids ) ) {
-			foreach ( $suspect_main_ids as $bid ) {
-				$updated = $wpdb->update(
-					$table_name,
-					array(
+			if ( ! empty( $suspect_main_ids ) || ! empty( $suspect_address_ids ) ) {
+				foreach ( $suspect_main_ids as $bid ) {
+					$row_for_cache = $wpdb->get_row(
+						$wpdb->prepare(
+							"SELECT ip_address, domain FROM {$table_name} WHERE id = %d",
+							$bid
+						),
+						ARRAY_A
+					);
+					$updated = $wpdb->update(
+						$table_name,
+						array(
 						'is_blocked'  => 1,
 						'reason_code' => $reason_code,
 						'description' => $description,
@@ -1285,10 +1282,14 @@ class WC_Blacklist_Manager_Order_Actions {
 					array( '%d' )
 				);
 
-				if ( false !== $updated ) {
-					$moved_main_ids[] = (int) $bid;
+					if ( false !== $updated ) {
+						$moved_main_ids[] = (int) $bid;
 
-					if ( $premium_active && 'host' === get_option( 'wc_blacklist_connection_mode' ) && '0' === $dev_mode ) {
+						if ( function_exists( 'wc_blacklist_manager_clear_match_cache' ) ) {
+							wc_blacklist_manager_clear_match_cache( $row_for_cache );
+						}
+
+						if ( $premium_active && 'host' === get_option( 'wc_blacklist_connection_mode' ) && '0' === $dev_mode ) {
 						$is_blocked   = 1;
 						$site_url     = site_url();
 						$clean_domain = preg_replace( '/^https?:\/\//', '', $site_url );
@@ -1466,11 +1467,15 @@ class WC_Blacklist_Manager_Order_Actions {
 		$created_address_ids = array();
 		$new_blacklist_id    = 0;
 
-		if ( ! empty( $insert_data ) ) {
-			$wpdb->insert( $table_name, $insert_data );
-			$new_blacklist_id = (int) $wpdb->insert_id;
+			if ( ! empty( $insert_data ) ) {
+				$wpdb->insert( $table_name, $insert_data );
+				$new_blacklist_id = (int) $wpdb->insert_id;
 
-			if ( $new_blacklist_id > 0 ) {
+				if ( function_exists( 'wc_blacklist_manager_clear_match_cache' ) ) {
+					wc_blacklist_manager_clear_match_cache( $insert_data );
+				}
+
+				if ( $new_blacklist_id > 0 ) {
 				$created_main_ids[] = $new_blacklist_id;
 			}
 		}
@@ -1721,12 +1726,19 @@ class WC_Blacklist_Manager_Order_Actions {
 		}
 
 		$removed_main_count    = 0;
-		$removed_address_count = 0;
+			$removed_address_count = 0;
 
-		foreach ( $main_ids_to_delete as $entry_id ) {
-			$deleted = $wpdb->delete( $table_main, array( 'id' => $entry_id ), array( '%d' ) );
+			foreach ( $main_ids_to_delete as $entry_id ) {
+				$row_for_cache = $wpdb->get_row(
+					$wpdb->prepare(
+						"SELECT ip_address, domain FROM {$table_main} WHERE id = %d",
+						$entry_id
+					),
+					ARRAY_A
+				);
+				$deleted = $wpdb->delete( $table_main, array( 'id' => $entry_id ), array( '%d' ) );
 
-			if ( false === $deleted ) {
+				if ( false === $deleted ) {
 				wp_send_json_error(
 					array(
 						'message' => sprintf(
@@ -1735,10 +1747,14 @@ class WC_Blacklist_Manager_Order_Actions {
 						),
 					)
 				);
-			}
+				}
 
-			$removed_main_count += (int) $deleted;
-		}
+				if ( function_exists( 'wc_blacklist_manager_clear_match_cache' ) ) {
+					wc_blacklist_manager_clear_match_cache( $row_for_cache );
+				}
+
+				$removed_main_count += (int) $deleted;
+			}
 
 		if ( $premium_active ) {
 			foreach ( $addr_ids_to_delete as $entry_id ) {

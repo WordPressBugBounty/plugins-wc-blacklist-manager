@@ -2,10 +2,10 @@
 Contributors: yoohw, baonguyen0310
 Tags: blacklist customers, spam prevention, fraud prevention, woocommerce anti fraud, Prevent fake orders
 Requires at least: 6.3
-Tested up to: 6.9
+Tested up to: 7.0
 WC tested up to: 10.7
 Requires PHP: 7.4
-Stable tag: 2.2.5
+Stable tag: 2.2.6
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -254,6 +254,17 @@ A: There is no set limit within the plugin, but practical limitations depend on 
 A: No, the plugin is optimized for performance. It performs blacklist checks efficiently and only at appropriate times (like form submission or checkout), so it won’t noticeably impact your site speed.
 
 == Changelog ==
+
+= 2.2.6 (May 22, 2026) =
+* Update: WordPress version 7.0 compatibility.
+* Fix: Email verification now reliably blocks Classic Checkout until the customer enters a valid verification code.
+* Fix: Improved SMS quota API authentication by requiring the stored SMS key instead of trusting request origin headers.
+* Improve: Added controlled debug logging for email and phone verification to support troubleshooting without exposing customer data.
+* Improve: Strengthened admin permissions and nonce checks across dashboard, settings, notifications, verification, and AJAX actions.
+* Improve: Optimized blacklist cache invalidation and reused shared permission helpers to reduce duplicated logic.
+* Improve: Added safer external HTTP handling and cached IP lookup responses for better stability.
+* Improve: Improved database trigger naming and counter initialization for safer multi-install compatibility.
+* Improve: Refined the Dashboard Add new form layout for cleaner field alignment, better spacing, and improved mobile display.
 
 = 2.2.5 (May 4, 2026) =
 * Fix: Resolved a 404 error when syncing Global Blacklist tiers.

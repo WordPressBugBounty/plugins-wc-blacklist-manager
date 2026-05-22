@@ -182,6 +182,62 @@ if ( ! function_exists( 'get_real_customer_ip' ) ) {
 	}
 }
 
+if ( ! function_exists( 'yobm_get_ip_api_data' ) ) {
+	function yobm_get_ip_api_data( $ip_address, $fields = 'status,message,proxy,countryCode' ) {
+		$ip_address = sanitize_text_field( (string) $ip_address );
+
+		if ( '' === $ip_address || ! filter_var( $ip_address, FILTER_VALIDATE_IP ) ) {
+			return array();
+		}
+
+		$fields    = sanitize_text_field( (string) $fields );
+		$cache_key = 'yobm_ip_lookup_' . md5( $ip_address . '|' . $fields );
+		$cached    = get_transient( $cache_key );
+
+		if ( is_array( $cached ) ) {
+			return $cached;
+		}
+
+		$endpoint = apply_filters( 'yobm_ip_lookup_endpoint', 'http://ip-api.com/json/' );
+		$url      = trailingslashit( $endpoint ) . rawurlencode( $ip_address );
+
+		if ( '' !== $fields ) {
+			$url = add_query_arg( 'fields', $fields, $url );
+		}
+
+		$response = wp_safe_remote_get(
+			$url,
+			array(
+				'timeout'     => 2,
+				'redirection' => 2,
+			)
+		);
+
+		if ( is_wp_error( $response ) ) {
+			set_transient( $cache_key, array(), 10 * MINUTE_IN_SECONDS );
+			return array();
+		}
+
+		$code = (int) wp_remote_retrieve_response_code( $response );
+		$data = json_decode( wp_remote_retrieve_body( $response ), true );
+
+		if ( 200 !== $code || ! is_array( $data ) ) {
+			set_transient( $cache_key, array(), 10 * MINUTE_IN_SECONDS );
+			return array();
+		}
+
+		$data = array_map(
+			static function( $value ) {
+				return is_scalar( $value ) ? sanitize_text_field( (string) $value ) : $value;
+			},
+			$data
+		);
+
+		set_transient( $cache_key, $data, 12 * HOUR_IN_SECONDS );
+		return $data;
+	}
+}
+
 // WooCommerce Classic Checkout: set real client IP on order.
 add_action( 'woocommerce_checkout_order_processed', 'correct_customer_ip_in_order', 10, 1 );
 

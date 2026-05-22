@@ -28,19 +28,21 @@ class WC_Blacklist_Manager_Backend {
 	}
 
 	public function enqueue_assets( $hook_suffix ) {
-		$style_ver  = '1.6.1';
+		global $wp_version;
+
+		$style_ver  = '1.6.2';
 		$script_ver = '1.2';
 
 		// Determine current admin screen context
-		$screen     = function_exists('get_current_screen') ? get_current_screen() : null;
+		$screen     = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
 		$screen_id  = $screen ? $screen->id : '';
 		$post_type  = $screen ? $screen->post_type : '';
-		$page_param = isset($_GET['page']) ? sanitize_key($_GET['page']) : '';
+		$page_param = isset( $_GET['page'] ) ? sanitize_key( $_GET['page'] ) : '';
 
 		// 1) Your plugin page + any "children" views under ?page=wc-blacklist-manager
 		$is_plugin_pages =
 			( $page_param && strpos( $page_param, 'wc-blacklist-manager' ) === 0 ) ||
-			( $screen_id  && strpos( $screen_id,  'wc-blacklist-manager' ) !== false ) ||
+			( $screen_id  && strpos( $screen_id, 'wc-blacklist-manager' ) !== false ) ||
 			( $hook_suffix && strpos( $hook_suffix, 'wc-blacklist-manager' ) !== false );
 
 		// 2) WooCommerce Orders (both legacy posts UI and HPOS Orders screen)
@@ -56,17 +58,35 @@ class WC_Blacklist_Manager_Backend {
 		$should_enqueue_style = ( $is_plugin_pages || $is_wc_orders || $is_user_screens );
 
 		if ( $should_enqueue_style ) {
+
 			wp_enqueue_style(
 				'wc-blacklist-style',
 				plugin_dir_url( __FILE__ ) . '../../css/style.css',
 				array(),
 				$style_ver
 			);
+
+			// WordPress < 7.0 compatibility CSS
+			if ( version_compare( $wp_version, '7.0', '<' ) ) {
+
+				$legacy_css = '
+					.icon-button,
+					.red-button,
+					.yoohw-docs-btn {
+						align-items: center;
+						justify-content: center;
+					}
+				';
+
+				wp_add_inline_style( 'wc-blacklist-style', $legacy_css );
+			}
 		}
 
 		// Keep your JS only on the plugin's own dashboard page (as before)
 		$plugin_pages = array( 'toplevel_page_wc-blacklist-manager' );
+
 		if ( in_array( $hook_suffix, $plugin_pages, true ) ) {
+
 			wp_enqueue_script(
 				'wc-blacklist-script',
 				plugin_dir_url( __FILE__ ) . '../../js/dashboard.js',
@@ -99,12 +119,9 @@ class WC_Blacklist_Manager_Backend {
 
 		$country_code = 'us';
 
-		$ip       = get_real_customer_ip();
-		$response = wp_remote_get( 'http://ip-api.com/json/' . $ip );
-	
-		if ( ! is_wp_error( $response ) ) {
-			$body = wp_remote_retrieve_body( $response );
-			$data = json_decode( $body, true );
+		$ip = get_real_customer_ip();
+		if ( function_exists( 'yobm_get_ip_api_data' ) ) {
+			$data = yobm_get_ip_api_data( $ip, 'status,message,countryCode' );
 			if ( ! empty( $data['countryCode'] ) ) {
 				$country_code = strtolower( $data['countryCode'] );
 			}

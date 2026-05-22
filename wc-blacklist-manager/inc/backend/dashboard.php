@@ -38,24 +38,14 @@ class WC_Blacklist_Manager_Dashboard {
 		add_action( 'wp_ajax_wc_blacklist_get_device_details', array( $this, 'ajax_get_device_details' ) );
 	}
 
+	private function current_user_can_manage_dashboard( $require_premium = false ) {
+		return function_exists( 'wc_blacklist_manager_user_can_manage_area' )
+			? wc_blacklist_manager_user_can_manage_area( 'wc_blacklist_dashboard_permission', $require_premium )
+			: current_user_can( 'manage_options' );
+	}
+
 	public function add_admin_menus() {
-		$settings_instance = new WC_Blacklist_Manager_Settings();
-		$premium_active    = $settings_instance->is_premium_active();
-
-		$user_has_permission = false;
-		if ( $premium_active ) {
-			$allowed_roles = get_option( 'wc_blacklist_dashboard_permission', array() );
-			if ( is_array( $allowed_roles ) && ! empty( $allowed_roles ) ) {
-				foreach ( $allowed_roles as $role ) {
-					if ( current_user_can( $role ) ) {
-						$user_has_permission = true;
-						break;
-					}
-				}
-			}
-		}
-
-		if ( ( $premium_active && $user_has_permission ) || current_user_can( 'manage_options' ) ) {
+		if ( $this->current_user_can_manage_dashboard( true ) ) {
 			add_menu_page(
 				__( 'Blacklist Management', 'wc-blacklist-manager' ),
 				__( 'Blacklist Manager', 'wc-blacklist-manager' ),
@@ -78,19 +68,7 @@ class WC_Blacklist_Manager_Dashboard {
 	}
 
 	public function display_dashboard() {
-		$allowed_roles       = get_option( 'wc_blacklist_dashboard_permission', array() );
-		$user_has_permission = false;
-
-		if ( is_array( $allowed_roles ) && ! empty( $allowed_roles ) ) {
-			foreach ( $allowed_roles as $role ) {
-				if ( current_user_can( $role ) ) {
-					$user_has_permission = true;
-					break;
-				}
-			}
-		}
-
-		if ( ! $user_has_permission && ! current_user_can( 'manage_options' ) ) {
+		if ( ! $this->current_user_can_manage_dashboard() ) {
 			wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'wc-blacklist-manager' ) );
 		}
 
@@ -286,22 +264,7 @@ class WC_Blacklist_Manager_Dashboard {
 	}
 
 	public function handle_form_submission() {
-		$settings_instance = new WC_Blacklist_Manager_Settings();
-		$premium_active    = $settings_instance->is_premium_active();
-
-		$allowed_roles       = get_option( 'wc_blacklist_dashboard_permission', array() );
-		$user_has_permission = false;
-
-		if ( is_array( $allowed_roles ) && ! empty( $allowed_roles ) ) {
-			foreach ( $allowed_roles as $role ) {
-				if ( current_user_can( $role ) ) {
-					$user_has_permission = true;
-					break;
-				}
-			}
-		}
-
-		if ( ! $user_has_permission && ! current_user_can( 'manage_options' ) ) {
+		if ( ! $this->current_user_can_manage_dashboard() ) {
 			wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'wc-blacklist-manager' ) );
 		}
 
@@ -421,12 +384,12 @@ class WC_Blacklist_Manager_Dashboard {
 		} else {
 			global $wpdb;
 
-			$entry = $wpdb->get_row(
-				$wpdb->prepare(
-					"SELECT sources FROM {$this->table_name} WHERE id = %d",
-					$id
-				)
-			);
+				$entry = $wpdb->get_row(
+					$wpdb->prepare(
+						"SELECT sources, ip_address, domain FROM {$this->table_name} WHERE id = %d",
+						$id
+					)
+				);
 
 			if ( $entry && ! empty( $entry->sources ) ) {
 				$pattern = '/Order ID: (\d+)/';
@@ -443,13 +406,17 @@ class WC_Blacklist_Manager_Dashboard {
 				}
 			}
 
-			$wpdb->update(
-				$this->table_name,
-				array( 'is_blocked' => 1 ),
-				array( 'id' => $id ),
-				array( '%d' ),
-				array( '%d' )
-			);
+				$wpdb->update(
+					$this->table_name,
+					array( 'is_blocked' => 1 ),
+					array( 'id' => $id ),
+					array( '%d' ),
+					array( '%d' )
+				);
+
+				if ( function_exists( 'wc_blacklist_manager_clear_match_cache' ) ) {
+					wc_blacklist_manager_clear_match_cache( $entry );
+				}
 
 			if ( $premium_active && 'host' === get_option( 'wc_blacklist_connection_mode' ) ) {
 				$is_blocked   = 1;
@@ -529,9 +496,13 @@ class WC_Blacklist_Manager_Dashboard {
 
 		$order_id = ! empty( $row['order_id'] ) ? absint( $row['order_id'] ) : 0;
 
-		$this->wpdb->delete( $this->table_name, array( 'id' => $id ), array( '%d' ) );
+			$this->wpdb->delete( $this->table_name, array( 'id' => $id ), array( '%d' ) );
 
-		$this->wpdb->delete(
+			if ( function_exists( 'wc_blacklist_manager_clear_match_cache' ) ) {
+				wc_blacklist_manager_clear_match_cache( $row );
+			}
+
+			$this->wpdb->delete(
 			$this->address_table_name,
 			array(
 				'blacklist_id' => $id,
@@ -1048,22 +1019,7 @@ class WC_Blacklist_Manager_Dashboard {
 	}
 
 	public function handle_bulk_action_callback() {
-		$settings_instance = new WC_Blacklist_Manager_Settings();
-		$premium_active    = $settings_instance->is_premium_active();
-
-		$allowed_roles       = get_option( 'wc_blacklist_dashboard_permission', array() );
-		$user_has_permission = false;
-
-		if ( is_array( $allowed_roles ) && ! empty( $allowed_roles ) ) {
-			foreach ( $allowed_roles as $role ) {
-				if ( current_user_can( $role ) ) {
-					$user_has_permission = true;
-					break;
-				}
-			}
-		}
-
-		if ( ! $user_has_permission && ! current_user_can( 'manage_options' ) ) {
+		if ( ! $this->current_user_can_manage_dashboard() ) {
 			wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'wc-blacklist-manager' ) );
 		}
 
@@ -1096,9 +1052,13 @@ class WC_Blacklist_Manager_Dashboard {
 
 				$order_id = ! empty( $row['order_id'] ) ? absint( $row['order_id'] ) : 0;
 
-				$this->wpdb->delete( $this->table_name, array( 'id' => $id ), array( '%d' ) );
+					$this->wpdb->delete( $this->table_name, array( 'id' => $id ), array( '%d' ) );
 
-				$this->wpdb->delete(
+					if ( function_exists( 'wc_blacklist_manager_clear_match_cache' ) ) {
+						wc_blacklist_manager_clear_match_cache( $row );
+					}
+
+					$this->wpdb->delete(
 					$this->address_table_name,
 					array(
 						'blacklist_id' => $id,
@@ -1195,19 +1155,7 @@ class WC_Blacklist_Manager_Dashboard {
 	}
 
 	public function handle_add_ip_address() {
-		$allowed_roles       = get_option( 'wc_blacklist_dashboard_permission', array() );
-		$user_has_permission = false;
-
-		if ( is_array( $allowed_roles ) && ! empty( $allowed_roles ) ) {
-			foreach ( $allowed_roles as $role ) {
-				if ( current_user_can( $role ) ) {
-					$user_has_permission = true;
-					break;
-				}
-			}
-		}
-
-		if ( ! $user_has_permission && ! current_user_can( 'manage_options' ) ) {
+		if ( ! $this->current_user_can_manage_dashboard() ) {
 			wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'wc-blacklist-manager' ) );
 		}
 
@@ -1251,18 +1199,22 @@ class WC_Blacklist_Manager_Dashboard {
 				);
 
 				if ( 0 === $exists ) {
-					$this->wpdb->insert(
-						$this->table_name,
-						array(
+						$this->wpdb->insert(
+							$this->table_name,
+							array(
 							'ip_address' => $ip_address,
 							'date_added' => current_time( 'mysql', 1 ),
 							'is_blocked' => 1,
 							'sources'    => 'manual',
-						),
-						array( '%s', '%s', '%d', '%s' )
-					);
+							),
+							array( '%s', '%s', '%d', '%s' )
+						);
 
-					$ip_addresses_added++;
+						if ( function_exists( 'wc_blacklist_manager_clear_match_cache' ) ) {
+							wc_blacklist_manager_clear_match_cache( array( 'ip_address' => $ip_address ) );
+						}
+
+						$ip_addresses_added++;
 				}
 			}
 		}
@@ -1278,22 +1230,7 @@ class WC_Blacklist_Manager_Dashboard {
 	}
 
 	public function handle_add_address() {
-		$settings_instance = new WC_Blacklist_Manager_Settings();
-		$premium_active    = $settings_instance->is_premium_active();
-
-		$allowed_roles       = get_option( 'wc_blacklist_dashboard_permission', array() );
-		$user_has_permission = false;
-
-		if ( is_array( $allowed_roles ) && ! empty( $allowed_roles ) ) {
-			foreach ( $allowed_roles as $role ) {
-				if ( current_user_can( $role ) ) {
-					$user_has_permission = true;
-					break;
-				}
-			}
-		}
-
-		if ( ! $user_has_permission && ! current_user_can( 'manage_options' ) ) {
+		if ( ! $this->current_user_can_manage_dashboard() ) {
 			wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'wc-blacklist-manager' ) );
 		}
 
@@ -1579,19 +1516,7 @@ class WC_Blacklist_Manager_Dashboard {
 	}
 
 	public function handle_add_domain() {
-		$allowed_roles       = get_option( 'wc_blacklist_dashboard_permission', array() );
-		$user_has_permission = false;
-
-		if ( is_array( $allowed_roles ) && ! empty( $allowed_roles ) ) {
-			foreach ( $allowed_roles as $role ) {
-				if ( current_user_can( $role ) ) {
-					$user_has_permission = true;
-					break;
-				}
-			}
-		}
-
-		if ( ! $user_has_permission && ! current_user_can( 'manage_options' ) ) {
+		if ( ! $this->current_user_can_manage_dashboard() ) {
 			wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'wc-blacklist-manager' ) );
 		}
 
@@ -1627,7 +1552,7 @@ class WC_Blacklist_Manager_Dashboard {
 		$invalid_domains = array();
 
 		foreach ( $domains as $domain ) {
-			$domain = sanitize_text_field( $domain );
+				$domain = strtolower( sanitize_text_field( $domain ) );
 
 			if ( ! empty( $domain ) && preg_match( '/^([a-zA-Z0-9]+(-[a-zA-Z0-9]+)*\.)+[a-zA-Z]{2,}$/', $domain ) ) {
 				$exists = (int) $this->wpdb->get_var(
@@ -1638,18 +1563,22 @@ class WC_Blacklist_Manager_Dashboard {
 				);
 
 				if ( 0 === $exists ) {
-					$this->wpdb->insert(
-						$this->table_name,
-						array(
+						$this->wpdb->insert(
+							$this->table_name,
+							array(
 							'domain'     => $domain,
 							'date_added' => current_time( 'mysql', 1 ),
 							'is_blocked' => 1,
 							'sources'    => 'manual',
-						),
-						array( '%s', '%s', '%d', '%s' )
-					);
-					$domains_added++;
-				}
+							),
+							array( '%s', '%s', '%d', '%s' )
+						);
+
+						if ( function_exists( 'wc_blacklist_manager_clear_match_cache' ) ) {
+							wc_blacklist_manager_clear_match_cache( array( 'domain' => $domain ) );
+						}
+						$domains_added++;
+					}
 			} else {
 				$invalid_domains[] = $domain;
 			}
@@ -1688,22 +1617,7 @@ class WC_Blacklist_Manager_Dashboard {
 	}
 
 	public function handle_bulk_action_address_callback() {
-		$settings_instance = new WC_Blacklist_Manager_Settings();
-		$premium_active    = $settings_instance->is_premium_active();
-
-		$allowed_roles       = get_option( 'wc_blacklist_dashboard_permission', array() );
-		$user_has_permission = false;
-
-		if ( is_array( $allowed_roles ) && ! empty( $allowed_roles ) ) {
-			foreach ( $allowed_roles as $role ) {
-				if ( current_user_can( $role ) ) {
-					$user_has_permission = true;
-					break;
-				}
-			}
-		}
-
-		if ( ! $user_has_permission && ! current_user_can( 'manage_options' ) ) {
+		if ( ! $this->current_user_can_manage_dashboard() ) {
 			wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'wc-blacklist-manager' ) );
 		}
 
@@ -1858,19 +1772,7 @@ class WC_Blacklist_Manager_Dashboard {
 	}	
 
 	public function ajax_get_device_details() {
-		$allowed_roles       = get_option( 'wc_blacklist_dashboard_permission', array() );
-		$user_has_permission = false;
-
-		if ( is_array( $allowed_roles ) && ! empty( $allowed_roles ) ) {
-			foreach ( $allowed_roles as $role ) {
-				if ( current_user_can( $role ) ) {
-					$user_has_permission = true;
-					break;
-				}
-			}
-		}
-
-		if ( ! $user_has_permission && ! current_user_can( 'manage_options' ) ) {
+		if ( ! $this->current_user_can_manage_dashboard() ) {
 			wp_send_json_error(
 				array(
 					'message' => __( 'You do not have permission to access this data.', 'wc-blacklist-manager' ),

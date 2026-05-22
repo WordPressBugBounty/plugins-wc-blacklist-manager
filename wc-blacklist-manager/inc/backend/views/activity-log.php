@@ -44,13 +44,13 @@ $logs = $wpdb->get_results(
 	<h1>
 		<?php echo esc_html__('Activity logs', 'wc-blacklist-manager'); ?>
 		<?php if (get_option('yoohw_settings_disable_menu') != 1): ?>
-			<a href="https://yoohw.com/docs/category/woocommerce-blacklist-manager/activity-logs/" target="_blank" class="button button-secondary" style="display: inline-flex; align-items: center;"><span class="dashicons dashicons-editor-help"></span> Documents</a>
+			<a href="https://docs.yoohw.com/category/blacklist-manager/" target="_blank" class="button button-secondary yoohw-docs-btn" style="display: inline-flex;"><span class="dashicons dashicons-editor-help"></span> <?php echo esc_html__('Docs', 'wc-blacklist-manager'); ?></a>
 		<?php endif; ?>
 		<?php if (!$premium_active): ?>
-			<a href="https://yoohw.com/contact-us/" target="_blank" class="button button-secondary"><?php esc_html_e('Support / Suggestion', 'wc-blacklist-manager'); ?></a>
+			<a href="https://yoohw.com/contact-us/" target="_blank" class="button button-secondary"><?php echo esc_html__('Support', 'wc-blacklist-manager'); ?></a>
 		<?php endif; ?>
 		<?php if ($premium_active && get_option('yoohw_settings_disable_menu') != 1): ?>
-			<a href="https://yoohw.com/support/" target="_blank" class="button button-secondary">Premium support</a>
+			<a href="https://yoohw.com/support/" target="_blank" class="button button-secondary"><?php echo esc_html__('Support', 'wc-blacklist-manager'); ?></a>
 			<a href="<?php echo esc_url( admin_url( 'admin.php?page=wc-blacklist-manager-settings&tab=tools#activity_log_retention' ) ); ?>" class="activity_logs_tool_settings_url">
 				<?php esc_html_e( 'Tool settings', 'wc-blacklist-manager' ); ?>
 			</a>
@@ -186,7 +186,7 @@ $logs = $wpdb->get_results(
 			To record and see the activity logs, please upgrade to the premium version.
 			<a href="<?php echo esc_url( $unlock_url ); ?>" target="_blank" class="premium-label">Unlock</a><br>
 		</span>
-		<p><a href="https://yoohw.com/docs/woocommerce-blacklist-manager/activity-logs/activity-logs/" target="_blank">Find out how it performs here</a></p>
+		<p><a href="https://docs.yoohw.com/use-activity-logs-to-review-blocked-attempts/" target="_blank">Find out how it performs here</a></p>
 
 		<div class="tablenav top">
 			<div class="alignleft actions bulkactions">

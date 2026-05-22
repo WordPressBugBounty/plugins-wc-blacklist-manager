@@ -12,25 +12,9 @@ class WC_Blacklist_Manager_Activity_Log {
     }
 
     public function add_activity_log_submenu() {
-        $settings_instance = new WC_Blacklist_Manager_Settings();
-        $premium_active = $settings_instance->is_premium_active();
-
-        $user_has_permission = false;
-        if ($premium_active) {
-            $allowed_roles = get_option('wc_blacklist_settings_permission', []);
-            if (is_array($allowed_roles) && !empty($allowed_roles)) {
-                foreach ($allowed_roles as $role) {
-                    if (current_user_can($role)) {
-                        $user_has_permission = true;
-                        break;
-                    }
-                }
-            }
-        }
-
-        if (($premium_active && $user_has_permission) || current_user_can('manage_options')) {
+        if ($this->current_user_can_manage_activity_logs()) {
             $this->hook_suffix = add_submenu_page(
-				'wc-blacklist-manager',
+					'wc-blacklist-manager',
 				__('Activity logs', 'wc-blacklist-manager'),
 				__('Activity logs', 'wc-blacklist-manager'),
 				'read',
@@ -41,6 +25,12 @@ class WC_Blacklist_Manager_Activity_Log {
             add_action( 'admin_print_styles-' . $this->hook_suffix, [$this, 'print_activity_log_badge_styles'] );
         }
     }
+
+	private function current_user_can_manage_activity_logs() {
+		return function_exists( 'wc_blacklist_manager_user_can_manage_area' )
+			? wc_blacklist_manager_user_can_manage_area( 'wc_blacklist_settings_permission', true )
+			: current_user_can( 'manage_options' );
+	}
 
 	public function print_activity_log_badge_styles() {
 		// Same badges used in the demo; now applied to the live table too.
@@ -56,9 +46,13 @@ class WC_Blacklist_Manager_Activity_Log {
 		</style>';
 	}
 
-    public function activity_log_page_content() {
-        $settings_instance = new WC_Blacklist_Manager_Settings();
-        $premium_active = $settings_instance->is_premium_active();
+	    public function activity_log_page_content() {
+	        if ( ! $this->current_user_can_manage_activity_logs() ) {
+	            wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'wc-blacklist-manager' ) );
+	        }
+
+	        $settings_instance = new WC_Blacklist_Manager_Settings();
+	        $premium_active = $settings_instance->is_premium_active();
         $woocommerce_active = class_exists( 'WooCommerce' );
 		$unlock_url = 'https://yoohw.com/product/blacklist-manager-premium/';
             
@@ -74,9 +68,13 @@ class WC_Blacklist_Manager_Activity_Log {
         }
     }
 
-    private function handle_form_submission() {
-        // Run only on POST + valid nonce
-        if ( 'POST' !== $_SERVER['REQUEST_METHOD'] ) {
+	    private function handle_form_submission() {
+	        if ( ! $this->current_user_can_manage_activity_logs() ) {
+	            return;
+	        }
+
+	        // Run only on POST + valid nonce
+	        if ( 'POST' !== $_SERVER['REQUEST_METHOD'] ) {
             return;
         }
 

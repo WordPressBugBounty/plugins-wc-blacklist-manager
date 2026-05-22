@@ -265,6 +265,12 @@ class WC_Blacklist_Manager_User_Blocking {
 		if ( 'users.php' !== $pagenow ) {
 			return;
 		}
+
+		if ( ! current_user_can( 'list_users' ) ) {
+			return;
+		}
+
+		$nonce = wp_create_nonce( 'wc_blacklist_check_user_blocked_status' );
 		?>
 		<script>
 			jQuery(document).ready(function($) {
@@ -272,14 +278,15 @@ class WC_Blacklist_Manager_User_Blocking {
 					var userID = $(this).find('input[name="users[]"]').val();
 					if (userID) {
 						$.ajax({
-							url: ajaxurl,
-							method: 'POST',
-							data: {
-								action: 'check_user_blocked_status',
-								user_id: userID
-							},
-							success: function(response) {
-								if (response === '1') {
+								url: ajaxurl,
+								method: 'POST',
+								data: {
+									action: 'check_user_blocked_status',
+									user_id: userID,
+									nonce: '<?php echo esc_js( $nonce ); ?>'
+								},
+								success: function(response) {
+									if (response === '1') {
 									$('tr#user-' + userID).addClass('user-blocked-row');
 								}
 							}
@@ -292,7 +299,14 @@ class WC_Blacklist_Manager_User_Blocking {
 	}
 
 	public function check_user_blocked_status() {
-		$user_id = intval($_POST['user_id']);
+		check_ajax_referer( 'wc_blacklist_check_user_blocked_status', 'nonce' );
+
+		$user_id = isset( $_POST['user_id'] ) ? absint( wp_unslash( $_POST['user_id'] ) ) : 0;
+
+		if ( ! $user_id || ! current_user_can( 'list_users' ) ) {
+			wp_die( '0', 403 );
+		}
+
 		if (get_user_meta($user_id, 'user_blocked', true) == '1') {
 			echo '1';
 		} else {

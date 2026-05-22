@@ -256,6 +256,10 @@ class WC_Blacklist_Manager_Alert {
 	public function handle_notice_actions() {
 		check_ajax_referer( 'yobm_notice_suggest_enable_anti_bots', 'security' );
 
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'wc-blacklist-manager' ) ), 403 );
+		}
+
 		$mode = isset( $_POST['mode'] ) ? sanitize_key( wp_unslash( $_POST['mode'] ) ) : 'snooze';
 
 		if ( 'resolve' === $mode ) {

@@ -18,22 +18,11 @@ if (!class_exists('Yo_Ohw_SMS_Quota_Update')) {
 			] );
 		}
 
-		/**
-		 * Allow if either:
-		 *  - The posted sms_key matches the stored secret (old clients)
-		 *  - OR the Origin header is your bmc.yoohw.com dashboard (new clients)
-		 */
 		public function quota_permission( WP_REST_Request $request ) {
-			// 1) secret-key check
-			$sms_key = sanitize_text_field( $request->get_param( 'sms_key' ) );
-			$stored  = get_option( 'yoohw_phone_verification_sms_key', '' );
-			if ( $sms_key === $stored ) {
-				return true;
-			}
+			$sms_key = sanitize_text_field( (string) $request->get_param( 'sms_key' ) );
+			$stored  = (string) get_option( 'yoohw_phone_verification_sms_key', '' );
 
-			// 2) dashboard-origin check
-			$origin = $request->get_header( 'origin' );
-			if ( $origin === 'https://bmc.yoohw.com' ) {
+			if ( '' !== $stored && hash_equals( $stored, $sms_key ) ) {
 				return true;
 			}
 
@@ -45,15 +34,16 @@ if (!class_exists('Yo_Ohw_SMS_Quota_Update')) {
 		}
 
 		public function update_sms_quota( WP_REST_Request $request ) {
-			$sms_key   = sanitize_text_field( $request->get_param( 'sms_key' ) );
+			$sms_key   = sanitize_text_field( (string) $request->get_param( 'sms_key' ) );
 			$new_quota = floatval( $request->get_param( 'new_quota' ) );
-			$stored    = get_option( 'yoohw_phone_verification_sms_key' );
+			$stored    = (string) get_option( 'yoohw_phone_verification_sms_key', '' );
 
-			if ( $sms_key !== $stored ) {
-				return rest_ensure_response([
-					'status'  => 'error',
-					'message' => 'SMS key does not match.',
-				]);
+			if ( '' === $stored || ! hash_equals( $stored, $sms_key ) ) {
+				return new WP_Error(
+					'rest_forbidden',
+					'SMS key does not match.',
+					[ 'status' => 403 ]
+				);
 			}
 
 			update_option( 'yoohw_phone_verification_sms_quota', $new_quota );

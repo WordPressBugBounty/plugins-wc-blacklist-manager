@@ -2,20 +2,20 @@
 # This file is distributed under the GPL v2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Blacklist Manager 2.2.5\n"
+"Project-Id-Version: Blacklist Manager 2.2.6\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/wc-blacklist-manager\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-05-04T00:31:27+00:00\n"
+"POT-Creation-Date: 2026-05-18T07:19:33+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.9.0\n"
 "X-Domain: wc-blacklist-manager\n"
 
 #. Plugin Name of the plugin
-#: inc/backend/dashboard.php:61
+#: inc/backend/dashboard.php:51
 msgid "Blacklist Manager"
 msgstr ""
 
@@ -115,16 +115,16 @@ msgstr ""
 msgid "Order cancelled due to blocklist match."
 msgstr ""
 
-#: inc/backend/actions/form/contact-form-7.php:347
-#: inc/backend/actions/form/gravity-forms.php:267
-#: inc/backend/actions/form/wp-forms.php:231
+#: inc/backend/actions/form/contact-form-7.php:344
+#: inc/backend/actions/form/gravity-forms.php:262
+#: inc/backend/actions/form/wp-forms.php:226
 #: inc/backend/notifications.php:41
 msgid "Sorry! You are no longer allowed to submit a form. If you think it is a mistake, please contact support."
 msgstr ""
 
-#: inc/backend/actions/form/contact-form-7.php:354
-#: inc/backend/actions/form/gravity-forms.php:262
-#: inc/backend/actions/form/wp-forms.php:226
+#: inc/backend/actions/form/contact-form-7.php:351
+#: inc/backend/actions/form/gravity-forms.php:257
+#: inc/backend/actions/form/wp-forms.php:221
 msgid "Submission from VPNs or Proxies is not allowed. Please disable your VPN or Proxy and try again."
 msgstr ""
 
@@ -302,185 +302,200 @@ msgstr ""
 msgid "Commentation was blocked!"
 msgstr ""
 
-#: inc/backend/actions/verifications-email.php:62
+#: inc/backend/actions/verifications-email.php:65
 #: inc/backend/verifications.php:25
 msgid "Verify your email address on {site_name}"
 msgstr ""
 
-#: inc/backend/actions/verifications-email.php:63
-#: inc/backend/actions/verifications-email.php:427
-#: inc/backend/actions/verifications-email.php:428
+#: inc/backend/actions/verifications-email.php:66
+#: inc/backend/actions/verifications-email.php:504
+#: inc/backend/actions/verifications-email.php:505
 #: inc/backend/verifications.php:26
 msgid "Verify your email address"
 msgstr ""
 
-#: inc/backend/actions/verifications-email.php:64
+#: inc/backend/actions/verifications-email.php:67
 #: inc/backend/verifications.php:27
 msgid "Hi {first_name} {last_name},<br><br>To complete your checkout process, please verify your email address by entering the following code:<br><br><strong>{code}</strong><br><br>If you did not request this, please ignore this email.<br><br>Thank you."
 msgstr ""
 
-#: inc/backend/actions/verifications-email.php:93
-#: inc/backend/actions/verifications-email.php:126
-#: inc/backend/actions/verifications-phone.php:95
-#: inc/backend/actions/verifications-phone.php:131
+#: inc/backend/actions/verifications-email.php:96
+#: inc/backend/actions/verifications-email.php:129
+#: inc/backend/actions/verifications-phone.php:96
+#: inc/backend/actions/verifications-phone.php:132
 msgid "Enter code"
 msgstr ""
 
-#: inc/backend/actions/verifications-email.php:94
-#: inc/backend/actions/verifications-email.php:127
-#: inc/backend/actions/verifications-phone.php:96
-#: inc/backend/actions/verifications-phone.php:132
-#: inc/backend/verifications.php:75
+#: inc/backend/actions/verifications-email.php:97
+#: inc/backend/actions/verifications-email.php:130
+#: inc/backend/actions/verifications-phone.php:97
+#: inc/backend/actions/verifications-phone.php:133
+#: inc/backend/verifications.php:79
 #: inc/backend/views/activity-log.php:317
-#: inc/backend/views/table/activity-log.php:135
+#: inc/backend/views/table/activity-log.php:146
 msgid "Verify"
 msgstr ""
 
-#: inc/backend/actions/verifications-email.php:95
-#: inc/backend/actions/verifications-email.php:129
-#: inc/backend/actions/verifications-phone.php:97
-#: inc/backend/actions/verifications-phone.php:134
+#: inc/backend/actions/verifications-email.php:98
+#: inc/backend/actions/verifications-email.php:132
+#: inc/backend/actions/verifications-phone.php:98
+#: inc/backend/actions/verifications-phone.php:135
 msgid "Can resend in"
 msgstr ""
 
-#: inc/backend/actions/verifications-email.php:96
-#: inc/backend/actions/verifications-email.php:130
-#: inc/backend/actions/verifications-phone.php:98
-#: inc/backend/actions/verifications-phone.php:135
+#: inc/backend/actions/verifications-email.php:99
+#: inc/backend/actions/verifications-email.php:133
+#: inc/backend/actions/verifications-phone.php:99
+#: inc/backend/actions/verifications-phone.php:136
 msgid "seconds"
 msgstr ""
 
-#: inc/backend/actions/verifications-email.php:97
-#: inc/backend/actions/verifications-email.php:128
-#: inc/backend/actions/verifications-phone.php:99
-#: inc/backend/actions/verifications-phone.php:133
+#: inc/backend/actions/verifications-email.php:100
+#: inc/backend/actions/verifications-email.php:131
+#: inc/backend/actions/verifications-phone.php:100
+#: inc/backend/actions/verifications-phone.php:134
 msgid "Resend code"
 msgstr ""
 
-#: inc/backend/actions/verifications-email.php:98
-#: inc/backend/actions/verifications-email.php:131
-#: inc/backend/actions/verifications-phone.php:100
-#: inc/backend/actions/verifications-phone.php:136
+#: inc/backend/actions/verifications-email.php:101
+#: inc/backend/actions/verifications-email.php:134
+#: inc/backend/actions/verifications-phone.php:101
+#: inc/backend/actions/verifications-phone.php:137
 msgid "Please enter the verification code."
 msgstr ""
 
-#: inc/backend/actions/verifications-email.php:99
-#: inc/backend/actions/verifications-email.php:134
-#: inc/backend/actions/verifications-email.php:698
+#: inc/backend/actions/verifications-email.php:102
+#: inc/backend/actions/verifications-email.php:137
+#: inc/backend/actions/verifications-email.php:794
 msgid "A new code has been sent to your email."
 msgstr ""
 
-#: inc/backend/actions/verifications-email.php:100
-#: inc/backend/actions/verifications-email.php:135
-#: inc/backend/actions/verifications-phone.php:102
-#: inc/backend/actions/verifications-phone.php:140
+#: inc/backend/actions/verifications-email.php:103
+#: inc/backend/actions/verifications-email.php:138
+#: inc/backend/actions/verifications-phone.php:103
+#: inc/backend/actions/verifications-phone.php:141
 msgid "Failed to resend the code. Please try again."
 msgstr ""
 
-#: inc/backend/actions/verifications-email.php:133
-#: inc/backend/actions/verifications-email.php:741
+#: inc/backend/actions/verifications-email.php:136
+#: inc/backend/actions/verifications-email.php:847
 msgid "A verification code has been sent to your email."
 msgstr ""
 
-#: inc/backend/actions/verifications-email.php:136
-#: inc/backend/actions/verifications-email.php:568
+#: inc/backend/actions/verifications-email.php:139
+#: inc/backend/actions/verifications-email.php:654
 msgid "Your email has been successfully verified!"
 msgstr ""
 
-#: inc/backend/actions/verifications-email.php:187
+#: inc/backend/actions/verifications-email.php:198
 msgid "Please verify your email before placing the order."
 msgstr ""
 
-#: inc/backend/actions/verifications-email.php:430
+#: inc/backend/actions/verifications-email.php:399
+#: inc/backend/actions/verifications-phone.php:491
+msgid "Too many verification code requests. Please wait before trying again."
+msgstr ""
+
+#: inc/backend/actions/verifications-email.php:466
+#: inc/backend/actions/verifications-email.php:483
+#: inc/backend/actions/verifications-email.php:526
+msgid "Unable to send the verification code. Please try again later."
+msgstr ""
+
+#: inc/backend/actions/verifications-email.php:507
 msgid "Hi there,<br><br>To complete your checkout process, please verify your email address by entering the following code:<br><br><strong>%s</strong><br><br>If you did not request this, please ignore this email.<br><br>Thank you."
 msgstr ""
 
-#: inc/backend/actions/verifications-email.php:458
-#: inc/backend/actions/verifications-phone.php:629
+#: inc/backend/actions/verifications-email.php:544
+#: inc/backend/actions/verifications-phone.php:687
 msgid "Too many attempts. Please try again later."
 msgstr ""
 
-#: inc/backend/actions/verifications-email.php:468
-#: inc/backend/actions/verifications-phone.php:639
+#: inc/backend/actions/verifications-email.php:554
+#: inc/backend/actions/verifications-phone.php:697
 msgid "Missing verification data. Please try again."
 msgstr ""
 
-#: inc/backend/actions/verifications-email.php:478
-#: inc/backend/actions/verifications-phone.php:649
+#: inc/backend/actions/verifications-email.php:564
+#: inc/backend/actions/verifications-phone.php:707
 msgid "No verification code was found. Please request a new one."
 msgstr ""
 
-#: inc/backend/actions/verifications-email.php:488
+#: inc/backend/actions/verifications-email.php:574
 msgid "The email address has changed. Please request a new verification code."
 msgstr ""
 
-#: inc/backend/actions/verifications-email.php:498
-#: inc/backend/actions/verifications-phone.php:669
+#: inc/backend/actions/verifications-email.php:584
+#: inc/backend/actions/verifications-phone.php:727
 msgid "Code expired. Please request a new one."
 msgstr ""
 
-#: inc/backend/actions/verifications-email.php:506
-#: inc/backend/actions/verifications-phone.php:677
+#: inc/backend/actions/verifications-email.php:592
+#: inc/backend/actions/verifications-phone.php:735
 msgid "Invalid code. Please try again."
 msgstr ""
 
-#: inc/backend/actions/verifications-email.php:669
+#: inc/backend/actions/verifications-email.php:755
 msgid "Unable to resend the verification code. Email not found."
 msgstr ""
 
 #. translators: %d: seconds remaining
-#: inc/backend/actions/verifications-email.php:686
-#: inc/backend/actions/verifications-phone.php:890
+#: inc/backend/actions/verifications-email.php:772
+#: inc/backend/actions/verifications-phone.php:948
 msgid "Please wait %d seconds before requesting a new code."
 msgstr ""
 
-#: inc/backend/actions/verifications-email.php:711
+#: inc/backend/actions/verifications-email.php:807
 msgid "Email not found."
 msgstr ""
 
-#: inc/backend/actions/verifications-phone.php:101
-#: inc/backend/actions/verifications-phone.php:139
-#: inc/backend/actions/verifications-phone.php:915
+#: inc/backend/actions/verifications-phone.php:102
+#: inc/backend/actions/verifications-phone.php:140
+#: inc/backend/actions/verifications-phone.php:974
 msgid "A new code has been sent to your phone."
 msgstr ""
 
-#: inc/backend/actions/verifications-phone.php:103
-#: inc/backend/actions/verifications-phone.php:141
-#: inc/backend/actions/verifications-phone.php:878
+#: inc/backend/actions/verifications-phone.php:104
+#: inc/backend/actions/verifications-phone.php:142
+#: inc/backend/actions/verifications-phone.php:936
 msgid "You have reached the resend limit. Please contact support."
 msgstr ""
 
-#: inc/backend/actions/verifications-phone.php:138
-#: inc/backend/actions/verifications-phone.php:972
+#: inc/backend/actions/verifications-phone.php:139
+#: inc/backend/actions/verifications-phone.php:1032
 msgid "A verification code has been sent to your phone."
 msgstr ""
 
-#: inc/backend/actions/verifications-phone.php:142
-#: inc/backend/actions/verifications-phone.php:729
+#: inc/backend/actions/verifications-phone.php:143
+#: inc/backend/actions/verifications-phone.php:787
 msgid "Your phone number has been successfully verified!"
 msgstr ""
 
-#: inc/backend/actions/verifications-phone.php:156
+#: inc/backend/actions/verifications-phone.php:158
 msgid "Please enter your phone number for verification."
 msgstr ""
 
-#: inc/backend/actions/verifications-phone.php:196
+#: inc/backend/actions/verifications-phone.php:204
 msgid "Please verify your phone number before proceeding with the checkout."
 msgstr ""
 
-#: inc/backend/actions/verifications-phone.php:200
+#: inc/backend/actions/verifications-phone.php:208
 msgid "To complete the checkout, we need to verify your phone number, but we were unable to send the verification code. This may be because the phone number is incorrect or it's a landline, which can't receive text messages. Please check the number and try again. If the problem persists, contact customer support for help."
 msgstr ""
 
-#: inc/backend/actions/verifications-phone.php:659
+#: inc/backend/actions/verifications-phone.php:592
+msgid "SMS verification is not configured. Please contact support."
+msgstr ""
+
+#: inc/backend/actions/verifications-phone.php:717
 msgid "The phone number has changed. Please request a new verification code."
 msgstr ""
 
-#: inc/backend/actions/verifications-phone.php:863
+#: inc/backend/actions/verifications-phone.php:921
 msgid "Unable to resend the verification code. Phone number not found."
 msgstr ""
 
-#: inc/backend/actions/verifications-phone.php:933
+#: inc/backend/actions/verifications-phone.php:992
 msgid "Phone number not found."
 msgstr ""
 
@@ -498,8 +513,8 @@ msgid "Global Blacklist Decisions check could not be completed (HTTP %1$d). Orde
 msgstr ""
 
 #: inc/backend/actions/yogb-check-orders.php:489
-#: inc/backend/order-action-button.php:970
-#: inc/backend/order-action-button.php:1253
+#: inc/backend/order-action-button.php:956
+#: inc/backend/order-action-button.php:1243
 msgid "Invalid order."
 msgstr ""
 
@@ -508,7 +523,7 @@ msgid "You do not have permission to recheck this order."
 msgstr ""
 
 #: inc/backend/actions/yogb-check-orders.php:501
-#: inc/backend/order-action-button.php:1671
+#: inc/backend/order-action-button.php:1676
 #: inc/backend/order-risk-score.php:82
 msgid "Order not found."
 msgstr ""
@@ -748,203 +763,207 @@ msgstr ""
 msgid "Unknown"
 msgstr ""
 
-#: inc/backend/activity.php:34
-#: inc/backend/activity.php:35
+#: inc/backend/activity.php:18
+#: inc/backend/activity.php:19
 #: inc/backend/views/activity-log.php:45
 #: inc/backend/views/settings-form.php:1885
 msgid "Activity logs"
 msgstr ""
 
-#: inc/backend/activity.php:102
+#: inc/backend/activity.php:51
+#: inc/backend/dashboard.php:72
+#: inc/backend/dashboard.php:268
+#: inc/backend/dashboard.php:1023
+#: inc/backend/dashboard.php:1159
+#: inc/backend/dashboard.php:1234
+#: inc/backend/dashboard.php:1520
+#: inc/backend/dashboard.php:1621
+#: inc/backend/notifications.php:72
+#: inc/backend/settings.php:32
+#: inc/backend/verifications.php:53
+msgid "You do not have sufficient permissions to access this page."
+msgstr ""
+
+#: inc/backend/activity.php:100
 msgid "No items selected."
 msgstr ""
 
-#: inc/backend/activity.php:113
+#: inc/backend/activity.php:111
 msgid "No valid items selected."
 msgstr ""
 
-#: inc/backend/activity.php:125
+#: inc/backend/activity.php:123
 msgid "Selected detection log entries have been deleted."
 msgstr ""
 
-#: inc/backend/activity.php:127
+#: inc/backend/activity.php:125
 msgid "There was an error deleting the selected entries."
 msgstr ""
 
-#: inc/backend/dashboard.php:60
+#: inc/backend/dashboard.php:50
 msgid "Blacklist Management"
 msgstr ""
 
-#: inc/backend/dashboard.php:71
-#: inc/backend/dashboard.php:72
+#: inc/backend/dashboard.php:61
+#: inc/backend/dashboard.php:62
 #: inc/backend/views/settings-form.php:1854
 msgid "Dashboard"
 msgstr ""
 
-#: inc/backend/dashboard.php:94
-#: inc/backend/dashboard.php:305
-#: inc/backend/dashboard.php:1067
-#: inc/backend/dashboard.php:1211
-#: inc/backend/dashboard.php:1297
-#: inc/backend/dashboard.php:1595
-#: inc/backend/dashboard.php:1707
-msgid "You do not have sufficient permissions to access this page."
-msgstr ""
-
-#: inc/backend/dashboard.php:127
-#: inc/backend/dashboard.php:420
-#: inc/backend/dashboard.php:507
-#: inc/backend/dashboard.php:644
+#: inc/backend/dashboard.php:105
+#: inc/backend/dashboard.php:383
+#: inc/backend/dashboard.php:474
+#: inc/backend/dashboard.php:615
 msgid "Security check failed. Please try again."
 msgstr ""
 
-#: inc/backend/dashboard.php:202
-#: inc/backend/order-action-button.php:778
-#: inc/backend/order-action-button.php:1223
+#: inc/backend/dashboard.php:180
+#: inc/backend/order-action-button.php:764
+#: inc/backend/order-action-button.php:1213
 msgid "Stolen card"
 msgstr ""
 
-#: inc/backend/dashboard.php:203
-#: inc/backend/order-action-button.php:779
-#: inc/backend/order-action-button.php:1224
+#: inc/backend/dashboard.php:181
+#: inc/backend/order-action-button.php:765
+#: inc/backend/order-action-button.php:1214
 msgid "Chargeback"
 msgstr ""
 
-#: inc/backend/dashboard.php:204
-#: inc/backend/order-action-button.php:780
-#: inc/backend/order-action-button.php:1225
+#: inc/backend/dashboard.php:182
+#: inc/backend/order-action-button.php:766
+#: inc/backend/order-action-button.php:1215
 msgid "Fraud network"
 msgstr ""
 
-#: inc/backend/dashboard.php:205
-#: inc/backend/order-action-button.php:781
-#: inc/backend/order-action-button.php:1226
+#: inc/backend/dashboard.php:183
+#: inc/backend/order-action-button.php:767
+#: inc/backend/order-action-button.php:1216
 msgid "Spam"
 msgstr ""
 
-#: inc/backend/dashboard.php:206
-#: inc/backend/order-action-button.php:782
-#: inc/backend/order-action-button.php:1227
+#: inc/backend/dashboard.php:184
+#: inc/backend/order-action-button.php:768
+#: inc/backend/order-action-button.php:1217
 msgid "Policy abuse"
 msgstr ""
 
-#: inc/backend/dashboard.php:207
-#: inc/backend/order-action-button.php:783
-#: inc/backend/order-action-button.php:811
-#: inc/backend/order-action-button.php:1228
-#: inc/backend/order-action-button.php:1663
+#: inc/backend/dashboard.php:185
+#: inc/backend/order-action-button.php:769
+#: inc/backend/order-action-button.php:797
+#: inc/backend/order-action-button.php:1218
+#: inc/backend/order-action-button.php:1668
 #: inc/backend/views/dashboard-form.php:401
 msgid "Other"
 msgstr ""
 
-#: inc/backend/dashboard.php:217
+#: inc/backend/dashboard.php:195
 #: inc/cores/api/yogb/yogb-register.php:444
 msgid "You are not allowed to perform this action."
 msgstr ""
 
-#: inc/backend/dashboard.php:328
+#: inc/backend/dashboard.php:291
 msgid "There is nothing to add."
 msgstr ""
 
-#: inc/backend/dashboard.php:397
+#: inc/backend/dashboard.php:360
 msgid "Entry has been added to the suspected list."
 msgstr ""
 
-#: inc/backend/dashboard.php:475
+#: inc/backend/dashboard.php:442
 msgid "Entry moved to blocked list successfully."
 msgstr ""
 
-#: inc/backend/dashboard.php:624
+#: inc/backend/dashboard.php:595
 msgid "Entry removed successfully."
 msgstr ""
 
-#: inc/backend/dashboard.php:671
+#: inc/backend/dashboard.php:642
 msgid "Address entry not found."
 msgstr ""
 
-#: inc/backend/dashboard.php:753
+#: inc/backend/dashboard.php:724
 msgid "Address entry removed successfully."
 msgstr ""
 
-#: inc/backend/dashboard.php:1225
+#: inc/backend/dashboard.php:1173
 msgid "No IP addresses were added. Please provide valid IP addresses."
 msgstr ""
 
-#: inc/backend/dashboard.php:1233
+#: inc/backend/dashboard.php:1181
 msgid "Submission failed: You can only add up to 50 IP addresses at a time."
 msgstr ""
 
-#: inc/backend/dashboard.php:1271
+#: inc/backend/dashboard.php:1223
 msgid "One IP address added."
 msgid_plural "%s IP addresses added."
 msgstr[0] ""
 msgstr[1] ""
 
-#: inc/backend/dashboard.php:1342
+#: inc/backend/dashboard.php:1279
 msgid "Please provide either a full address, or a postcode with country, or a state with country."
 msgstr ""
 
-#: inc/backend/dashboard.php:1356
+#: inc/backend/dashboard.php:1293
 msgid "No valid address provided. Please fill in at least one address field."
 msgstr ""
 
-#: inc/backend/dashboard.php:1415
+#: inc/backend/dashboard.php:1352
 msgid "This address rule already exists in the blacklist."
 msgstr ""
 
-#: inc/backend/dashboard.php:1517
+#: inc/backend/dashboard.php:1454
 msgid "Failed to add the address rule. Please check debug.log for details."
 msgstr ""
 
-#: inc/backend/dashboard.php:1563
+#: inc/backend/dashboard.php:1500
 msgid "Address added successfully."
 msgstr ""
 
-#: inc/backend/dashboard.php:1565
+#: inc/backend/dashboard.php:1502
 msgid "Postcode rule added successfully."
 msgstr ""
 
-#: inc/backend/dashboard.php:1567
+#: inc/backend/dashboard.php:1504
 msgid "State rule added successfully."
 msgstr ""
 
-#: inc/backend/dashboard.php:1599
+#: inc/backend/dashboard.php:1524
 msgid "Sorry, your nonce did not verify."
 msgstr ""
 
-#: inc/backend/dashboard.php:1611
+#: inc/backend/dashboard.php:1536
 msgid "No domains were provided."
 msgstr ""
 
-#: inc/backend/dashboard.php:1619
+#: inc/backend/dashboard.php:1544
 msgid "Submission failed: You can only add up to 50 domains at a time."
 msgstr ""
 
-#: inc/backend/dashboard.php:1662
+#: inc/backend/dashboard.php:1591
 msgid "One domain added."
 msgid_plural "%s domains added."
 msgstr[0] ""
 msgstr[1] ""
 
-#: inc/backend/dashboard.php:1669
+#: inc/backend/dashboard.php:1598
 msgid "One domain was not added because it is not in the right format."
 msgid_plural "%s domains were not added because they are not in the right format."
 msgstr[0] ""
 msgstr[1] ""
 
-#: inc/backend/dashboard.php:1682
+#: inc/backend/dashboard.php:1611
 msgid "No new domains were added."
 msgstr ""
 
-#: inc/backend/dashboard.php:1876
+#: inc/backend/dashboard.php:1778
 msgid "You do not have permission to access this data."
 msgstr ""
 
-#: inc/backend/dashboard.php:1889
+#: inc/backend/dashboard.php:1791
 msgid "Missing device ID."
 msgstr ""
 
-#: inc/backend/dashboard.php:1909
+#: inc/backend/dashboard.php:1811
 msgid "Device not found."
 msgstr ""
 
@@ -1156,359 +1175,369 @@ msgstr ""
 msgid "Access to this website is currently restricted for users of your browser. To ensure the highest level of security and performance, we only support certain browsers. Please use a supported browser or update your current version to regain access."
 msgstr ""
 
-#: inc/backend/notifications.php:71
-#: inc/backend/notifications.php:72
-#: inc/backend/notifications.php:91
+#: inc/backend/notifications.php:55
+#: inc/backend/notifications.php:56
+#: inc/backend/notifications.php:85
 #: inc/backend/views/settings-form.php:1871
 msgid "Notifications"
 msgstr ""
 
-#: inc/backend/notifications.php:96
-#: inc/backend/verifications.php:67
+#: inc/backend/notifications.php:90
+#: inc/backend/verifications.php:71
 #: inc/backend/views/activity-log.php:50
 msgid "Support / Suggestion"
 msgstr ""
 
-#: inc/backend/notifications.php:104
+#: inc/backend/notifications.php:98
 #: inc/backend/views/dashboard-form.php:716
 #: inc/backend/views/dashboard-form.php:886
 msgid "Emails"
 msgstr ""
 
-#: inc/backend/notifications.php:105
+#: inc/backend/notifications.php:99
 msgid "Notices"
 msgstr ""
 
-#: inc/backend/notifications.php:164
-#: inc/backend/notifications.php:172
+#: inc/backend/notifications.php:154
+#: inc/backend/notifications.php:166
+msgid "You do not have permission to update these settings."
+msgstr ""
+
+#: inc/backend/notifications.php:158
+#: inc/backend/notifications.php:170
 msgid "Changes saved."
 msgstr ""
 
-#: inc/backend/order-action-button.php:621
-#: inc/backend/order-action-button.php:623
+#: inc/backend/order-action-button.php:607
+#: inc/backend/order-action-button.php:609
 msgid "phone"
 msgstr ""
 
-#: inc/backend/order-action-button.php:629
-#: inc/backend/order-action-button.php:631
+#: inc/backend/order-action-button.php:615
+#: inc/backend/order-action-button.php:617
 msgid "email"
 msgstr ""
 
-#: inc/backend/order-action-button.php:637
-#: inc/backend/order-action-button.php:639
+#: inc/backend/order-action-button.php:623
+#: inc/backend/order-action-button.php:625
 msgid "IP"
 msgstr ""
 
-#: inc/backend/order-action-button.php:645
-#: inc/backend/order-action-button.php:647
+#: inc/backend/order-action-button.php:631
+#: inc/backend/order-action-button.php:633
 msgid "device identity"
 msgstr ""
 
-#: inc/backend/order-action-button.php:652
+#: inc/backend/order-action-button.php:638
 msgid "customer name (%s)"
 msgstr ""
 
-#: inc/backend/order-action-button.php:665
-#: inc/backend/order-action-button.php:667
+#: inc/backend/order-action-button.php:651
+#: inc/backend/order-action-button.php:653
 msgid "billing address"
 msgstr ""
 
-#: inc/backend/order-action-button.php:669
-#: inc/backend/order-action-button.php:671
+#: inc/backend/order-action-button.php:655
+#: inc/backend/order-action-button.php:657
 msgid "billing address (core match)"
 msgstr ""
 
-#: inc/backend/order-action-button.php:685
-#: inc/backend/order-action-button.php:687
+#: inc/backend/order-action-button.php:671
+#: inc/backend/order-action-button.php:673
 msgid "shipping address"
 msgstr ""
 
-#: inc/backend/order-action-button.php:689
-#: inc/backend/order-action-button.php:691
+#: inc/backend/order-action-button.php:675
+#: inc/backend/order-action-button.php:677
 msgid "shipping address (core match)"
 msgstr ""
 
-#: inc/backend/order-action-button.php:773
+#: inc/backend/order-action-button.php:759
 msgid "Are you sure you want to add this to the suspects list?"
 msgstr ""
 
-#: inc/backend/order-action-button.php:774
-#: inc/backend/order-action-button.php:801
-#: inc/backend/order-action-button.php:829
+#: inc/backend/order-action-button.php:760
+#: inc/backend/order-action-button.php:787
+#: inc/backend/order-action-button.php:815
 msgid "Processing..."
 msgstr ""
 
-#: inc/backend/order-action-button.php:786
+#: inc/backend/order-action-button.php:772
 msgid "Payment appears to have been made using a stolen or unauthorized card/payment method."
 msgstr ""
 
-#: inc/backend/order-action-button.php:787
+#: inc/backend/order-action-button.php:773
 msgid "The transaction was charged back by the bank or payment provider as fraud or cardholder dispute."
 msgstr ""
 
-#: inc/backend/order-action-button.php:788
+#: inc/backend/order-action-button.php:774
 msgid "Identity is linked to multiple suspicious orders, bots, or coordinated fraud patterns across your store."
 msgstr ""
 
-#: inc/backend/order-action-button.php:789
+#: inc/backend/order-action-button.php:775
 msgid "Orders are clearly fake, low-value, or automated (e.g. card testing, dummy data, or bulk spam)."
 msgstr ""
 
-#: inc/backend/order-action-button.php:790
+#: inc/backend/order-action-button.php:776
 msgid "Customer repeatedly abuses your store policies (refund abuse, return abuse, reselling, or similar)."
 msgstr ""
 
-#: inc/backend/order-action-button.php:793
+#: inc/backend/order-action-button.php:779
 msgid "Block customer"
 msgstr ""
 
-#: inc/backend/order-action-button.php:794
+#: inc/backend/order-action-button.php:780
 #: inc/backend/views/dashboard-form.php:587
 #: inc/backend/views/dashboard-form.php:1000
 msgid "Reason"
 msgstr ""
 
-#: inc/backend/order-action-button.php:795
-#: inc/backend/order-action-button.php:823
+#: inc/backend/order-action-button.php:781
+#: inc/backend/order-action-button.php:809
 msgid "Select a reason..."
 msgstr ""
 
-#: inc/backend/order-action-button.php:796
+#: inc/backend/order-action-button.php:782
 msgid "Description / internal note"
 msgstr ""
 
-#: inc/backend/order-action-button.php:797
-#: inc/backend/order-action-button.php:825
+#: inc/backend/order-action-button.php:783
+#: inc/backend/order-action-button.php:811
 msgid "Please select a reason."
 msgstr ""
 
-#: inc/backend/order-action-button.php:798
+#: inc/backend/order-action-button.php:784
 msgid "Please enter a description for “Other”."
 msgstr ""
 
-#: inc/backend/order-action-button.php:799
-#: inc/backend/order-action-button.php:827
+#: inc/backend/order-action-button.php:785
+#: inc/backend/order-action-button.php:813
 msgid "Cancel"
 msgstr ""
 
-#: inc/backend/order-action-button.php:800
+#: inc/backend/order-action-button.php:786
 msgid "Confirm block"
 msgstr ""
 
-#: inc/backend/order-action-button.php:806
-#: inc/backend/order-action-button.php:1658
+#: inc/backend/order-action-button.php:792
+#: inc/backend/order-action-button.php:1663
 msgid "Customer appeal / cleared"
 msgstr ""
 
-#: inc/backend/order-action-button.php:807
-#: inc/backend/order-action-button.php:1659
+#: inc/backend/order-action-button.php:793
+#: inc/backend/order-action-button.php:1664
 msgid "Merchant error / mis-report"
 msgstr ""
 
-#: inc/backend/order-action-button.php:808
-#: inc/backend/order-action-button.php:1660
+#: inc/backend/order-action-button.php:794
+#: inc/backend/order-action-button.php:1665
 msgid "Payment provider decision"
 msgstr ""
 
-#: inc/backend/order-action-button.php:809
-#: inc/backend/order-action-button.php:1661
+#: inc/backend/order-action-button.php:795
+#: inc/backend/order-action-button.php:1666
 msgid "Duplicate report"
 msgstr ""
 
-#: inc/backend/order-action-button.php:810
-#: inc/backend/order-action-button.php:1662
+#: inc/backend/order-action-button.php:796
+#: inc/backend/order-action-button.php:1667
 msgid "Test / QA data"
 msgstr ""
 
-#: inc/backend/order-action-button.php:814
+#: inc/backend/order-action-button.php:800
 msgid "Customer provided evidence; after manual review, merchant agrees the customer is legitimate."
 msgstr ""
 
-#: inc/backend/order-action-button.php:815
+#: inc/backend/order-action-button.php:801
 msgid "Wrong order / wrong customer / mis-click / misunderstood reason when reporting."
 msgstr ""
 
-#: inc/backend/order-action-button.php:816
+#: inc/backend/order-action-button.php:802
 msgid "Payment provider or bank dispute outcome indicates the original report no longer stands."
 msgstr ""
 
-#: inc/backend/order-action-button.php:817
+#: inc/backend/order-action-button.php:803
 msgid "Same incident or same identity accidentally reported multiple times by the same merchant."
 msgstr ""
 
-#: inc/backend/order-action-button.php:818
+#: inc/backend/order-action-button.php:804
 msgid "Report was created from test / QA / staging data that slipped into production."
 msgstr ""
 
-#: inc/backend/order-action-button.php:821
+#: inc/backend/order-action-button.php:807
 msgid "Remove from the blacklist"
 msgstr ""
 
-#: inc/backend/order-action-button.php:822
+#: inc/backend/order-action-button.php:808
 msgid "Revoke reason"
 msgstr ""
 
-#: inc/backend/order-action-button.php:824
+#: inc/backend/order-action-button.php:810
 msgid "Note"
 msgstr ""
 
-#: inc/backend/order-action-button.php:826
+#: inc/backend/order-action-button.php:812
 msgid "Please enter a note for “Other”."
 msgstr ""
 
-#: inc/backend/order-action-button.php:828
+#: inc/backend/order-action-button.php:814
 msgid "Confirm remove"
 msgstr ""
 
-#: inc/backend/order-action-button.php:859
+#: inc/backend/order-action-button.php:845
 msgid "Blacklist actions"
 msgstr ""
 
-#: inc/backend/order-action-button.php:875
+#: inc/backend/order-action-button.php:861
 msgid "Development Mode Active."
 msgstr ""
 
-#: inc/backend/order-action-button.php:876
+#: inc/backend/order-action-button.php:862
 msgid "The blacklist system is currently running in development mode."
 msgstr ""
 
-#: inc/backend/order-action-button.php:877
+#: inc/backend/order-action-button.php:863
 msgid "Switch to Production Mode"
 msgstr ""
 
-#: inc/backend/order-action-button.php:886
+#: inc/backend/order-action-button.php:872
 msgid "Add to the suspects list"
 msgstr ""
 
-#: inc/backend/order-action-button.php:886
+#: inc/backend/order-action-button.php:872
 #: inc/backend/views/activity-log.php:316
 #: inc/backend/views/dashboard-form.php:102
 #: inc/backend/views/dashboard-form.php:772
 #: inc/backend/views/dashboard-form.php:867
 #: inc/backend/views/dashboard-form.php:1068
 #: inc/backend/views/dashboard-form.php:1356
-#: inc/backend/views/table/activity-log.php:132
+#: inc/backend/views/table/activity-log.php:143
 #: inc/backend/views/verifications-form.php:40
 #: inc/backend/views/verifications-form.php:169
 msgid "Suspect"
 msgstr ""
 
-#: inc/backend/order-action-button.php:890
+#: inc/backend/order-action-button.php:876
 #: inc/backend/views/settings-form.php:1103
 msgid "Add to blocklist"
 msgstr ""
 
-#: inc/backend/order-action-button.php:890
+#: inc/backend/order-action-button.php:876
 #: inc/backend/views/activity-log.php:315
-#: inc/backend/views/table/activity-log.php:129
+#: inc/backend/views/table/activity-log.php:140
 msgid "Block"
 msgstr ""
 
-#: inc/backend/order-action-button.php:892
+#: inc/backend/order-action-button.php:878
 msgid "This customer is already blocked."
 msgstr ""
 
-#: inc/backend/order-action-button.php:896
+#: inc/backend/order-action-button.php:882
 #: inc/backend/views/activity-log.php:318
-#: inc/backend/views/table/activity-log.php:138
+#: inc/backend/views/table/activity-log.php:152
 msgid "Remove"
 msgstr ""
 
-#: inc/backend/order-action-button.php:902
+#: inc/backend/order-action-button.php:888
 msgid "to power up the blacklist management"
 msgstr ""
 
-#: inc/backend/order-action-button.php:945
-#: inc/backend/order-action-button.php:1203
-#: inc/backend/order-action-button.php:1638
+#: inc/backend/order-action-button.php:931
+#: inc/backend/order-action-button.php:1193
+#: inc/backend/order-action-button.php:1643
+#: inc/cores/alert.php:260
+#: inc/cores/notices.php:334
+#: inc/cores/notices.php:346
+#: inc/cores/notices.php:358
+#: inc/cores/notices.php:372
 msgid "Permission denied."
 msgstr ""
 
-#: inc/backend/order-action-button.php:954
-#: inc/backend/order-action-button.php:1244
-#: inc/backend/order-action-button.php:1649
+#: inc/backend/order-action-button.php:940
+#: inc/backend/order-action-button.php:1234
+#: inc/backend/order-action-button.php:1654
 msgid "Invalid order ID."
 msgstr ""
 
-#: inc/backend/order-action-button.php:977
-#: inc/backend/order-action-button.php:1427
+#: inc/backend/order-action-button.php:963
+#: inc/backend/order-action-button.php:1428
 msgid "Order ID: %d"
 msgstr ""
 
-#: inc/backend/order-action-button.php:1148
+#: inc/backend/order-action-button.php:1138
 msgid "Added to the suspect list by %s."
 msgstr ""
 
-#: inc/backend/order-action-button.php:1178
+#: inc/backend/order-action-button.php:1168
 msgid "Added to suspects list successfully."
 msgstr ""
 
-#: inc/backend/order-action-button.php:1185
+#: inc/backend/order-action-button.php:1175
 msgid "Nothing to add to the suspects list."
 msgstr ""
 
-#: inc/backend/order-action-button.php:1215
+#: inc/backend/order-action-button.php:1205
 msgid "Invalid reason."
 msgstr ""
 
-#: inc/backend/order-action-button.php:1235
+#: inc/backend/order-action-button.php:1225
 msgid "Please provide a description for “Other”."
 msgstr ""
 
-#: inc/backend/order-action-button.php:1259
-#: inc/backend/order-action-button.php:1763
+#: inc/backend/order-action-button.php:1249
+#: inc/backend/order-action-button.php:1779
 msgid "System"
 msgstr ""
 
-#: inc/backend/order-action-button.php:1370
+#: inc/backend/order-action-button.php:1371
 msgid "Moved to blocklist by %1$s. Reason: %2$s%3$s"
 msgstr ""
 
-#: inc/backend/order-action-button.php:1415
+#: inc/backend/order-action-button.php:1416
 msgid "Moved to the blocklist successfully."
 msgstr ""
 
-#: inc/backend/order-action-button.php:1569
+#: inc/backend/order-action-button.php:1574
 msgid "Added to blocklist by %1$s. Reason: %2$s%3$s"
 msgstr ""
 
-#: inc/backend/order-action-button.php:1614
+#: inc/backend/order-action-button.php:1619
 msgid "Added to blocklist successfully."
 msgstr ""
 
-#: inc/backend/order-action-button.php:1621
+#: inc/backend/order-action-button.php:1626
 msgid "Nothing to add to the blocklist."
 msgstr ""
 
-#: inc/backend/order-action-button.php:1707
+#: inc/backend/order-action-button.php:1712
 msgid "No blacklist entry found for this order."
 msgstr ""
 
-#: inc/backend/order-action-button.php:1733
+#: inc/backend/order-action-button.php:1745
 msgid "Database delete failed for main blacklist entry ID %d."
 msgstr ""
 
-#: inc/backend/order-action-button.php:1751
+#: inc/backend/order-action-button.php:1767
 msgid "Database delete failed for address blacklist entry ID %d."
 msgstr ""
 
-#: inc/backend/order-action-button.php:1766
+#: inc/backend/order-action-button.php:1782
 msgid "The customer details have been removed from the blacklist by %1$s. Revoke reason: %2$s%3$s"
 msgstr ""
 
-#: inc/backend/order-action-button.php:1828
+#: inc/backend/order-action-button.php:1844
 msgid "Remove from the blacklist successfully."
 msgstr ""
 
-#: inc/backend/order-action-button.php:1839
+#: inc/backend/order-action-button.php:1855
 msgid "This order's %s in the blocklist."
 msgstr ""
 
-#: inc/backend/order-action-button.php:1848
+#: inc/backend/order-action-button.php:1864
 msgid "This order's %s in the suspect list."
 msgstr ""
 
-#: inc/backend/order-action-button.php:1863
+#: inc/backend/order-action-button.php:1879
 msgid "Unauthorized"
 msgstr ""
 
@@ -1748,7 +1777,7 @@ msgstr ""
 msgid "Settings"
 msgstr ""
 
-#: inc/backend/settings.php:108
+#: inc/backend/settings.php:112
 msgid "Settings saved."
 msgstr ""
 
@@ -1758,68 +1787,72 @@ msgstr ""
 
 #: inc/backend/verifications.php:42
 #: inc/backend/verifications.php:43
-#: inc/backend/verifications.php:62
+#: inc/backend/verifications.php:66
 msgid "Verifications"
 msgstr ""
 
-#: inc/backend/verifications.php:58
+#: inc/backend/verifications.php:62
 #: inc/backend/views/activity-log.php:41
 msgid "Please support us by"
 msgstr ""
 
-#: inc/backend/verifications.php:58
+#: inc/backend/verifications.php:62
 #: inc/backend/views/activity-log.php:41
 msgid "leaving a review"
 msgstr ""
 
-#: inc/backend/verifications.php:58
+#: inc/backend/verifications.php:62
 #: inc/backend/views/activity-log.php:41
 msgid "to keep updating & improving."
 msgstr ""
 
-#: inc/backend/verifications.php:76
+#: inc/backend/verifications.php:80
 msgid "Advanced"
 msgstr ""
 
-#: inc/backend/verifications.php:145
+#: inc/backend/verifications.php:153
 msgid "Changes saved successfully."
 msgstr ""
 
-#: inc/backend/verifications.php:221
-#: inc/backend/verifications.php:246
+#: inc/backend/verifications.php:229
+#: inc/backend/verifications.php:254
 msgid "The message must contain the {code} placeholder."
 msgstr ""
 
-#: inc/backend/verifications.php:289
+#: inc/backend/verifications.php:297
 msgid "Settings saved successfully."
 msgstr ""
 
-#: inc/backend/verifications.php:302
+#: inc/backend/verifications.php:303
+msgid "You do not have permission to perform this action."
+msgstr ""
+
+#: inc/backend/verifications.php:316
 #: inc/cores/api/yogb/yogb-register.php:453
 msgid "Security check failed."
 msgstr ""
 
-#: inc/backend/verifications.php:311
+#: inc/backend/verifications.php:325
 msgid "Invalid or empty key provided."
 msgstr ""
 
-#: inc/backend/verifications.php:335
+#: inc/backend/verifications.php:350
 msgid "API call failed: "
 msgstr ""
 
-#: inc/backend/verifications.php:346
+#: inc/backend/verifications.php:361
 msgid "API error: "
 msgstr ""
 
-#: inc/backend/verifications.php:346
+#: inc/backend/verifications.php:361
 msgid "Unknown error"
 msgstr ""
 
-#: inc/backend/verifications.php:354
+#: inc/backend/verifications.php:369
 msgid "Key generated and saved successfully."
 msgstr ""
 
-#: inc/backend/verifications.php:358
+#: inc/backend/verifications.php:373
 msgid "Failed to save the generated key. Please try again."
 msgstr ""
 
@@ -1888,7 +1921,7 @@ msgid "View"
 msgstr ""
 
 #: inc/backend/views/activity-log.php:319
-#: inc/backend/views/table/activity-log.php:141
+#: inc/backend/views/table/activity-log.php:155
 msgid "Unblock"
 msgstr ""
 
@@ -1968,6 +2001,8 @@ msgstr ""
 #: inc/backend/views/dashboard-form.php:865
 #: inc/backend/views/dashboard-form.php:1068
 #: inc/backend/views/dashboard-form.php:1356
+#: inc/backend/views/table/activity-log.php:214
+#: inc/backend/views/table/activity-log.php:261
 msgid "Blocked"
 msgstr ""
 
@@ -2488,6 +2523,7 @@ msgstr ""
 
 #: inc/backend/views/notifications-emails.php:62
 #: inc/backend/views/notifications-notices.php:27
+#: inc/backend/views/table/activity-log.php:300
 msgid "Checkout"
 msgstr ""
 
@@ -4082,6 +4118,113 @@ msgstr ""
 msgid "Bot"
 msgstr ""
 
+#: inc/backend/views/table/activity-log.php:92
+msgid "Woo checkout"
+msgstr ""
+
+#: inc/backend/views/table/activity-log.php:93
+#: inc/backend/views/table/activity-log.php:95
+msgid "Woo Store API checkout"
+msgstr ""
+
+#: inc/backend/views/table/activity-log.php:94
+msgid "Woo Store API"
+msgstr ""
+
+#: inc/backend/views/table/activity-log.php:100
+msgid "WooCommerce"
+msgstr ""
+
+#: inc/backend/views/table/activity-log.php:149
+msgid "Rate limit"
+msgstr ""
+
+#: inc/backend/views/table/activity-log.php:219
+#: inc/backend/views/table/activity-log.php:260
+msgid "Checkout anti-bot:"
+msgstr ""
+
+#: inc/backend/views/table/activity-log.php:221
+#: inc/backend/views/table/activity-log.php:262
+msgid "Risk"
+msgstr ""
+
+#: inc/backend/views/table/activity-log.php:224
+#: inc/backend/views/table/activity-log.php:265
+msgid "Mode"
+msgstr ""
+
+#: inc/backend/views/table/activity-log.php:226
+#: inc/backend/views/table/activity-log.php:267
+msgid "Main signals"
+msgstr ""
+
+#: inc/backend/views/table/activity-log.php:240
+#: inc/backend/views/table/activity-log.php:273
+msgid "Store API rate limit:"
+msgstr ""
+
+#: inc/backend/views/table/activity-log.php:241
+msgid "Blocked excessive checkout/API traffic"
+msgstr ""
+
+#: inc/backend/views/table/activity-log.php:242
+#: inc/backend/views/verifications-form.php:183
+msgid "Limit"
+msgstr ""
+
+#: inc/backend/views/table/activity-log.php:245
+msgid "Route"
+msgstr ""
+
+#: inc/backend/views/table/activity-log.php:246
+msgid "Store API"
+msgstr ""
+
+#: inc/backend/views/table/activity-log.php:273
+msgid "Blocked excessive checkout/API traffic."
+msgstr ""
+
+#: inc/backend/views/table/activity-log.php:293
+msgid "Blocks"
+msgstr ""
+
+#: inc/backend/views/table/activity-log.php:297
+msgid "Classic"
+msgstr ""
+
+#: inc/backend/views/table/activity-log.php:305
+msgid "Browser proof"
+msgstr ""
+
+#: inc/backend/views/table/activity-log.php:306
+msgid "Browser fingerprint"
+msgstr ""
+
+#: inc/backend/views/table/activity-log.php:307
+msgid "Session continuity"
+msgstr ""
+
+#: inc/backend/views/table/activity-log.php:308
+msgid "Device intelligence"
+msgstr ""
+
+#: inc/backend/views/table/activity-log.php:309
+msgid "Checkout velocity"
+msgstr ""
+
+#: inc/backend/views/table/activity-log.php:310
+msgid "Payment abuse"
+msgstr ""
+
+#: inc/backend/views/table/activity-log.php:311
+msgid "Risk engine"
+msgstr ""
+
+#: inc/backend/views/table/activity-log.php:326
+msgid "Risk signals"
+msgstr ""
+
 #: inc/backend/views/verifications-advanced.php:24
 msgid "Verifications merge:"
 msgstr ""
@@ -4261,10 +4404,6 @@ msgstr ""
 
 #: inc/backend/views/verifications-form.php:180
 msgid "digits."
-msgstr ""
-
-#: inc/backend/views/verifications-form.php:183
-msgid "Limit"
 msgstr ""
 
 #: inc/backend/views/verifications-form.php:184

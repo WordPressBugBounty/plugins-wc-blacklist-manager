@@ -53,7 +53,7 @@ if (!defined('ABSPATH')) {
 									<?php echo esc_html__('Merged successfully.', 'wc-blacklist-manager'); ?>
 								</span>
 								<p>
-									<a href="<?php echo esc_url(admin_url('admin-post.php?action=refresh_merging')); ?>" id="refresh_button" class="button button-secondary">
+									<a href="<?php echo esc_url(wp_nonce_url(admin_url('admin-post.php?action=refresh_merging'), 'wc_blacklist_refresh_merging')); ?>" id="refresh_button" class="button button-secondary">
 										<?php echo esc_html__('Refresh merging', 'wc-blacklist-manager'); ?>
 									</a>
 								</p>

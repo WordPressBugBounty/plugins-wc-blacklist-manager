@@ -12,13 +12,13 @@ if (!defined('ABSPATH')) {
 	<h1>
 		<?php echo esc_html__('Blacklist management', 'wc-blacklist-manager'); ?>
 		<?php if (get_option('yoohw_settings_disable_menu') != 1): ?>
-			<a href="https://yoohw.com/docs/category/woocommerce-blacklist-manager/blacklist-management/" target="_blank" class="button button-secondary" style="display: inline-flex; align-items: center;"><span class="dashicons dashicons-editor-help"></span> Documents</a> 
+			<a href="https://docs.yoohw.com/category/blacklist-manager/" target="_blank" class="button button-secondary yoohw-docs-btn" style="display: inline-flex;"><span class="dashicons dashicons-editor-help"></span> <?php echo esc_html__('Docs', 'wc-blacklist-manager'); ?></a> 
 		<?php endif; ?>
 			<?php if (!$premium_active): ?>
-			<a href="https://yoohw.com/contact-us/" target="_blank" class="button button-secondary">Support / Suggestion</a>
+			<a href="https://yoohw.com/contact-us/" target="_blank" class="button button-secondary"><?php echo esc_html__('Support', 'wc-blacklist-manager'); ?></a>
 		<?php endif; ?>
 		<?php if ($premium_active && get_option('yoohw_settings_disable_menu') != 1): ?>
-			<a href="https://yoohw.com/support/" target="_blank" class="button button-secondary">Premium support</a>
+			<a href="https://yoohw.com/support/" target="_blank" class="button button-secondary"><?php echo esc_html__('Support', 'wc-blacklist-manager'); ?></a>
 		<?php endif; ?>
 	</h1>
 
@@ -45,20 +45,22 @@ if (!defined('ABSPATH')) {
 				<p class="description"><?php echo esc_html__('You can add only customer name, phone number or email address or either all.', 'wc-blacklist-manager'); ?></p>
 			<?php endif; ?>
 			
-			<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+			<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="yobm-add-new-form">
 				<input type="hidden" name="action" value="add_suspect_action">
 				<table class="form-table">
 					<tbody>
 						<?php if ($premium_active && $customer_name_blocking_enabled === '1'): ?>
 							<tr>
 								<th scope="row">
-									<label for="new_customer_name">
+									<label for="new_first_name">
 										<?php echo esc_html__('Customer name', 'wc-blacklist-manager'); ?>
 									</label>
 								</th>
 								<td>
-									<input type="text" id="new_first_name" name="new_first_name" placeholder="<?php echo esc_attr__('Enter first name', 'wc-blacklist-manager'); ?>" style="width: 12.25em;" />
-									<input type="text" id="new_last_name" name="new_last_name" placeholder="<?php echo esc_attr__('Enter last name', 'wc-blacklist-manager'); ?>" style="width: 12.25em;" />
+									<span class="yobm-name-fields">
+										<input type="text" id="new_first_name" name="new_first_name" placeholder="<?php echo esc_attr__('Enter first name', 'wc-blacklist-manager'); ?>" />
+										<input type="text" id="new_last_name" name="new_last_name" placeholder="<?php echo esc_attr__('Enter last name', 'wc-blacklist-manager'); ?>" />
+									</span>
 								</td>
 							</tr>
 						<?php endif; ?>
@@ -98,15 +100,22 @@ if (!defined('ABSPATH')) {
 								</label>
 							</th>
 							<td>
-								<select id="status" name="status">
-									<option value="suspect" <?php selected($last_selected_status, 'suspect'); ?>><?php echo esc_html__('Suspect', 'wc-blacklist-manager'); ?></option>
-									<option value="blocked" <?php selected($last_selected_status, 'blocked'); ?>><?php echo esc_html__('Blocked', 'wc-blacklist-manager'); ?></option>
-								</select>
+								<fieldset class="yobm-status-options" id="status">
+									<label>
+										<input type="radio" name="status" value="suspect" <?php checked($last_selected_status, 'suspect'); ?> />
+										<span><?php echo esc_html__('Suspect', 'wc-blacklist-manager'); ?></span>
+									</label>
+									<label>
+										<input type="radio" name="status" value="blocked" <?php checked($last_selected_status, 'blocked'); ?> />
+										<span><?php echo esc_html__('Blocked', 'wc-blacklist-manager'); ?></span>
+									</label>
+								</fieldset>
 							</td>
 						</tr>
 						<?php wp_nonce_field('add_suspect_action_nonce', 'add_suspect_action_nonce_field'); ?>
-						<tr>
-							<td colspan="1" style="padding-left: 0;">
+						<tr class="yobm-submit-row">
+							<th scope="row"></th>
+							<td>
 								<input type="submit" name="submit" value="<?php echo esc_attr__('Add to blacklist', 'wc-blacklist-manager'); ?>" class="button button-primary" />
 							</td>
 						</tr>
@@ -486,7 +495,7 @@ if (!defined('ABSPATH')) {
 							<th style="max-width: 20%;"><?php echo esc_html__('Email address', 'wc-blacklist-manager'); ?></th>
 							<th style="max-width: 20%;"><?php echo esc_html__('Date added', 'wc-blacklist-manager'); ?></th>
 							<th style="max-width: 10%;"><?php echo esc_html__('Source', 'wc-blacklist-manager'); ?></th>
-							<th style="width: 100px"><?php echo esc_html__('Actions', 'wc-blacklist-manager'); ?></th>
+							<th style="width: 120px"><?php echo esc_html__('Actions', 'wc-blacklist-manager'); ?></th>
 						</tr>
 					</thead>
 					<tbody>
@@ -589,7 +598,7 @@ if (!defined('ABSPATH')) {
 
 							<th style="max-width: 20%;"><?php echo esc_html__('Date added', 'wc-blacklist-manager'); ?></th>
 							<th style="max-width: 10%;"><?php echo esc_html__('Source', 'wc-blacklist-manager'); ?></th>
-							<th style="width: 100px;"><?php echo esc_html__('Actions', 'wc-blacklist-manager'); ?></th>
+							<th style="width: 120px;"><?php echo esc_html__('Actions', 'wc-blacklist-manager'); ?></th>
 						</tr>
 					</thead>
 					<tbody>
@@ -1003,7 +1012,7 @@ if (!defined('ABSPATH')) {
 								<th style="max-width: 20%;"><?php echo esc_html__('Date added', 'wc-blacklist-manager'); ?></th>
 								<th style="max-width: 10%;"><?php echo esc_html__('Source', 'wc-blacklist-manager'); ?></th>
 								<th style="max-width: 10%;"><?php echo esc_html__('Status', 'wc-blacklist-manager'); ?></th>
-								<th style="width: 100px;"><?php echo esc_html__('Actions', 'wc-blacklist-manager'); ?></th>
+								<th style="width: 120px;"><?php echo esc_html__('Actions', 'wc-blacklist-manager'); ?></th>
 							</tr>
 						</thead>
 						<tbody>
@@ -1288,7 +1297,7 @@ if (!defined('ABSPATH')) {
 								<th style="width: 18%;"><?php echo esc_html__( 'Region', 'wc-blacklist-manager' ); ?></th>
 								<th style="width: 16%;"><?php echo esc_html__( 'Date added', 'wc-blacklist-manager' ); ?></th>
 								<th style="width: 8%;"><?php echo esc_html__( 'Status', 'wc-blacklist-manager' ); ?></th>
-								<th style="width: 100px;"><?php echo esc_html__( 'Actions', 'wc-blacklist-manager' ); ?></th>
+								<th style="width: 120px;"><?php echo esc_html__( 'Actions', 'wc-blacklist-manager' ); ?></th>
 							</tr>
 						</thead>
 						<tbody>
@@ -1459,7 +1468,7 @@ if (!defined('ABSPATH')) {
 								<th style="max-width: 24px;" class="check-column"><input type="checkbox" id="select_all_domain" /></th>
 								<th style="max-width: 30%;"><?php echo esc_html__('Domain', 'wc-blacklist-manager'); ?></th>
 								<th style="max-width: 30%;"><?php echo esc_html__('Date added', 'wc-blacklist-manager'); ?></th>
-								<th style="width: 100px;"><?php echo esc_html__('Actions', 'wc-blacklist-manager'); ?></th>
+								<th style="width: 120px;"><?php echo esc_html__('Actions', 'wc-blacklist-manager'); ?></th>
 							</tr>
 						</thead>
 						<tbody>

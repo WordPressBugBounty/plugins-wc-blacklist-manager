@@ -46,7 +46,8 @@ class WC_Blacklist_Manager_Device_Identity {
 		$this->plugin_file = defined( 'WC_BLACKLIST_MANAGER_PLUGIN_FILE' ) ? WC_BLACKLIST_MANAGER_PLUGIN_FILE : '';
 		$this->version     = defined( 'WC_BLACKLIST_MANAGER_VERSION' ) ? WC_BLACKLIST_MANAGER_VERSION : '1.0.0';
 
-		add_action( 'init', array( $this, 'maybe_set_device_cookie' ) );
+		add_action( 'wp', array( $this, 'maybe_set_device_cookie' ), 1 );
+		add_action( 'login_init', array( $this, 'maybe_set_device_cookie' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 		add_action( 'login_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 
@@ -62,7 +63,7 @@ class WC_Blacklist_Manager_Device_Identity {
 	 * @return bool
 	 */
 	public function is_device_identity_available() {
-		return true;
+		return '1' === (string) get_option( 'wc_blacklist_enable_device_identity', '0' );
 	}
 
 	/**
@@ -211,7 +212,7 @@ class WC_Blacklist_Manager_Device_Identity {
 	 * @return void
 	 */
 	public function maybe_set_device_cookie() {
-		if ( headers_sent() || ! $this->is_device_identity_available() ) {
+		if ( headers_sent() || ! $this->should_enqueue_script() ) {
 			return;
 		}
 

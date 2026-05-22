@@ -11,9 +11,9 @@ if (!defined('ABSPATH')) {
 	
 	<h1>
 		<?php echo esc_html__('Blacklist manager settings', 'wc-blacklist-manager'); ?> 
-		<a href="https://yoohw.com/docs/category/woocommerce-blacklist-manager/settings/" target="_blank" class="button button-secondary" style="display: inline-flex; align-items: center;"><span class="dashicons dashicons-editor-help"></span> Documents</a>
+		<a href="https://docs.yoohw.com/category/blacklist-manager/" target="_blank" class="button button-secondary yoohw-docs-btn" style="display: inline-flex;"><span class="dashicons dashicons-editor-help"></span> <?php echo esc_html__('Docs', 'wc-blacklist-manager'); ?></a>
 		<?php if (!$premium_active): ?>
-			<a href="https://yoohw.com/contact-us/" target="_blank" class="button button-secondary">Support / Suggestion</a>
+			<a href="https://yoohw.com/contact-us/" target="_blank" class="button button-secondary"><?php echo esc_html__('Support', 'wc-blacklist-manager'); ?></a>
 		<?php endif; ?>
 	</h1>
 
@@ -285,7 +285,7 @@ if (!defined('ABSPATH')) {
 						<td>
 							<input type="checkbox" disabled>
 							<label class="premium-text"><?php echo esc_html__('Enable the ability to check the IP address details on the edit order page', 'wc-blacklist-manager'); ?></label><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a>
-							<p class="premium-text"><?php echo esc_html__('You will be able to click on customer IP on the edit order page and see the IP details in the popup.', 'wc-blacklist-manager'); ?> <a href="https://yoohw.com/docs/woocommerce-blacklist-manager/blacklist-management/orders/#ip-details" target="_blank"><?php echo esc_html__('Learn more', 'wc-blacklist-manager'); ?></a></p>
+							<p class="premium-text"><?php echo esc_html__('You will be able to click on customer IP on the edit order page and see the IP details in the popup.', 'wc-blacklist-manager'); ?> <a href="https://docs.yoohw.com/use-blacklist-actions-on-the-edit-order-page/#ip_details" target="_blank"><?php echo esc_html__('Learn more', 'wc-blacklist-manager'); ?></a></p>
 						</td>
 					</tr>
 				<?php endif; ?>
@@ -314,7 +314,7 @@ if (!defined('ABSPATH')) {
 								<option><?php echo esc_html__('Standard', 'wc-blacklist-manager'); ?></option>
 							</select>
 							<p class="premium-text">
-								<?php echo esc_html__('Control how strict the address matching should be. Standard mode checks exact matches only, while advanced modes intelligently detect variations like apartment numbers, abbreviations, and formatting changes often used to bypass fraud protection.', 'wc-blacklist-manager'); ?> <a href="https://yoohw.com/docs/woocommerce-blacklist-manager/settings/general/#customer-address" target="_blank"><?php echo esc_html__('Learn more', 'wc-blacklist-manager'); ?></a>
+								<?php echo esc_html__('Control how strict the address matching should be. Standard mode checks exact matches only, while advanced modes intelligently detect variations like apartment numbers, abbreviations, and formatting changes often used to bypass fraud protection.', 'wc-blacklist-manager'); ?> <a href="https://docs.yoohw.com/block-billing-and-shipping-addresses/" target="_blank"><?php echo esc_html__('Learn more', 'wc-blacklist-manager'); ?></a>
 							</p>
 						</td>
 					</tr>
@@ -356,7 +356,7 @@ if (!defined('ABSPATH')) {
 							</label>
 
 							<p class="premium-text">
-								<?php echo esc_html__( 'Choose which regional parts of the address should also be checked against the blacklist.', 'wc-blacklist-manager' ); ?> <a href="https://yoohw.com/docs/woocommerce-blacklist-manager/settings/general/#region_blocking" target="_blank"><?php echo esc_html__('Learn more', 'wc-blacklist-manager'); ?></a>
+								<?php echo esc_html__( 'Choose which regional parts of the address should also be checked against the blacklist.', 'wc-blacklist-manager' ); ?> <a href="https://docs.yoohw.com/block-billing-and-shipping-addresses/#region_blocking" target="_blank"><?php echo esc_html__('Learn more', 'wc-blacklist-manager'); ?></a>
 							</p>
 						</td>
 					</tr>
@@ -444,7 +444,7 @@ if (!defined('ABSPATH')) {
 						<td>
 							<input type="checkbox" id="enable_user_blocking" name="enable_user_blocking" value="1" <?php checked($settings['enable_user_blocking']); ?>>
 							<label for="enable_user_blocking"><?php echo esc_html__('Block user when add to blocklist the order placed by that user', 'wc-blacklist-manager'); ?></label>
-							<p class="premium-text"><?php echo esc_html__('Users can be blocked or unblocked through different methods by upgrade to Premium.', 'wc-blacklist-manager'); ?> <a href="https://yoohw.com/docs/woocommerce-blacklist-manager/blacklist-management/user-blocking/" target="_blank"><?php echo esc_html__('Learn more', 'wc-blacklist-manager'); ?></a><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a></p>
+							<p class="premium-text"><?php echo esc_html__('Users can be blocked or unblocked through different methods by upgrade to Premium.', 'wc-blacklist-manager'); ?> <a href="https://docs.yoohw.com/block-and-unblock-wordpress-users/" target="_blank"><?php echo esc_html__('Learn more', 'wc-blacklist-manager'); ?></a><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a></p>
 						</td>
 					</tr>
 				</table>
@@ -460,7 +460,7 @@ if (!defined('ABSPATH')) {
 						<td>
 							<input type="checkbox" disabled>
 							<label class="premium-text"><?php echo esc_html__('Enable user blocking', 'wc-blacklist-manager'); ?></label><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a>
-							<p class="premium-text"><?php echo esc_html__('Users can be blocked or unblocked through different methods.', 'wc-blacklist-manager'); ?> <a href="https://yoohw.com/docs/woocommerce-blacklist-manager/blacklist-management/user-blocking/" target="_blank"><?php echo esc_html__('Learn more', 'wc-blacklist-manager'); ?></a></p>
+							<p class="premium-text"><?php echo esc_html__('Users can be blocked or unblocked through different methods.', 'wc-blacklist-manager'); ?> <a href="https://docs.yoohw.com/block-and-unblock-wordpress-users/" target="_blank"><?php echo esc_html__('Learn more', 'wc-blacklist-manager'); ?></a></p>
 						</td>
 					</tr>
 				</table>
@@ -616,7 +616,7 @@ if (!defined('ABSPATH')) {
 						</select>
 
 						<p class="description">
-							<?php echo esc_html__( 'Select a fit mode for your site.', 'wc-blacklist-manager' ); ?> <a href="https://yoohw.com/docs/woocommerce-blacklist-manager/settings/general/#global_blacklist" target="_blank"><?php echo esc_html__('Learn more', 'wc-blacklist-manager'); ?></a>
+							<?php echo esc_html__( 'Select a fit mode for your site.', 'wc-blacklist-manager' ); ?> <a href="https://docs.yoohw.com/global-blacklist-decisions-and-review-workflow/" target="_blank"><?php echo esc_html__('Learn more', 'wc-blacklist-manager'); ?></a>
 						</p>
 					</td>
 				</tr>

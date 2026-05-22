@@ -49,23 +49,7 @@ class WC_Blacklist_Manager_Notifications {
 	}
 
 	public function add_notification_submenu() {
-		$settings_instance = new WC_Blacklist_Manager_Settings();
-		$premium_active = $settings_instance->is_premium_active();
-		
-		$user_has_permission = false;
-			if ($premium_active) {
-			$allowed_roles = get_option('wc_blacklist_notifications_permission', []);
-			if (is_array($allowed_roles) && !empty($allowed_roles)) {
-				foreach ($allowed_roles as $role) {
-					if (current_user_can($role)) {
-						$user_has_permission = true;
-						break;
-					}
-				}
-			}
-		}
-	
-		if (($premium_active && $user_has_permission) || current_user_can('manage_options')) {
+		if ($this->current_user_can_manage_notifications()) {
 			add_submenu_page(
 				'wc-blacklist-manager',
 				__('Notifications', 'wc-blacklist-manager'),
@@ -76,8 +60,18 @@ class WC_Blacklist_Manager_Notifications {
 			);
 		}
 	}
-	
+
+	private function current_user_can_manage_notifications() {
+		return function_exists( 'wc_blacklist_manager_user_can_manage_area' )
+			? wc_blacklist_manager_user_can_manage_area( 'wc_blacklist_notifications_permission', true )
+			: current_user_can( 'manage_options' );
+	}
+		
 	public function notifications_page_content() {
+		if ( ! $this->current_user_can_manage_notifications() ) {
+			wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'wc-blacklist-manager' ) );
+		}
+
 		$settings_instance = new WC_Blacklist_Manager_Settings();
 		$premium_active = $settings_instance->is_premium_active();
 		$active_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'emails';
@@ -90,13 +84,13 @@ class WC_Blacklist_Manager_Notifications {
 			<h1>
 				<?php echo esc_html__('Notifications', 'wc-blacklist-manager'); ?>
 				<?php if (get_option('yoohw_settings_disable_menu') != 1): ?>
-					<a href="https://yoohw.com/docs/category/woocommerce-blacklist-manager/notifications/" target="_blank" class="button button-secondary" style="display: inline-flex; align-items: center;"><span class="dashicons dashicons-editor-help"></span> Documents</a>
+					<a href="https://docs.yoohw.com/category/blacklist-manager/" target="_blank" class="button button-secondary yoohw-docs-btn" style="display: inline-flex;"><span class="dashicons dashicons-editor-help"></span> <?php echo esc_html__('Docs', 'wc-blacklist-manager'); ?></a>
 				<?php endif; ?>
 				<?php if (!$premium_active): ?>
-					<a href="https://yoohw.com/contact-us/" target="_blank" class="button button-secondary"><?php esc_html_e('Support / Suggestion', 'wc-blacklist-manager'); ?></a>
+					<a href="https://yoohw.com/contact-us/" target="_blank" class="button button-secondary"><?php echo esc_html__('Support', 'wc-blacklist-manager'); ?></a>
 				<?php endif; ?>
 				<?php if ($premium_active && get_option('yoohw_settings_disable_menu') != 1): ?>
-					<a href="https://yoohw.com/support/" target="_blank" class="button button-secondary">Premium support</a>
+					<a href="https://yoohw.com/support/" target="_blank" class="button button-secondary"><?php echo esc_html__('Support', 'wc-blacklist-manager'); ?></a>
 				<?php endif; ?>
 			</h1>
 
@@ -105,20 +99,16 @@ class WC_Blacklist_Manager_Notifications {
 				<a href="?page=wc-blacklist-manager-notifications&tab=notices" class="nav-tab <?php echo $active_tab == 'notices' ? 'nav-tab-active' : ''; ?>"><?php echo esc_html__('Notices', 'wc-blacklist-manager'); ?></a>
 			</h2>
 
-			<form method="post" enctype="multipart/form-data" action="">
 				<?php
-				wp_nonce_field('wc_blacklist_settings_action', 'wc_blacklist_settings_nonce');
-
 				if ($active_tab == 'emails') {
 					$this->render_notification_emails();
 				} elseif ($active_tab == 'notices') {
 					$this->render_notifications_notices();
 				}
 				?>
-			</form>
-		</div>
-		<?php
-	}
+			</div>
+			<?php
+		}
 
 	public function render_notification_emails() {
 		$settings_instance = new WC_Blacklist_Manager_Settings();
@@ -160,6 +150,10 @@ class WC_Blacklist_Manager_Notifications {
 
 	private function handle_emails_form_submission() {
 		if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['wc_blacklist_email_settings_nonce']) && wp_verify_nonce($_POST['wc_blacklist_email_settings_nonce'], 'wc_blacklist_email_settings_action')) {
+			if ( ! $this->current_user_can_manage_notifications() ) {
+				return __( 'You do not have permission to update these settings.', 'wc-blacklist-manager' );
+			}
+
 			$this->save_emails_settings();
 			return __('Changes saved.', 'wc-blacklist-manager');
 		}
@@ -168,6 +162,10 @@ class WC_Blacklist_Manager_Notifications {
 
 	private function handle_notices_form_submission() {
 		if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['wc_blacklist_email_settings_nonce']) && wp_verify_nonce($_POST['wc_blacklist_email_settings_nonce'], 'wc_blacklist_email_settings_action')) {
+			if ( ! $this->current_user_can_manage_notifications() ) {
+				return __( 'You do not have permission to update these settings.', 'wc-blacklist-manager' );
+			}
+
 			$this->save_notices_settings();
 			return __('Changes saved.', 'wc-blacklist-manager');
 		}
