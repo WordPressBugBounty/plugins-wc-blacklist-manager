@@ -171,7 +171,7 @@ class WC_Blacklist_Manager_Alert {
 
 					<p class="yobmp-actions">
 						<a class="button button-primary" target="_blank" rel="noopener noreferrer" href="<?php echo esc_url( $premium_url ); ?>">
-							<?php esc_html_e( 'Upgrade to Premium — protect checkout', 'wc-blacklist-manager' ); ?>
+							<?php esc_html_e( 'Unlock Anti-bot Protection', 'wc-blacklist-manager' ); ?>
 						</a>
 
 						<button type="button" class="button-secondary yobmp-link" data-yobm-action="later">
@@ -314,21 +314,8 @@ class WC_Blacklist_Manager_Alert {
 	}
 
 	private function premium_is_activated() {
-		if ( ! function_exists( 'is_plugin_active' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/plugin.php';
-		}
-
-		$premium_active = is_plugin_active( 'wc-blacklist-manager-premium/wc-blacklist-manager-premium.php' );
-
-		if ( ! $premium_active ) {
-			return false;
-		}
-
-		if ( ! class_exists( 'WC_Blacklist_Manager_Validator' ) ) {
-			return false;
-		}
-
-		return (bool) WC_Blacklist_Manager_Validator::is_premium_active();
+		return function_exists( 'wc_blacklist_manager_is_premium_available' )
+			&& wc_blacklist_manager_is_premium_available();
 	}
 
 	private function get_premium_buy_url() {

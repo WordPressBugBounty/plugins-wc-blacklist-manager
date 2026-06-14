@@ -29,6 +29,54 @@ class WC_Blacklist_Manager_Contact_Form_7 {
     private $blocked_phones = array();
     private $blocked_ip = array();
 
+    private function is_premium_active() {
+        return function_exists( 'wc_blacklist_manager_is_premium_available' )
+            && wc_blacklist_manager_is_premium_available();
+    }
+
+    /**
+     * Get a submitted CF7 field value as a trimmed string.
+     *
+     * CF7 can submit array values for fields like checkboxes and multiselects.
+     */
+    private function get_cf7_posted_value( $posted, $name ) {
+        if ( ! is_array( $posted ) || ! isset( $posted[ $name ] ) ) {
+            return '';
+        }
+
+        return $this->normalize_cf7_posted_value( $posted[ $name ] );
+    }
+
+    /**
+     * Normalize scalar or array submitted values into a string.
+     */
+    private function normalize_cf7_posted_value( $value ) {
+        if ( is_array( $value ) ) {
+            $parts = array();
+
+            array_walk_recursive(
+                $value,
+                function ( $item ) use ( &$parts ) {
+                    if ( is_scalar( $item ) || ( is_object( $item ) && method_exists( $item, '__toString' ) ) ) {
+                        $item = trim( (string) $item );
+
+                        if ( '' !== $item ) {
+                            $parts[] = $item;
+                        }
+                    }
+                }
+            );
+
+            return trim( implode( ' ', $parts ) );
+        }
+
+        if ( is_scalar( $value ) || ( is_object( $value ) && method_exists( $value, '__toString' ) ) ) {
+            return trim( (string) $value );
+        }
+
+        return '';
+    }
+
     public function __construct() {
         // Attach CF7 field validation filters.
         add_filter( "wpcf7_validate_email*", [ $this, 'cf7_blacklist_validate_email' ], 20, 2 );
@@ -50,8 +98,7 @@ class WC_Blacklist_Manager_Contact_Form_7 {
      * Validate email fields against the blacklist.
      */
     public function cf7_blacklist_validate_email( $result, $tag ) {
-        $settings_instance = new WC_Blacklist_Manager_Settings();
-		$premium_active = $settings_instance->is_premium_active();
+		$premium_active = $this->is_premium_active();
 
         if ($premium_active) {
             // Grab the current submission & form
@@ -69,7 +116,7 @@ class WC_Blacklist_Manager_Contact_Form_7 {
         $table_name = $wpdb->prefix . 'wc_blacklist';
         
         $name  = $tag->name;
-        $value = isset( $_POST[ $name ] ) ? trim( $_POST[ $name ] ) : '';
+        $value = $this->get_cf7_posted_value( $_POST, $name );
         
         if ( empty( $value ) ) {
             return $result;
@@ -91,7 +138,7 @@ class WC_Blacklist_Manager_Contact_Form_7 {
                     $sum_block_total = get_option('wc_blacklist_sum_block_total', 0);
                     update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
 
-                    if ($premium_active) {
+                    if ($premium_active && class_exists( 'WC_Blacklist_Manager_Premium_Activity_Logs_Insert' ) ) {
                         $reason_email = 'blocked_email_attempt: ' . $value;
                         WC_Blacklist_Manager_Premium_Activity_Logs_Insert::contact_form_7_block('', '', $reason_email);
                     }
@@ -103,7 +150,7 @@ class WC_Blacklist_Manager_Contact_Form_7 {
                 }
             }
             
-            if ( get_option( 'wc_blacklist_domain_form' ) == '1' ) {
+            if ( $premium_active && get_option( 'wc_blacklist_domain_form' ) == '1' ) {
                 // Extract the domain and check if the domain is blocked.
                 $domain = substr( strrchr( $value, "@" ), 1 );
                 if ( ! empty( $domain ) ) {
@@ -120,7 +167,7 @@ class WC_Blacklist_Manager_Contact_Form_7 {
                         $sum_block_total = get_option('wc_blacklist_sum_block_total', 0);
                         update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
 
-                        if ($premium_active) {
+                        if ($premium_active && class_exists( 'WC_Blacklist_Manager_Premium_Activity_Logs_Insert' ) ) {
                             $reason_domain   = 'blocked_domain_attempt: ' . $domain;
                             WC_Blacklist_Manager_Premium_Activity_Logs_Insert::contact_form_7_block('', '', '', '', '', $reason_domain);
                         }
@@ -139,8 +186,7 @@ class WC_Blacklist_Manager_Contact_Form_7 {
      * Validate telephone fields against the blacklist.
      */
     public function cf7_blacklist_validate_tel( $result, $tag ) {
-        $settings_instance = new WC_Blacklist_Manager_Settings();
-		$premium_active = $settings_instance->is_premium_active();
+		$premium_active = $this->is_premium_active();
 
         if ($premium_active) {
             // Grab the current submission & form
@@ -162,7 +208,7 @@ class WC_Blacklist_Manager_Contact_Form_7 {
         $table_name = $wpdb->prefix . 'wc_blacklist';
         
         $name  = $tag->name;
-        $value = isset( $_POST[ $name ] ) ? trim( $_POST[ $name ] ) : '';
+        $value = $this->get_cf7_posted_value( $_POST, $name );
         
         if ( empty( $value ) ) {
             return $result;
@@ -185,7 +231,7 @@ class WC_Blacklist_Manager_Contact_Form_7 {
             $sum_block_total = get_option('wc_blacklist_sum_block_total', 0);
             update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
 
-            if ($premium_active) {
+            if ($premium_active && class_exists( 'WC_Blacklist_Manager_Premium_Activity_Logs_Insert' ) ) {
                 $reason_phone   = 'blocked_phone_attempt: ' . $clean_phone;
                 WC_Blacklist_Manager_Premium_Activity_Logs_Insert::contact_form_7_block('', $reason_phone);
             }
@@ -202,11 +248,10 @@ class WC_Blacklist_Manager_Contact_Form_7 {
      * Validate the visitor’s IP address against the blacklist.
      */
     public function cf7_blacklist_validate_ip( $spam, $submission ) {
-        $settings_instance = new WC_Blacklist_Manager_Settings();
-        $premium_active = $settings_instance->is_premium_active();
+        $premium_active = $this->is_premium_active();
 
         if (!$premium_active) {
-            return;
+            return $spam;
         }
 
         if ( $submission instanceof WPCF7_Submission ) {
@@ -245,7 +290,7 @@ class WC_Blacklist_Manager_Contact_Form_7 {
             $sum_block_total = get_option('wc_blacklist_sum_block_total', 0);
             update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
 
-            if ($premium_active) {
+            if ($premium_active && class_exists( 'WC_Blacklist_Manager_Premium_Activity_Logs_Insert' ) ) {
                 $reason_user_ip   = 'blocked_ip_attempt: ' . $ip_address;
                 WC_Blacklist_Manager_Premium_Activity_Logs_Insert::contact_form_7_block('', '', '', $reason_user_ip);
             }
@@ -262,11 +307,10 @@ class WC_Blacklist_Manager_Contact_Form_7 {
      * Validate if the visitor is using a Proxy or VPN.
      */
     public function cf7_blacklist_validate_proxy_vpn( $spam, $submission ) {
-        $settings_instance = new WC_Blacklist_Manager_Settings();
-        $premium_active = $settings_instance->is_premium_active();
+        $premium_active = $this->is_premium_active();
 
         if (!$premium_active) {
-            return;
+            return $spam;
         }
         
         if ( $submission instanceof WPCF7_Submission ) {
@@ -304,7 +348,7 @@ class WC_Blacklist_Manager_Contact_Form_7 {
                 $sum_block_total = get_option('wc_blacklist_sum_block_total', 0);
                 update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
 
-                if ($premium_active) {
+                if ($premium_active && class_exists( 'WC_Blacklist_Manager_Premium_Activity_Logs_Insert' ) ) {
                     $reason_proxy_vpn   = 'blocked_proxy_vpn_attempt: ' . $ip_address;
                     WC_Blacklist_Manager_Premium_Activity_Logs_Insert::contact_form_7_block('', '', '', '', '', '', $reason_proxy_vpn);
                 }
@@ -321,11 +365,10 @@ class WC_Blacklist_Manager_Contact_Form_7 {
      * Override the CF7 AJAX JSON response when a blacklist violation is detected.
      */
     public function cf7_blacklist_override_response( $response, $result ) {
-        $settings_instance = new WC_Blacklist_Manager_Settings();
-        $premium_active = $settings_instance->is_premium_active();
+        $premium_active = $this->is_premium_active();
 
         if ( $this->wc_blacklist_blocked || $this->wc_blacklist_blocked_proxy_vpn ) {
-            if ($premium_active && get_option('wc_blacklist_email_form_block') == 'yes') {
+            if ($premium_active && get_option('wc_blacklist_email_form_block') == 'yes' && class_exists( 'WC_Blacklist_Manager_Premium_Form_Email' ) ) {
                 // Trigger the blocked submission email.
                 $email_sender = new WC_Blacklist_Manager_Premium_Form_Email();
                 $email_sender->send_email_form_block(
@@ -372,8 +415,7 @@ class WC_Blacklist_Manager_Contact_Form_7 {
      * @param WPCF7_Submission  $submission
      */
     public function log_cf7_submission_data( $contact_form, $submission ) {
-        $settings_instance = new WC_Blacklist_Manager_Settings();
-        $premium_active = $settings_instance->is_premium_active();
+        $premium_active = $this->is_premium_active();
 
         if (!$premium_active) {
             return;
@@ -390,7 +432,6 @@ class WC_Blacklist_Manager_Contact_Form_7 {
 
         foreach ( $contact_form->scan_form_tags() as $tag ) {
             $name  = $tag->name;
-            $value = isset( $posted[ $name ] ) ? trim( $posted[ $name ] ) : '';
 
             // CF7 4.9+ provides basetype; fallback by stripping a trailing '*'
             if ( isset( $tag->basetype ) ) {
@@ -398,6 +439,12 @@ class WC_Blacklist_Manager_Contact_Form_7 {
             } else {
                 $base = preg_replace( '/\*$/', '', strtolower( $tag->type ) );
             }
+
+            if ( 'email' !== $base && 'tel' !== $base ) {
+                continue;
+            }
+
+            $value = $this->get_cf7_posted_value( $posted, $name );
 
             if ( 'email' === $base && is_email( $value ) ) {
                 $emails[] = $value;

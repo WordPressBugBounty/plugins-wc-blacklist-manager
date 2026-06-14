@@ -51,7 +51,6 @@ if (!class_exists('Yo_Ohw_SMS_Quota_Update')) {
 			return rest_ensure_response([
 				'status'    => 'success',
 				'message'   => 'Quota updated successfully.',
-				'sms_key'   => $sms_key,
 				'new_quota' => $new_quota,
 			]);
 		}

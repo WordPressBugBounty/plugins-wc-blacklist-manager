@@ -36,8 +36,12 @@ class WC_Blacklist_Manager_Email_Domain_Prevention {
 	}
 
 	private function is_premium_active() {
-		$settings_instance = new WC_Blacklist_Manager_Settings();
-		return $settings_instance->is_premium_active();
+		return function_exists( 'wc_blacklist_manager_is_premium_available' )
+			&& wc_blacklist_manager_is_premium_available();
+	}
+
+	private function can_use_premium_activity_logs( $premium_active ) {
+		return $premium_active && class_exists( 'WC_Blacklist_Manager_Premium_Activity_Logs_Insert' );
 	}
 
 	private function get_blacklist_table_name() {
@@ -204,19 +208,19 @@ class WC_Blacklist_Manager_Email_Domain_Prevention {
 	}
 
 	private function log_checkout_block_reason( $premium_active, $reason ) {
-		if ( $premium_active && '' !== $reason ) {
+		if ( $this->can_use_premium_activity_logs( $premium_active ) && '' !== $reason ) {
 			WC_Blacklist_Manager_Premium_Activity_Logs_Insert::checkout_block( '', '', '', '', '', '', '', $reason );
 		}
 	}
 
 	private function log_registration_block_reason( $premium_active, $reason ) {
-		if ( $premium_active && '' !== $reason ) {
+		if ( $this->can_use_premium_activity_logs( $premium_active ) && '' !== $reason ) {
 			WC_Blacklist_Manager_Premium_Activity_Logs_Insert::register_block( '', '', '', '', '', $reason );
 		}
 	}
 
 	private function log_comment_block_reason( $premium_active, $reason ) {
-		if ( $premium_active && '' !== $reason ) {
+		if ( $this->can_use_premium_activity_logs( $premium_active ) && '' !== $reason ) {
 			WC_Blacklist_Manager_Premium_Activity_Logs_Insert::comment_block( '', '', '', '', '', $reason );
 		}
 	}

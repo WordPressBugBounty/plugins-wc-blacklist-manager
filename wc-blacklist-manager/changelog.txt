@@ -2,6 +2,21 @@
 
 == Changelog ==
 
+= 2.2.7 (Jun 14, 2026) =
+* Security: Strengthened email and phone verification against brute-force attacks.
+* Security: Improved verification code validation, expiration, and resend protection.
+* Security: Added nonces to verification merge and refresh-merging admin links.
+* Security: Stopped returning the stored SMS secret key from the SMS quota endpoint response.
+* Fix: Prevented Global Blacklist checks from being marked complete before a successful API response.
+* Fix: Prevented PHP fatal errors when Contact Form 7 submits checkbox, multiselect, or other array-based field values during submission logging.
+* Fix: Hardened Contact Form 7, WPForms, and Gravity Forms blacklist validation so submitted email and phone values are normalized before string validation.
+* Fix: Hardened verification and dashboard request handling so malformed array input cannot reach string-only email, trim, or phone normalization calls.
+* Fix: Prevented hidden admin settings controls from blocking Save changes through native browser validation.
+* Improve: Enhanced verification reliability, security, and overall user experience.
+* Improve: Added pending, success, failed, retry metadata and retry backoff for Global Blacklist order checks.
+* Improve: Counted Global Blacklist quota usage only after a valid API response.
+* Improve: Made blacklist sync and audit callbacks more consistent for manual add, update, delete, IP, domain, and address actions.
+
 = 2.2.6 (May 22, 2026) =
 * Update: WordPress version 7.0 compatibility.
 * Fix: Email verification now reliably blocks Classic Checkout until the customer enters a valid verification code.

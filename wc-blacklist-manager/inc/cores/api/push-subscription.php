@@ -66,10 +66,7 @@ class WC_Blacklist_Manager_Push_Subscription {
         $host = preg_replace( '#^www\.#i', '', $host );
 
         // 3) Product code
-		if ( ! function_exists( 'is_plugin_active' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/plugin.php';
-		}
-        if ( is_plugin_active( 'wc-blacklist-manager-premium/wc-blacklist-manager-premium.php' ) ) {
+        if ( function_exists( 'wc_blacklist_manager_is_premium_available' ) && wc_blacklist_manager_is_premium_available() ) {
             $product_code = 'bmp';
         } else {
             $product_code = 'bm';

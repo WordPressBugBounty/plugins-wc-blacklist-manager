@@ -18,6 +18,41 @@ class WC_Blacklist_Manager_Gravity_Forms {
     private $blocked_phones = array();
     private $blocked_ip = array();
 
+    private function is_premium_active() {
+        return function_exists( 'wc_blacklist_manager_is_premium_available' )
+            && wc_blacklist_manager_is_premium_available();
+    }
+
+    /**
+     * Normalize submitted form values into a trimmed string.
+     */
+    private function get_submitted_value( $value ) {
+        if ( is_array( $value ) ) {
+            $parts = array();
+
+            array_walk_recursive(
+                $value,
+                function ( $item ) use ( &$parts ) {
+                    if ( is_scalar( $item ) || ( is_object( $item ) && method_exists( $item, '__toString' ) ) ) {
+                        $item = trim( (string) $item );
+
+                        if ( '' !== $item ) {
+                            $parts[] = $item;
+                        }
+                    }
+                }
+            );
+
+            return trim( implode( ' ', $parts ) );
+        }
+
+        if ( is_scalar( $value ) || ( is_object( $value ) && method_exists( $value, '__toString' ) ) ) {
+            return trim( (string) $value );
+        }
+
+        return '';
+    }
+
     public function __construct() {
         // Hook into Gravity Forms validation.
         add_filter('gform_validation', array($this, 'gf_blacklist_validation'));
@@ -49,9 +84,11 @@ class WC_Blacklist_Manager_Gravity_Forms {
         global $wpdb;
         $table_name = $wpdb->prefix . 'wc_blacklist';
         $found = false;
+        $ip_address = '';
+        $email_value = '';
+        $phone_value = '';
 
-        $settings_instance = new WC_Blacklist_Manager_Settings();
-        $premium_active = $settings_instance->is_premium_active();
+        $premium_active = $this->is_premium_active();
 
         // --- IP ADDRESS & PROXY/VPN CHECK ---
         if ($premium_active && get_option('wc_blacklist_ip_enabled') == '1') {
@@ -73,7 +110,7 @@ class WC_Blacklist_Manager_Gravity_Forms {
                         $sum_block_total = get_option('wc_blacklist_sum_block_total', 0);
                         update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
                         
-                        if ($premium_active) {
+                        if ($premium_active && class_exists( 'WC_Blacklist_Manager_Premium_Activity_Logs_Insert' ) ) {
                             $reason_user_ip   = 'blocked_ip_attempt: ' . $ip_address;
                             WC_Blacklist_Manager_Premium_Activity_Logs_Insert::gravity_block('', '', '', $reason_user_ip);
                         }
@@ -91,7 +128,7 @@ class WC_Blacklist_Manager_Gravity_Forms {
                         $sum_block_total = get_option('wc_blacklist_sum_block_total', 0);
                         update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
 
-                        if ($premium_active) {
+                        if ($premium_active && class_exists( 'WC_Blacklist_Manager_Premium_Activity_Logs_Insert' ) ) {
                             $reason_proxy_vpn   = 'blocked_proxy_vpn_attempt: ' . $ip_address;
                             WC_Blacklist_Manager_Premium_Activity_Logs_Insert::gravity_block('', '', '', '', '', '', $reason_proxy_vpn);
                         }
@@ -110,7 +147,7 @@ class WC_Blacklist_Manager_Gravity_Forms {
             if ($field->type == 'email' || $field->type == 'phone') {
                 $field_id = $field->id;
                 $input_name = 'input_' . $field_id;
-                $value = rgpost($input_name);
+                $value = $this->get_submitted_value( rgpost( $input_name ) );
 
                 if (!empty($value)) {
                     // For email fields:
@@ -129,7 +166,7 @@ class WC_Blacklist_Manager_Gravity_Forms {
                                 $sum_block_total = get_option('wc_blacklist_sum_block_total', 0);
                                 update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
 
-                                if ($premium_active) {
+                                if ($premium_active && class_exists( 'WC_Blacklist_Manager_Premium_Activity_Logs_Insert' ) ) {
                                     $reason_email   = 'blocked_email_attempt: ' . $value;
                                     WC_Blacklist_Manager_Premium_Activity_Logs_Insert::gravity_block('', '', $reason_email);
                                 }
@@ -138,7 +175,7 @@ class WC_Blacklist_Manager_Gravity_Forms {
                                 $this->blocked_emails[] = $value;
                             }
                         }
-                        if (get_option('wc_blacklist_domain_form') == '1') {
+                        if ($premium_active && get_option('wc_blacklist_domain_form') == '1') {
                             // Extract the domain from the email.
                             $domain = substr(strrchr($value, "@"), 1);
                             if (!empty($domain)) {
@@ -154,7 +191,7 @@ class WC_Blacklist_Manager_Gravity_Forms {
                                     $sum_block_total = get_option('wc_blacklist_sum_block_total', 0);
                                     update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
 
-                                    if ($premium_active) {
+                                    if ($premium_active && class_exists( 'WC_Blacklist_Manager_Premium_Activity_Logs_Insert' ) ) {
                                         $reason_domain   = 'blocked_domain_attempt: ' . $domain;
                                         WC_Blacklist_Manager_Premium_Activity_Logs_Insert::gravity_block('', '', '', '', '', $reason_domain);
                                     }
@@ -185,7 +222,7 @@ class WC_Blacklist_Manager_Gravity_Forms {
                             $sum_block_total = get_option('wc_blacklist_sum_block_total', 0);
                             update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
 
-                            if ($premium_active) {
+                            if ($premium_active && class_exists( 'WC_Blacklist_Manager_Premium_Activity_Logs_Insert' ) ) {
                                 $reason_phone   = 'blocked_phone_attempt: ' . $value;
                                 WC_Blacklist_Manager_Premium_Activity_Logs_Insert::gravity_block('', $reason_phone);
                             }
@@ -210,7 +247,9 @@ class WC_Blacklist_Manager_Gravity_Forms {
 				'phone'      => $phone_value,
 			];
 			$view_json = wp_json_encode( $view_data );
-            WC_Blacklist_Manager_Premium_Activity_Logs_Insert::gravity_block($view_json);
+            if ( $premium_active && class_exists( 'WC_Blacklist_Manager_Premium_Activity_Logs_Insert' ) ) {
+                WC_Blacklist_Manager_Premium_Activity_Logs_Insert::gravity_block($view_json);
+            }
 
             // Clear individual field errors.
             if (isset($validation_result['form']['fields'])) {
@@ -222,7 +261,7 @@ class WC_Blacklist_Manager_Gravity_Forms {
             // Mark the overall form as invalid.
             $validation_result['is_valid'] = false;
 
-            if ($premium_active && get_option('wc_blacklist_email_form_block') == 'yes') {
+            if ($premium_active && get_option('wc_blacklist_email_form_block') == 'yes' && class_exists( 'WC_Blacklist_Manager_Premium_Form_Email' ) ) {
                 // Trigger the email for the blocked submission.
                 $email_sender = new WC_Blacklist_Manager_Premium_Form_Email();
                 $email_sender->send_email_form_block(

@@ -1092,12 +1092,8 @@ class WC_Blacklist_Manager_DB {
 	}
 
 	public function is_premium_active() {
-		include_once ABSPATH . 'wp-admin/includes/plugin.php';
-
-		$is_plugin_active      = is_plugin_active( 'wc-blacklist-manager-premium/wc-blacklist-manager-premium.php' );
-		$is_license_activated  = WC_Blacklist_Manager_Validator::is_premium_active();
-
-		return $is_plugin_active && $is_license_activated;
+		return function_exists( 'wc_blacklist_manager_is_premium_available' )
+			&& wc_blacklist_manager_is_premium_available();
 	}
 }
 

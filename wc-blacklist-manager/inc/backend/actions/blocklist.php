@@ -28,8 +28,12 @@ class WC_Blacklist_Manager_Blocklist_Prevention {
 	}
 
 	private function is_premium_active() {
-		$settings_instance = new WC_Blacklist_Manager_Settings();
-		return $settings_instance->is_premium_active();
+		return function_exists( 'wc_blacklist_manager_is_premium_available' )
+			&& wc_blacklist_manager_is_premium_available();
+	}
+
+	private function can_use_premium_activity_logs( $premium_active ) {
+		return $premium_active && class_exists( 'WC_Blacklist_Manager_Premium_Activity_Logs_Insert' );
 	}
 
 	private function get_blacklist_table_name() {
@@ -228,7 +232,7 @@ class WC_Blacklist_Manager_Blocklist_Prevention {
 		if ( ! empty( $match_result['is_phone_blocked'] ) ) {
 			$this->increment_block_phone_counters();
 
-			if ( $premium_active ) {
+			if ( $this->can_use_premium_activity_logs( $premium_active ) ) {
 				$reason_phone = $this->format_phone_reason( $match_result['blocked_phones'] );
 				WC_Blacklist_Manager_Premium_Activity_Logs_Insert::checkout_block( '', $reason_phone );
 			}
@@ -237,7 +241,7 @@ class WC_Blacklist_Manager_Blocklist_Prevention {
 		if ( ! empty( $match_result['is_email_blocked'] ) ) {
 			$this->increment_block_email_counters();
 
-			if ( $premium_active ) {
+			if ( $this->can_use_premium_activity_logs( $premium_active ) ) {
 				$reason_email = $this->format_email_reason( $billing_email, $normalized_billing_email, 'blocked_email_attempt: ' );
 				WC_Blacklist_Manager_Premium_Activity_Logs_Insert::checkout_block( '', '', $reason_email );
 			}
@@ -253,7 +257,7 @@ class WC_Blacklist_Manager_Blocklist_Prevention {
 	}
 
 	private function log_checkout_snapshot_from_classic( $premium_active, $billing_phone, $shipping_phone, $billing_email, $normalized_billing_email, $billing_country, $shipping_country ) {
-		if ( ! $premium_active ) {
+		if ( ! $this->can_use_premium_activity_logs( $premium_active ) ) {
 			return;
 		}
 
@@ -363,7 +367,7 @@ class WC_Blacklist_Manager_Blocklist_Prevention {
 	}
 
 	private function log_checkout_snapshot_from_blocks( $premium_active, \WC_Order $order, $billing_phone, $shipping_phone, $billing_email, $normalized_billing_email ) {
-		if ( ! $premium_active ) {
+		if ( ! $this->can_use_premium_activity_logs( $premium_active ) ) {
 			return;
 		}
 
@@ -777,7 +781,7 @@ class WC_Blacklist_Manager_Blocklist_Prevention {
 		$billing_email            = isset( $billing['email'] ) ? $this->sanitize_email_if_valid( wp_unslash( $billing['email'] ) ) : '';
 		$normalized_billing_email = $this->normalize_email_if_valid( $billing_email );
 
-		if ( $premium_active ) {
+		if ( $this->can_use_premium_activity_logs( $premium_active ) ) {
 			$this->log_checkout_snapshot_from_rest_payload(
 				$payload,
 				$billing_phone,
@@ -1044,7 +1048,7 @@ class WC_Blacklist_Manager_Blocklist_Prevention {
 			$normalized_phone = yobm_normalize_phone( $phone );
 		}
 
-		if ( $premium_active ) {
+		if ( $this->can_use_premium_activity_logs( $premium_active ) ) {
 			$user_ip   = get_real_customer_ip();
 			$view_data = array(
 				'ip_address'       => $user_ip,
@@ -1070,7 +1074,7 @@ class WC_Blacklist_Manager_Blocklist_Prevention {
 			$this->increment_block_email_counters();
 			WC_Blacklist_Manager_Email::send_email_registration_block( '', $email );
 
-			if ( $premium_active ) {
+			if ( $this->can_use_premium_activity_logs( $premium_active ) ) {
 				$reason_email = $this->format_email_reason( $email, $normalized_email, 'blocked_email_attempt: ' );
 				WC_Blacklist_Manager_Premium_Activity_Logs_Insert::register_block( '', '', $reason_email );
 			}
@@ -1080,7 +1084,7 @@ class WC_Blacklist_Manager_Blocklist_Prevention {
 			$this->increment_block_email_counters();
 			WC_Blacklist_Manager_Email::send_email_registration_suspect( '', $email );
 
-			if ( $premium_active ) {
+			if ( $this->can_use_premium_activity_logs( $premium_active ) ) {
 				$reason_email = $this->format_email_reason( $email, $normalized_email, 'suspected_email_attempt: ' );
 				WC_Blacklist_Manager_Premium_Activity_Logs_Insert::register_suspect( '', '', $reason_email );
 			}
@@ -1127,7 +1131,7 @@ class WC_Blacklist_Manager_Blocklist_Prevention {
 				$this->increment_block_phone_counters();
 				WC_Blacklist_Manager_Email::send_email_registration_block( $normalized_phone );
 
-				if ( $premium_active ) {
+				if ( $this->can_use_premium_activity_logs( $premium_active ) ) {
 					$reason_phone = 'blocked_phone_attempt: ' . $phone;
 
 					if ( ! empty( $normalized_phone ) && $normalized_phone !== $phone ) {
@@ -1142,7 +1146,7 @@ class WC_Blacklist_Manager_Blocklist_Prevention {
 				$this->increment_block_phone_counters();
 				WC_Blacklist_Manager_Email::send_email_registration_suspect( $normalized_phone );
 
-				if ( $premium_active ) {
+				if ( $this->can_use_premium_activity_logs( $premium_active ) ) {
 					$reason_phone = 'suspected_phone_attempt: ' . $phone;
 
 					if ( ! empty( $normalized_phone ) && $normalized_phone !== $phone ) {
@@ -1376,7 +1380,7 @@ class WC_Blacklist_Manager_Blocklist_Prevention {
 				$this->increment_block_email_counters();
 				WC_Blacklist_Manager_Email::send_email_comment_block( $author_email );
 
-				if ( $premium_active ) {
+				if ( $this->can_use_premium_activity_logs( $premium_active ) ) {
 					$reason_email = $this->format_email_reason( $author_email, $normalized_author_email, 'blocked_email_attempt: ' );
 					WC_Blacklist_Manager_Premium_Activity_Logs_Insert::comment_block( $view_json, $source, $reason_email );
 				}
@@ -1397,7 +1401,7 @@ class WC_Blacklist_Manager_Blocklist_Prevention {
 				$this->increment_block_email_counters();
 				WC_Blacklist_Manager_Email::send_email_comment_suspect( $author_email );
 
-				if ( $premium_active ) {
+				if ( $this->can_use_premium_activity_logs( $premium_active ) ) {
 					$reason_email = $this->format_email_reason( $author_email, $normalized_author_email, 'suspected_email_attempt: ' );
 					WC_Blacklist_Manager_Premium_Activity_Logs_Insert::comment_suspect( $view_json, $source, $reason_email );
 				}

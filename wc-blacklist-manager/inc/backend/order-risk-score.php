@@ -47,7 +47,7 @@ class WC_Blacklist_Manager_Order_Risk_Score {
 
 		add_meta_box(
 			'wc_blacklist_manager_order_risk_score',
-			__( 'Order risk score', 'wc-blacklist-manager' ),
+			__( 'Global blacklist check', 'wc-blacklist-manager' ),
 			array( $this, 'display_order_risk_score_meta_box' ),
 			$screen,
 			'side',

@@ -21,6 +21,39 @@ class WC_Blacklist_Manager_Verifications {
 		$this->includes();
 	}
 
+	private function get_posted_value( $key, $default = '' ) {
+		if ( ! isset( $_POST[ $key ] ) ) {
+			return $default;
+		}
+
+		$value = wp_unslash( $_POST[ $key ] );
+
+		if ( is_array( $value ) ) {
+			$parts = array();
+
+			array_walk_recursive(
+				$value,
+				function ( $item ) use ( &$parts ) {
+					if ( is_scalar( $item ) || ( is_object( $item ) && method_exists( $item, '__toString' ) ) ) {
+						$item = trim( (string) $item );
+
+						if ( '' !== $item ) {
+							$parts[] = $item;
+						}
+					}
+				}
+			);
+
+			return trim( implode( ' ', $parts ) );
+		}
+
+		if ( is_scalar( $value ) || ( is_object( $value ) && method_exists( $value, '__toString' ) ) ) {
+			return trim( (string) $value );
+		}
+
+		return $default;
+	}
+
 	public function set_verifications_strings() {
 		$this->default_email_subject = __('Verify your email address on {site_name}', 'wc-blacklist-manager');
 		$this->default_email_heading = __('Verify your email address', 'wc-blacklist-manager');
@@ -79,6 +112,12 @@ class WC_Blacklist_Manager_Verifications {
 				<a href="?page=wc-blacklist-manager-verifications&tab=verify" class="nav-tab <?php echo $active_tab == 'verify' ? 'nav-tab-active' : ''; ?>"><?php echo esc_html__('Verify', 'wc-blacklist-manager'); ?></a>
 				<a href="?page=wc-blacklist-manager-verifications&tab=advanced" class="nav-tab <?php echo $active_tab == 'advanced' ? 'nav-tab-active' : ''; ?>"><?php echo esc_html__('Advanced', 'wc-blacklist-manager'); ?></a>
 			</h2>
+
+			<?php
+			if ( ! $premium_active && function_exists( 'wc_blacklist_manager_render_action_upsell' ) ) {
+				wc_blacklist_manager_render_action_upsell( 'verifications' );
+			}
+			?>
 
 			<form method="post" enctype="multipart/form-data" action="">
 				<?php
@@ -171,7 +210,7 @@ class WC_Blacklist_Manager_Verifications {
 		]);
 
 		$phone_verification_settings = get_option('wc_blacklist_phone_verification', [
-			'code_length' => 4,
+			'code_length' => 6,
 			'resend' => 180,
 			'limit' => 5,
 			'message' => $this->default_sms_message,
@@ -204,19 +243,21 @@ class WC_Blacklist_Manager_Verifications {
 	}
 
 	private function save_settings() {
+		$premium_active = function_exists( 'wc_blacklist_manager_is_premium_available' )
+			&& wc_blacklist_manager_is_premium_available();
+
 		$email_verification_enabled = isset($_POST['email_verification_enabled']) ? '1' : '0';
 		$email_verification_action = isset($_POST['email_verification_action']) 
 			? sanitize_text_field(wp_unslash($_POST['email_verification_action'])) 
 			: 'all';
 		$email_subject = isset($_POST['email_verification_subject']) 
-			? sanitize_text_field(trim(wp_unslash($_POST['email_verification_subject']))) 
+			? sanitize_text_field( $this->get_posted_value( 'email_verification_subject' ) )
 			: '';
 		$email_heading = isset($_POST['email_verification_heading']) 
-			? sanitize_text_field(trim(wp_unslash($_POST['email_verification_heading']))) 
+			? sanitize_text_field( $this->get_posted_value( 'email_verification_heading' ) )
 			: '';		
 		if ( isset( $_POST['email_verification_message'] ) ) {
-			$raw_message = wp_unslash( $_POST['email_verification_message'] );
-			$email_message = wp_kses_post( trim( $raw_message ) );
+			$email_message = wp_kses_post( $this->get_posted_value( 'email_verification_message' ) );
 		} else {
 			$email_message = '';
 		}
@@ -245,8 +286,10 @@ class WC_Blacklist_Manager_Verifications {
 			? sanitize_text_field(wp_unslash($_POST['phone_verification_action'])) 
 			: 'all';
 		$sms_message = isset($_POST['message']) 
-			? sanitize_text_field(trim(wp_unslash($_POST['message']))) 
+			? sanitize_text_field( $this->get_posted_value( 'message' ) )
 			: '';
+
+		$sms_message = !empty($sms_message) ? wp_kses_post($sms_message) : $this->default_sms_message;
 	
 		// Check if the message contains the required {code} placeholder
 		if (strpos($sms_message, '{code}') === false) {
@@ -255,14 +298,11 @@ class WC_Blacklist_Manager_Verifications {
 			return; // Stop saving if the validation fails
 		}
 	
-		// Apply wp_kses_post() to allow only safe HTML if needed
-		$sms_message = !empty($sms_message) ? wp_kses_post($sms_message) : $this->default_sms_message;
-	
 		// Combine the settings into a single array
 		$phone_verification_settings = [
-			'code_length' => isset($_POST['code_length']) ? intval(wp_unslash($_POST['code_length'])) : 4,
-			'resend' => isset($_POST['resend']) ? intval(wp_unslash($_POST['resend'])) : 180,
-			'limit' => isset($_POST['limit']) ? intval(wp_unslash($_POST['limit'])) : 5,
+			'code_length' => isset($_POST['code_length']) ? max(6, min(10, intval(wp_unslash($_POST['code_length'])))) : 6,
+			'resend' => isset($_POST['resend']) ? max(30, min(3600, intval(wp_unslash($_POST['resend'])))) : 180,
+			'limit' => isset($_POST['limit']) ? max(1, min(10, intval(wp_unslash($_POST['limit'])))) : 5,
 			'message' => $sms_message,
 		];
 		$phone_verification_failed_email = isset($_POST['phone_verification_failed_email']) ? '1' : '0';
@@ -273,6 +313,27 @@ class WC_Blacklist_Manager_Verifications {
 		$name_verification_auto_capitalization = isset($_POST['name_verification_auto_capitalization']) ? '1' : '0';
 		$name_verification_real_time_validate = isset($_POST['name_verification_real_time_validate']) ? '1' : '0';
 		$phone_verification_country_code_disabled = isset($_POST['phone_verification_country_code_disabled']) ? '1' : '0';
+
+		if ( ! $premium_active ) {
+			$email_verification_settings = get_option(
+				'wc_blacklist_email_verification',
+				array(
+					'resend'  => 180,
+					'subject' => $this->default_email_subject,
+					'heading' => $this->default_email_heading,
+					'message' => $this->default_email_message,
+				)
+			);
+
+			$email_verification_real_time_validate  = '0';
+			$email_verification_disposable          = '0';
+			$phone_verification_disposable          = '0';
+			$phone_verification_real_time_validate  = '0';
+			$name_verification_auto_capitalization  = '0';
+			$name_verification_real_time_validate   = '0';
+			$phone_verification_country_code_disabled = '0';
+			$sms_service                            = 'yo_credits';
+		}
 	
 		// Save Email Verification Settings
 		update_option('wc_blacklist_email_verification_enabled', $email_verification_enabled);
@@ -365,6 +426,10 @@ class WC_Blacklist_Manager_Verifications {
 		// Only update the option if the API call was successful
 		$updated = update_option('yoohw_phone_verification_sms_key', $sms_key);
 		if ($updated) {
+			if ( function_exists( 'wc_blacklist_manager_record_action_upsell_event' ) ) {
+				wc_blacklist_manager_record_action_upsell_event( 'sms_key' );
+			}
+
 			wp_send_json_success([
 				'message' => __('Key generated and saved successfully.', 'wc-blacklist-manager')
 			]);
@@ -379,6 +444,10 @@ class WC_Blacklist_Manager_Verifications {
 		// Check for required capabilities (optional, based on your requirements)
 		if (!current_user_can('manage_options')) {
 			wp_die(esc_html('You do not have sufficient permissions to access this page.', 'wc-blacklist-manager'));
+		}
+
+		if ( function_exists( 'wc_blacklist_manager_require_premium' ) && ! wc_blacklist_manager_require_premium( 'admin' ) ) {
+			return;
 		}
 
 		check_admin_referer( 'wc_blacklist_refresh_merging' );

@@ -63,7 +63,9 @@ class WC_Blacklist_Manager_Device_Identity {
 	 * @return bool
 	 */
 	public function is_device_identity_available() {
-		return '1' === (string) get_option( 'wc_blacklist_enable_device_identity', '0' );
+		return function_exists( 'wc_blacklist_manager_is_premium_available' )
+			&& wc_blacklist_manager_is_premium_available()
+			&& '1' === (string) get_option( 'wc_blacklist_enable_device_identity', '0' );
 	}
 
 	/**
@@ -72,10 +74,7 @@ class WC_Blacklist_Manager_Device_Identity {
 	 * @return bool
 	 */
 	public function is_device_links_enabled() {
-		$settings_instance = new WC_Blacklist_Manager_Settings();
-		$premium_active    = $settings_instance->is_premium_active();
-
-		return $premium_active && '1' === get_option( 'wc_blacklist_enable_device_identity', '0' );
+		return $this->is_device_identity_available();
 	}
 
 	/**
@@ -464,6 +463,10 @@ class WC_Blacklist_Manager_Device_Identity {
 	 * @return void
 	 */
 	public function save_order_device_data( $order, $data ) {
+		if ( ! $this->is_device_identity_available() ) {
+			return;
+		}
+
 		if ( ! is_a( $order, 'WC_Order' ) ) {
 			return;
 		}
@@ -512,6 +515,10 @@ class WC_Blacklist_Manager_Device_Identity {
 	 * @return void
 	 */
 	protected function save_missing_device_meta( $order ) {
+		if ( ! $this->is_device_identity_available() ) {
+			return;
+		}
+
 		$existing_device_id = (string) $order->get_meta( '_wc_bm_device_id', true );
 
 		if ( '' !== $existing_device_id ) {

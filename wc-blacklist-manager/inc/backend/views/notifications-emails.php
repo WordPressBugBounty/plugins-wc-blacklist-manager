@@ -2,6 +2,8 @@
 if (!defined('ABSPATH')) {
 	exit;
 }
+
+require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 ?>
 
 <div class="wrap">
@@ -48,10 +50,21 @@ if (!defined('ABSPATH')) {
 				<?php endif; ?>
 				<?php if (!$premium_active): ?>
 					<tr>
-						<th scope="row"><label class="premium-text"><?php echo esc_html__( 'Footer text', 'wc-blacklist-manager' ); ?></label></th>
+						<th scope="row"><label><?php echo esc_html__( 'Footer text', 'wc-blacklist-manager' ); ?></label></th>
 						<td>
-							<textarea rows="3" class="regular-text" disabled><?php echo esc_textarea($data['email_footer_text']); ?></textarea>
-							<p class="premium-text"><?php echo esc_html__( 'Display on the footer of the email template.', 'wc-blacklist-manager' ); ?><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a></p>
+							<?php
+							wc_blacklist_manager_render_premium_preview_cards(
+								array(
+									array(
+										'icon'        => 'dashicons-editor-paragraph',
+										'title'       => __( 'Custom email footer', 'wc-blacklist-manager' ),
+										'description' => __( 'Add branded footer text to blacklist notification emails without editing templates.', 'wc-blacklist-manager' ),
+									),
+								),
+								array( 'columns' => 1 )
+							);
+							wc_blacklist_manager_render_premium_inline_cta( $unlock_url, 'notifications' );
+							?>
 						</td>
 					</tr>
 				<?php endif; ?>
@@ -84,6 +97,46 @@ if (!defined('ABSPATH')) {
 			</table>
 		<?php endif; ?>
 
+		<?php if (!$premium_active): ?>
+			<?php
+			wc_blacklist_manager_render_premium_preview_banner(
+				array(
+					'title'       => __( 'Premium notification coverage', 'wc-blacklist-manager' ),
+					'description' => __( 'Add alerts for account, comment, review, and form abuse without changing the checkout email alerts available in the free plugin.', 'wc-blacklist-manager' ),
+					'unlock_url'  => $unlock_url,
+					'context'     => 'notifications',
+					'icon'        => 'dashicons-email-alt',
+				)
+			);
+
+			$notification_preview_cards = array(
+				array(
+					'icon'        => 'dashicons-admin-site',
+					'title'       => __( 'Registration alerts', 'wc-blacklist-manager' ),
+					'description' => __( 'Notify admins when suspected or blocked visitors try to create accounts.', 'wc-blacklist-manager' ),
+				),
+				array(
+					'icon'        => 'dashicons-admin-comments',
+					'title'       => __( 'Comment and review alerts', 'wc-blacklist-manager' ),
+					'description' => __( 'Receive emails when suspected or blocked users try to submit comments or product reviews.', 'wc-blacklist-manager' ),
+				),
+			);
+
+			if ( $form_active ) {
+				$notification_preview_cards[] = array(
+					'icon'        => 'dashicons-forms',
+					'title'       => __( 'Form submission alerts', 'wc-blacklist-manager' ),
+					'description' => __( 'Notify admins when suspected or blocked visitors submit supported forms.', 'wc-blacklist-manager' ),
+				);
+			}
+
+			wc_blacklist_manager_render_premium_preview_cards(
+				$notification_preview_cards,
+				array( 'columns' => $form_active ? 3 : 2 )
+			);
+			?>
+		<?php endif; ?>
+
 		<?php if ($premium_active): ?>
 			<h2><span class="dashicons dashicons-admin-site"></span> <?php echo esc_html__( 'Register', 'wc-blacklist-manager' ); ?></h2>
 			
@@ -105,33 +158,6 @@ if (!defined('ABSPATH')) {
 						<td>
 							<input type="checkbox" id="wc_blacklist_email_register_block" name="wc_blacklist_email_register_block" value="yes" <?php checked($data['email_register_block'], 'yes'); ?> />
 							<label for="wc_blacklist_email_register_block"><?php echo esc_html__( 'Send email notification when blocked visitor try to register an account', 'wc-blacklist-manager' ); ?></label>
-						</td>
-					</tr>
-				</tbody>
-			</table>
-		<?php endif; ?>
-
-		<?php if (!$premium_active): ?>
-			<h2><span class="premium-text"><span class="dashicons dashicons-admin-site"></span> <?php echo esc_html__( 'Register', 'wc-blacklist-manager' ); ?></span><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a></h2>
-			
-			<table class="form-table">
-				<tbody>
-					<tr>
-						<th scope="row">
-							<label class="premium-text label_child"><?php echo esc_html__( 'Suspect email', 'wc-blacklist-manager' ); ?></label>
-						</th>
-						<td>
-							<input type="checkbox" disabled/>
-							<label class="premium-text"><?php echo esc_html__( 'Send email notification when suspected visitor register an account', 'wc-blacklist-manager' ); ?></label>
-						</td>
-					</tr>
-					<tr>
-						<th scope="row">
-							<label class="premium-text label_child"><?php echo esc_html__( 'Block email', 'wc-blacklist-manager' ); ?></label>
-						</th>
-						<td>
-							<input type="checkbox" disabled/>
-							<label class="premium-text"><?php echo esc_html__( 'Send email notification when blocked visitor try to register an account', 'wc-blacklist-manager' ); ?></label>
 						</td>
 					</tr>
 				</tbody>
@@ -165,33 +191,6 @@ if (!defined('ABSPATH')) {
 			</table>
 		<?php endif; ?>
 
-		<?php if (!$premium_active): ?>
-			<h2><span class="premium-text"><span class="dashicons dashicons-admin-site"></span> <?php echo esc_html__( 'Comment', 'wc-blacklist-manager' ); ?></span><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a></h2>
-			
-			<table class="form-table">
-				<tbody>
-					<tr>
-						<th scope="row">
-							<label class="premium-text label_child"><?php echo esc_html__( 'Suspect email', 'wc-blacklist-manager' ); ?></label>
-						</th>
-						<td>
-							<input type="checkbox" disabled/>
-							<label class="premium-text"><?php echo esc_html__( 'Send email notification when suspected user submit a comment or review', 'wc-blacklist-manager' ); ?></label>
-						</td>
-					</tr>
-					<tr>
-						<th scope="row">
-							<label class="premium-text label_child"><?php echo esc_html__( 'Block email', 'wc-blacklist-manager' ); ?></label>
-						</th>
-						<td>
-							<input type="checkbox" disabled/>
-							<label class="premium-text"><?php echo esc_html__( 'Send email notification when blocked user try to submit a comment or review', 'wc-blacklist-manager' ); ?></label>
-						</td>
-					</tr>
-				</tbody>
-			</table>
-		<?php endif; ?>
-
 		<?php if ($premium_active && $form_active): ?>
 			<h2><span class="dashicons dashicons-forms"></span> <?php echo esc_html__( 'Form', 'wc-blacklist-manager' ); ?></h2>
 			
@@ -213,33 +212,6 @@ if (!defined('ABSPATH')) {
 						<td>
 							<input type="checkbox" id="wc_blacklist_email_form_block" name="wc_blacklist_email_form_block" value="yes" <?php checked($data['email_form_block'], 'yes'); ?> />
 							<label for="wc_blacklist_email_form_block"><?php echo esc_html__( 'Send email notification when blocked visitor try to submit a form', 'wc-blacklist-manager' ); ?></label>
-						</td>
-					</tr>
-				</tbody>
-			</table>
-		<?php endif; ?>
-
-		<?php if (!$premium_active && $form_active): ?>
-			<h2><span class="premium-text"><span class="dashicons dashicons-forms"></span> <?php echo esc_html__( 'Form', 'wc-blacklist-manager' ); ?></span><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a></h2>
-			
-			<table class="form-table">
-				<tbody>
-					<tr>
-						<th scope="row">
-							<label class="premium-text label_child"><?php echo esc_html__( 'Suspect email', 'wc-blacklist-manager' ); ?></label>
-						</th>
-						<td>
-							<input type="checkbox" disabled/>
-							<label class="premium-text"><?php echo esc_html__( 'Send email notification when suspected visitor submit a form', 'wc-blacklist-manager' ); ?></label>
-						</td>
-					</tr>
-					<tr>
-						<th scope="row">
-							<label class="premium-text label_child"><?php echo esc_html__( 'Block email', 'wc-blacklist-manager' ); ?></label>
-						</th>
-						<td>
-							<input type="checkbox" disabled/>
-							<label class="premium-text"><?php echo esc_html__( 'Send email notification when blocked visitor try to submit a form', 'wc-blacklist-manager' ); ?></label>
 						</td>
 					</tr>
 				</tbody>

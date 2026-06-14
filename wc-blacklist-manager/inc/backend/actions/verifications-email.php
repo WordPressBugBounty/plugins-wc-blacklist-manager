@@ -12,6 +12,7 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 
 	private $resend_cooldown_seconds;
 	private $verification_expiration_seconds = 300;
+	private $max_verification_attempts = 5;
 
 	private $default_email_subject;
 	private $default_email_heading;
@@ -59,6 +60,35 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 		add_filter( 'rest_request_before_callbacks', array( $this, 'validate_blocks_checkout_rest_request' ), 20, 3 );
 
 		$this->debug_log( 'hooks_registered' );
+	}
+
+	private function get_request_value( $value ) {
+		$value = wp_unslash( $value );
+
+		if ( is_array( $value ) ) {
+			$parts = array();
+
+			array_walk_recursive(
+				$value,
+				function ( $item ) use ( &$parts ) {
+					if ( is_scalar( $item ) || ( is_object( $item ) && method_exists( $item, '__toString' ) ) ) {
+						$item = trim( (string) $item );
+
+						if ( '' !== $item ) {
+							$parts[] = $item;
+						}
+					}
+				}
+			);
+
+			return trim( implode( ' ', $parts ) );
+		}
+
+		if ( is_scalar( $value ) || ( is_object( $value ) && method_exists( $value, '__toString' ) ) ) {
+			return trim( (string) $value );
+		}
+
+		return '';
 	}
 
 	public function set_verifications_strings() {
@@ -146,7 +176,7 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 			return;
 		}
 
-		$email = isset( $_POST['billing_email'] ) ? sanitize_email( wp_unslash( $_POST['billing_email'] ) ) : '';
+		$email = isset( $_POST['billing_email'] ) ? sanitize_email( $this->get_request_value( $_POST['billing_email'] ) ) : '';
 
 		if ( empty( $email ) ) {
 			$this->debug_log( 'classic_missing_email' );
@@ -444,6 +474,7 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 			'sent_at'             => $timestamp,
 			'verified'            => false,
 			'verified_email'      => '',
+			'verify_attempts'     => 0,
 			'resend_available_at' => $timestamp + $this->resend_cooldown_seconds,
 		);
 
@@ -467,8 +498,8 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 			);
 		}
 
-		$settings_instance = new WC_Blacklist_Manager_Settings();
-		$premium_active    = $settings_instance->is_premium_active();
+		$premium_active = function_exists( 'wc_blacklist_manager_is_premium_available' )
+			&& wc_blacklist_manager_is_premium_available();
 
 		$email_settings = get_option( 'wc_blacklist_email_verification', array() );
 
@@ -536,7 +567,7 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 		$ip_address      = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : 'unknown';
 		$attempts        = (int) get_transient( 'verify_email_attempts_' . md5( $ip_address ) );
 		$submitted_code  = isset( $_POST['code'] ) ? sanitize_text_field( wp_unslash( $_POST['code'] ) ) : '';
-		$submitted_email = isset( $_POST['billing_email'] ) ? sanitize_email( wp_unslash( $_POST['billing_email'] ) ) : '';
+		$submitted_email = isset( $_POST['billing_email'] ) ? sanitize_email( $this->get_request_value( $_POST['billing_email'] ) ) : '';
 
 		if ( $attempts >= 5 ) {
 			wp_send_json_error(
@@ -586,7 +617,34 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 			);
 		}
 
-		if ( $submitted_code !== (string) $state['code'] ) {
+		$state_attempts = isset( $state['verify_attempts'] ) ? absint( $state['verify_attempts'] ) : 0;
+
+		if ( $state_attempts >= $this->max_verification_attempts ) {
+			$this->clear_verification_state();
+
+			wp_send_json_error(
+				array(
+					'message' => __( 'Too many failed attempts. Please request a new verification code.', 'wc-blacklist-manager' ),
+				)
+			);
+		}
+
+		if ( ! preg_match( '/^\d{6}$/', $submitted_code ) || ! hash_equals( (string) $state['code'], (string) $submitted_code ) ) {
+			$state_attempts++;
+			$state['verify_attempts'] = $state_attempts;
+
+			if ( $state_attempts >= $this->max_verification_attempts ) {
+				$this->clear_verification_state();
+
+				wp_send_json_error(
+					array(
+						'message' => __( 'Too many failed attempts. Please request a new verification code.', 'wc-blacklist-manager' ),
+					)
+				);
+			}
+
+			$this->set_verification_state( $state );
+
 			wp_send_json_error(
 				array(
 					'message' => __( 'Invalid code. Please try again.', 'wc-blacklist-manager' ),
@@ -624,15 +682,16 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 			$this->mark_email_as_verified_in_blacklist( $submitted_email );
 		}
 
-		$state['verified']       = true;
-		$state['verified_email'] = $submitted_email;
-		$state['code']           = '';
+		$state['verified']        = true;
+		$state['verified_email']  = $submitted_email;
+		$state['code']            = '';
+		$state['verify_attempts'] = 0;
 		$this->set_verification_state( $state );
 
-		$settings_instance = new WC_Blacklist_Manager_Settings();
-		$premium_active    = $settings_instance->is_premium_active();
+		$premium_active = function_exists( 'wc_blacklist_manager_is_premium_available' )
+			&& wc_blacklist_manager_is_premium_available();
 
-		if ( $premium_active ) {
+		if ( $premium_active && class_exists( 'WC_Blacklist_Manager_Premium_Activity_Logs_Insert' ) ) {
 			global $wpdb;
 
 			$table_detection_log = $wpdb->prefix . 'wc_blacklist_detection_log';
@@ -746,7 +805,7 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 	public function resend_verification_code() {
 		check_ajax_referer( 'email_verification_nonce', 'security' );
 
-		$submitted_email = isset( $_POST['billing_email'] ) ? sanitize_email( wp_unslash( $_POST['billing_email'] ) ) : '';
+		$submitted_email = isset( $_POST['billing_email'] ) ? sanitize_email( $this->get_request_value( $_POST['billing_email'] ) ) : '';
 		$state           = $this->get_verification_state();
 
 		if ( empty( $submitted_email ) ) {
@@ -799,7 +858,7 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 	public function send_verification_code_blocks() {
 		check_ajax_referer( 'email_verification_nonce', 'security' );
 
-		$email = isset( $_POST['billing_email'] ) ? sanitize_email( wp_unslash( $_POST['billing_email'] ) ) : '';
+		$email = isset( $_POST['billing_email'] ) ? sanitize_email( $this->get_request_value( $_POST['billing_email'] ) ) : '';
 
 		if ( empty( $email ) ) {
 			wp_send_json_error(

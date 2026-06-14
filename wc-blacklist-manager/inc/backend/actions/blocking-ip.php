@@ -32,8 +32,12 @@ class WC_Blacklist_Manager_IP_Prevention {
 	}
 
 	private function is_premium_active() {
-		$settings_instance = new WC_Blacklist_Manager_Settings();
-		return $settings_instance->is_premium_active();
+		return function_exists( 'wc_blacklist_manager_is_premium_available' )
+			&& wc_blacklist_manager_is_premium_available();
+	}
+
+	private function can_use_premium_activity_logs( $premium_active ) {
+		return $premium_active && class_exists( 'WC_Blacklist_Manager_Premium_Activity_Logs_Insert' );
 	}
 
 	private function get_blacklist_table_name() {
@@ -126,35 +130,35 @@ class WC_Blacklist_Manager_IP_Prevention {
 	}
 
 	private function log_ip_checkout_block_reason( $premium_active, $ip_value ) {
-		if ( $premium_active && '' !== $ip_value ) {
+		if ( $this->can_use_premium_activity_logs( $premium_active ) && '' !== $ip_value ) {
 			$reason_ip = 'blocked_ip_attempt: ' . $ip_value;
 			WC_Blacklist_Manager_Premium_Activity_Logs_Insert::checkout_block( '', '', '', $reason_ip );
 		}
 	}
 
 	private function log_ip_registration_block_reason( $premium_active, $ip_value ) {
-		if ( $premium_active && '' !== $ip_value ) {
+		if ( $this->can_use_premium_activity_logs( $premium_active ) && '' !== $ip_value ) {
 			$reason_ip = 'blocked_ip_attempt: ' . $ip_value;
 			WC_Blacklist_Manager_Premium_Activity_Logs_Insert::register_block( '', '', '', $reason_ip );
 		}
 	}
 
 	private function log_ip_registration_suspect_reason( $premium_active, $ip_value ) {
-		if ( $premium_active && '' !== $ip_value ) {
+		if ( $this->can_use_premium_activity_logs( $premium_active ) && '' !== $ip_value ) {
 			$reason_ip = 'suspected_ip_attempt: ' . $ip_value;
 			WC_Blacklist_Manager_Premium_Activity_Logs_Insert::register_suspect( '', '', '', $reason_ip );
 		}
 	}
 
 	private function log_ip_comment_block_reason( $premium_active, $ip_value ) {
-		if ( $premium_active && '' !== $ip_value ) {
+		if ( $this->can_use_premium_activity_logs( $premium_active ) && '' !== $ip_value ) {
 			$reason_ip = 'blocked_ip_attempt: ' . $ip_value;
 			WC_Blacklist_Manager_Premium_Activity_Logs_Insert::comment_block( '', '', '', $reason_ip );
 		}
 	}
 
 	private function log_ip_comment_suspect_reason( $premium_active, $ip_value ) {
-		if ( $premium_active && '' !== $ip_value ) {
+		if ( $this->can_use_premium_activity_logs( $premium_active ) && '' !== $ip_value ) {
 			$reason_ip = 'suspected_ip_attempt: ' . $ip_value;
 			WC_Blacklist_Manager_Premium_Activity_Logs_Insert::comment_suspect( '', '', '', $reason_ip );
 		}

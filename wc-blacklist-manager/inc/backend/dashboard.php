@@ -14,6 +14,7 @@ class WC_Blacklist_Manager_Dashboard {
 	private $time_format;
 	private $items_per_page = 20;
 	private $message = '';
+	private $premium_active = null;
 
 	public function __construct() {
 		global $wpdb;
@@ -44,6 +45,288 @@ class WC_Blacklist_Manager_Dashboard {
 			: current_user_can( 'manage_options' );
 	}
 
+	private function is_premium_active() {
+		if ( null !== $this->premium_active ) {
+			return $this->premium_active;
+		}
+
+		$this->premium_active = function_exists( 'wc_blacklist_manager_is_premium_available' )
+			? (bool) wc_blacklist_manager_is_premium_available()
+			: false;
+
+		return $this->premium_active;
+	}
+
+	private function get_request_value( $value ) {
+		$value = wp_unslash( $value );
+
+		if ( is_array( $value ) ) {
+			$parts = array();
+
+			array_walk_recursive(
+				$value,
+				function ( $item ) use ( &$parts ) {
+					if ( is_scalar( $item ) || ( is_object( $item ) && method_exists( $item, '__toString' ) ) ) {
+						$item = trim( (string) $item );
+
+						if ( '' !== $item ) {
+							$parts[] = $item;
+						}
+					}
+				}
+			);
+
+			return trim( implode( ' ', $parts ) );
+		}
+
+		if ( is_scalar( $value ) || ( is_object( $value ) && method_exists( $value, '__toString' ) ) ) {
+			return trim( (string) $value );
+		}
+
+		return '';
+	}
+
+	private function require_premium_feature( $context = 'admin' ) {
+		if ( $this->is_premium_active() ) {
+			return true;
+		}
+
+		$message = function_exists( 'wc_blacklist_manager_premium_denied_message' )
+			? wc_blacklist_manager_premium_denied_message()
+			: __( 'A valid Blacklist Manager Premium license is required to use this feature.', 'wc-blacklist-manager' );
+
+		if ( 'ajax' === $context ) {
+			wp_send_json_error(
+				array(
+					'message' => $message,
+				),
+				403
+			);
+		}
+
+		wp_die(
+			esc_html( $message ),
+			esc_html__( 'Premium license required', 'wc-blacklist-manager' ),
+			array( 'response' => 403 )
+		);
+	}
+
+	private function get_connection_source( $id, $record_type = 'main' ) {
+		$site_url     = site_url();
+		$clean_domain = preg_replace( '/^https?:\/\//', '', $site_url );
+		$id           = absint( $id );
+
+		if ( 'address' === $record_type ) {
+			return $clean_domain . '[address:' . $id . ']';
+		}
+
+		return $clean_domain . '[' . $id . ']';
+	}
+
+	private function schedule_connection_event( $hook, array $args ) {
+		if ( ! wp_next_scheduled( $hook, $args ) ) {
+			wp_schedule_single_event( time() + 5, $hook, $args );
+		}
+	}
+
+	private function dispatch_dashboard_row_event( $event, $id, array $row = array(), $record_type = 'main' ) {
+		$id = absint( $id );
+
+		do_action( "wc_blacklist_manager_dashboard_row_{$event}", $id, $row, $record_type );
+		do_action( 'wc_blacklist_manager_dashboard_row_changed', $event, $id, $row, $record_type );
+	}
+
+	private function schedule_connection_create( $id, array $row = array(), $record_type = 'main' ) {
+		$id = absint( $id );
+		if ( $id <= 0 ) {
+			return;
+		}
+
+		$this->dispatch_dashboard_row_event( 'created', $id, $row, $record_type );
+
+		if ( ! $this->is_premium_active() ) {
+			return;
+		}
+
+		$mode = get_option( 'wc_blacklist_connection_mode' );
+
+		if ( 'host' === $mode ) {
+			$args = array(
+				isset( $row['phone_number'] ) ? (string) $row['phone_number'] : '',
+				isset( $row['email_address'] ) ? (string) $row['email_address'] : '',
+				isset( $row['ip_address'] ) ? (string) $row['ip_address'] : '',
+				isset( $row['domain'] ) ? (string) $row['domain'] : '',
+				isset( $row['is_blocked'] ) ? (int) $row['is_blocked'] : 0,
+				$this->get_connection_source( $id, $record_type ),
+				isset( $row['customer_address'] ) ? (string) $row['customer_address'] : ( isset( $row['address_display'] ) ? (string) $row['address_display'] : '' ),
+				isset( $row['first_name'] ) ? (string) $row['first_name'] : '',
+				isset( $row['last_name'] ) ? (string) $row['last_name'] : '',
+			);
+
+			$this->schedule_connection_event( 'wc_blacklist_connection_send_to_subsite', $args );
+			return;
+		}
+
+		if ( 'sub' === $mode && 'main' === $record_type ) {
+			$this->schedule_connection_event( 'wc_blacklist_connection_send_to_hostsite', array( $id ) );
+		}
+	}
+
+	private function schedule_connection_update( $id, array $row = array(), $record_type = 'main' ) {
+		$id = absint( $id );
+		if ( $id <= 0 ) {
+			return;
+		}
+
+		$this->dispatch_dashboard_row_event( 'updated', $id, $row, $record_type );
+
+		if ( ! $this->is_premium_active() ) {
+			return;
+		}
+
+		$mode = get_option( 'wc_blacklist_connection_mode' );
+
+		if ( 'host' === $mode ) {
+			$args = array(
+				isset( $row['is_blocked'] ) ? (int) $row['is_blocked'] : 0,
+				$this->get_connection_source( $id, $record_type ),
+			);
+
+			$this->schedule_connection_event( 'wc_blacklist_connection_update_to_subsite', $args );
+			return;
+		}
+
+		if ( 'sub' === $mode && 'main' === $record_type ) {
+			$this->schedule_connection_event( 'wc_blacklist_connection_update_to_hostsite', array( $id ) );
+		}
+	}
+
+	private function schedule_connection_delete( $id, array $row = array(), $record_type = 'main' ) {
+		$id = absint( $id );
+		if ( $id <= 0 ) {
+			return;
+		}
+
+		$this->dispatch_dashboard_row_event( 'deleted', $id, $row, $record_type );
+
+		if ( ! $this->is_premium_active() || 'host' !== get_option( 'wc_blacklist_connection_mode' ) ) {
+			return;
+		}
+
+		$this->schedule_connection_event(
+			'wc_blacklist_connection_remove_to_subsite',
+			array( $this->get_connection_source( $id, $record_type ) )
+		);
+	}
+
+	private function record_remove_audit( $id, array $row = array(), $record_type = 'main' ) {
+		if ( ! $this->is_premium_active() ) {
+			return;
+		}
+
+		$id                  = absint( $id );
+		$table_detection_log = $this->wpdb->prefix . 'wc_blacklist_detection_log';
+		$current_user        = wp_get_current_user();
+		$shop_manager        = $current_user ? $current_user->display_name : '';
+		$details             = 'removed_from_blacklist_by:' . $shop_manager;
+
+		if ( 'address' === $record_type ) {
+			$fields = array(
+				'id',
+				'match_type',
+				'is_blocked',
+				'country_code',
+				'state_code',
+				'city_norm',
+				'postcode_norm',
+				'address_line_norm',
+				'address_full_norm',
+				'address_hash',
+				'address_display',
+				'notes',
+				'date_added',
+			);
+
+			$source = 'address_entry_id_' . $id;
+		} elseif ( ! empty( $row['order_id'] ) ) {
+			$fields = array();
+			$source = 'woo_order_' . absint( $row['order_id'] );
+		} else {
+			$fields = array(
+				'id',
+				'phone_number',
+				'email_address',
+				'ip_address',
+				'domain',
+				'is_blocked',
+				'sources',
+				'customer_address',
+				'first_name',
+				'last_name',
+				'date_added',
+			);
+
+			$source = 'entry_id_' . $id;
+		}
+
+		$view_data = array();
+		foreach ( $fields as $field ) {
+			if ( isset( $row[ $field ] ) && '' !== $row[ $field ] ) {
+				$view_data[ $field ] = $row[ $field ];
+			}
+		}
+
+		$this->wpdb->insert(
+			$table_detection_log,
+			array(
+				'timestamp' => current_time( 'mysql' ),
+				'type'      => 'human',
+				'source'    => $source,
+				'action'    => 'remove',
+				'details'   => $details,
+				'view'      => empty( $view_data ) ? '' : wp_json_encode( $view_data ),
+			),
+			array( '%s', '%s', '%s', '%s', '%s', '%s' )
+		);
+	}
+
+	private function delete_linked_address_rows_for_blacklist( $blacklist_id ) {
+		$blacklist_id = absint( $blacklist_id );
+		if ( $blacklist_id <= 0 ) {
+			return;
+		}
+
+		$address_rows = $this->wpdb->get_results(
+			$this->wpdb->prepare(
+				"SELECT *
+				FROM {$this->address_table_name}
+				WHERE blacklist_id = %d",
+				$blacklist_id
+			),
+			ARRAY_A
+		);
+
+		$this->wpdb->delete(
+			$this->address_table_name,
+			array(
+				'blacklist_id' => $blacklist_id,
+			),
+			array(
+				'%d',
+			)
+		);
+
+		foreach ( $address_rows as $address_row ) {
+			$address_id = isset( $address_row['id'] ) ? absint( $address_row['id'] ) : 0;
+			if ( $address_id <= 0 ) {
+				continue;
+			}
+
+			$this->record_remove_audit( $address_id, $address_row, 'address' );
+			$this->schedule_connection_delete( $address_id, $address_row, 'address' );
+		}
+	}
+
 	public function add_admin_menus() {
 		if ( $this->current_user_can_manage_dashboard( true ) ) {
 			add_menu_page(
@@ -72,8 +355,7 @@ class WC_Blacklist_Manager_Dashboard {
 			wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'wc-blacklist-manager' ) );
 		}
 
-		$settings_instance = new WC_Blacklist_Manager_Settings();
-		$premium_active    = $settings_instance->is_premium_active();
+		$premium_active = $this->is_premium_active();
 
 		$woocommerce_active = class_exists( 'WooCommerce' );
 		$unlock_url         = 'https://yoohw.com/product/blacklist-manager-premium/';
@@ -272,7 +554,7 @@ class WC_Blacklist_Manager_Dashboard {
 			$new_first_name    = isset( $_POST['new_first_name'] ) ? sanitize_text_field( wp_unslash( $_POST['new_first_name'] ) ) : '';
 			$new_last_name     = isset( $_POST['new_last_name'] ) ? sanitize_text_field( wp_unslash( $_POST['new_last_name'] ) ) : '';
 			$new_phone_number  = isset( $_POST['new_phone_number'] ) ? sanitize_text_field( wp_unslash( $_POST['new_phone_number'] ) ) : '';
-			$new_email_address = isset( $_POST['new_email_address'] ) ? sanitize_email( wp_unslash( $_POST['new_email_address'] ) ) : '';
+			$new_email_address = isset( $_POST['new_email_address'] ) ? sanitize_email( $this->get_request_value( $_POST['new_email_address'] ) ) : '';
 			$status            = isset( $_POST['status'] ) ? sanitize_text_field( wp_unslash( $_POST['status'] ) ) : 'suspect';
 
 			$is_blocked = ( 'blocked' === $status ) ? 1 : 0;
@@ -327,33 +609,15 @@ class WC_Blacklist_Manager_Dashboard {
 			$this->wpdb->insert( $this->table_name, $data );
 			$new_insert_id = (int) $this->wpdb->insert_id;
 
-			if ( $premium_active && 'host' === get_option( 'wc_blacklist_connection_mode' ) ) {
-				$ip_address       = '';
-				$customer_domain  = '';
-				$customer_address = '';
+			if ( $new_insert_id > 0 ) {
+				$this->schedule_connection_create( $new_insert_id, $data, 'main' );
 
-				$site_url     = site_url();
-				$clean_domain = preg_replace( '/^https?:\/\//', '', $site_url );
-				$sources      = $clean_domain . '[' . $new_insert_id . ']';
+				if ( function_exists( 'wc_blacklist_manager_record_action_upsell_event' ) ) {
+					wc_blacklist_manager_record_action_upsell_event( 'manual_entry' );
 
-				$args = array(
-					$new_phone_number,
-					$new_email_address,
-					$ip_address,
-					$customer_domain,
-					$is_blocked,
-					$sources,
-					$customer_address,
-					$new_first_name,
-					$new_last_name,
-				);
-
-				if ( ! wp_next_scheduled( 'wc_blacklist_connection_send_to_subsite', $args ) ) {
-					wp_schedule_single_event(
-						time() + 5,
-						'wc_blacklist_connection_send_to_subsite',
-						$args
-					);
+					if ( $is_blocked ) {
+						wc_blacklist_manager_record_action_upsell_event( 'manual_block' );
+					}
 				}
 			}
 
@@ -376,9 +640,6 @@ class WC_Blacklist_Manager_Dashboard {
 		$id    = absint( $id );
 		$nonce = isset( $_GET['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ) : '';
 
-		$settings_instance = new WC_Blacklist_Manager_Settings();
-		$premium_active    = $settings_instance->is_premium_active();
-
 		if ( ! wp_verify_nonce( $nonce, 'block_action' ) ) {
 			$message = esc_html__( 'Security check failed. Please try again.', 'wc-blacklist-manager' );
 		} else {
@@ -386,7 +647,7 @@ class WC_Blacklist_Manager_Dashboard {
 
 				$entry = $wpdb->get_row(
 					$wpdb->prepare(
-						"SELECT sources, ip_address, domain FROM {$this->table_name} WHERE id = %d",
+						"SELECT * FROM {$this->table_name} WHERE id = %d",
 						$id
 					)
 				);
@@ -418,24 +679,12 @@ class WC_Blacklist_Manager_Dashboard {
 					wc_blacklist_manager_clear_match_cache( $entry );
 				}
 
-			if ( $premium_active && 'host' === get_option( 'wc_blacklist_connection_mode' ) ) {
-				$is_blocked   = 1;
-				$site_url     = site_url();
-				$clean_domain = preg_replace( '/^https?:\/\//', '', $site_url );
-				$sources      = $clean_domain . '[' . $id . ']';
+			if ( $entry ) {
+				$entry->is_blocked = 1;
+				$this->schedule_connection_update( $id, (array) $entry, 'main' );
 
-				$args = array( $is_blocked, $sources );
-
-				if ( ! wp_next_scheduled( 'wc_blacklist_connection_update_to_subsite', $args ) ) {
-					wp_schedule_single_event( time() + 5, 'wc_blacklist_connection_update_to_subsite', $args );
-				}
-			}
-
-			if ( $premium_active && 'sub' === get_option( 'wc_blacklist_connection_mode' ) ) {
-				$args = array( $id );
-
-				if ( ! wp_next_scheduled( 'wc_blacklist_connection_update_to_hostsite', $args ) ) {
-					wp_schedule_single_event( time() + 5, 'wc_blacklist_connection_update_to_hostsite', $args );
+				if ( function_exists( 'wc_blacklist_manager_record_action_upsell_event' ) ) {
+					wc_blacklist_manager_record_action_upsell_event( 'manual_block' );
 				}
 			}
 
@@ -478,10 +727,6 @@ class WC_Blacklist_Manager_Dashboard {
 			exit;
 		}
 
-		$settings_instance   = new WC_Blacklist_Manager_Settings();
-		$premium_active      = $settings_instance->is_premium_active();
-		$table_detection_log = $this->wpdb->prefix . 'wc_blacklist_detection_log';
-
 		$row = $this->wpdb->get_row(
 			$this->wpdb->prepare(
 				"SELECT id, phone_number, email_address, ip_address, domain,
@@ -502,80 +747,10 @@ class WC_Blacklist_Manager_Dashboard {
 				wc_blacklist_manager_clear_match_cache( $row );
 			}
 
-			$this->wpdb->delete(
-			$this->address_table_name,
-			array(
-				'blacklist_id' => $id,
-			),
-			array(
-				'%d',
-			)
-		);
+		$this->delete_linked_address_rows_for_blacklist( $id );
 
-		if ( $premium_active ) {
-			$current_user = wp_get_current_user();
-			$shop_manager = $current_user ? $current_user->display_name : '';
-			$details      = 'removed_from_blacklist_by:' . $shop_manager;
-
-			if ( ! empty( $row['order_id'] ) ) {
-				$source    = 'woo_order_' . absint( $row['order_id'] );
-				$view_json = '';
-			} else {
-				$source = 'entry_id_' . $id;
-
-				$fields    = array(
-					'id',
-					'phone_number',
-					'email_address',
-					'ip_address',
-					'domain',
-					'is_blocked',
-					'sources',
-					'customer_address',
-					'first_name',
-					'last_name',
-					'date_added',
-				);
-				$view_data = array();
-
-				foreach ( $fields as $f ) {
-					if ( isset( $row[ $f ] ) && '' !== $row[ $f ] ) {
-						$view_data[ $f ] = $row[ $f ];
-					}
-				}
-
-				$view_json = wp_json_encode( $view_data );
-			}
-
-			$this->wpdb->insert(
-				$table_detection_log,
-				array(
-					'timestamp' => current_time( 'mysql' ),
-					'type'      => 'human',
-					'source'    => $source,
-					'action'    => 'remove',
-					'details'   => $details,
-					'view'      => $view_json,
-				),
-				array( '%s', '%s', '%s', '%s', '%s', '%s' )
-			);
-
-			if ( 'host' === get_option( 'wc_blacklist_connection_mode' ) ) {
-				$site_url     = site_url();
-				$clean_domain = preg_replace( '/^https?:\/\//', '', $site_url );
-				$sources      = $clean_domain . '[' . $id . ']';
-
-				$args = array( $sources );
-
-				if ( ! wp_next_scheduled( 'wc_blacklist_connection_remove_to_subsite', $args ) ) {
-					wp_schedule_single_event(
-						time() + 5,
-						'wc_blacklist_connection_remove_to_subsite',
-						$args
-					);
-				}
-			}
-		}
+		$this->record_remove_audit( $id, is_array( $row ) ? $row : array(), 'main' );
+		$this->schedule_connection_delete( $id, is_array( $row ) ? $row : array(), 'main' );
 
 		if ( $order_id ) {
 			$order = wc_get_order( $order_id );
@@ -600,6 +775,8 @@ class WC_Blacklist_Manager_Dashboard {
 	}
 
 	private function handle_delete_address_action( $id ) {
+		$this->require_premium_feature();
+
 		$id = absint( $id );
 
 		$nonce = isset( $_GET['_wpnonce'] )
@@ -624,9 +801,6 @@ class WC_Blacklist_Manager_Dashboard {
 			wp_safe_redirect( esc_url_raw( $redirect_url ) );
 			exit;
 		}
-
-		$settings_instance = new WC_Blacklist_Manager_Settings();
-		$premium_active    = $settings_instance->is_premium_active();
 
 		$row = $this->wpdb->get_row(
 			$this->wpdb->prepare(
@@ -662,64 +836,8 @@ class WC_Blacklist_Manager_Dashboard {
 			)
 		);
 
-		if ( $premium_active ) {
-			$table_detection_log = $this->wpdb->prefix . 'wc_blacklist_detection_log';
-			$current_user        = wp_get_current_user();
-			$shop_manager        = $current_user ? $current_user->display_name : '';
-			$details             = 'removed_from_blacklist_by:' . $shop_manager;
-
-			$view_data = array(
-				'id'                => $row['id'],
-				'match_type'        => $row['match_type'],
-				'is_blocked'        => $row['is_blocked'],
-				'country_code'      => $row['country_code'],
-				'state_code'        => $row['state_code'],
-				'city_norm'         => $row['city_norm'],
-				'postcode_norm'     => $row['postcode_norm'],
-				'address_line_norm' => $row['address_line_norm'],
-				'address_full_norm' => $row['address_full_norm'],
-				'address_hash'      => $row['address_hash'],
-				'address_display'   => $row['address_display'],
-				'notes'             => $row['notes'],
-				'date_added'        => $row['date_added'],
-			);
-
-			$this->wpdb->insert(
-				$table_detection_log,
-				array(
-					'timestamp' => current_time( 'mysql' ),
-					'type'      => 'human',
-					'source'    => 'address_entry_id_' . $id,
-					'action'    => 'remove',
-					'details'   => $details,
-					'view'      => wp_json_encode( $view_data ),
-				),
-				array(
-					'%s',
-					'%s',
-					'%s',
-					'%s',
-					'%s',
-					'%s',
-				)
-			);
-		}
-
-		if ( $premium_active && 'host' === get_option( 'wc_blacklist_connection_mode' ) ) {
-			$site_url     = site_url();
-			$clean_domain = preg_replace( '/^https?:\/\//', '', $site_url );
-			$sources      = $clean_domain . '[address:' . $id . ']';
-
-			$args = array( $sources );
-
-			if ( ! wp_next_scheduled( 'wc_blacklist_connection_remove_to_subsite', $args ) ) {
-				wp_schedule_single_event(
-					time() + 5,
-					'wc_blacklist_connection_remove_to_subsite',
-					$args
-				);
-			}
-		}
+		$this->record_remove_audit( $id, $row, 'address' );
+		$this->schedule_connection_delete( $id, $row, 'address' );
 
 		$message      = esc_html__( 'Address entry removed successfully.', 'wc-blacklist-manager' );
 		$redirect_url = add_query_arg(
@@ -1035,8 +1153,6 @@ class WC_Blacklist_Manager_Dashboard {
 				return $id > 0;
 			} );
 
-			$table_detection_log = $this->wpdb->prefix . 'wc_blacklist_detection_log';
-
 			foreach ( $entry_ids as $id ) {
 				$row = $this->wpdb->get_row(
 					$this->wpdb->prepare(
@@ -1058,75 +1174,10 @@ class WC_Blacklist_Manager_Dashboard {
 						wc_blacklist_manager_clear_match_cache( $row );
 					}
 
-					$this->wpdb->delete(
-					$this->address_table_name,
-					array(
-						'blacklist_id' => $id,
-					),
-					array(
-						'%d',
-					)
-				);
+				$this->delete_linked_address_rows_for_blacklist( $id );
 
-				if ( $premium_active ) {
-					$current_user = wp_get_current_user();
-					$shop_manager = $current_user ? $current_user->display_name : '';
-					$details      = 'removed_from_blacklist_by:' . $shop_manager;
-
-					if ( ! empty( $row['order_id'] ) ) {
-						$source    = 'woo_order_' . absint( $row['order_id'] );
-						$view_json = '';
-					} else {
-						$source = 'entry_id_' . $id;
-
-						$fields = array(
-							'id',
-							'phone_number',
-							'email_address',
-							'ip_address',
-							'domain',
-							'is_blocked',
-							'sources',
-							'customer_address',
-							'first_name',
-							'last_name',
-							'date_added',
-						);
-
-						$view_data = array();
-						foreach ( $fields as $f ) {
-							if ( isset( $row[ $f ] ) && '' !== $row[ $f ] ) {
-								$view_data[ $f ] = $row[ $f ];
-							}
-						}
-						$view_json = wp_json_encode( $view_data );
-					}
-
-					$this->wpdb->insert(
-						$table_detection_log,
-						array(
-							'timestamp' => current_time( 'mysql' ),
-							'type'      => 'human',
-							'source'    => $source,
-							'action'    => 'remove',
-							'details'   => $details,
-							'view'      => $view_json,
-						),
-						array( '%s', '%s', '%s', '%s', '%s', '%s' )
-					);
-
-					if ( 'host' === get_option( 'wc_blacklist_connection_mode' ) ) {
-						$site_url     = site_url();
-						$clean_domain = preg_replace( '/^https?:\/\//', '', $site_url );
-						$sources      = $clean_domain . '[' . $id . ']';
-
-						$args = array( $sources );
-
-						if ( ! wp_next_scheduled( 'wc_blacklist_connection_remove_to_subsite', $args ) ) {
-							wp_schedule_single_event( time() + 5, 'wc_blacklist_connection_remove_to_subsite', $args );
-						}
-					}
-				}
+				$this->record_remove_audit( $id, is_array( $row ) ? $row : array(), 'main' );
+				$this->schedule_connection_delete( $id, is_array( $row ) ? $row : array(), 'main' );
 
 				if ( $order_id ) {
 					$order = wc_get_order( $order_id );
@@ -1142,6 +1193,10 @@ class WC_Blacklist_Manager_Dashboard {
 						$order->save();
 					}
 				}
+			}
+
+			if ( function_exists( 'wc_blacklist_manager_record_action_upsell_event' ) ) {
+				wc_blacklist_manager_record_action_upsell_event( 'bulk_cleanup', count( $entry_ids ) );
 			}
 		}
 
@@ -1199,20 +1254,30 @@ class WC_Blacklist_Manager_Dashboard {
 				);
 
 				if ( 0 === $exists ) {
-						$this->wpdb->insert(
-							$this->table_name,
-							array(
+						$insert_data = array(
 							'ip_address' => $ip_address,
 							'date_added' => current_time( 'mysql', 1 ),
 							'is_blocked' => 1,
 							'sources'    => 'manual',
-							),
+						);
+
+						$inserted = $this->wpdb->insert(
+							$this->table_name,
+							$insert_data,
 							array( '%s', '%s', '%d', '%s' )
 						);
+
+						if ( false === $inserted ) {
+							continue;
+						}
+
+						$new_insert_id = (int) $this->wpdb->insert_id;
 
 						if ( function_exists( 'wc_blacklist_manager_clear_match_cache' ) ) {
 							wc_blacklist_manager_clear_match_cache( array( 'ip_address' => $ip_address ) );
 						}
+
+						$this->schedule_connection_create( $new_insert_id, $insert_data, 'main' );
 
 						$ip_addresses_added++;
 				}
@@ -1224,6 +1289,10 @@ class WC_Blacklist_Manager_Dashboard {
 			number_format_i18n( $ip_addresses_added )
 		);
 
+		if ( $ip_addresses_added > 0 && function_exists( 'wc_blacklist_manager_record_action_upsell_event' ) ) {
+			wc_blacklist_manager_record_action_upsell_event( 'ip_manual_add', $ip_addresses_added );
+		}
+
 		$redirect_url = add_query_arg( array( 'add_ip_message' => $message ), $redirect_base );
 		wp_safe_redirect( esc_url_raw( $redirect_url ) );
 		exit;
@@ -1233,6 +1302,8 @@ class WC_Blacklist_Manager_Dashboard {
 		if ( ! $this->current_user_can_manage_dashboard() ) {
 			wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'wc-blacklist-manager' ) );
 		}
+
+		$this->require_premium_feature();
 
 		check_admin_referer( 'add_address_nonce_action', 'add_address_nonce_field' );
 
@@ -1466,35 +1537,10 @@ class WC_Blacklist_Manager_Dashboard {
 
 		$new_insert_id = absint( $this->wpdb->insert_id );
 
-		if ( $premium_active && 'host' === get_option( 'wc_blacklist_connection_mode' ) ) {
-			$phone           = '';
-			$email           = '';
-			$ip_address      = '';
-			$customer_domain = '';
-			$first_name      = '';
-			$last_name       = '';
-			$is_blocked      = 1;
-
-			$site_url     = site_url();
-			$clean_domain = preg_replace( '/^https?:\/\//', '', $site_url );
-			$sources      = $clean_domain . '[address:' . $new_insert_id . ']';
-
-			$args = array(
-				$phone,
-				$email,
-				$ip_address,
-				$customer_domain,
-				$is_blocked,
-				$sources,
-				$address_display,
-				$first_name,
-				$last_name,
-			);
-
-			if ( ! wp_next_scheduled( 'wc_blacklist_connection_send_to_subsite', $args ) ) {
-				wp_schedule_single_event( time() + 5, 'wc_blacklist_connection_send_to_subsite', $args );
-			}
-		}
+		$sync_row               = $insert_data;
+		$sync_row['id']         = $new_insert_id;
+		$sync_row['is_blocked'] = 1;
+		$this->schedule_connection_create( $new_insert_id, $sync_row, 'address' );
 
 		if ( 'address' === $match_type ) {
 			$message = esc_html__( 'Address added successfully.', 'wc-blacklist-manager' );
@@ -1563,20 +1609,31 @@ class WC_Blacklist_Manager_Dashboard {
 				);
 
 				if ( 0 === $exists ) {
-						$this->wpdb->insert(
-							$this->table_name,
-							array(
+						$insert_data = array(
 							'domain'     => $domain,
 							'date_added' => current_time( 'mysql', 1 ),
 							'is_blocked' => 1,
 							'sources'    => 'manual',
-							),
+						);
+
+						$inserted = $this->wpdb->insert(
+							$this->table_name,
+							$insert_data,
 							array( '%s', '%s', '%d', '%s' )
 						);
+
+						if ( false === $inserted ) {
+							continue;
+						}
+
+						$new_insert_id = (int) $this->wpdb->insert_id;
 
 						if ( function_exists( 'wc_blacklist_manager_clear_match_cache' ) ) {
 							wc_blacklist_manager_clear_match_cache( array( 'domain' => $domain ) );
 						}
+
+						$this->schedule_connection_create( $new_insert_id, $insert_data, 'main' );
+
 						$domains_added++;
 					}
 			} else {
@@ -1611,6 +1668,10 @@ class WC_Blacklist_Manager_Dashboard {
 			$message = esc_html__( 'No new domains were added.', 'wc-blacklist-manager' );
 		}
 
+		if ( $domains_added > 0 && function_exists( 'wc_blacklist_manager_record_action_upsell_event' ) ) {
+			wc_blacklist_manager_record_action_upsell_event( 'domain_manual_add', $domains_added );
+		}
+
 		$redirect_url = add_query_arg( array( 'add_domain_message' => $message ), $redirect_base );
 		wp_safe_redirect( esc_url_raw( $redirect_url ) );
 		exit;
@@ -1620,6 +1681,8 @@ class WC_Blacklist_Manager_Dashboard {
 		if ( ! $this->current_user_can_manage_dashboard() ) {
 			wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'wc-blacklist-manager' ) );
 		}
+
+		$this->require_premium_feature();
 
 		check_admin_referer( 'yobm_nonce_action', 'yobm_nonce_field' );
 
@@ -1656,53 +1719,8 @@ class WC_Blacklist_Manager_Dashboard {
 					array( '%d' )
 				);
 
-				if ( $premium_active ) {
-					$table_detection_log = $this->wpdb->prefix . 'wc_blacklist_detection_log';
-					$current_user        = wp_get_current_user();
-					$shop_manager        = $current_user ? $current_user->display_name : '';
-					$details             = 'removed_from_blacklist_by:' . $shop_manager;
-
-					$view_data = array(
-						'id'                => $address_row['id'],
-						'match_type'        => $address_row['match_type'],
-						'is_blocked'        => $address_row['is_blocked'],
-						'country_code'      => $address_row['country_code'],
-						'state_code'        => $address_row['state_code'],
-						'city_norm'         => $address_row['city_norm'],
-						'postcode_norm'     => $address_row['postcode_norm'],
-						'address_line_norm' => $address_row['address_line_norm'],
-						'address_full_norm' => $address_row['address_full_norm'],
-						'address_hash'      => $address_row['address_hash'],
-						'address_display'   => $address_row['address_display'],
-						'notes'             => $address_row['notes'],
-						'date_added'        => $address_row['date_added'],
-					);
-
-					$this->wpdb->insert(
-						$table_detection_log,
-						array(
-							'timestamp' => current_time( 'mysql' ),
-							'type'      => 'human',
-							'source'    => 'address_entry_id_' . $id,
-							'action'    => 'remove',
-							'details'   => $details,
-							'view'      => wp_json_encode( $view_data ),
-						),
-						array( '%s', '%s', '%s', '%s', '%s', '%s' )
-					);
-				}
-
-				if ( $premium_active && 'host' === get_option( 'wc_blacklist_connection_mode' ) ) {
-					$site_url     = site_url();
-					$clean_domain = preg_replace( '/^https?:\/\//', '', $site_url );
-					$sources      = $clean_domain . '[address:' . $id . ']';
-
-					$args = array( $sources );
-
-					if ( ! wp_next_scheduled( 'wc_blacklist_connection_remove_to_subsite', $args ) ) {
-						wp_schedule_single_event( time() + 5, 'wc_blacklist_connection_remove_to_subsite', $args );
-					}
-				}
+				$this->record_remove_audit( $id, $address_row, 'address' );
+				$this->schedule_connection_delete( $id, $address_row, 'address' );
 			}
 		}
 
@@ -1772,7 +1790,7 @@ class WC_Blacklist_Manager_Dashboard {
 	}	
 
 	public function ajax_get_device_details() {
-		if ( ! $this->current_user_can_manage_dashboard() ) {
+		if ( ! $this->current_user_can_manage_dashboard( true ) ) {
 			wp_send_json_error(
 				array(
 					'message' => __( 'You do not have permission to access this data.', 'wc-blacklist-manager' ),
@@ -1780,6 +1798,8 @@ class WC_Blacklist_Manager_Dashboard {
 				403
 			);
 		}
+
+		$this->require_premium_feature( 'ajax' );
 
 		check_ajax_referer( 'wc_blacklist_device_details_nonce', 'nonce' );
 

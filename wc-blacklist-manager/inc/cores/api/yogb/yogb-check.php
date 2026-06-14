@@ -22,6 +22,7 @@ final class YOGB_BM_Check {
 	 *   'body' => string raw response body,
 	 *   'json' => array|null decoded JSON,
 	 *   'tier' => string package tier used,
+	 *   'err'  => string machine-readable error code/message,
 	 * ]
 	 */
 	public static function check_order( WC_Order $order ) : array {
@@ -32,6 +33,7 @@ final class YOGB_BM_Check {
 				'body' => '',
 				'json' => null,
 				'tier' => self::get_tier(),
+				'err'  => 'not_ready',
 			];
 		}
 
@@ -46,6 +48,7 @@ final class YOGB_BM_Check {
 				'body' => '',
 				'json' => null,
 				'tier' => $tier,
+				'err'  => 'rate_month',
 			];
 		}
 
@@ -59,6 +62,7 @@ final class YOGB_BM_Check {
 				'body' => '',
 				'json' => null,
 				'tier' => $tier,
+				'err'  => 'empty_identities',
 			];
 		}
 
@@ -72,6 +76,7 @@ final class YOGB_BM_Check {
 				'body' => '',
 				'json' => null,
 				'tier' => $tier,
+				'err'  => 'empty_identities_after_tier_filter',
 			];
 		}
 
@@ -88,12 +93,18 @@ final class YOGB_BM_Check {
 			}
 		}
 
+		$ok = ! empty( $res['ok'] ) && is_array( $json );
+		if ( $ok ) {
+			self::record_rate_limit_usage( $tier );
+		}
+
 		return [
-			'ok'   => ! empty( $res['ok'] ),
+			'ok'   => $ok,
 			'code' => $res['code'] ?? 0,
 			'body' => $res['body'] ?? '',
 			'json' => $json,
 			'tier' => $tier,
+			'err'  => $res['err'] ?? ( ! $ok && ! empty( $res['ok'] ) ? 'invalid_json' : '' ),
 		];
 	}
 
@@ -425,7 +436,7 @@ final class YOGB_BM_Check {
 	// ---------------------------------------------------------------------
 
 	/**
-	 * Enforce simple monthly check limits per tier.
+	 * Check simple monthly limits per tier without consuming quota.
 	 *
 	 * Returns:
 	 * [
@@ -434,25 +445,7 @@ final class YOGB_BM_Check {
 	 * ]
 	 */
 	private static function enforce_rate_limit( string $tier ) : array {
-		switch ( $tier ) {
-			case 'basic':
-				$limit = 150;
-				break;
-
-			case 'pro':
-				$limit = 1000;
-				break;
-
-			case 'enterprise':
-				$limit = 0;
-				break;
-
-			case 'free':
-			default:
-				$limit = 20;
-				break;
-		}
-
+		$limit = self::get_monthly_limit_for_tier( $tier );
 		if ( $limit <= 0 ) {
 			return [
 				'allowed' => true,
@@ -460,10 +453,7 @@ final class YOGB_BM_Check {
 			];
 		}
 
-		$month_key = gmdate( 'Ym' );
-		$opt_name  = 'yogb_bm_chk_month_' . $tier . '_' . $month_key;
-
-		$used = (int) get_option( $opt_name, 0 );
+		$used = (int) get_option( self::get_monthly_counter_option_name( $tier ), 0 );
 
 		if ( $used >= $limit ) {
 			return [
@@ -472,6 +462,42 @@ final class YOGB_BM_Check {
 			];
 		}
 
+		return [
+			'allowed' => true,
+			'reason'  => null,
+		];
+	}
+
+	private static function get_monthly_limit_for_tier( string $tier ) : int {
+		switch ( $tier ) {
+			case 'basic':
+				return 150;
+
+			case 'pro':
+				return 1000;
+
+			case 'enterprise':
+				return 0;
+
+			case 'free':
+			default:
+				return 20;
+		}
+	}
+
+	private static function get_monthly_counter_option_name( string $tier ) : string {
+		$month_key = gmdate( 'Ym' );
+		return 'yogb_bm_chk_month_' . $tier . '_' . $month_key;
+	}
+
+	private static function record_rate_limit_usage( string $tier ) : void {
+		$limit = self::get_monthly_limit_for_tier( $tier );
+		if ( $limit <= 0 ) {
+			return;
+		}
+
+		$opt_name = self::get_monthly_counter_option_name( $tier );
+		$used     = (int) get_option( $opt_name, 0 );
 		$used++;
 
 		if ( get_option( $opt_name, null ) === null ) {
@@ -479,11 +505,6 @@ final class YOGB_BM_Check {
 		} else {
 			update_option( $opt_name, $used, false );
 		}
-
-		return [
-			'allowed' => true,
-			'reason'  => null,
-		];
 	}
 
 	/**

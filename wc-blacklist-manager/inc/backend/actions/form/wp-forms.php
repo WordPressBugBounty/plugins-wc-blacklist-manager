@@ -26,6 +26,41 @@ class WC_Blacklist_Manager_WP_Forms {
 	private $blocked_phones = array();
 	private $blocked_ip = array();
 
+	private function is_premium_active() {
+		return function_exists( 'wc_blacklist_manager_is_premium_available' )
+			&& wc_blacklist_manager_is_premium_available();
+	}
+
+	/**
+	 * Normalize submitted form values into a trimmed string.
+	 */
+	private function get_submitted_value( $value ) {
+		if ( is_array( $value ) ) {
+			$parts = array();
+
+			array_walk_recursive(
+				$value,
+				function ( $item ) use ( &$parts ) {
+					if ( is_scalar( $item ) || ( is_object( $item ) && method_exists( $item, '__toString' ) ) ) {
+						$item = trim( (string) $item );
+
+						if ( '' !== $item ) {
+							$parts[] = $item;
+						}
+					}
+				}
+			);
+
+			return trim( implode( ' ', $parts ) );
+		}
+
+		if ( is_scalar( $value ) || ( is_object( $value ) && method_exists( $value, '__toString' ) ) ) {
+			return trim( (string) $value );
+		}
+
+		return '';
+	}
+
 	public function __construct() {
 		add_action( 'wpforms_process', [ $this, 'wpforms_blacklist_validation_lite' ], 10, 3 );
 	}
@@ -55,16 +90,18 @@ class WC_Blacklist_Manager_WP_Forms {
 	public function wpforms_blacklist_validation_lite( $fields, $entry, $form_data ) {
 		// Bail if user has checked "Disable blacklist for this form"
 		if ( ! empty( $form_data['settings']['disable_blacklist'] ) ) {
-			return;
+			return $fields;
 		}
 		
 		global $wpdb;
 		$form_id    = isset( $form_data['id'] ) ? $form_data['id'] : 0;
 		$table_name = $wpdb->prefix . 'wc_blacklist';
 		$found      = false;
+		$ip_address = '';
+		$email_value = '';
+		$phone_value = '';
 
-		$settings_instance = new WC_Blacklist_Manager_Settings();
-		$premium_active = $settings_instance->is_premium_active();
+		$premium_active = $this->is_premium_active();
 
 		// --- IP ADDRESS & PROXY/VPN CHECK ---
 		if ( $premium_active && get_option( 'wc_blacklist_ip_enabled' ) == '1' ) {
@@ -83,7 +120,7 @@ class WC_Blacklist_Manager_WP_Forms {
                         $sum_block_total = get_option('wc_blacklist_sum_block_total', 0);
                         update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
                         
-                        if ($premium_active) {
+                        if ($premium_active && class_exists( 'WC_Blacklist_Manager_Premium_Activity_Logs_Insert' ) ) {
                             $reason_user_ip   = 'blocked_ip_attempt: ' . $ip_address;
                             WC_Blacklist_Manager_Premium_Activity_Logs_Insert::wpforms_block('', '', '', $reason_user_ip);
                         }
@@ -100,7 +137,7 @@ class WC_Blacklist_Manager_WP_Forms {
 						$sum_block_total = get_option('wc_blacklist_sum_block_total', 0);
 						update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
 
-						if ($premium_active) {
+						if ($premium_active && class_exists( 'WC_Blacklist_Manager_Premium_Activity_Logs_Insert' ) ) {
 							$reason_proxy_vpn   = 'blocked_proxy_vpn_attempt: ' . $ip_address;
 							WC_Blacklist_Manager_Premium_Activity_Logs_Insert::wpforms_block('', '', '', '', '', '', $reason_proxy_vpn);
 						}
@@ -124,7 +161,7 @@ class WC_Blacklist_Manager_WP_Forms {
 				if ( in_array( $field_type, array( 'email', 'tel', 'phone' ), true ) ) {
 					$field_id = $field['id'];
 					if ( isset( $fields[ $field_id ]['value'] ) ) {
-						$value = trim( $fields[ $field_id ]['value'] );
+						$value = $this->get_submitted_value( $fields[ $field_id ]['value'] );
 						if ( ! empty( $value ) ) {
 							// For email fields.
 							if ( 'email' === $field_type && is_email( $value ) ) {
@@ -140,7 +177,7 @@ class WC_Blacklist_Manager_WP_Forms {
 										$sum_block_total = get_option('wc_blacklist_sum_block_total', 0);
 										update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
 
-										if ($premium_active) {
+										if ($premium_active && class_exists( 'WC_Blacklist_Manager_Premium_Activity_Logs_Insert' ) ) {
 											$reason_email   = 'blocked_email_attempt: ' . $value;
 											WC_Blacklist_Manager_Premium_Activity_Logs_Insert::wpforms_block('', '', $reason_email);
 										}
@@ -150,7 +187,7 @@ class WC_Blacklist_Manager_WP_Forms {
 										$this->blocked_emails[] = $value;
 									}
 								}
-								if ( get_option( 'wc_blacklist_domain_form' ) == '1' ) {
+								if ( $premium_active && get_option( 'wc_blacklist_domain_form' ) == '1' ) {
 									// Extract the domain part (after '@') and check.
 									$domain = substr( strrchr( $value, "@" ), 1 );
 									if ( ! empty( $domain ) ) {
@@ -164,7 +201,7 @@ class WC_Blacklist_Manager_WP_Forms {
 											$sum_block_total = get_option('wc_blacklist_sum_block_total', 0);
 											update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
 
-											if ($premium_active) {
+											if ($premium_active && class_exists( 'WC_Blacklist_Manager_Premium_Activity_Logs_Insert' ) ) {
 												$reason_domain   = 'blocked_domain_attempt: ' . $domain;
 												WC_Blacklist_Manager_Premium_Activity_Logs_Insert::wpforms_block('', '', '', '', '', $reason_domain);
 											}
@@ -194,7 +231,7 @@ class WC_Blacklist_Manager_WP_Forms {
 									$sum_block_total = get_option('wc_blacklist_sum_block_total', 0);
 									update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
 
-									if ($premium_active) {
+									if ($premium_active && class_exists( 'WC_Blacklist_Manager_Premium_Activity_Logs_Insert' ) ) {
 										$reason_phone   = 'blocked_phone_attempt: ' . $value;
 										WC_Blacklist_Manager_Premium_Activity_Logs_Insert::wpforms_block('', $reason_phone);
 									}
@@ -235,9 +272,11 @@ class WC_Blacklist_Manager_WP_Forms {
 				'phone'      => $phone_value,
 			];
 			$view_json = wp_json_encode( $view_data );
-            WC_Blacklist_Manager_Premium_Activity_Logs_Insert::wpforms_block($view_json);			
+			if ( $premium_active && class_exists( 'WC_Blacklist_Manager_Premium_Activity_Logs_Insert' ) ) {
+				WC_Blacklist_Manager_Premium_Activity_Logs_Insert::wpforms_block($view_json);
+			}
 
-			if ($premium_active && get_option('wc_blacklist_email_form_block') == 'yes') {
+			if ($premium_active && get_option('wc_blacklist_email_form_block') == 'yes' && class_exists( 'WC_Blacklist_Manager_Premium_Form_Email' ) ) {
 				// Trigger the email for the blocked submission.
 				$email_sender = new WC_Blacklist_Manager_Premium_Form_Email();
 				$email_sender->send_email_form_block(

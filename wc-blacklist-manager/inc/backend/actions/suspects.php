@@ -73,8 +73,8 @@ class WC_Blacklist_Manager_Suspicious_Actions {
 	 * @param int|\WC_Order $arg1 Order ID (classic) or WC_Order (blocks)
 	 */
 	public function check_order_and_notify( $order_id ) {
-		$settings_instance = new WC_Blacklist_Manager_Settings();
-		$premium_active    = $settings_instance->is_premium_active();
+		$premium_active = function_exists( 'wc_blacklist_manager_is_premium_available' )
+			&& wc_blacklist_manager_is_premium_available();
 
 		global $wpdb;
 
@@ -624,8 +624,8 @@ class WC_Blacklist_Manager_Suspicious_Actions {
 	}
 
 	private function get_order_device_id( WC_Order $order ): string {
-		$settings_instance = new WC_Blacklist_Manager_Settings();
-		$premium_active    = $settings_instance->is_premium_active();
+		$premium_active = function_exists( 'wc_blacklist_manager_is_premium_available' )
+			&& wc_blacklist_manager_is_premium_available();
 
 		if ( ! $premium_active ) {
 			return '';

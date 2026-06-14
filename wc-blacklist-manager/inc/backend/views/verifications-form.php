@@ -2,6 +2,8 @@
 if (!defined('ABSPATH')) {
 	exit;
 }
+
+require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 ?>
 
 <div class="wrap">
@@ -61,18 +63,32 @@ if (!defined('ABSPATH')) {
 					<?php endif; ?>
 					<?php if (!$premium_active): ?>
 						<th scope="row">
-							<label class="label_child premium-text"><?php echo esc_html__('Email options', 'wc-blacklist-manager'); ?></label>
+							<label class="label_child"><?php echo esc_html__('Email options', 'wc-blacklist-manager'); ?></label>
 						</th>
 						<td>
-							<p class="premium-text"><?php echo esc_html__('Resend', 'wc-blacklist-manager'); ?></p>
-							<input type="number" value="<?php echo esc_attr($data['email_verification_resend'] ?? 180); ?>" disabled> <span class="premium-text"><?php echo esc_html__('seconds.', 'wc-blacklist-manager'); ?></span><a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a>
-							<p class="premium-text"><?php echo esc_html__('Subject', 'wc-blacklist-manager'); ?></p>
-							<input type="text" class="regular-text" value="<?php echo esc_attr( $data['email_verification_subject'] ?? $this->default_email_subject ); ?>" disabled>
-							<p class="premium-text"><?php echo esc_html__('Heading', 'wc-blacklist-manager'); ?></p>
-							<input type="text" class="regular-text" value="<?php echo esc_attr( $data['email_verification_heading'] ?? $this->default_email_heading ); ?>" disabled>
-							<p class="premium-text"><?php echo esc_html__('Content', 'wc-blacklist-manager'); ?></p>
-							<textarea rows="6" class="regular-text" disabled><?php echo esc_textarea(!empty($data['email_verification_message']) ? $data['email_verification_message'] : $this->default_email_message); ?></textarea>
-							<p class="premium-text"><?php echo esc_html__('Add {first_name}, {last_name}, {site_name}, and {code} where you want them to appear.', 'wc-blacklist-manager'); ?></p>
+							<?php
+							wc_blacklist_manager_render_premium_preview_cards(
+								array(
+									array(
+										'icon'        => 'dashicons-edit-page',
+										'title'       => __( 'Custom email template', 'wc-blacklist-manager' ),
+										'description' => __( 'Edit the verification subject, heading, and message to match your store voice.', 'wc-blacklist-manager' ),
+									),
+									array(
+										'icon'        => 'dashicons-clock',
+										'title'       => __( 'Resend timing', 'wc-blacklist-manager' ),
+										'description' => __( 'Tune resend delays so customers can recover quickly without encouraging code spam.', 'wc-blacklist-manager' ),
+									),
+									array(
+										'icon'        => 'dashicons-tag',
+										'title'       => __( 'Personal placeholders', 'wc-blacklist-manager' ),
+										'description' => __( 'Use first name, last name, site name, and code placeholders in the message.', 'wc-blacklist-manager' ),
+									),
+								),
+								array( 'columns' => 3 )
+							);
+							wc_blacklist_manager_render_premium_inline_cta( $unlock_url, 'verifications' );
+							?>
 						</td>
 					<?php endif; ?>
 				</tr>
@@ -92,19 +108,6 @@ if (!defined('ABSPATH')) {
 						<?php endif; ?>
 
 						<p class="description"><?php echo esc_html__('Avoid bounces, spam complaints, spam traps, or wrong types in the email address field by mistake.', 'wc-blacklist-manager'); ?></p>
-					</td>
-				</tr>
-			<?php endif; ?>
-			<?php if (!$premium_active): ?>
-				<tr>
-					<th scope="row">
-						<span class="dashicons dashicons-admin-site premium-text"></span>
-						<label class="premium-text"><?php echo esc_html__('Real-time validation', 'wc-blacklist-manager'); ?></label>
-					</th>
-					<td>
-						<input type="checkbox" disabled>
-						<label class="premium-text"><?php echo esc_html__('Enable real-time automatic email address validation on the register and checkout pages', 'wc-blacklist-manager'); ?></label> <a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a>
-						<p class="premium-text"><?php echo esc_html__('Avoid bounces, spam complaints, spam traps, or wrong types in the email address field by mistake.', 'wc-blacklist-manager'); ?></p>
 					</td>
 				</tr>
 			<?php endif; ?>
@@ -128,23 +131,39 @@ if (!defined('ABSPATH')) {
 			<?php if (!$premium_active): ?>
 				<tr>
 					<th scope="row">
-						<span class="dashicons dashicons-admin-site premium-text"></span>
-						<label class="premium-text"><?php echo esc_html__('Disposable email', 'wc-blacklist-manager'); ?></label>
+						<span class="dashicons dashicons-admin-site"></span>
+						<label><?php echo esc_html__('Email intelligence', 'wc-blacklist-manager'); ?></label>
 					</th>
 					<td>
-						<input type="checkbox" disabled>
-						<label class="premium-text"><?php echo esc_html__('Enable detection and blocking the disposable email address', 'wc-blacklist-manager'); ?></label> <a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a>
-						<?php if ($woocommerce_active): ?>
-							<p class="premium-text"><?php echo esc_html__('Prevent the disposable email to checkout, register, and comment/review.', 'wc-blacklist-manager'); ?></p>
-						<?php else: ?>
-							<p class="premium-text"><?php echo esc_html__('Prevent the disposable email address to register, and comment.', 'wc-blacklist-manager'); ?></p>
-						<?php endif; ?>
+						<?php
+						wc_blacklist_manager_render_premium_preview_cards(
+							array(
+								array(
+									'icon'        => 'dashicons-email-alt',
+									'title'       => __( 'Real-time email validation', 'wc-blacklist-manager' ),
+									'description' => __( 'Catch mistyped, invalid, or risky addresses before checkout or registration continues.', 'wc-blacklist-manager' ),
+								),
+								array(
+									'icon'        => 'dashicons-dismiss',
+									'title'       => __( 'Disposable email detection', 'wc-blacklist-manager' ),
+									'description' => __( 'Reduce abuse from temporary inboxes across checkout, registration, comments, and reviews.', 'wc-blacklist-manager' ),
+								),
+							),
+							array( 'columns' => 2 )
+						);
+						wc_blacklist_manager_render_premium_inline_cta( $unlock_url, 'integrations' );
+						?>
 					</td>
 				</tr>
 			<?php endif; ?>
 		</table>
 
 		<?php if ($woocommerce_active): ?>
+			<?php
+			$phone_code_length = max(6, min(10, absint($data['phone_verification_code_length'] ?? 6)));
+			$phone_resend      = max(30, min(3600, absint($data['phone_verification_resend'] ?? 180)));
+			$phone_limit       = max(1, min(10, absint($data['phone_verification_limit'] ?? 5)));
+			?>
 			<h2><?php echo esc_html__('Phone verification', 'wc-blacklist-manager'); ?></h2>
 
 			<table class="form-table">
@@ -177,11 +196,11 @@ if (!defined('ABSPATH')) {
 					</th>
 					<td>
 						<p><?php echo esc_html__('Code length', 'wc-blacklist-manager'); ?></p>
-						<input type="number" id="code_length" name="code_length" value="<?php echo esc_attr($data['phone_verification_code_length'] ?? 4); ?>" min="4" max="10"> <?php echo esc_html__('digits.', 'wc-blacklist-manager'); ?>
+						<input type="number" id="code_length" name="code_length" value="<?php echo esc_attr($phone_code_length); ?>" min="6" max="10"> <?php echo esc_html__('digits.', 'wc-blacklist-manager'); ?>
 						<p><?php echo esc_html__('Resend', 'wc-blacklist-manager'); ?></p>
-						<input type="number" id="resend" name="resend" value="<?php echo esc_attr($data['phone_verification_resend'] ?? 180); ?>" min="30" max="3600"> <?php echo esc_html__('seconds.', 'wc-blacklist-manager'); ?>
+						<input type="number" id="resend" name="resend" value="<?php echo esc_attr($phone_resend); ?>" min="30" max="3600"> <?php echo esc_html__('seconds.', 'wc-blacklist-manager'); ?>
 						<p><?php echo esc_html__('Limit', 'wc-blacklist-manager'); ?></p>
-						<input type="number" id="limit" name="limit" value="<?php echo esc_attr($data['phone_verification_limit'] ?? 5); ?>" min="1" max="10"> <?php echo esc_html__('times.', 'wc-blacklist-manager'); ?>
+						<input type="number" id="limit" name="limit" value="<?php echo esc_attr($phone_limit); ?>" min="1" max="10"> <?php echo esc_html__('times.', 'wc-blacklist-manager'); ?>
 						<p><?php echo esc_html__('Message', 'wc-blacklist-manager'); ?></p>
 						<textarea id="message" name="message" rows="2" class="regular-text"><?php echo esc_textarea(!empty($data['phone_verification_message']) ? $data['phone_verification_message'] : $this->default_sms_message); ?></textarea>
 						<p class="description"><?php echo esc_html__('Add {site_name}, {code} where you want them to appear.', 'wc-blacklist-manager'); ?></p>
@@ -233,16 +252,24 @@ if (!defined('ABSPATH')) {
 						</th>
 						<td>
 							<select id="sms_service" name="sms_service">
-								<option value="" disabled <?php echo $data['sms_service'] !== 'yo_credits' ? 'selected' : ''; ?>>
-									<?php esc_html_e( 'Unknown', 'wc-blacklist-manager' ); ?>
-								</option>
 								<option value="yo_credits" <?php selected( $data['sms_service'], 'yo_credits' ); ?>>
 									<?php esc_html_e( 'Yo Credits', 'wc-blacklist-manager' ); ?>
 								</option>
-								<option disabled>Twilio</option>
-								<option disabled>Textmagic</option>
 							</select>
-							<p class="description"><?php echo esc_html__('Go premium to unlock other popular SMS services', 'wc-blacklist-manager'); ?> <a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a>
+							<p class="description"><?php echo esc_html__('Yo Credits is available in the free plugin.', 'wc-blacklist-manager'); ?></p>
+							<?php
+							wc_blacklist_manager_render_premium_preview_cards(
+								array(
+									array(
+										'icon'        => 'dashicons-email-alt2',
+										'title'       => __( 'Twilio and Textmagic', 'wc-blacklist-manager' ),
+										'description' => __( 'Use your own SMS provider account for stores that already run verification through Twilio or Textmagic.', 'wc-blacklist-manager' ),
+									),
+								),
+								array( 'columns' => 1 )
+							);
+							wc_blacklist_manager_render_premium_inline_cta( $unlock_url, 'integrations' );
+							?>
 						</td>
 					</tr>
 				<?php endif; ?>
@@ -332,19 +359,6 @@ if (!defined('ABSPATH')) {
 						</td>
 					</tr>
 				<?php endif; ?>
-				<?php if (!$premium_active): ?>
-					<tr>
-						<th scope="row">
-							<span class="dashicons dashicons-cart premium-text"></span>
-							<label class="premium-text"><?php echo esc_html__('Real-time validation', 'wc-blacklist-manager'); ?></label>
-						</th>
-						<td>
-							<input type="checkbox" disabled>
-							<label class="premium-text"><?php echo esc_html__('Enable real-time automatic phone number format validation on the checkout page', 'wc-blacklist-manager'); ?></label> <a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a>
-							<p class="premium-text"><?php echo esc_html__('Avoid wrong types by mistake, automatically corrected in the phone number field.', 'wc-blacklist-manager'); ?></p>
-						</td>
-					</tr>
-				<?php endif; ?>
 				<?php if ($premium_active): ?>
 					<tr>
 						<th scope="row">
@@ -361,13 +375,28 @@ if (!defined('ABSPATH')) {
 				<?php if (!$premium_active): ?>
 					<tr>
 						<th scope="row">
-							<span class="dashicons dashicons-cart premium-text"></span>
-							<label class="premium-text"><?php echo esc_html__('Disposable phone', 'wc-blacklist-manager'); ?></label>
+							<span class="dashicons dashicons-phone"></span>
+							<label><?php echo esc_html__('Phone intelligence', 'wc-blacklist-manager'); ?></label>
 						</th>
 						<td>
-							<input type="checkbox" disabled>
-							<label class="premium-text"><?php echo esc_html__('Enable detection and blocking the disposable phone number', 'wc-blacklist-manager'); ?></label> <a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a>
-							<p class="premium-text"><?php echo esc_html__('Prevent the disposable phone to place an order at the checkout page.', 'wc-blacklist-manager'); ?></p>
+							<?php
+							wc_blacklist_manager_render_premium_preview_cards(
+								array(
+									array(
+										'icon'        => 'dashicons-smartphone',
+										'title'       => __( 'Real-time phone validation', 'wc-blacklist-manager' ),
+										'description' => __( 'Normalize and validate checkout phone numbers before they create noisy order records.', 'wc-blacklist-manager' ),
+									),
+									array(
+										'icon'        => 'dashicons-dismiss',
+										'title'       => __( 'Disposable phone detection', 'wc-blacklist-manager' ),
+										'description' => __( 'Flag temporary or disposable phone numbers before they pass checkout verification.', 'wc-blacklist-manager' ),
+									),
+								),
+								array( 'columns' => 2 )
+							);
+							wc_blacklist_manager_render_premium_inline_cta( $unlock_url, 'integrations' );
+							?>
 						</td>
 					</tr>
 				<?php endif; ?>
@@ -391,7 +420,7 @@ if (!defined('ABSPATH')) {
 			<?php endif; ?>
 
 			<?php if (!$premium_active): ?>
-				<h2 class="premium-text"><?php echo esc_html__('Name verification', 'wc-blacklist-manager'); ?> <a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a></h2>
+				<h2><?php echo esc_html__('Name verification', 'wc-blacklist-manager'); ?></h2>
 			<?php endif; ?>
 
 			<table class="form-table">
@@ -432,24 +461,28 @@ if (!defined('ABSPATH')) {
 				<?php if (!$premium_active): ?>
 					<tr>
 						<th scope="row">
-							<span class="dashicons dashicons-cart premium-text"></span>
-							<label class="premium-text"><?php echo esc_html__('Auto capitalization', 'wc-blacklist-manager'); ?></label>
+							<span class="dashicons dashicons-id"></span>
+							<label><?php echo esc_html__('Premium name cleanup', 'wc-blacklist-manager'); ?></label>
 						</th>
 						<td>
-							<input type="checkbox" disabled>
-							<label class="premium-text"><?php echo esc_html__('Enable automatic capitalization of the customer first and last name', 'wc-blacklist-manager'); ?></label> <a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a>
-							<p class="premium-text"><?php echo esc_html__('It will be auto-capitalized on the customer name on the checkout and edit account pages.', 'wc-blacklist-manager'); ?></p>
-						</td>
-					</tr>
-					<tr>
-						<th scope="row">
-							<span class="dashicons dashicons-cart premium-text"></span>
-							<label class="premium-text"><?php echo esc_html__('Real-time validation', 'wc-blacklist-manager'); ?></label>
-						</th>
-						<td>
-							<input type="checkbox" disabled>
-							<label class="premium-text"><?php echo esc_html__('Enable real-time automatic customer name format validation on the checkout page', 'wc-blacklist-manager'); ?></label> <a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a>
-							<p class="premium-text"><?php echo esc_html__('Avoid meaningless, spammy names in the first and last name fields.', 'wc-blacklist-manager'); ?></p>
+							<?php
+							wc_blacklist_manager_render_premium_preview_cards(
+								array(
+									array(
+										'icon'        => 'dashicons-editor-textcolor',
+										'title'       => __( 'Auto capitalization', 'wc-blacklist-manager' ),
+										'description' => __( 'Normalize first and last names on checkout and account forms for cleaner records.', 'wc-blacklist-manager' ),
+									),
+									array(
+										'icon'        => 'dashicons-search',
+										'title'       => __( 'Name format validation', 'wc-blacklist-manager' ),
+										'description' => __( 'Reduce meaningless or spammy names before they enter order and customer data.', 'wc-blacklist-manager' ),
+									),
+								),
+								array( 'columns' => 2 )
+							);
+							wc_blacklist_manager_render_premium_inline_cta( $unlock_url, 'verifications' );
+							?>
 						</td>
 					</tr>
 				<?php endif; ?>
@@ -510,7 +543,7 @@ if (!defined('ABSPATH')) {
 
 				if (emailVerificationCheckbox) {
 					emailVerificationCheckbox.addEventListener('change', function () {
-						if (emailVerificationCheckbox.checked) {
+						if (emailVerificationCheckbox.checked && phoneVerificationCheckbox) {
 							phoneVerificationCheckbox.checked = false;
 						}
 					});
@@ -518,7 +551,7 @@ if (!defined('ABSPATH')) {
 
 				if (phoneVerificationCheckbox) {
 					phoneVerificationCheckbox.addEventListener('change', function () {
-						if (phoneVerificationCheckbox.checked) {
+						if (phoneVerificationCheckbox.checked && emailVerificationCheckbox) {
 							emailVerificationCheckbox.checked = false;
 						}
 					});
@@ -535,29 +568,90 @@ if (!defined('ABSPATH')) {
 				var nameVerificationFormatValidateRow = document.getElementById('name_verification_format_validate_row');
 
 				function toggleDisplay(element, display) {
+					if (!element) {
+						return;
+					}
+
 					element.style.display = display ? '' : 'none';
+					syncNativeValidation(element, display);
 				}
 
+				function syncNativeValidation(element, enabled) {
+					var attrs = ['required', 'min', 'max', 'pattern', 'step'];
+					element.querySelectorAll('input, select, textarea, button').forEach(function (control) {
+						attrs.forEach(function (attr) {
+							var storedAttr = 'data-yobm-' + attr;
+
+							if (!enabled) {
+								if (control.hasAttribute(attr) && !control.hasAttribute(storedAttr)) {
+									control.setAttribute(storedAttr, control.getAttribute(attr));
+								}
+								control.removeAttribute(attr);
+							} else if (control.hasAttribute(storedAttr)) {
+								control.setAttribute(attr, control.getAttribute(storedAttr));
+								control.removeAttribute(storedAttr);
+							}
+						});
+
+						var type = control.getAttribute('type');
+						if (!enabled && (type === 'email' || type === 'url')) {
+							if (!control.hasAttribute('data-yobm-type')) {
+								control.setAttribute('data-yobm-type', type);
+							}
+							control.setAttribute('type', 'text');
+						} else if (enabled && control.hasAttribute('data-yobm-type')) {
+							control.setAttribute('type', control.getAttribute('data-yobm-type'));
+							control.removeAttribute('data-yobm-type');
+						}
+					});
+				}
+
+				toggleDisplay(emailVerificationActionRow, !!(emailVerificationCheckbox && emailVerificationCheckbox.checked));
+				toggleDisplay(emailVerificationEmailSettingsRow, !!(emailVerificationCheckbox && emailVerificationCheckbox.checked));
+				toggleDisplay(phoneVerificationActionRow, !!(phoneVerificationCheckbox && phoneVerificationCheckbox.checked));
+				toggleDisplay(phoneVerificationSmsSettingsRow, !!(phoneVerificationCheckbox && phoneVerificationCheckbox.checked));
+				toggleDisplay(phoneVerificationSmsKeyRow, !!(smsService && smsService.value === 'yo_credits'));
+				toggleDisplay(phoneVerificationSmsQuotaRow, !!(smsService && smsService.value === 'yo_credits'));
+				toggleDisplay(phoneVerificationFailedEmailRow, !!(smsService && smsService.value === 'yo_credits'));
+				toggleDisplay(smsServiceDescriptionRow, !!(smsService && smsService.value !== 'yo_credits'));
+				toggleDisplay(phoneVerificationFormatValidateRow, !!(phoneVerificationRealtimeValidateCheckbox && phoneVerificationRealtimeValidateCheckbox.checked));
+				toggleDisplay(nameVerificationFormatValidateRow, !!(nameVerificationRealtimeValidateCheckbox && nameVerificationRealtimeValidateCheckbox.checked));
+
 				// Email verification checkbox changes
-				emailVerificationCheckbox.addEventListener('change', function () {
-					toggleDisplay(emailVerificationActionRow, this.checked);
-					toggleDisplay(emailVerificationEmailSettingsRow, this.checked);
-				});
+				if (emailVerificationCheckbox) {
+					emailVerificationCheckbox.addEventListener('change', function () {
+						toggleDisplay(emailVerificationActionRow, this.checked);
+						toggleDisplay(emailVerificationEmailSettingsRow, this.checked);
+
+						if (this.checked) {
+							toggleDisplay(phoneVerificationActionRow, false);
+							toggleDisplay(phoneVerificationSmsSettingsRow, false);
+						}
+					});
+				}
 
 				// Phone verification checkbox changes
-				phoneVerificationCheckbox.addEventListener('change', function () {
-					var isChecked = this.checked;
-					toggleDisplay(phoneVerificationActionRow, isChecked);
-					toggleDisplay(phoneVerificationSmsSettingsRow, isChecked);
-				});
+				if (phoneVerificationCheckbox) {
+					phoneVerificationCheckbox.addEventListener('change', function () {
+						var isChecked = this.checked;
+						toggleDisplay(phoneVerificationActionRow, isChecked);
+						toggleDisplay(phoneVerificationSmsSettingsRow, isChecked);
 
-				smsService.addEventListener('change', function () {
-					toggleDisplay(phoneVerificationSmsKeyRow, this.value === 'yo_credits');
-					toggleDisplay(phoneVerificationSmsQuotaRow, this.value === 'yo_credits');
-					toggleDisplay(phoneVerificationFailedEmailRow, this.value === 'yo_credits');
-					toggleDisplay(smsServiceDescriptionRow, this.value !== 'yo_credits');
-					
-				});
+						if (isChecked) {
+							toggleDisplay(emailVerificationActionRow, false);
+							toggleDisplay(emailVerificationEmailSettingsRow, false);
+						}
+					});
+				}
+
+				if (smsService) {
+					smsService.addEventListener('change', function () {
+						toggleDisplay(phoneVerificationSmsKeyRow, this.value === 'yo_credits');
+						toggleDisplay(phoneVerificationSmsQuotaRow, this.value === 'yo_credits');
+						toggleDisplay(phoneVerificationFailedEmailRow, this.value === 'yo_credits');
+						toggleDisplay(smsServiceDescriptionRow, this.value !== 'yo_credits');
+					});
+				}
 
 				if (phoneVerificationRealtimeValidateCheckbox) {
 					phoneVerificationRealtimeValidateCheckbox.addEventListener('change', function () {

@@ -11,10 +11,11 @@ class WC_Blacklist_Manager_Backend {
 
 		include_once ABSPATH . 'wp-admin/includes/plugin.php';
 
-		$license_active        = WC_Blacklist_Manager_Validator::is_premium_active();
+		$license_active        = function_exists( 'wc_blacklist_manager_premium_license_is_active' ) && wc_blacklist_manager_premium_license_is_active();
 		$premium_plugin_active = is_plugin_active( 'wc-blacklist-manager-premium/wc-blacklist-manager-premium.php' );
-
-		$premium_active = ( $premium_plugin_active && $license_active );
+		$premium_active        = function_exists( 'wc_blacklist_manager_is_premium_available' )
+			? wc_blacklist_manager_is_premium_available()
+			: ( $premium_plugin_active && $license_active );
 
 		if ( ! $premium_plugin_active && $license_active ) {
 			add_action( 'admin_notices', [ 'WC_Blacklist_Manager_Notices', 'show_download_premium_notice' ] );
@@ -30,7 +31,7 @@ class WC_Blacklist_Manager_Backend {
 	public function enqueue_assets( $hook_suffix ) {
 		global $wp_version;
 
-		$style_ver  = '1.6.2';
+		$style_ver  = '1.6.8';
 		$script_ver = '1.2';
 
 		// Determine current admin screen context
@@ -147,7 +148,10 @@ class WC_Blacklist_Manager_Backend {
 	}
 
 	private function includes() {
+		include_once plugin_dir_path(__FILE__) . '../backend/helpers/action-upsells.php';
+		include_once plugin_dir_path(__FILE__) . '../backend/helpers/dashboard-insights.php';
 		include_once plugin_dir_path(__FILE__) . '../backend/dashboard.php';
+		include_once plugin_dir_path(__FILE__) . '../backend/premium-cta.php';
 		include_once plugin_dir_path(__FILE__) . '../backend/activity.php';
 		include_once plugin_dir_path(__FILE__) . '../backend/verifications.php';
 		include_once plugin_dir_path(__FILE__) . '../backend/notifications.php';
@@ -163,10 +167,6 @@ class WC_Blacklist_Manager_Backend {
 		include_once plugin_dir_path(__FILE__) . '../backend/helpers/new-order-email.php';
 
 		include_once plugin_dir_path(__FILE__) . '../backend/emails/admin-new-order.php';
-
-		include_once plugin_dir_path(__FILE__) . '../backend/yoohw-dashboard.php';
-		include_once plugin_dir_path(__FILE__) . '../backend/yoohw-license.php';
-		include_once plugin_dir_path(__FILE__) . '../backend/yoohw-settings.php';
 
 		require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-register.php';
 		require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-reports.php';

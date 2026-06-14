@@ -5,6 +5,11 @@ if (!defined('ABSPATH')) {
 }
 
 class WC_Blacklist_Manager_User_Blocking {
+	private function is_premium_active() {
+		return function_exists( 'wc_blacklist_manager_is_premium_available' )
+			&& wc_blacklist_manager_is_premium_available();
+	}
+
 	public function __construct() {
 		$yoaa_premium_active = in_array('wc-advanced-accounts-premium/wc-advanced-accounts-premium.php', apply_filters('active_plugins', get_option('active_plugins')));
 		$license_status = (get_option('wc_advanced_accounts_premium_license_status') === 'activated');
@@ -27,8 +32,7 @@ class WC_Blacklist_Manager_User_Blocking {
 	}
 
 	public function force_logout_blocked_user($user_login, $user) {
-		$settings_instance = new WC_Blacklist_Manager_Settings();
-		$premium_active = $settings_instance->is_premium_active();
+		$premium_active = $this->is_premium_active();
 
 		global $wpdb;
 		$table_detection_log = $wpdb->prefix . 'wc_blacklist_detection_log';
@@ -101,8 +105,7 @@ class WC_Blacklist_Manager_User_Blocking {
 	public function show_user_blocked_status($user) {
 		if (current_user_can('edit_user', $user->ID)) {
 			$is_blocked = get_user_meta($user->ID, 'user_blocked', true);
-			$settings_instance = new WC_Blacklist_Manager_Settings();
-			$premium_active = $settings_instance->is_premium_active();
+			$premium_active = $this->is_premium_active();
 			?>
 			<h2><?php esc_html_e('Blocking management', 'wc-blacklist-manager'); ?></h2>
 			<table class="form-table">
@@ -149,10 +152,17 @@ class WC_Blacklist_Manager_User_Blocking {
 		$table_detection_log = $wpdb->prefix . 'wc_blacklist_detection_log';
 		$table_blacklist     = $wpdb->prefix . 'wc_blacklist';
 
-		$settings_instance = new WC_Blacklist_Manager_Settings();
-		$premium_active    = $settings_instance->is_premium_active();
+		$premium_active = $this->is_premium_active();
 
 		if ( current_user_can( 'edit_user', $user_id ) ) {
+			if ( isset( $_POST['block_user'] ) && ! $premium_active ) {
+				wp_die(
+					esc_html( function_exists( 'wc_blacklist_manager_premium_denied_message' ) ? wc_blacklist_manager_premium_denied_message() : __( 'A valid Blacklist Manager Premium license is required to use this feature.', 'wc-blacklist-manager' ) ),
+					esc_html__( 'Premium license required', 'wc-blacklist-manager' ),
+					array( 'response' => 403 )
+				);
+			}
+
 			$user = get_userdata( $user_id );
 
 			if ( $user && in_array( 'administrator', $user->roles, true ) ) {

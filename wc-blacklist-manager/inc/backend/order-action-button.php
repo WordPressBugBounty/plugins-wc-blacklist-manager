@@ -48,8 +48,8 @@ class WC_Blacklist_Manager_Order_Actions {
 	 */
 	private function is_premium_active(): bool {
 		if ( null === $this->premium_active_cache ) {
-			$settings_instance          = new WC_Blacklist_Manager_Settings();
-			$this->premium_active_cache = (bool) $settings_instance->is_premium_active();
+			$this->premium_active_cache = function_exists( 'wc_blacklist_manager_is_premium_available' )
+				&& wc_blacklist_manager_is_premium_available();
 		}
 
 		return $this->premium_active_cache;
@@ -68,6 +68,29 @@ class WC_Blacklist_Manager_Order_Actions {
 			: current_user_can( 'manage_options' );
 
 		return $this->permission_cache;
+	}
+
+	/**
+	 * Get contextual Premium CTA data for order action modals.
+	 */
+	private function get_order_action_modal_cta( $event ) {
+		if ( $this->is_premium_active() || ! function_exists( 'wc_blacklist_manager_action_upsell_catalog' ) ) {
+			return null;
+		}
+
+		$catalog = wc_blacklist_manager_action_upsell_catalog();
+		if ( empty( $catalog[ $event ] ) || ! is_array( $catalog[ $event ] ) ) {
+			return null;
+		}
+
+		$config = $catalog[ $event ];
+
+		return array(
+			'title'   => isset( $config['title'] ) ? wp_strip_all_tags( $config['title'] ) : '',
+			'message' => isset( $config['message'] ) ? wp_strip_all_tags( $config['message'] ) : '',
+			'cta'     => isset( $config['cta'] ) ? wp_strip_all_tags( $config['cta'] ) : '',
+			'url'     => isset( $config['url'] ) ? esc_url_raw( $config['url'] ) : '',
+		);
 	}
 
 	/**
@@ -786,6 +809,7 @@ class WC_Blacklist_Manager_Order_Actions {
 						'confirm'           => __( 'Confirm block', 'wc-blacklist-manager' ),
 						'processingText'    => __( 'Processing...', 'wc-blacklist-manager' ),
 					),
+					'cta'    => $this->get_order_action_modal_cta( 'order_block' ),
 				),
 				'remove'  => array(
 					'reasons' => array(
@@ -814,6 +838,7 @@ class WC_Blacklist_Manager_Order_Actions {
 						'confirm'           => __( 'Confirm remove', 'wc-blacklist-manager' ),
 						'processingText'    => __( 'Processing...', 'wc-blacklist-manager' ),
 					),
+					'cta'    => $this->get_order_action_modal_cta( 'order_remove' ),
 				),
 			)
 		);
@@ -884,8 +909,16 @@ class WC_Blacklist_Manager_Order_Actions {
 
 		echo '</p>';
 
-		if ( ! $premium_active ) {
-			echo '<p class="bm_description"><a href="https://yoohw.com/product/blacklist-manager-premium/" target="_blank" title="Upgrade Premium"><span class="yoohw_unlock">Unlock</span></a> ' . esc_html__( 'to power up the blacklist management', 'wc-blacklist-manager' ) . '</p>';
+		if ( ! $premium_active && function_exists( 'wc_blacklist_manager_render_action_upsell' ) ) {
+			$rendered_upsell = wc_blacklist_manager_render_action_upsell( 'order', array( 'inline' => true ) );
+
+			if ( ! $rendered_upsell && $state['has_blocked_meta'] && function_exists( 'wc_blacklist_manager_render_static_action_upsell' ) ) {
+				$rendered_upsell = wc_blacklist_manager_render_static_action_upsell( 'order_block', 'order', array( 'inline' => true ) );
+			}
+
+			if ( ! $rendered_upsell && $state['has_suspect_meta'] && function_exists( 'wc_blacklist_manager_render_static_action_upsell' ) ) {
+				wc_blacklist_manager_render_static_action_upsell( 'order_suspect', 'order', array( 'inline' => true ) );
+			}
 		}
 
 		echo '</div>';
@@ -905,6 +938,11 @@ class WC_Blacklist_Manager_Order_Actions {
 				<div class="bm-field">
 					<label for="bm_description" id="bmDescLabel"></label>
 					<textarea id="bm_description" rows="4"></textarea>
+				</div>
+				<div class="bm-field bm-modal-cta" id="bmModalCta" style="display:none;">
+					<strong id="bmModalCtaTitle"></strong>
+					<p id="bmModalCtaMessage"></p>
+					<a href="#" id="bmModalCtaLink" class="button button-secondary" target="_blank" rel="noopener noreferrer"></a>
 				</div>
 				<div class="bm-field bm-error" id="bmError" style="display:none;color:#b32d2e;"></div>
 			</div>
@@ -1163,6 +1201,10 @@ class WC_Blacklist_Manager_Order_Actions {
 
 			$this->maybe_sync_order_device_status( $order, 'suspect', '' );
 
+			if ( function_exists( 'wc_blacklist_manager_record_action_upsell_event' ) ) {
+				wc_blacklist_manager_record_action_upsell_event( 'order_suspect' );
+			}
+
 			wp_send_json_success(
 				array(
 					'message' => esc_html__( 'Added to suspects list successfully.', 'wc-blacklist-manager' ),
@@ -1411,6 +1453,10 @@ class WC_Blacklist_Manager_Order_Actions {
 
 			$this->maybe_sync_order_device_status( $order, 'blocked', $reason_code );
 
+			if ( function_exists( 'wc_blacklist_manager_record_action_upsell_event' ) ) {
+				wc_blacklist_manager_record_action_upsell_event( 'order_block' );
+			}
+
 			wp_send_json_success(
 				array(
 					'message' => esc_html__( 'Moved to the blocklist successfully.', 'wc-blacklist-manager' ),
@@ -1613,6 +1659,10 @@ class WC_Blacklist_Manager_Order_Actions {
 			}
 
 			$this->maybe_sync_order_device_status( $order, 'blocked', $reason_code );
+
+			if ( function_exists( 'wc_blacklist_manager_record_action_upsell_event' ) ) {
+				wc_blacklist_manager_record_action_upsell_event( 'order_block' );
+			}
 
 			wp_send_json_success(
 				array(
@@ -1838,6 +1888,10 @@ class WC_Blacklist_Manager_Order_Actions {
 		}
 
 		$this->maybe_sync_order_device_status( $order, '', '' );
+
+		if ( function_exists( 'wc_blacklist_manager_record_action_upsell_event' ) ) {
+			wc_blacklist_manager_record_action_upsell_event( 'order_remove' );
+		}
 
 		wp_send_json_success(
 			array(

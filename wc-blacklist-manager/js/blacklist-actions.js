@@ -81,6 +81,26 @@ jQuery(function ($) {
 		$('#bmError').hide().text('');
 	}
 
+	function setModalCta(cta) {
+		var $wrap = $('#bmModalCta');
+		var $title = $('#bmModalCtaTitle');
+		var $message = $('#bmModalCtaMessage');
+		var $link = $('#bmModalCtaLink');
+
+		if (!cta || !cta.url || !cta.cta) {
+			$title.text('');
+			$message.text('');
+			$link.attr('href', '#').text('');
+			$wrap.hide();
+			return;
+		}
+
+		$title.text(cta.title || '');
+		$message.text(cta.message || '');
+		$link.attr('href', cta.url).text(cta.cta);
+		$wrap.show();
+	}
+
 	function disableActionButtons(selector) {
 		$(selector).prop('disabled', true).addClass('disabled');
 	}
@@ -212,6 +232,7 @@ jQuery(function ($) {
 			$('#bmConfirm').text(labels.confirm || 'Confirm block');
 
 			resetModalError();
+			setModalCta(block.cta);
 			$('#bm_description').val('');
 
 			$reason.empty();
@@ -353,6 +374,7 @@ jQuery(function ($) {
 			$('#bmConfirm').text(labels.confirm || 'Confirm remove');
 
 			resetModalError();
+			setModalCta(remove.cta);
 			$('#bm_description').val('');
 
 			$reason.empty();

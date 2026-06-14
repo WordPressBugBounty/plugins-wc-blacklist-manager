@@ -26,6 +26,10 @@ if (!defined('ABSPATH')) {
 	if (!empty($this->message)) {
 		echo '<div id="message" class="notice notice-success is-dismissible"><p>' . esc_html($this->message) . '</p></div>';
 	}
+
+	if ( function_exists( 'wc_blacklist_manager_render_action_upsell' ) ) {
+		wc_blacklist_manager_render_action_upsell( 'dashboard' );
+	}
 	?>
 	<div class="wc-blacklist-container">
 		<div class="form-column">
@@ -128,55 +132,57 @@ if (!defined('ABSPATH')) {
 
 			<hr>
 
+			<?php
+			if ( ! $premium_active && function_exists( 'wc_blacklist_manager_render_dashboard_locked_insights' ) ) {
+				wc_blacklist_manager_render_dashboard_locked_insights( 30 );
+			}
+			?>
+
 			<div class="summary-child">
 				<div class="entries-column">
 					<label><span class="dashicons dashicons-list-view" style="margin-right: 5px;"></span> <?php echo esc_html__('Blacklist entries', 'wc-blacklist-manager'); ?></label>
 
 					<table>
 						<tbody>
-							<tr>
-								<th>
-									• <?php echo esc_html__( 'Customer name', 'wc-blacklist-manager' ); ?>
-								</th>
-								<?php if ($premium_active): ?>
+							<?php if ( $premium_active ): ?>
+								<tr>
+									<th>
+										<?php echo esc_html__( 'Customer name', 'wc-blacklist-manager' ); ?>
+									</th>
 									<?php if ($customer_name_blocking_enabled === '1'): ?>
 										<td><?php echo esc_html( get_option( 'wc_blacklist_sum_name', 0 ) ); ?></td>
 									<?php else : ?>
 										<td><span class="sum-disabled"><?php echo esc_html__( 'Disabled', 'wc-blacklist-manager' ); ?></span></td>
 									<?php endif; ?>
-								<?php else : ?>
-									<td><span class="sum-premium"><?php echo esc_html__( 'Premium', 'wc-blacklist-manager' ); ?></span></td>
-								<?php endif; ?>
-							</tr>
+								</tr>
+							<?php endif; ?>
 							<tr>
 								<th>
-									• <?php echo esc_html__( 'Phone number', 'wc-blacklist-manager' ); ?>
+									<?php echo esc_html__( 'Phone number', 'wc-blacklist-manager' ); ?>
 								</th>
 								<td><?php echo esc_html( get_option( 'wc_blacklist_sum_phone', 0 ) ); ?></td>
 							</tr>
 							<tr>
 								<th>
-									• <?php echo esc_html__( 'Email address', 'wc-blacklist-manager' ); ?>
+									<?php echo esc_html__( 'Email address', 'wc-blacklist-manager' ); ?>
 								</th>
 								<td><?php echo esc_html( get_option( 'wc_blacklist_sum_email', 0 ) ); ?></td>
 							</tr>
-							<tr>
-								<th>
-									• <?php echo esc_html__( 'Device', 'wc-blacklist-manager' ); ?>
-								</th>
-								<?php if ($premium_active): ?>
+							<?php if ( $premium_active ): ?>
+								<tr>
+									<th>
+										<?php echo esc_html__( 'Device', 'wc-blacklist-manager' ); ?>
+									</th>
 									<?php if ($device_blacklist_enabled === '1'): ?>
 										<td><?php echo esc_html( get_option( 'wc_blacklist_sum_device', 0 ) ); ?></td>
 									<?php else : ?>
 										<td><span class="sum-disabled"><?php echo esc_html__( 'Disabled', 'wc-blacklist-manager' ); ?></span></td>
 									<?php endif; ?>
-								<?php else : ?>
-									<td><span class="sum-premium"><?php echo esc_html__( 'Premium', 'wc-blacklist-manager' ); ?></span></td>
-								<?php endif; ?>
-							</tr>
+								</tr>
+							<?php endif; ?>
 							<tr>
 								<th>
-									• <?php echo esc_html__( 'IP address', 'wc-blacklist-manager' ); ?>
+									<?php echo esc_html__( 'IP address', 'wc-blacklist-manager' ); ?>
 								</th>
 								<?php if ($ip_blocking_enabled === '1' || $ip_blocking_enabled === '2'): ?>
 									<td><?php echo esc_html( get_option( 'wc_blacklist_sum_ip', 0 ) ); ?></td>
@@ -184,23 +190,21 @@ if (!defined('ABSPATH')) {
 									<td><span class="sum-disabled"><?php echo esc_html__( 'Disabled', 'wc-blacklist-manager' ); ?></span></td>
 								<?php endif; ?>
 							</tr>
-							<tr>
-								<th>
-									• <?php echo esc_html__( 'Address', 'wc-blacklist-manager' ); ?>
-								</th>
-								<?php if ($premium_active): ?>
+							<?php if ( $premium_active ): ?>
+								<tr>
+									<th>
+										<?php echo esc_html__( 'Address', 'wc-blacklist-manager' ); ?>
+									</th>
 									<?php if ($address_blocking_enabled === '1'): ?>
 										<td><?php echo esc_html( get_option( 'wc_blacklist_sum_address', 0 ) ); ?></td>
 									<?php else : ?>
 										<td><span class="sum-disabled"><?php echo esc_html__( 'Disabled', 'wc-blacklist-manager' ); ?></span></td>
 									<?php endif; ?>
-								<?php else : ?>
-									<td><span class="sum-premium"><?php echo esc_html__( 'Premium', 'wc-blacklist-manager' ); ?></span></td>
-								<?php endif; ?>
-							</tr>
+								</tr>
+							<?php endif; ?>
 							<tr>
 								<th>
-									• <?php echo esc_html__( 'Email domain', 'wc-blacklist-manager' ); ?>
+									<?php echo esc_html__( 'Email domain', 'wc-blacklist-manager' ); ?>
 								</th>
 								<?php if ($domain_blocking_enabled === '1'): ?>
 									<td><?php echo esc_html( get_option( 'wc_blacklist_sum_domain', 0 ) ); ?></td>
@@ -330,49 +334,45 @@ if (!defined('ABSPATH')) {
 
 					<table>
 						<tbody>
-							<tr>
-								<th>
-									• <?php echo esc_html__( 'Customer name', 'wc-blacklist-manager' ); ?>
-								</th>
-								<?php if ($premium_active): ?>
+							<?php if ( $premium_active ): ?>
+								<tr>
+									<th>
+										<?php echo esc_html__( 'Customer name', 'wc-blacklist-manager' ); ?>
+									</th>
 									<?php if ($customer_name_blocking_enabled === '1'): ?>
 										<td><?php echo esc_html( get_option( 'wc_blacklist_sum_block_name', 0 ) ); ?></td>
 									<?php else : ?>
 										<td><span class="sum-disabled"><?php echo esc_html__( 'Disabled', 'wc-blacklist-manager' ); ?></span></td>
 									<?php endif; ?>
-								<?php else : ?>
-									<td><span class="sum-premium"><?php echo esc_html__( 'Premium', 'wc-blacklist-manager' ); ?></span></td>
-								<?php endif; ?>
-							</tr>
+								</tr>
+							<?php endif; ?>
 							<tr>
 								<th>
-									• <?php echo esc_html__( 'Phone number', 'wc-blacklist-manager' ); ?>
+									<?php echo esc_html__( 'Phone number', 'wc-blacklist-manager' ); ?>
 								</th>
 								<td><?php echo esc_html( get_option( 'wc_blacklist_sum_block_phone', 0 ) ); ?></td>
 							</tr>
 							<tr>
 								<th>
-									• <?php echo esc_html__( 'Email address', 'wc-blacklist-manager' ); ?>
+									<?php echo esc_html__( 'Email address', 'wc-blacklist-manager' ); ?>
 								</th>
 								<td><?php echo esc_html( get_option( 'wc_blacklist_sum_block_email', 0 ) ); ?></td>
 							</tr>
-							<tr>
-								<th>
-									• <?php echo esc_html__( 'Device', 'wc-blacklist-manager' ); ?>
-								</th>
-								<?php if ($premium_active): ?>
+							<?php if ( $premium_active ): ?>
+								<tr>
+									<th>
+										<?php echo esc_html__( 'Device', 'wc-blacklist-manager' ); ?>
+									</th>
 									<?php if ($device_blacklist_enabled === '1'): ?>
 										<td><?php echo esc_html( get_option( 'wc_blacklist_sum_block_device', 0 ) ); ?></td>
 									<?php else : ?>
 										<td><span class="sum-disabled"><?php echo esc_html__( 'Disabled', 'wc-blacklist-manager' ); ?></span></td>
 									<?php endif; ?>
-								<?php else : ?>
-									<td><span class="sum-premium"><?php echo esc_html__( 'Premium', 'wc-blacklist-manager' ); ?></span></td>
-								<?php endif; ?>
-							</tr>
+								</tr>
+							<?php endif; ?>
 							<tr>
 								<th>
-									• <?php echo esc_html__( 'IP address', 'wc-blacklist-manager' ); ?>
+									<?php echo esc_html__( 'IP address', 'wc-blacklist-manager' ); ?>
 								</th>
 								<?php if ($ip_blocking_enabled === '1' || $ip_blocking_enabled === '2'): ?>
 									<td><?php echo esc_html( get_option( 'wc_blacklist_sum_block_ip', 0 ) ); ?></td>
@@ -380,23 +380,21 @@ if (!defined('ABSPATH')) {
 									<td><span class="sum-disabled"><?php echo esc_html__( 'Disabled', 'wc-blacklist-manager' ); ?></span></td>
 								<?php endif; ?>
 							</tr>
-							<tr>
-								<th>
-									• <?php echo esc_html__( 'Address', 'wc-blacklist-manager' ); ?>
-								</th>
-								<?php if ($premium_active): ?>
+							<?php if ( $premium_active ): ?>
+								<tr>
+									<th>
+										<?php echo esc_html__( 'Address', 'wc-blacklist-manager' ); ?>
+									</th>
 									<?php if ($address_blocking_enabled === '1'): ?>
 										<td><?php echo esc_html( get_option( 'wc_blacklist_sum_block_address', 0 ) ); ?></td>
 									<?php else : ?>
 										<td><span class="sum-disabled"><?php echo esc_html__( 'Disabled', 'wc-blacklist-manager' ); ?></span></td>
 									<?php endif; ?>
-								<?php else : ?>
-									<td><span class="sum-premium"><?php echo esc_html__( 'Premium', 'wc-blacklist-manager' ); ?></span></td>
-								<?php endif; ?>
-							</tr>
+								</tr>
+							<?php endif; ?>
 							<tr>
 								<th>
-									• <?php echo esc_html__( 'Email domain', 'wc-blacklist-manager' ); ?>
+									<?php echo esc_html__( 'Email domain', 'wc-blacklist-manager' ); ?>
 								</th>
 								<?php if ($domain_blocking_enabled === '1'): ?>
 									<td><?php echo esc_html( get_option( 'wc_blacklist_sum_block_domain', 0 ) ); ?></td>
@@ -423,7 +421,7 @@ if (!defined('ABSPATH')) {
 					<span class="bm-actions">
 						<a href="<?php echo esc_url( admin_url( 'admin.php?page=wc-blacklist-manager-activity-logs' ) ); ?>"><?php echo esc_html__('See activity logs', 'wc-blacklist-manager'); ?></a>
 						<?php if (!$premium_active): ?>
-							<a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'>Unlock</a>
+							<a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'><?php echo esc_html__( 'Unlock Activity Logs', 'wc-blacklist-manager' ); ?></a>
 						<?php endif; ?>
 					</span>
 				</div>
@@ -1416,9 +1414,46 @@ if (!defined('ABSPATH')) {
 				var addAddressBtn = document.getElementById('add-address-btn');
 				var addAddressContainer = document.getElementById('add-address-container');
 
+				function syncNativeValidation(element, enabled) {
+					var attrs = ['required', 'min', 'max', 'pattern', 'step'];
+					element.querySelectorAll('input, select, textarea').forEach(function(control) {
+						attrs.forEach(function(attr) {
+							var storedAttr = 'data-yobm-' + attr;
+
+							if (!enabled) {
+								if (control.hasAttribute(attr) && !control.hasAttribute(storedAttr)) {
+									control.setAttribute(storedAttr, control.getAttribute(attr));
+								}
+								control.removeAttribute(attr);
+							} else if (control.hasAttribute(storedAttr)) {
+								control.setAttribute(attr, control.getAttribute(storedAttr));
+								control.removeAttribute(storedAttr);
+							}
+						});
+
+						var type = control.getAttribute('type');
+						if (!enabled && (type === 'email' || type === 'url')) {
+							if (!control.hasAttribute('data-yobm-type')) {
+								control.setAttribute('data-yobm-type', type);
+							}
+							control.setAttribute('type', 'text');
+						} else if (enabled && control.hasAttribute('data-yobm-type')) {
+							control.setAttribute('type', control.getAttribute('data-yobm-type'));
+							control.removeAttribute('data-yobm-type');
+						}
+					});
+				}
+
+				function toggleAddAddressContainer(show) {
+					addAddressContainer.style.display = show ? 'block' : 'none';
+					syncNativeValidation(addAddressContainer, show);
+				}
+
 				if (addAddressBtn && addAddressContainer) {
+					syncNativeValidation(addAddressContainer, addAddressContainer.style.display !== 'none' && addAddressContainer.style.display !== '');
+
 					addAddressBtn.addEventListener('click', function() {
-						addAddressContainer.style.display = (addAddressContainer.style.display === 'none' || addAddressContainer.style.display === '') ? 'block' : 'none';
+						toggleAddAddressContainer(addAddressContainer.style.display === 'none' || addAddressContainer.style.display === '');
 					});
 				}
 			});

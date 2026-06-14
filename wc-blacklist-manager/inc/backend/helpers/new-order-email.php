@@ -9,9 +9,8 @@ class WC_Blacklist_Manager_New_Order_Email_Coordinator {
 	const META_ADMIN_NEW_ORDER_SENT = '_yobm_admin_new_order_email_sent';
 
 	public function __construct() {
-		$license_active        = WC_Blacklist_Manager_Validator::is_premium_active();
-		$premium_plugin_active = is_plugin_active( 'wc-blacklist-manager-premium/wc-blacklist-manager-premium.php' );
-		$premium_active        = ( $premium_plugin_active && $license_active );
+		$premium_active = function_exists( 'wc_blacklist_manager_is_premium_available' )
+			&& wc_blacklist_manager_is_premium_available();
 
 		$local_risk_enabled = ( get_option( 'wc_blacklist_manager_enable_order_risk', '0' ) === '1' );
 		$global_gbl_enabled = ( get_option( 'wc_blacklist_enable_global_blacklist', '0' ) === '1' );

@@ -127,12 +127,11 @@ class WC_Blacklist_Manager_Settings {
 	}
 
 	public function is_premium_active() {
-		include_once( ABSPATH . 'wp-admin/includes/plugin.php' );
-		if ( ! is_plugin_active( 'wc-blacklist-manager-premium/wc-blacklist-manager-premium.php' ) ) {
-			return false;
+		if ( function_exists( 'wc_blacklist_manager_is_premium_available' ) ) {
+			return wc_blacklist_manager_is_premium_available();
 		}
 
-		return WC_Blacklist_Manager_Validator::is_premium_active();
+		return false;
 	}
 }
 
