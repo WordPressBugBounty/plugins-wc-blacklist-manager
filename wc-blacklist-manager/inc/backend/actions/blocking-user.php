@@ -10,6 +10,50 @@ class WC_Blacklist_Manager_User_Blocking {
 			&& wc_blacklist_manager_is_premium_available();
 	}
 
+	private function build_user_activity_view( $user_id, $action ) {
+		$target_user = get_userdata( $user_id );
+		$actor       = wp_get_current_user();
+		$request_ip  = $this->get_request_ip();
+
+		return array(
+			'user_id'    => (int) $user_id,
+			'ip_address' => $request_ip,
+			'ip_hash'    => '' !== $request_ip ? $this->hash_value( $request_ip ) : '',
+			'action'     => sanitize_key( (string) $action ),
+			'user'       => array(
+				'id'    => (int) $user_id,
+				'login' => $target_user ? (string) $target_user->user_login : '',
+				'email' => $target_user ? sanitize_email( $target_user->user_email ) : '',
+				'roles' => $target_user ? array_values( (array) $target_user->roles ) : array(),
+			),
+			'actor'      => array(
+				'id'           => $actor ? (int) $actor->ID : 0,
+				'display_name' => $actor ? (string) $actor->display_name : '',
+				'login'        => $actor ? (string) $actor->user_login : '',
+			),
+			'request'    => array(
+				'ip'      => $request_ip,
+				'ip_hash' => '' !== $request_ip ? $this->hash_value( $request_ip ) : '',
+				'method'  => isset( $_SERVER['REQUEST_METHOD'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) : '',
+				'uri'     => isset( $_SERVER['REQUEST_URI'] ) ? esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '',
+			),
+		);
+	}
+
+	private function get_request_ip() {
+		if ( function_exists( 'get_real_customer_ip' ) ) {
+			$ip = (string) get_real_customer_ip();
+		} else {
+			$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? (string) wp_unslash( $_SERVER['REMOTE_ADDR'] ) : '';
+		}
+
+		return sanitize_text_field( $ip );
+	}
+
+	private function hash_value( $value ) {
+		return hash_hmac( 'sha256', (string) $value, wp_salt( 'auth' ) );
+	}
+
 	public function __construct() {
 		$yoaa_premium_active = in_array('wc-advanced-accounts-premium/wc-advanced-accounts-premium.php', apply_filters('active_plugins', get_option('active_plugins')));
 		$license_status = (get_option('wc_advanced_accounts_premium_license_status') === 'activated');
@@ -54,6 +98,7 @@ class WC_Blacklist_Manager_User_Blocking {
 				$source    = 'login';
 				$action    = 'block';
 				$details   = 'blocked_user_attempt: ' . $user->ID;
+				$view_json = wp_json_encode( $this->build_user_activity_view( $user->ID, 'blocked_login' ) );
 				
 				$wpdb->insert(
 					$table_detection_log,
@@ -63,7 +108,9 @@ class WC_Blacklist_Manager_User_Blocking {
 						'source'    => $source,
 						'action'    => $action,
 						'details'   => $details,
-					)
+						'view'      => is_string( $view_json ) ? $view_json : '',
+					),
+					array( '%s', '%s', '%s', '%s', '%s', '%s' )
 				);
 			}
 			
@@ -251,8 +298,8 @@ class WC_Blacklist_Manager_User_Blocking {
 				}
 			}
 
-			if ( $premium_active ) {
-				$view_json = '';
+			if ( $premium_active && '' !== $action ) {
+				$view_json = wp_json_encode( $this->build_user_activity_view( $user_id, $action ) );
 
 				$wpdb->insert(
 					$table_detection_log,
@@ -262,7 +309,7 @@ class WC_Blacklist_Manager_User_Blocking {
 						'source'    => 'user_' . $user_id,
 						'action'    => $action,
 						'details'   => $details,
-						'view'      => $view_json,
+						'view'      => is_string( $view_json ) ? $view_json : '',
 					),
 					array( '%s', '%s', '%s', '%s', '%s', '%s' )
 				);

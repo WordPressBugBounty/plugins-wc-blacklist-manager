@@ -280,6 +280,170 @@ final class YOGB_BM_Check_Orders {
 		return true;
 	}
 
+	private static function normalize_strict_cache_payload( $value ) {
+		if ( ! is_array( $value ) ) {
+			return $value;
+		}
+
+		foreach ( $value as $key => $child ) {
+			$value[ $key ] = self::normalize_strict_cache_payload( $child );
+		}
+
+		if ( array_keys( $value ) !== range( 0, count( $value ) - 1 ) ) {
+			ksort( $value );
+		}
+
+		return $value;
+	}
+
+	private static function get_strict_cache_key( WC_Order $order ) : string {
+		if ( ! class_exists( 'YOGB_BM_Report' ) || ! class_exists( 'YOGB_BM_Check' ) ) {
+			return '';
+		}
+
+		$payload = YOGB_BM_Report::build_check_payload_from_order( $order );
+
+		if ( empty( $payload['identities'] ) || ! is_array( $payload['identities'] ) ) {
+			return '';
+		}
+
+		$cache_material = array(
+			'version'          => 2,
+			'site'             => home_url( '/' ),
+			'mode'             => self::get_decision_mode(),
+			'tier'             => YOGB_BM_Check::get_tier(),
+			'checkout_attempt' => self::get_strict_checkout_attempt_cache_material( $order ),
+			'payload'          => self::normalize_strict_cache_payload( $payload ),
+		);
+
+		return 'yogb_gbl_strict_' . hash( 'sha256', wp_json_encode( $cache_material ) );
+	}
+
+	private static function get_strict_checkout_attempt_cache_material( WC_Order $order ) : array {
+		return array(
+			'cart_hash'          => self::strict_cart_hash(),
+			'wc_session_hash'    => self::strict_hash_value( self::strict_wc_session_fingerprint() ),
+			'billing_email_hash' => self::strict_hash_value( strtolower( sanitize_email( (string) $order->get_billing_email() ) ) ),
+			'billing_phone_hash' => self::strict_hash_value( self::strict_normalize_phone_for_cache( (string) $order->get_billing_phone() ) ),
+			'ip_hash'            => self::strict_hash_value( self::strict_client_ip() ),
+			'user_agent_hash'    => self::strict_hash_value( self::strict_user_agent() ),
+		);
+	}
+
+	private static function strict_cart_hash() : string {
+		if ( function_exists( 'WC' ) && WC()->cart ) {
+			return (string) WC()->cart->get_cart_hash();
+		}
+
+		return '';
+	}
+
+	private static function strict_wc_session_fingerprint() : string {
+		foreach ( $_COOKIE as $key => $value ) {
+			if ( 0 === strpos( (string) $key, 'wp_woocommerce_session_' ) ) {
+				$parts = explode( '||', (string) $value );
+				return sanitize_text_field( (string) ( $parts[0] ?? $value ) );
+			}
+		}
+
+		if ( function_exists( 'WC' ) && WC()->session && method_exists( WC()->session, 'get_customer_id' ) ) {
+			return sanitize_text_field( (string) WC()->session->get_customer_id() );
+		}
+
+		return '';
+	}
+
+	private static function strict_normalize_phone_for_cache( string $phone ) : string {
+		$digits = preg_replace( '/\D+/', '', $phone );
+
+		return is_string( $digits ) ? $digits : '';
+	}
+
+	private static function strict_client_ip() : string {
+		if ( function_exists( 'get_real_customer_ip' ) ) {
+			return (string) get_real_customer_ip();
+		}
+
+		foreach ( array( 'HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_REAL_IP', 'REMOTE_ADDR' ) as $key ) {
+			$value = isset( $_SERVER[ $key ] ) ? sanitize_text_field( wp_unslash( $_SERVER[ $key ] ) ) : '';
+
+			if ( '' === $value ) {
+				continue;
+			}
+
+			if ( 'HTTP_X_FORWARDED_FOR' === $key ) {
+				$parts = explode( ',', $value );
+				$value = trim( (string) $parts[0] );
+			}
+
+			return $value;
+		}
+
+		return '';
+	}
+
+	private static function strict_user_agent() : string {
+		return isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '';
+	}
+
+	private static function strict_hash_value( string $value ) : string {
+		if ( '' === $value ) {
+			return '';
+		}
+
+		return hash_hmac( 'sha256', $value, wp_salt( 'auth' ) );
+	}
+
+	private static function get_strict_cache_ttl() : int {
+		$ttl = (int) apply_filters( 'yogb_gbl_strict_cache_ttl', 5 * MINUTE_IN_SECONDS );
+
+		return max( 0, $ttl );
+	}
+
+	private static function get_cached_strict_check( WC_Order $order ) : ?array {
+		$key = self::get_strict_cache_key( $order );
+
+		if ( '' === $key ) {
+			return null;
+		}
+
+		$cached = get_transient( $key );
+
+		return is_array( $cached ) ? $cached : null;
+	}
+
+	private static function cache_strict_check( WC_Order $order, array $resp ) : void {
+		if ( empty( $resp['ok'] ) ) {
+			return;
+		}
+
+		$ttl = self::get_strict_cache_ttl();
+		if ( $ttl <= 0 ) {
+			return;
+		}
+
+		$key = self::get_strict_cache_key( $order );
+		if ( '' === $key ) {
+			return;
+		}
+
+		set_transient( $key, $resp, $ttl );
+	}
+
+	private static function check_order_for_strict_mode( WC_Order $order ) : array {
+		$cached = self::get_cached_strict_check( $order );
+
+		if ( is_array( $cached ) ) {
+			return $cached;
+		}
+
+		$resp = YOGB_BM_Check::check_order( $order );
+
+		self::cache_strict_check( $order, $resp );
+
+		return $resp;
+	}
+
 	/**
 	 * STRICT MODE (classic checkout):
 	 * Validate before the order is created.
@@ -302,7 +466,7 @@ final class YOGB_BM_Check_Orders {
 			return;
 		}
 
-		$resp     = YOGB_BM_Check::check_order( $order );
+		$resp     = self::check_order_for_strict_mode( $order );
 		$decision = YOGB_BM_Check::get_overall_decision( $resp );
 
 		if ( 'block' === $decision ) {
@@ -316,6 +480,8 @@ final class YOGB_BM_Check_Orders {
 			} else {
 				wc_add_notice( $message, 'error' );
 			}
+
+			self::record_global_decision_activity( $order, $decision, $resp, 'classic_strict_checkout', 'woo_checkout' );
 		}
 	}
 
@@ -417,7 +583,7 @@ final class YOGB_BM_Check_Orders {
 			return;
 		}
 
-		$resp     = YOGB_BM_Check::check_order( $order );
+		$resp     = self::check_order_for_strict_mode( $order );
 		$decision = YOGB_BM_Check::get_overall_decision( $resp );
 
 		if ( 'block' === $decision ) {
@@ -425,6 +591,7 @@ final class YOGB_BM_Check_Orders {
 				'Your order cannot be placed at this time due to our fraud protection rules. Please contact the store owner for assistance.',
 				'wc-blacklist-manager'
 			);
+			self::record_global_decision_activity( $order, $decision, $resp, 'store_api_strict_checkout', 'woo_store_api_checkout' );
 			throw new Exception( esc_html( $message ) );
 		}
 	}
@@ -624,6 +791,10 @@ final class YOGB_BM_Check_Orders {
 			$reason_summaries,
 			$report_summaries
 		);
+
+		if ( in_array( $decision, [ 'block', 'challenge' ], true ) ) {
+			self::record_global_decision_activity( $order, $decision, $resp, 'async_order_check', 'woo_order_' . (int) $order->get_id() );
+		}
 
 		$order->update_meta_data( self::META_CHECK_STATUS, 'success' );
 		$order->update_meta_data( self::META_CHECKED, 1 );
@@ -970,6 +1141,92 @@ final class YOGB_BM_Check_Orders {
 			'matched_identity_nodes' => $matched_identity_nodes,
 			'primary_meta'           => $primary_meta,
 		];
+	}
+
+	private static function record_global_decision_activity(
+		WC_Order $order,
+		string $decision,
+		array $resp,
+		string $context,
+		string $source
+	) : void {
+		global $wpdb;
+
+		if ( ! isset( $wpdb ) ) {
+			return;
+		}
+
+		$decision       = sanitize_key( $decision );
+		$context        = sanitize_key( $context );
+		$source         = sanitize_key( $source );
+		$tier           = isset( $resp['tier'] ) ? sanitize_key( (string) $resp['tier'] ) : '';
+		$mode           = self::get_decision_mode();
+		$reasons        = class_exists( 'YOGB_BM_Check' ) ? YOGB_BM_Check::get_reasons( $resp ) : [];
+		$overall_signal = class_exists( 'YOGB_BM_Check' ) ? YOGB_BM_Check::get_overall_signal_metrics( $resp ) : [];
+		$details        = self::extract_identity_details_from_response( $resp );
+		$action         = 'challenge' === $decision ? 'challenge' : 'block';
+		$ip_address     = sanitize_text_field( (string) $order->get_customer_ip_address() );
+
+		$view = array(
+			'schema'                 => 'yogb_gbl_decision_v1',
+			'context'                => $context,
+			'mode'                   => $mode,
+			'decision'               => $decision,
+			'tier'                   => $tier ?: 'free',
+			'score'                  => isset( $overall_signal['max_effective_score'] ) ? (float) $overall_signal['max_effective_score'] : 0,
+			'raw_score'              => isset( $overall_signal['max_direct_score'] ) ? (float) $overall_signal['max_direct_score'] : 0,
+			'linked_boost'           => isset( $overall_signal['max_linked_boost'] ) ? (float) $overall_signal['max_linked_boost'] : 0,
+			'neighbors_count'        => isset( $overall_signal['max_neighbors_count'] ) ? (int) $overall_signal['max_neighbors_count'] : 0,
+			'matched_identities'     => isset( $overall_signal['matched_identities'] ) ? (int) $overall_signal['matched_identities'] : 0,
+			'primary_signal_type'    => isset( $overall_signal['primary_signal_type'] ) ? sanitize_key( (string) $overall_signal['primary_signal_type'] ) : '',
+			'primary_risk_level'     => isset( $overall_signal['max_risk_level'] ) ? sanitize_key( (string) $overall_signal['max_risk_level'] ) : '',
+			'primary_match_mode'     => isset( $details['primary_meta']['match_mode'] ) ? sanitize_key( (string) $details['primary_meta']['match_mode'] ) : '',
+			'primary_match_variant'  => isset( $details['primary_meta']['matched_variant'] ) ? sanitize_key( (string) $details['primary_meta']['matched_variant'] ) : '',
+			'primary_match_count'    => isset( $details['primary_meta']['matched_identity_count'] ) ? (int) $details['primary_meta']['matched_identity_count'] : 0,
+			'matched_identity_nodes' => isset( $details['matched_identity_nodes'] ) ? (int) $details['matched_identity_nodes'] : 0,
+			'ip_address'             => $ip_address,
+			'ip_hash'                => '' !== $ip_address ? hash_hmac( 'sha256', $ip_address, wp_salt( 'auth' ) ) : '',
+			'reasons'                => self::limit_activity_log_list( $reasons, 8 ),
+			'signal_summaries'       => self::limit_activity_log_list( isset( $details['signal_summaries'] ) ? (array) $details['signal_summaries'] : [], 8 ),
+			'reason_summaries'       => self::limit_activity_log_list( isset( $details['reason_summaries'] ) ? (array) $details['reason_summaries'] : [], 8 ),
+			'report_summaries'       => self::limit_activity_log_list( isset( $details['report_summaries'] ) ? (array) $details['report_summaries'] : [], 10 ),
+		);
+
+		$order_id = (int) $order->get_id();
+		if ( $order_id > 0 ) {
+			$view['order_id'] = $order_id;
+		}
+
+		$wpdb->insert(
+			$wpdb->prefix . 'wc_blacklist_detection_log',
+			array(
+				'timestamp' => current_time( 'mysql' ),
+				'type'      => 'bot',
+				'source'    => $source,
+				'action'    => $action,
+				'details'   => 'global_blacklist_decision:' . $decision . ' context:' . $context,
+				'view'      => wp_json_encode( $view ),
+			),
+			array( '%s', '%s', '%s', '%s', '%s', '%s' )
+		);
+	}
+
+	private static function limit_activity_log_list( array $items, int $limit ) : array {
+		$clean_items = [];
+
+		foreach ( $items as $item ) {
+			if ( is_scalar( $item ) || ( is_object( $item ) && method_exists( $item, '__toString' ) ) ) {
+				$item = trim( (string) $item );
+
+				if ( '' !== $item ) {
+					$clean_items[] = $item;
+				}
+			} elseif ( is_array( $item ) && ! empty( $item ) ) {
+				$clean_items[] = $item;
+			}
+		}
+
+		return array_slice( $clean_items, 0, max( 1, $limit ) );
 	}
 
 	/**

@@ -4,6 +4,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Free admin notice heuristic for suspicious checkout patterns.
+ *
+ * This class only decides whether to show an admin alert/upsell. It does not
+ * enforce checkout blocking; enforcement lives in the checkout protection code.
+ */
 class WC_Blacklist_Manager_Alert {
 
 	use YOBM_Bot_Signal_Analyzer;
@@ -56,15 +62,25 @@ class WC_Blacklist_Manager_Alert {
 		$blocked_attempts = isset( $summary['blocked_attempts'] ) ? (int) $summary['blocked_attempts'] : 0;
 		$activity_count   = $order_count + $blocked_attempts;
 
-		$unique_emails  = isset( $summary['unique_emails'] ) ? (int) $summary['unique_emails'] : 0;
-		$unique_ips     = isset( $summary['unique_ips'] ) ? (int) $summary['unique_ips'] : 0;
-		$top_ip_hits    = isset( $summary['top_ip_hits'] ) ? (int) $summary['top_ip_hits'] : 0;
-		$top_ip         = ! empty( $summary['top_ip'] ) ? $summary['top_ip'] : '';
-		$top_gateway    = ! empty( $summary['top_gateway'] ) ? $summary['top_gateway'] : '';
-		$window_minutes = (int) floor( self::ANALYSIS_WINDOW_SECONDS / MINUTE_IN_SECONDS );
-		$severity       = isset( $summary['severity'] ) ? $summary['severity'] : 'warning';
+		$unique_emails    = isset( $summary['unique_emails'] ) ? (int) $summary['unique_emails'] : 0;
+		$unique_ips       = isset( $summary['unique_ips'] ) ? (int) $summary['unique_ips'] : 0;
+		$top_ip_hits      = isset( $summary['top_ip_hits'] ) ? (int) $summary['top_ip_hits'] : 0;
+		$top_ip           = ! empty( $summary['top_ip'] ) ? $summary['top_ip'] : '';
+		$top_gateway      = ! empty( $summary['top_gateway'] ) ? $summary['top_gateway'] : '';
+		$window_minutes   = (int) floor( self::ANALYSIS_WINDOW_SECONDS / MINUTE_IN_SECONDS );
+		$severity         = isset( $summary['severity'] ) ? $summary['severity'] : 'warning';
+		$primary_incident = ! empty( $summary['primary_incident'] ) ? sanitize_key( (string) $summary['primary_incident'] ) : '';
+		$incident_label   = $this->get_bot_signal_incident_label( $primary_incident );
+		$notice_copy      = $this->get_bot_signal_notice_copy( $primary_incident, $severity );
 
 		$detail_bits = [];
+
+		if ( $incident_label ) {
+			$detail_bits[] = sprintf(
+				__( 'pattern: %s', 'wc-blacklist-manager' ),
+				$incident_label
+			);
+		}
 
 		if ( $order_count > 0 ) {
 			$detail_bits[] = sprintf(
@@ -124,6 +140,27 @@ class WC_Blacklist_Manager_Alert {
 			);
 		}
 
+		if ( ! empty( $summary['failed_order_count'] ) ) {
+			$detail_bits[] = sprintf(
+				_n( '%d failed order', '%d failed orders', (int) $summary['failed_order_count'], 'wc-blacklist-manager' ),
+				(int) $summary['failed_order_count']
+			);
+		}
+
+		if ( ! empty( $summary['payment_flow_attempts'] ) ) {
+			$detail_bits[] = sprintf(
+				_n( '%d payment-flow signal', '%d payment-flow signals', (int) $summary['payment_flow_attempts'], 'wc-blacklist-manager' ),
+				(int) $summary['payment_flow_attempts']
+			);
+		}
+
+		if ( ! empty( $summary['paypal_attempts'] ) ) {
+			$detail_bits[] = sprintf(
+				_n( '%d PayPal signal', '%d PayPal signals', (int) $summary['paypal_attempts'], 'wc-blacklist-manager' ),
+				(int) $summary['paypal_attempts']
+			);
+		}
+
 		if ( $top_gateway ) {
 			$detail_bits[] = sprintf(
 				__( 'mostly via %s', 'wc-blacklist-manager' ),
@@ -135,13 +172,10 @@ class WC_Blacklist_Manager_Alert {
 
 		$severity_class = ( 'critical' === $severity ) ? 'notice-error' : 'notice-warning';
 
-		$title = ( 'critical' === $severity )
-			? __( 'High-risk bot / card testing activity detected', 'wc-blacklist-manager' )
-			: __( 'Suspicious checkout activity detected', 'wc-blacklist-manager' );
-
-		$message_intro = ( 'critical' === $severity )
-			? __( 'Your store may be under active bot or card-testing attack.', 'wc-blacklist-manager' )
-			: __( 'We detected unusual checkout behavior that may indicate bot activity.', 'wc-blacklist-manager' );
+		$title           = $notice_copy['title'];
+		$message_intro   = $notice_copy['intro'];
+		$premium_message = $notice_copy['premium'];
+		$cta_label       = $notice_copy['cta'];
 
 		$premium_url = $this->get_premium_buy_url();
 		?>
@@ -154,11 +188,12 @@ class WC_Blacklist_Manager_Alert {
 						<?php
 						echo wp_kses(
 							sprintf(
-								__( '%1$s We detected <b style="color:#d63638;">%2$d suspicious checkout activities</b> in the last %3$d minutes.%4$s Advanced anti-bot protection and fraud automation are available in Blacklist Manager Premium.', 'wc-blacklist-manager' ),
+								__( '%1$s This free admin alert matched <b style="color:#d63638;">%2$d checkout/payment activities</b> in the last %3$d minutes.%4$s It is an early-warning upsell signal only and does not block checkout by itself. %5$s', 'wc-blacklist-manager' ),
 								esc_html( $message_intro ),
 								$activity_count,
 								$window_minutes,
-								$detail_text
+								$detail_text,
+								esc_html( $premium_message )
 							),
 							[
 								'b' => [
@@ -171,7 +206,7 @@ class WC_Blacklist_Manager_Alert {
 
 					<p class="yobmp-actions">
 						<a class="button button-primary" target="_blank" rel="noopener noreferrer" href="<?php echo esc_url( $premium_url ); ?>">
-							<?php esc_html_e( 'Unlock Anti-bot Protection', 'wc-blacklist-manager' ); ?>
+							<?php echo esc_html( $cta_label ); ?>
 						</a>
 
 						<button type="button" class="button-secondary yobmp-link" data-yobm-action="later">
@@ -273,6 +308,62 @@ class WC_Blacklist_Manager_Alert {
 		update_user_meta( get_current_user_id(), self::UMETA_DISMISS, time() + self::SNOOZE_SECONDS );
 
 		wp_die();
+	}
+
+	private function get_bot_signal_notice_copy( string $incident, string $severity ): array {
+		$is_critical = ( 'critical' === $severity );
+
+		$copy = [
+			'title'   => $is_critical
+				? __( 'Potential high-risk checkout abuse observed', 'wc-blacklist-manager' )
+				: __( 'Potential suspicious checkout activity observed', 'wc-blacklist-manager' ),
+			'intro'   => $is_critical
+				? __( 'Recent checkout patterns resemble active bot, spam, or fake-order activity.', 'wc-blacklist-manager' )
+				: __( 'Recent checkout patterns matched suspicious-activity alert heuristics.', 'wc-blacklist-manager' ),
+			'premium' => __( 'Premium adds checkout challenges, velocity rules, risk scoring, and automated order actions for these patterns.', 'wc-blacklist-manager' ),
+			'cta'     => __( 'Unlock Anti-bot Protection', 'wc-blacklist-manager' ),
+		];
+
+		if ( 'card_testing_suspected' === $incident ) {
+			$copy['title']   = __( 'Potential card-testing pattern observed', 'wc-blacklist-manager' );
+			$copy['intro']   = __( 'Recent checkout and payment patterns resemble card testing or fake-order attempts.', 'wc-blacklist-manager' );
+			$copy['premium'] = __( 'Premium adds gateway-aware velocity checks, checkout challenges, payment-flow protection, and automated responses.', 'wc-blacklist-manager' );
+			$copy['cta']     = __( 'Unlock Card Testing Protection', 'wc-blacklist-manager' );
+		} elseif ( 'store_api_abuse' === $incident ) {
+			$copy['title']   = __( 'Potential Store API checkout abuse observed', 'wc-blacklist-manager' );
+			$copy['intro']   = __( 'Recent Store API or REST checkout activity matched abuse heuristics.', 'wc-blacklist-manager' );
+			$copy['premium'] = __( 'Premium adds Store API rate limits, bot challenges, and checkout-flow validation before abuse becomes order cleanup.', 'wc-blacklist-manager' );
+			$copy['cta']     = __( 'Unlock Store API Protection', 'wc-blacklist-manager' );
+		} elseif ( 'repeat_blocked_identity' === $incident ) {
+			$copy['title']   = __( 'Repeat blocked identity pattern observed', 'wc-blacklist-manager' );
+			$copy['intro']   = __( 'Recent attempts reused blocked or suspicious identity signals such as IP, device, session, phone, or email domain.', 'wc-blacklist-manager' );
+			$copy['premium'] = __( 'Premium connects these repeated identity signals into risk scoring, suspect actions, and automation.', 'wc-blacklist-manager' );
+			$copy['cta']     = __( 'Unlock Risk Scoring', 'wc-blacklist-manager' );
+		} elseif ( 'checkout_velocity_spike' === $incident ) {
+			$copy['title']   = __( 'Checkout velocity spike observed', 'wc-blacklist-manager' );
+			$copy['intro']   = __( 'Recent order and checkout timing patterns look unusually concentrated for this alert window.', 'wc-blacklist-manager' );
+			$copy['premium'] = __( 'Premium adds configurable velocity rules, adaptive challenges, and automatic review or hold workflows.', 'wc-blacklist-manager' );
+			$copy['cta']     = __( 'Unlock Velocity Protection', 'wc-blacklist-manager' );
+		} elseif ( 'paypal_flow_suspected' === $incident ) {
+			$copy['title']   = __( 'Potential PayPal payment-flow abuse observed', 'wc-blacklist-manager' );
+			$copy['intro']   = __( 'Recent PayPal or Braintree payment-flow signals matched fake-order or card-attack heuristics.', 'wc-blacklist-manager' );
+			$copy['premium'] = __( 'Premium adds dedicated PayPal payment-flow challenges, gateway-aware checks, and automation.', 'wc-blacklist-manager' );
+			$copy['cta']     = __( 'Unlock PayPal Flow Protection', 'wc-blacklist-manager' );
+		}
+
+		return $copy;
+	}
+
+	private function get_bot_signal_incident_label( string $incident ): string {
+		$labels = [
+			'card_testing_suspected' => __( 'card testing', 'wc-blacklist-manager' ),
+			'store_api_abuse'        => __( 'Store API abuse', 'wc-blacklist-manager' ),
+			'repeat_blocked_identity' => __( 'repeat identity', 'wc-blacklist-manager' ),
+			'checkout_velocity_spike'  => __( 'checkout velocity', 'wc-blacklist-manager' ),
+			'paypal_flow_suspected'  => __( 'PayPal payment flow', 'wc-blacklist-manager' ),
+		];
+
+		return isset( $labels[ $incident ] ) ? $labels[ $incident ] : '';
 	}
 
 	private function base_notice_gates_pass() {

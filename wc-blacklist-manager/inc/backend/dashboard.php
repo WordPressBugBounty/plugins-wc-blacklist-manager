@@ -276,6 +276,10 @@ class WC_Blacklist_Manager_Dashboard {
 			}
 		}
 
+		if ( ! empty( $view_data['ip_address'] ) ) {
+			$view_data['ip_hash'] = hash_hmac( 'sha256', (string) $view_data['ip_address'], wp_salt( 'auth' ) );
+		}
+
 		$this->wpdb->insert(
 			$table_detection_log,
 			array(
@@ -285,6 +289,99 @@ class WC_Blacklist_Manager_Dashboard {
 				'action'    => 'remove',
 				'details'   => $details,
 				'view'      => empty( $view_data ) ? '' : wp_json_encode( $view_data ),
+			),
+			array( '%s', '%s', '%s', '%s', '%s', '%s' )
+		);
+	}
+
+	private function record_manual_mutation_audit( $action, $id, array $row = array(), $record_type = 'main', $reason_code = 'manual_entry' ) {
+		if ( ! $this->is_premium_active() ) {
+			return;
+		}
+
+		$id                  = absint( $id );
+		$table_detection_log = $this->wpdb->prefix . 'wc_blacklist_detection_log';
+		$current_user        = wp_get_current_user();
+		$shop_manager        = $current_user ? $current_user->display_name : '';
+		$action              = sanitize_key( (string) $action );
+		$reason_code         = sanitize_key( (string) $reason_code );
+
+		if ( 'address' === $record_type ) {
+			$fields = array(
+				'id',
+				'match_type',
+				'is_blocked',
+				'country_code',
+				'state_code',
+				'city_norm',
+				'postcode_norm',
+				'address_line_norm',
+				'address_full_norm',
+				'address_hash',
+				'address_display',
+				'notes',
+				'date_added',
+			);
+
+			$source = 'address_entry_id_' . $id;
+		} elseif ( ! empty( $row['order_id'] ) ) {
+			$fields = array();
+			$source = 'woo_order_' . absint( $row['order_id'] );
+		} else {
+			$fields = array(
+				'id',
+				'phone_number',
+				'email_address',
+				'ip_address',
+				'domain',
+				'is_blocked',
+				'sources',
+				'customer_address',
+				'first_name',
+				'last_name',
+				'date_added',
+			);
+
+			$source = 'entry_id_' . $id;
+		}
+
+		$view_data = array(
+			'schema'      => 'dashboard_manual_action_v1',
+			'id'          => $id,
+			'reason_code' => $reason_code,
+			'description' => sprintf(
+				/* translators: 1: action, 2: user display name */
+				__( 'Manual %1$s by %2$s.', 'wc-blacklist-manager' ),
+				$action ?: 'update',
+				$shop_manager ?: __( 'unknown user', 'wc-blacklist-manager' )
+			),
+		);
+
+		foreach ( $fields as $field ) {
+			if ( isset( $row[ $field ] ) && '' !== $row[ $field ] ) {
+				$view_data[ $field ] = $row[ $field ];
+			}
+		}
+
+		if ( ! empty( $view_data['ip_address'] ) ) {
+			$view_data['ip_hash'] = hash_hmac( 'sha256', (string) $view_data['ip_address'], wp_salt( 'auth' ) );
+		}
+
+		$details = sprintf(
+			'%s_by:%s',
+			'block' === $action ? 'blocked' : ( 'suspect' === $action ? 'suspected' : 'updated' ),
+			$shop_manager
+		);
+
+		$this->wpdb->insert(
+			$table_detection_log,
+			array(
+				'timestamp' => current_time( 'mysql' ),
+				'type'      => 'human',
+				'source'    => $source,
+				'action'    => $action ?: 'notice',
+				'details'   => $details,
+				'view'      => wp_json_encode( $view_data ),
 			),
 			array( '%s', '%s', '%s', '%s', '%s', '%s' )
 		);
@@ -554,10 +651,25 @@ class WC_Blacklist_Manager_Dashboard {
 			$new_first_name    = isset( $_POST['new_first_name'] ) ? sanitize_text_field( wp_unslash( $_POST['new_first_name'] ) ) : '';
 			$new_last_name     = isset( $_POST['new_last_name'] ) ? sanitize_text_field( wp_unslash( $_POST['new_last_name'] ) ) : '';
 			$new_phone_number  = isset( $_POST['new_phone_number'] ) ? sanitize_text_field( wp_unslash( $_POST['new_phone_number'] ) ) : '';
+			$phone_holder      = isset( $_POST['phone_number_holder'] ) ? sanitize_text_field( wp_unslash( $_POST['phone_number_holder'] ) ) : '';
+			$phone_dial_code   = isset( $_POST['phone_dial_code_holder'] ) ? sanitize_text_field( wp_unslash( $_POST['phone_dial_code_holder'] ) ) : '';
 			$new_email_address = isset( $_POST['new_email_address'] ) ? sanitize_email( $this->get_request_value( $_POST['new_email_address'] ) ) : '';
 			$status            = isset( $_POST['status'] ) ? sanitize_text_field( wp_unslash( $_POST['status'] ) ) : 'suspect';
 
 			$is_blocked = ( 'blocked' === $status ) ? 1 : 0;
+
+			if ( '' !== $phone_holder ) {
+				$holder_has_plus         = 0 === strpos( trim( $phone_holder ), '+' );
+				$phone_holder_digits     = preg_replace( '/\D+/', '', $phone_holder );
+				$phone_dial_code_digits  = preg_replace( '/\D+/', '', $phone_dial_code );
+				$holder_normalized_phone = yobm_normalize_phone( $phone_holder, $phone_dial_code );
+
+				if ( '' !== $holder_normalized_phone && ( $holder_has_plus || '' !== $phone_dial_code_digits ) ) {
+					$new_phone_number = '+' . $holder_normalized_phone;
+				} elseif ( '' === $new_phone_number && '' !== $phone_holder_digits ) {
+					$new_phone_number = $phone_holder;
+				}
+			}
 
 			$redirect_base = wp_get_referer();
 			if ( ! $redirect_base ) {
@@ -586,7 +698,7 @@ class WC_Blacklist_Manager_Dashboard {
 
 			$normalized_phone = '';
 			if ( ! empty( $new_phone_number ) ) {
-				$normalized_phone = yobm_normalize_phone( $new_phone_number );
+				$normalized_phone = yobm_normalize_phone( $new_phone_number, $phone_dial_code );
 			}
 
 			$normalized_email = '';
@@ -611,6 +723,7 @@ class WC_Blacklist_Manager_Dashboard {
 
 			if ( $new_insert_id > 0 ) {
 				$this->schedule_connection_create( $new_insert_id, $data, 'main' );
+				$this->record_manual_mutation_audit( $is_blocked ? 'block' : 'suspect', $new_insert_id, $data, 'main', 'manual_entry' );
 
 				if ( function_exists( 'wc_blacklist_manager_record_action_upsell_event' ) ) {
 					wc_blacklist_manager_record_action_upsell_event( 'manual_entry' );
@@ -682,6 +795,7 @@ class WC_Blacklist_Manager_Dashboard {
 			if ( $entry ) {
 				$entry->is_blocked = 1;
 				$this->schedule_connection_update( $id, (array) $entry, 'main' );
+				$this->record_manual_mutation_audit( 'block', $id, (array) $entry, 'main', 'manual_status_update' );
 
 				if ( function_exists( 'wc_blacklist_manager_record_action_upsell_event' ) ) {
 					wc_blacklist_manager_record_action_upsell_event( 'manual_block' );
@@ -1278,6 +1392,7 @@ class WC_Blacklist_Manager_Dashboard {
 						}
 
 						$this->schedule_connection_create( $new_insert_id, $insert_data, 'main' );
+						$this->record_manual_mutation_audit( 'block', $new_insert_id, $insert_data, 'main', 'manual_ip_add' );
 
 						$ip_addresses_added++;
 				}
@@ -1541,6 +1656,7 @@ class WC_Blacklist_Manager_Dashboard {
 		$sync_row['id']         = $new_insert_id;
 		$sync_row['is_blocked'] = 1;
 		$this->schedule_connection_create( $new_insert_id, $sync_row, 'address' );
+		$this->record_manual_mutation_audit( 'block', $new_insert_id, $sync_row, 'address', 'manual_address_add' );
 
 		if ( 'address' === $match_type ) {
 			$message = esc_html__( 'Address added successfully.', 'wc-blacklist-manager' );
@@ -1633,6 +1749,7 @@ class WC_Blacklist_Manager_Dashboard {
 						}
 
 						$this->schedule_connection_create( $new_insert_id, $insert_data, 'main' );
+						$this->record_manual_mutation_audit( 'block', $new_insert_id, $insert_data, 'main', 'manual_domain_add' );
 
 						$domains_added++;
 					}

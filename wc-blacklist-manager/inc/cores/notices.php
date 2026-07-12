@@ -5,18 +5,26 @@ if (!defined('ABSPATH')) {
 }
 
 class WC_Blacklist_Manager_Notices {
+	const CUSTOMER_INTELLIGENCE_NOTICE_CAMPAIGN       = '2026_07_customer_intelligence';
+	const CUSTOMER_INTELLIGENCE_CAMPAIGN_OPTION       = 'yobm_ci_notice_campaign';
+	const CUSTOMER_INTELLIGENCE_ELIGIBLE_AT_OPTION    = 'yobm_ci_notice_eligible_at';
+	const CUSTOMER_INTELLIGENCE_DISMISSED_META_PREFIX = 'yobm_ci_notice_dismissed_';
+	const CUSTOMER_INTELLIGENCE_PLUGIN_SLUG           = 'yoohw-customer-intelligence';
+	const CUSTOMER_INTELLIGENCE_PLUGIN_URL            = 'https://wordpress.org/plugins/yoohw-customer-intelligence/';
 
 	public function __construct() {
 		add_action('admin_notices', [$this, 'display_notices']);
 		add_action('wp_ajax_dismiss_first_time_notice', [$this, 'dismiss_first_time_notice']);
 		add_action('wp_ajax_dismiss_ads_notice', [$this, 'dismiss_ads_notice']);
 		add_action('wp_ajax_dismiss_gbd_limit_notice', [ $this, 'dismiss_gbd_limit_notice'] );
+		add_action('wp_ajax_dismiss_customer_intelligence_notice', [$this, 'dismiss_customer_intelligence_notice']);
 		add_action('admin_enqueue_scripts', [$this, 'enqueue_inline_scripts']);
 		$this->includes();
 	}
 	
 	public function display_notices() {
 		$this->first_time_notice();
+		$this->customer_intelligence_notice();
 		$this->bm_ads_notice();
 		$this->premium_update_notice();
 		$this->gbd_limit_notice();
@@ -125,6 +133,182 @@ class WC_Blacklist_Manager_Notices {
 				  <p><a href="#" onclick="WC_Blacklist_Manager_Admin_Notice.dismissFirstTimeNotice(); return false;">' . esc_html__( 'Got it', 'wc-blacklist-manager' ) . '</a></p>
 			  </div>';
 		}
+	}
+
+	public function customer_intelligence_notice() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		if ( ! $this->customer_intelligence_notice_is_due() ) {
+			return;
+		}
+
+		$user_id = get_current_user_id();
+		if ( 'yes' === get_user_meta( $user_id, $this->customer_intelligence_dismissed_meta_key(), true ) ) {
+			return;
+		}
+
+		if ( ! $this->site_supports_customer_intelligence() ) {
+			return;
+		}
+
+		$plugin_state = $this->get_customer_intelligence_plugin_state();
+		if ( ! empty( $plugin_state['active'] ) ) {
+			return;
+		}
+
+		$action = $this->get_customer_intelligence_notice_action( $plugin_state );
+		$action_classes = [ 'button', 'button-primary' ];
+		if ( ! empty( $action['class'] ) ) {
+			$action_classes[] = (string) $action['class'];
+		}
+		?>
+		<div class="notice notice-info is-dismissible yobm-ci-notice">
+			<p>
+				<strong><?php esc_html_e( 'New: Customer Intelligence for WooCommerce', 'wc-blacklist-manager' ); ?></strong>
+				<?php esc_html_e( 'Turn WooCommerce order history into customer profiles, notes, follow-up tasks, tags, segments, and order insights. It works alongside Blacklist Manager when manual customer review needs more context.', 'wc-blacklist-manager' ); ?>
+			</p>
+			<p>
+				<a href="<?php echo esc_url( $action['url'] ); ?>" class="<?php echo esc_attr( implode( ' ', $action_classes ) ); ?>" <?php echo ! empty( $action['external'] ) ? 'target="_blank" rel="noopener noreferrer"' : ''; ?> <?php echo ! empty( $action['title'] ) ? 'title="' . esc_attr( $action['title'] ) . '"' : ''; ?>>
+					<?php echo esc_html( $action['label'] ); ?>
+				</a>
+				<a href="#" onclick="WC_Blacklist_Manager_Admin_Notice.dismissCustomerIntelligenceNotice(); return false;" class="button button-secondary">
+					<?php esc_html_e( 'Not now', 'wc-blacklist-manager' ); ?>
+				</a>
+			</p>
+		</div>
+		<?php
+	}
+
+	private function customer_intelligence_notice_is_due() {
+		$campaign   = (string) get_option( self::CUSTOMER_INTELLIGENCE_CAMPAIGN_OPTION, '' );
+		$eligible_at = (int) get_option( self::CUSTOMER_INTELLIGENCE_ELIGIBLE_AT_OPTION, 0 );
+
+		return self::CUSTOMER_INTELLIGENCE_NOTICE_CAMPAIGN === $campaign && $eligible_at > 0 && time() >= $eligible_at;
+	}
+
+	private function customer_intelligence_dismissed_meta_key() {
+		$campaign = (string) get_option( self::CUSTOMER_INTELLIGENCE_CAMPAIGN_OPTION, self::CUSTOMER_INTELLIGENCE_NOTICE_CAMPAIGN );
+		$campaign = sanitize_key( $campaign );
+
+		return self::CUSTOMER_INTELLIGENCE_DISMISSED_META_PREFIX . $campaign;
+	}
+
+	private function site_supports_customer_intelligence() {
+		global $wp_version;
+
+		$wp_version = ! empty( $wp_version ) ? (string) $wp_version : (string) get_bloginfo( 'version' );
+		if ( version_compare( $wp_version, '6.9', '<' ) ) {
+			return false;
+		}
+
+		if ( version_compare( PHP_VERSION, '7.4', '<' ) ) {
+			return false;
+		}
+
+		if ( ! class_exists( 'WooCommerce' ) && ! function_exists( 'WC' ) ) {
+			return false;
+		}
+
+		$wc_version = defined( 'WC_VERSION' ) ? (string) WC_VERSION : '';
+		if ( '' === $wc_version && defined( 'WOOCOMMERCE_VERSION' ) ) {
+			$wc_version = (string) WOOCOMMERCE_VERSION;
+		}
+
+		if ( '' === $wc_version && function_exists( 'WC' ) && is_object( WC() ) && isset( WC()->version ) ) {
+			$wc_version = (string) WC()->version;
+		}
+
+		return '' !== $wc_version && version_compare( $wc_version, '8.2', '>=' );
+	}
+
+	private function get_customer_intelligence_plugin_state() {
+		if ( ! function_exists( 'get_plugins' ) || ! function_exists( 'is_plugin_active' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+
+		$plugin_file = '';
+		$plugins     = get_plugins();
+
+		foreach ( $plugins as $file => $data ) {
+			if ( 0 === strpos( $file, self::CUSTOMER_INTELLIGENCE_PLUGIN_SLUG . '/' ) ) {
+				$plugin_file = (string) $file;
+				break;
+			}
+		}
+
+		return [
+			'installed'   => '' !== $plugin_file,
+			'active'      => '' !== $plugin_file && is_plugin_active( $plugin_file ),
+			'plugin_file' => $plugin_file,
+		];
+	}
+
+	private function get_customer_intelligence_notice_action( array $plugin_state ) {
+		if ( ! empty( $plugin_state['installed'] ) && ! empty( $plugin_state['plugin_file'] ) && current_user_can( 'activate_plugins' ) ) {
+			$plugin_file = (string) $plugin_state['plugin_file'];
+			$url         = wp_nonce_url(
+				self_admin_url( 'plugins.php?action=activate&plugin=' . rawurlencode( $plugin_file ) . '&plugin_status=all&paged=1&s=' ),
+				'activate-plugin_' . $plugin_file
+			);
+
+			return [
+				'label'    => __( 'Activate Customer Intelligence', 'wc-blacklist-manager' ),
+				'url'      => $url,
+				'external' => false,
+			];
+		}
+
+		if ( current_user_can( 'install_plugins' ) ) {
+			$url = add_query_arg(
+				[
+					'tab'       => 'plugin-information',
+					'plugin'    => self::CUSTOMER_INTELLIGENCE_PLUGIN_SLUG,
+					'TB_iframe' => 'true',
+					'width'     => 600,
+					'height'    => 550,
+				],
+				self_admin_url( 'plugin-install.php' )
+			);
+
+			return [
+				'label'    => __( 'View details and install', 'wc-blacklist-manager' ),
+				'url'      => $url,
+				'external' => false,
+				'class'    => 'thickbox open-plugin-details-modal',
+				'title'    => __( 'Customer Intelligence plugin information', 'wc-blacklist-manager' ),
+			];
+		}
+
+		return [
+			'label'    => __( 'View plugin', 'wc-blacklist-manager' ),
+			'url'      => self::CUSTOMER_INTELLIGENCE_PLUGIN_URL,
+			'external' => true,
+		];
+	}
+
+	private function customer_intelligence_notice_needs_plugin_information_modal() {
+		if ( ! current_user_can( 'manage_options' ) || ! current_user_can( 'install_plugins' ) ) {
+			return false;
+		}
+
+		if ( ! $this->customer_intelligence_notice_is_due() ) {
+			return false;
+		}
+
+		$user_id = get_current_user_id();
+		if ( 'yes' === get_user_meta( $user_id, $this->customer_intelligence_dismissed_meta_key(), true ) ) {
+			return false;
+		}
+
+		if ( ! $this->site_supports_customer_intelligence() ) {
+			return false;
+		}
+
+		$plugin_state = $this->get_customer_intelligence_plugin_state();
+
+		return empty( $plugin_state['installed'] ) && empty( $plugin_state['active'] );
 	}
 
 	public function bm_ads_notice() {
@@ -290,9 +474,17 @@ class WC_Blacklist_Manager_Notices {
 	}
 
 	public function enqueue_inline_scripts() {
+		if ( $this->customer_intelligence_notice_needs_plugin_information_modal() ) {
+			wp_enqueue_script( 'plugin-install' );
+			if ( function_exists( 'add_thickbox' ) ) {
+				add_thickbox();
+			}
+		}
+
 		$nonce_first_time = wp_create_nonce('dismiss_first_time_notice_nonce');
 		$nonce_ads_notice = wp_create_nonce('dismiss_ads_notice_nonce');
 		$nonce_gbd_limit = wp_create_nonce( 'dismiss_gbd_limit_notice_nonce' );
+		$nonce_customer_intelligence = wp_create_nonce( 'dismiss_customer_intelligence_notice_nonce' );
 
 		$script = "
 			var WC_Blacklist_Manager_Admin_Notice = {
@@ -322,6 +514,19 @@ class WC_Blacklist_Manager_Notices {
 						}
 					});
 				},
+				dismissCustomerIntelligenceNotice: function() {
+					jQuery.ajax({
+						url: ajaxurl,
+						type: 'POST',
+						data: {
+							action: 'dismiss_customer_intelligence_notice',
+							security: '{$nonce_customer_intelligence}'
+						},
+						success: function() {
+							jQuery('.notice.yobm-ci-notice').hide();
+						}
+					});
+				},
 				dismissGBDLimitNotice: function() {
 					jQuery.ajax({
 						url: ajaxurl,
@@ -344,6 +549,10 @@ class WC_Blacklist_Manager_Notices {
 
 				$(document).on('click', '.notice.yobm-ads .notice-dismiss', function() {
 					WC_Blacklist_Manager_Admin_Notice.dismissAdsNotice();
+				});
+
+				$(document).on('click', '.notice.yobm-ci-notice .notice-dismiss', function() {
+					WC_Blacklist_Manager_Admin_Notice.dismissCustomerIntelligenceNotice();
 				});
 
 				$(document).on('click', '.notice.yobm-gbd-limit .notice-dismiss', function() {
@@ -378,6 +587,17 @@ class WC_Blacklist_Manager_Notices {
 			$current_time = current_time( 'timestamp' );
 
 	        update_user_meta( $user_id, 'blacklist_manager_premium_ads_time', $current_time );
+			wp_send_json_success();
+		}
+
+		public function dismiss_customer_intelligence_notice() {
+			check_ajax_referer( 'dismiss_customer_intelligence_notice_nonce', 'security' );
+
+			if ( ! current_user_can( 'manage_options' ) ) {
+				wp_send_json_error( array( 'message' => __( 'Permission denied.', 'wc-blacklist-manager' ) ), 403 );
+			}
+
+			update_user_meta( get_current_user_id(), $this->customer_intelligence_dismissed_meta_key(), 'yes' );
 			wp_send_json_success();
 		}
 

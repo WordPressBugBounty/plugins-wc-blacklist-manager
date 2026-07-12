@@ -4,9 +4,10 @@
 	var wcBmCachedPayload = null;
 	var wcBmCachedPayloadJson = '';
 	var wcBmPayloadPromise = null;
-	var wcBmPrimeBound = false;
 	var wcBmFetchPatched = false;
 	var wcBmXhrPatched = false;
+	var wcBmClassicSubmitPending = false;
+	var wcBmClassicResumeSubmit = false;
 
 	function wcBmReadCookie(name) {
 		var escaped = name.replace(/[-[\]/{}()*+?.\\^$|]/g, '\\$&');
@@ -327,41 +328,6 @@
 		return wcBmPayloadPromise;
 	}
 
-	function wcBmPrimePayload() {
-		return wcBmEnsurePayload(false).then(function() {
-			wcBmInjectCachedPayloadIntoClassicCheckout();
-		});
-	}
-
-	function wcBmBindPrimeEvents() {
-		if (wcBmPrimeBound) {
-			return;
-		}
-
-		wcBmPrimeBound = true;
-
-		var once = function() {
-			wcBmPrimePayload();
-			document.removeEventListener('mousemove', once, true);
-			document.removeEventListener('keydown', once, true);
-			document.removeEventListener('touchstart', once, true);
-			document.removeEventListener('focus', once, true);
-			document.removeEventListener('click', once, true);
-		};
-
-		document.addEventListener('mousemove', once, true);
-		document.addEventListener('keydown', once, true);
-		document.addEventListener('touchstart', once, true);
-		document.addEventListener('focus', once, true);
-		document.addEventListener('click', once, true);
-
-		document.addEventListener('visibilitychange', function() {
-			if (document.visibilityState === 'visible') {
-				wcBmPrimePayload();
-			}
-		});
-	}
-
 	function wcBmIsStoreApiCheckoutUrl(url) {
 		if (!url || typeof url !== 'string') {
 			return false;
@@ -450,12 +416,6 @@
 					return originalFetch.apply(this, arguments);
 				}
 
-				var payload = await wcBmEnsurePayload(false);
-
-				if (!payload || !payload.device_id) {
-					return originalFetch.apply(this, arguments);
-				}
-
 				var requestInit = init ? Object.assign({}, init) : {};
 				var originalRequest = (typeof Request !== 'undefined' && input instanceof Request) ? input : null;
 
@@ -465,6 +425,12 @@
 
 				var method = String(requestInit.method || 'GET').toUpperCase();
 				if (method !== 'POST') {
+					return originalFetch.apply(this, arguments);
+				}
+
+				var payload = await wcBmEnsurePayload(true);
+
+				if (!payload || !payload.device_id) {
 					return originalFetch.apply(this, arguments);
 				}
 
@@ -544,7 +510,7 @@
 				return OriginalSend.apply(xhr, arguments);
 			}
 
-			wcBmEnsurePayload(false)
+			wcBmEnsurePayload(true)
 				.then(function(payload) {
 					if (!payload || !payload.device_id) {
 						OriginalSend.call(xhr, body);
@@ -565,33 +531,54 @@
 			return;
 		}
 
-		wcBmPrimePayload();
+		var handleClassicPlaceOrder = function() {
+			var $checkoutForm = $('form.checkout').first();
+
+			if (wcBmClassicResumeSubmit) {
+				wcBmClassicResumeSubmit = false;
+				wcBmInjectCachedPayloadIntoClassicCheckout();
+				return true;
+			}
+
+			if (wcBmCachedPayloadJson && wcBmInjectCachedPayloadIntoClassicCheckout()) {
+				return true;
+			}
+
+			if (wcBmClassicSubmitPending) {
+				return false;
+			}
+
+			wcBmClassicSubmitPending = true;
+
+			wcBmEnsurePayload(true).then(function() {
+				wcBmInjectCachedPayloadIntoClassicCheckout();
+			}).finally(function() {
+				wcBmClassicSubmitPending = false;
+				wcBmClassicResumeSubmit = true;
+
+				if ($checkoutForm.length) {
+					$checkoutForm.trigger('submit');
+				} else {
+					$('#place_order').trigger('click');
+				}
+			});
+
+			return false;
+		};
 
 		$(document.body).on('updated_checkout', function() {
-			wcBmEnsurePayload(true).then(function() {
+			if (wcBmCachedPayloadJson) {
 				wcBmInjectCachedPayloadIntoClassicCheckout();
-			});
+			}
 		});
 
-		$(document.body).on('checkout_place_order', function() {
-			wcBmInjectCachedPayloadIntoClassicCheckout();
-			return true;
-		});
-
-		$('form.checkout').on('submit', function() {
-			wcBmInjectCachedPayloadIntoClassicCheckout();
-		});
-
-		$('form.checkout').on('click', '#place_order', function() {
-			wcBmEnsurePayload(true).then(function() {
-				wcBmInjectCachedPayloadIntoClassicCheckout();
-			});
-		});
+		$('form.checkout').on('checkout_place_order', handleClassicPlaceOrder);
+		$(document.body).on('checkout_place_order', handleClassicPlaceOrder);
 	}
 
-	async function wcBmGetDevicePayloadForStoreApi() {
+	async function wcBmGetDevicePayloadForStoreApi(forceRefresh) {
 		try {
-			return await wcBmEnsurePayload(false);
+			return await wcBmEnsurePayload(forceRefresh === true);
 		} catch (e) {
 			return null;
 		}
@@ -601,11 +588,9 @@
 	window.wcBmGetDevicePayloadForStoreApi = wcBmGetDevicePayloadForStoreApi;
 
 	$(function() {
-		wcBmBindPrimeEvents();
 		wcBmPatchFetchForStoreApi();
 		wcBmPatchXhrForStoreApi();
 		wcBmSetupClassicCheckout();
-		wcBmPrimePayload();
 	});
 
 })(window, document, jQuery);

@@ -3,6 +3,9 @@ jQuery(function ($) {
   var namespace = cfg.namespace || 'wc-blacklist-manager-phone-verification';
 
   var resendTimer = null;
+  var smsFailureTimer = null;
+  var noticeDebounceTimer = null;
+  var noticeObserver = null;
   var resendButtonEnabled = false;
   var verifiedPhone = '';
   var activeNoticePhone = '';
@@ -223,6 +226,14 @@ jQuery(function ($) {
       .show();
   }
 
+  function scheduleVerificationNoticeCheck(delay) {
+    clearTimeout(noticeDebounceTimer);
+
+    noticeDebounceTimer = setTimeout(function () {
+      maybeHandleVerificationNotice();
+    }, typeof delay === 'number' ? delay : 150);
+  }
+
   function injectVerificationUiIntoNotice() {
     var $notice = getVerificationNotice();
     if (!$notice.length) {
@@ -284,10 +295,12 @@ jQuery(function ($) {
       if (resp.data.required === false) {
         setVerifiedState(phone);
         removeExistingVerificationUi();
+        stopSmsFailurePolling();
         return;
       }
 
       codeSentForPhone = phone;
+      startSmsFailurePolling();
       showMessage(isResend ? cfg.code_resent_message : cfg.code_sent_message, false);
       startCountdown();
     }).fail(function () {
@@ -401,6 +414,7 @@ jQuery(function ($) {
       if (resp.success) {
         setVerifiedState(phone);
         clearResendTimer();
+        stopSmsFailurePolling();
         showMessage(resp.data.message || cfg.verification_success_message, false);
 
         setTimeout(function () {
@@ -444,7 +458,10 @@ jQuery(function ($) {
       activeNoticePhone = phone;
       removeExistingVerificationUi();
       clearResendTimer();
+      stopSmsFailurePolling();
     }
+
+    scheduleVerificationNoticeCheck(350);
   });
 
   function pollSmsFailure() {
@@ -459,19 +476,46 @@ jQuery(function ($) {
     });
   }
 
+  function startSmsFailurePolling() {
+    if (smsFailureTimer) {
+      return;
+    }
+
+    smsFailureTimer = setInterval(pollSmsFailure, 3000);
+  }
+
+  function stopSmsFailurePolling() {
+    if (!smsFailureTimer) {
+      return;
+    }
+
+    clearInterval(smsFailureTimer);
+    smsFailureTimer = null;
+  }
+
+  function observeVerificationNotices() {
+    if (noticeObserver || typeof MutationObserver === 'undefined') {
+      return;
+    }
+
+    noticeObserver = new MutationObserver(function () {
+      scheduleVerificationNoticeCheck();
+    });
+
+    noticeObserver.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+  }
+
   function boot() {
     setExtensionData({
       verified: false,
       phone: ''
     });
 
-    setInterval(function () {
-      maybeHandleVerificationNotice();
-    }, 500);
-
-    setInterval(function () {
-      pollSmsFailure();
-    }, 3000);
+    observeVerificationNotices();
+    scheduleVerificationNoticeCheck(0);
   }
 
   boot();

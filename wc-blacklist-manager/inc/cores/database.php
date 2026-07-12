@@ -5,6 +5,10 @@ if (!defined('ABSPATH')) {
 }
 
 class WC_Blacklist_Manager_DB {
+	const CUSTOMER_INTELLIGENCE_NOTICE_CAMPAIGN   = '2026_07_customer_intelligence';
+	const CUSTOMER_INTELLIGENCE_CAMPAIGN_OPTION   = 'yobm_ci_notice_campaign';
+	const CUSTOMER_INTELLIGENCE_ELIGIBLE_AT_OPTION = 'yobm_ci_notice_eligible_at';
+
 	private $blacklist_table_name;
 	private $blacklist_addresses_table_name;
 	private $blacklist_devices_table_name;
@@ -28,6 +32,9 @@ class WC_Blacklist_Manager_DB {
 	}
 
 	public function activate() {
+		$had_install_state = false !== get_option( 'wc_blacklist_manager_first_install_date', false )
+			|| false !== get_option( 'wc_blacklist_manager_version', false );
+
 		$this->update_db();
 		$this->set_first_install_date();
 		$this->maybe_set_default_development_mode();
@@ -40,6 +47,7 @@ class WC_Blacklist_Manager_DB {
 		$this->create_address_update_trigger();
 
 		update_option( 'wc_blacklist_manager_version', $this->version );
+		$this->schedule_customer_intelligence_notice( $had_install_state ? 0 : DAY_IN_SECONDS );
 
 		WC_Blacklist_Manager_Push_Subscription::maybe_push_subscription();
 	}
@@ -69,7 +77,12 @@ class WC_Blacklist_Manager_DB {
 	}
 
 	public function check_version() {
-		if ( get_option( 'wc_blacklist_manager_version' ) != $this->version ) {
+		$installed_version = get_option( 'wc_blacklist_manager_version', '' );
+
+		if ( $installed_version != $this->version ) {
+			$had_install_state = false !== get_option( 'wc_blacklist_manager_first_install_date', false )
+				|| '' !== (string) $installed_version;
+
 			$this->update_db();
 			$this->install_default_options();
 			$this->install_count_options();
@@ -80,6 +93,7 @@ class WC_Blacklist_Manager_DB {
 			$this->create_address_update_trigger();
 
 			update_option( 'wc_blacklist_manager_version', $this->version );
+			$this->schedule_customer_intelligence_notice( $had_install_state ? 0 : DAY_IN_SECONDS );
 
 			WC_Blacklist_Manager_Push_Subscription::maybe_push_subscription();
 		}
@@ -653,6 +667,20 @@ class WC_Blacklist_Manager_DB {
 			$utc_time = gmdate( 'Y-m-d H:i:s' );
 			add_option( 'wc_blacklist_manager_first_install_date', $utc_time );
 		}
+	}
+
+	private function schedule_customer_intelligence_notice( $delay_seconds ) {
+		$current_campaign = (string) get_option( self::CUSTOMER_INTELLIGENCE_CAMPAIGN_OPTION, '' );
+		$current_due_at   = (int) get_option( self::CUSTOMER_INTELLIGENCE_ELIGIBLE_AT_OPTION, 0 );
+
+		if ( self::CUSTOMER_INTELLIGENCE_NOTICE_CAMPAIGN === $current_campaign && $current_due_at > 0 ) {
+			return;
+		}
+
+		$eligible_at = time() + max( 0, (int) $delay_seconds );
+
+		update_option( self::CUSTOMER_INTELLIGENCE_CAMPAIGN_OPTION, self::CUSTOMER_INTELLIGENCE_NOTICE_CAMPAIGN, false );
+		update_option( self::CUSTOMER_INTELLIGENCE_ELIGIBLE_AT_OPTION, $eligible_at, false );
 	}
 
 	/**

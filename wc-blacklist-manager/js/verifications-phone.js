@@ -2,6 +2,7 @@ jQuery(function ($) {
   var cfg = window.wc_blacklist_manager_phone_verification_data || {};
   var resendCooldown = parseInt(cfg.resendCooldown, 10) || 60;
   var resendTimer = null;
+  var smsFailureTimer = null;
   var resendButtonEnabled = false;
   var phoneVerified = false;
 
@@ -59,6 +60,36 @@ jQuery(function ($) {
     $('.yobm-phone-verification-error').closest('.woocommerce-error, .woocommerce-NoticeGroup, li, div').remove();
     $('.yobm-phone-verify-form').remove();
     $('#phone_verification_message').remove();
+    stopSmsFailurePolling();
+  }
+
+  function pollSmsFailure() {
+    $.post(cfg.ajax_url, {
+      action: 'check_sms_verification_status',
+      security: cfg.nonce
+    }, function (resp) {
+      if (resp.success && resp.data && resp.data.failed) {
+        alert(cfg.verification_failed_message);
+        location.reload();
+      }
+    });
+  }
+
+  function startSmsFailurePolling() {
+    if (smsFailureTimer) {
+      return;
+    }
+
+    smsFailureTimer = setInterval(pollSmsFailure, 3000);
+  }
+
+  function stopSmsFailurePolling() {
+    if (!smsFailureTimer) {
+      return;
+    }
+
+    clearInterval(smsFailureTimer);
+    smsFailureTimer = null;
   }
 
   function ensureVerificationUI() {
@@ -73,6 +104,7 @@ jQuery(function ($) {
     }
 
     disablePlaceOrderButton();
+    startSmsFailurePolling();
 
     if ($error.find('.yobm-phone-verify-form').length) {
       $error.find('.yobm-phone-verify-form').show();
@@ -146,6 +178,7 @@ jQuery(function ($) {
       if (resp.success) {
         phoneVerified = true;
         clearInterval(resendTimer);
+        stopSmsFailurePolling();
         removeVerificationUI();
 
         setTimeout(function () {
@@ -179,6 +212,7 @@ jQuery(function ($) {
       }
 
       if (resp.success) {
+        startSmsFailurePolling();
         showVerificationMessage(resp.data.message, true);
         startCountdown();
       } else {
@@ -222,15 +256,4 @@ jQuery(function ($) {
     phoneVerified = false;
   });
 
-  setInterval(function () {
-    $.post(cfg.ajax_url, {
-      action: 'check_sms_verification_status',
-      security: cfg.nonce
-    }, function (resp) {
-      if (resp.success && resp.data && resp.data.failed) {
-        alert(cfg.verification_failed_message);
-        location.reload();
-      }
-    });
-  }, 3000);
 });

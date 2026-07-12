@@ -461,6 +461,7 @@ class WC_Blacklist_Manager_Contact_Form_7 {
         // Build payload
         $view_data = [
             'ip_address' => $ip ?: '',
+            'ip_hash'    => '' !== (string) $ip ? hash_hmac( 'sha256', (string) $ip, wp_salt( 'auth' ) ) : '',
             'email'      => isset( $emails[0] ) ? $emails[0] : '',
             'phone'      => isset( $phones[0] ) ? $phones[0] : '',
         ];

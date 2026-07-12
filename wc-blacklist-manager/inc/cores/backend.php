@@ -31,7 +31,7 @@ class WC_Blacklist_Manager_Backend {
 	public function enqueue_assets( $hook_suffix ) {
 		global $wp_version;
 
-		$style_ver  = '1.6.8';
+		$style_ver  = '1.6.12';
 		$script_ver = '1.2';
 
 		// Determine current admin screen context
@@ -116,7 +116,7 @@ class WC_Blacklist_Manager_Backend {
 			return;
 		}
 
-		wp_enqueue_script( 'yobm-dashboard-form', plugin_dir_url( __FILE__ ) . '../../js/dashboard-phone-dial-code.js', array(), '1.0.0', true );
+		wp_enqueue_script( 'yobm-dashboard-form', plugin_dir_url( __FILE__ ) . '../../js/dashboard-phone-dial-code.js', array(), '1.0.1', true );
 
 		$country_code = 'us';
 

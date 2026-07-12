@@ -3,6 +3,8 @@ jQuery(function ($) {
   var namespace = cfg.namespace || 'wc-blacklist-manager-email-verification';
 
   var resendTimer = null;
+  var noticeDebounceTimer = null;
+  var noticeObserver = null;
   var resendButtonEnabled = false;
   var verifiedEmail = '';
   var activeNoticeEmail = '';
@@ -135,6 +137,14 @@ jQuery(function ($) {
       .show();
   }
 
+  function scheduleVerificationNoticeCheck(delay) {
+    clearTimeout(noticeDebounceTimer);
+
+    noticeDebounceTimer = setTimeout(function () {
+      maybeHandleVerificationNotice();
+    }, typeof delay === 'number' ? delay : 150);
+  }
+
   function injectVerificationUiIntoNotice() {
     var $notice = getVerificationNotice();
     if (!$notice.length) {
@@ -194,7 +204,7 @@ jQuery(function ($) {
       if (resp.data.required === false) {
         setVerifiedState(email);
         removeExistingVerificationUi();
-        removeVerificationNotice();
+        removeVerificationNoticeUiOnly();
         return;
       }
 
@@ -372,7 +382,24 @@ jQuery(function ($) {
       removeExistingVerificationUi();
       clearResendTimer();
     }
+
+    scheduleVerificationNoticeCheck(350);
   });
+
+  function observeVerificationNotices() {
+    if (noticeObserver || typeof MutationObserver === 'undefined') {
+      return;
+    }
+
+    noticeObserver = new MutationObserver(function () {
+      scheduleVerificationNoticeCheck();
+    });
+
+    noticeObserver.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+  }
 
   function boot() {
     setExtensionData({
@@ -380,9 +407,8 @@ jQuery(function ($) {
       email: ''
     });
 
-    setInterval(function () {
-      maybeHandleVerificationNotice();
-    }, 500);
+    observeVerificationNotices();
+    scheduleVerificationNoticeCheck(0);
   }
 
   boot();

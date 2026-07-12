@@ -6,7 +6,7 @@ if (!defined('ABSPATH')) {
 require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 ?>
 
-<div class="wrap">
+<div class="wrap yobm-admin-page">
 	<?php if (!$premium_active): ?>
 		<p>Please support us by <a href="https://wordpress.org/support/plugin/wc-blacklist-manager/reviews/#new-post" target="_blank">leaving a review</a> <span style="color: #e26f56;">&#9733;&#9733;&#9733;&#9733;&#9733;</span> to keep updating & improving.</p>
 	<?php endif; ?>
@@ -19,20 +19,20 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 		<?php endif; ?>
 	</h1>
 
-	<nav class="nav-tab-wrapper">
-		<a href="#tab-content-general" class="nav-tab nav-tab-active" id="tab-general"><?php echo esc_html__('General', 'wc-blacklist-manager'); ?></a>
+	<nav class="yobm-admin-tabs" aria-label="<?php echo esc_attr__( 'Blacklist Manager settings sections', 'wc-blacklist-manager' ); ?>">
+		<a href="#tab-content-general" class="yobm-admin-tab is-active" id="tab-general"><?php echo esc_html__('General', 'wc-blacklist-manager'); ?></a>
 		<?php if ($woocommerce_active): ?>
-			<a href="#tab-content-anti_bots" class="nav-tab" id="tab-anti_bots"><?php echo esc_html__('Anti-bots', 'wc-blacklist-manager'); ?></a>
-			<a href="#tab-content-automation" class="nav-tab" id="tab-automation"><?php echo esc_html__('Automation', 'wc-blacklist-manager'); ?></a>
-			<a href="#tab-content-scoring" class="nav-tab" id="tab-scoring"><?php echo esc_html__('Scoring', 'wc-blacklist-manager'); ?></a>
+			<a href="#tab-content-anti_bots" class="yobm-admin-tab" id="tab-anti_bots"><?php echo esc_html__('Anti-bots', 'wc-blacklist-manager'); ?></a>
+			<a href="#tab-content-automation" class="yobm-admin-tab" id="tab-automation"><?php echo esc_html__('Automation', 'wc-blacklist-manager'); ?></a>
+			<a href="#tab-content-scoring" class="yobm-admin-tab" id="tab-scoring"><?php echo esc_html__('Scoring', 'wc-blacklist-manager'); ?></a>
 		<?php endif; ?>
 		<?php if ($woocommerce_active): ?>
-			<a href="#tab-content-payments" class="nav-tab" id="tab-payments"><?php echo esc_html__('Payments', 'wc-blacklist-manager'); ?></a>
+			<a href="#tab-content-payments" class="yobm-admin-tab" id="tab-payments"><?php echo esc_html__('Payments', 'wc-blacklist-manager'); ?></a>
 		<?php endif; ?>
-		<a href="#tab-content-permission" class="nav-tab" id="tab-permission"><?php echo esc_html__('Permission', 'wc-blacklist-manager'); ?></a>
-		<a href="#tab-content-integrations" class="nav-tab" id="tab-integrations"><?php echo esc_html__('Integrations', 'wc-blacklist-manager'); ?></a>
-		<a href="#tab-content-tools" class="nav-tab" id="tab-tools"><?php echo esc_html__('Tools', 'wc-blacklist-manager'); ?></a>
-		<a href="#tab-content-connection" class="nav-tab" id="tab-connection"><?php echo esc_html__('Connection', 'wc-blacklist-manager'); ?></a>
+		<a href="#tab-content-permission" class="yobm-admin-tab" id="tab-permission"><?php echo esc_html__('Permission', 'wc-blacklist-manager'); ?></a>
+		<a href="#tab-content-integrations" class="yobm-admin-tab" id="tab-integrations"><?php echo esc_html__('Integrations', 'wc-blacklist-manager'); ?></a>
+		<a href="#tab-content-tools" class="yobm-admin-tab" id="tab-tools"><?php echo esc_html__('Tools', 'wc-blacklist-manager'); ?></a>
+		<a href="#tab-content-connection" class="yobm-admin-tab" id="tab-connection"><?php echo esc_html__('Connection', 'wc-blacklist-manager'); ?></a>
 	</nav>
 
 	<div id="tab-content-general" class="tab-content">
@@ -803,7 +803,7 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 
 <script type="text/javascript">
 	document.addEventListener('DOMContentLoaded', function () {
-		var tabs = document.querySelectorAll('.nav-tab');
+		var tabs = document.querySelectorAll('.yobm-admin-tab');
 		var tabContents = document.querySelectorAll('.tab-content');
 
 		function hideAllTabContents() {
@@ -826,9 +826,9 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 			tab.addEventListener('click', function(event) {
 				event.preventDefault();
 				tabs.forEach(function(item) {
-					item.classList.remove('nav-tab-active');
+					item.classList.remove('is-active');
 				});
-				tab.classList.add('nav-tab-active');
+				tab.classList.add('is-active');
 				showTabContent(tab.getAttribute('href'));
 				console.log('Switched to tab:', tab.getAttribute('href'));
 			});
@@ -840,10 +840,6 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 </script>
 
 <style type="text/css">
-	.nav-tab-wrapper {
-		margin-bottom: 20px;
-	}
-
 	.tab-content {
 		display: none;
 	}

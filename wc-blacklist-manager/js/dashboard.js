@@ -1,14 +1,14 @@
 // Navagation tabs
 jQuery(document).ready(function($) {
     function openTab(tabId) {
-        $('.nav-tab').removeClass('nav-tab-active');
-        $('a[data-tab="' + tabId + '"]').addClass('nav-tab-active');
+        $('.yobm-admin-tab').removeClass('is-active');
+        $('a[data-tab="' + tabId + '"]').addClass('is-active');
         $('.tab-pane').hide();
         $('#' + tabId).show();
         localStorage.setItem('currentTab', tabId);
     }
 
-    $('.nav-tab').click(function(e) {
+    $('.yobm-admin-tab').click(function(e) {
         e.preventDefault();
         openTab($(this).data('tab'));
     });

@@ -70,6 +70,138 @@ class WC_Blacklist_Manager_Order_Actions {
 		return $this->permission_cache;
 	}
 
+	private function build_order_activity_view( WC_Order $order, array $extra = array() ): array {
+		$ip_address = sanitize_text_field( (string) $order->get_customer_ip_address() );
+
+		$view = array_merge(
+			array(
+				'order_id'       => absint( $order->get_id() ),
+				'ip_address'     => $ip_address,
+				'ip_hash'        => '' !== $ip_address ? hash_hmac( 'sha256', $ip_address, wp_salt( 'auth' ) ) : '',
+				'first_name'     => sanitize_text_field( (string) $order->get_billing_first_name() ),
+				'last_name'      => sanitize_text_field( (string) $order->get_billing_last_name() ),
+				'email'          => sanitize_email( (string) $order->get_billing_email() ),
+				'phone'          => sanitize_text_field( (string) $order->get_billing_phone() ),
+				'billing'        => sanitize_text_field( (string) $order->get_formatted_billing_address() ),
+				'shipping'       => sanitize_text_field( (string) $order->get_formatted_shipping_address() ),
+				'payment_method' => sanitize_text_field( (string) $order->get_payment_method() ),
+				'currency'       => sanitize_text_field( (string) $order->get_currency() ),
+				'cart_total'     => (float) $order->get_total(),
+			),
+			$extra
+		);
+
+		return array_filter(
+			$view,
+			static function ( $value ) {
+				return ! ( '' === $value || null === $value || array() === $value );
+			}
+		);
+	}
+
+	private function build_order_blacklist_event_payload( WC_Order $order, array $args = array() ): array {
+		$defaults = array(
+			'blacklist_ids'  => array(),
+			'address_ids'    => array(),
+			'action'         => '',
+			'status'         => '',
+			'reason_code'    => '',
+			'description'    => '',
+			'matched_fields' => array(),
+			'source'         => 'order_action',
+			'actor_user_id'  => get_current_user_id(),
+		);
+
+		$args = wp_parse_args( $args, $defaults );
+
+		return array(
+			'order_id'       => absint( $order->get_id() ),
+			'blacklist_ids'  => $this->sanitize_blacklist_event_ids( $args['blacklist_ids'] ),
+			'address_ids'    => $this->sanitize_blacklist_event_ids( $args['address_ids'] ),
+			'action'         => sanitize_key( (string) $args['action'] ),
+			'status'         => sanitize_key( (string) $args['status'] ),
+			'reason_code'    => sanitize_key( (string) $args['reason_code'] ),
+			'description'    => sanitize_textarea_field( (string) $args['description'] ),
+			'matched_fields' => $this->sanitize_blacklist_event_fields( $args['matched_fields'] ),
+			'source'         => sanitize_key( (string) $args['source'] ),
+			'actor_user_id'  => absint( $args['actor_user_id'] ),
+		);
+	}
+
+	private function get_blacklist_event_fields_from_insert_data( array $insert_data, array $address_ids = array() ): array {
+		$fields = array();
+
+		foreach ( array(
+			'phone_number'  => 'phone',
+			'email_address' => 'email',
+			'ip_address'    => 'ip',
+			'domain'        => 'domain',
+			'device_id'     => 'device',
+			'first_name'    => 'name',
+			'last_name'     => 'name',
+		) as $key => $field ) {
+			if ( ! empty( $insert_data[ $key ] ) ) {
+				$fields[] = $field;
+			}
+		}
+
+		if ( ! empty( $address_ids ) ) {
+			$fields[] = 'address';
+		}
+
+		return $this->sanitize_blacklist_event_fields( $fields );
+	}
+
+	private function get_blacklist_event_fields_from_order( WC_Order $order, array $address_ids = array() ): array {
+		$fields = array();
+		$ctx    = $this->get_order_identity_context( $order );
+
+		if ( ! empty( $ctx['phone'] ) || ! empty( $ctx['normalized_phone'] ) ) {
+			$fields[] = 'phone';
+		}
+
+		if ( ! empty( $ctx['email'] ) ) {
+			$fields[] = 'email';
+		}
+
+		if ( ! empty( $ctx['ip'] ) ) {
+			$fields[] = 'ip';
+		}
+
+		if ( ! empty( $ctx['device_id'] ) ) {
+			$fields[] = 'device';
+		}
+
+		if ( ! empty( $ctx['first_name'] ) || ! empty( $ctx['last_name'] ) || ! empty( $ctx['full_name'] ) ) {
+			$fields[] = 'name';
+		}
+
+		if ( ! empty( $address_ids ) ) {
+			$fields[] = 'address';
+		}
+
+		return $this->sanitize_blacklist_event_fields( $fields );
+	}
+
+	private function sanitize_blacklist_event_ids( $ids ): array {
+		$ids = is_array( $ids ) ? $ids : array( $ids );
+		$ids = array_map( 'absint', $ids );
+
+		return array_values( array_unique( array_filter( $ids ) ) );
+	}
+
+	private function sanitize_blacklist_event_fields( $fields ): array {
+		$fields = is_array( $fields ) ? $fields : array( $fields );
+		$fields = array_map(
+			static function ( $field ) {
+				return sanitize_key( (string) $field );
+			},
+			$fields
+		);
+
+		return array_values( array_unique( array_filter( $fields ) ) );
+	}
+
 	/**
 	 * Get contextual Premium CTA data for order action modals.
 	 */
@@ -138,6 +270,47 @@ class WC_Blacklist_Manager_Order_Actions {
 
 		$this->current_order_cache = $order;
 		return $order;
+	}
+
+	/**
+	 * Check for legacy and HPOS add-new order screens, where there is no saved
+	 * order identity for blacklist actions to operate on.
+	 */
+	private function is_add_new_order_screen(): bool {
+		if ( function_exists( 'get_current_screen' ) ) {
+			$screen = get_current_screen();
+
+			if ( $screen ) {
+				if ( 'shop_order' === ( $screen->post_type ?? '' ) && 'add' === ( $screen->action ?? '' ) ) {
+					return true;
+				}
+
+				if (
+					'woocommerce_page_wc-orders' === ( $screen->id ?? '' ) &&
+					isset( $_GET['action'] ) &&
+					'new' === sanitize_key( wp_unslash( $_GET['action'] ) )
+				) {
+					return true;
+				}
+			}
+		}
+
+		global $pagenow;
+
+		if (
+			'post-new.php' === $pagenow &&
+			isset( $_GET['post_type'] ) &&
+			'shop_order' === sanitize_key( wp_unslash( $_GET['post_type'] ) )
+		) {
+			return true;
+		}
+
+		return (
+			'admin.php' === $pagenow &&
+			isset( $_GET['page'], $_GET['action'] ) &&
+			'wc-orders' === sanitize_key( wp_unslash( $_GET['page'] ) ) &&
+			'new' === sanitize_key( wp_unslash( $_GET['action'] ) )
+		);
 	}
 
 	private function get_order_address_payloads( WC_Order $order ): array {
@@ -845,6 +1018,10 @@ class WC_Blacklist_Manager_Order_Actions {
 	}
 
 	public function add_button_to_order_edit( $order ) {
+		if ( $this->is_add_new_order_screen() || ! $order instanceof WC_Order ) {
+			return;
+		}
+
 		if ( method_exists( $order, 'get_type' ) && 'shop_subscription' === $order->get_type() ) {
 			return;
 		}
@@ -1183,7 +1360,7 @@ class WC_Blacklist_Manager_Order_Actions {
 
 			if ( $premium_active ) {
 				$details   = 'suspected_added_to_suspects_list_by:' . $shop_manager;
-				$view_json = '';
+				$view_json = wp_json_encode( $this->build_order_activity_view( $order ) );
 
 				$wpdb->insert(
 					$table_detection_log,
@@ -1200,6 +1377,22 @@ class WC_Blacklist_Manager_Order_Actions {
 			}
 
 			$this->maybe_sync_order_device_status( $order, 'suspect', '' );
+
+			do_action(
+				'wc_blacklist_manager_order_suspected',
+				$this->build_order_blacklist_event_payload(
+					$order,
+					array(
+						'blacklist_ids'  => $created_main_ids,
+						'address_ids'    => $created_address_ids,
+						'action'         => 'suspect',
+						'status'         => 'suspect',
+						'matched_fields' => $this->get_blacklist_event_fields_from_insert_data( $insert_data, $created_address_ids ),
+						'source'         => 'order_action',
+					)
+				),
+				$order
+			);
 
 			if ( function_exists( 'wc_blacklist_manager_record_action_upsell_event' ) ) {
 				wc_blacklist_manager_record_action_upsell_event( 'order_suspect' );
@@ -1431,9 +1624,12 @@ class WC_Blacklist_Manager_Order_Actions {
 				}
 
 				$view_json = wp_json_encode(
-					array(
+					$this->build_order_activity_view(
+						$order,
+						array(
 						'reason_code' => $reason_code,
 						'description' => $description,
+						)
 					)
 				);
 
@@ -1452,6 +1648,24 @@ class WC_Blacklist_Manager_Order_Actions {
 			}
 
 			$this->maybe_sync_order_device_status( $order, 'blocked', $reason_code );
+
+			do_action(
+				'wc_blacklist_manager_order_blocked',
+				$this->build_order_blacklist_event_payload(
+					$order,
+					array(
+						'blacklist_ids'  => $moved_main_ids,
+						'address_ids'    => $moved_address_ids,
+						'action'         => 'block',
+						'status'         => 'blocked',
+						'reason_code'    => $reason_code,
+						'description'    => $description,
+						'matched_fields' => $this->get_blacklist_event_fields_from_order( $order, $moved_address_ids ),
+						'source'         => 'order_action',
+					)
+				),
+				$order
+			);
 
 			if ( function_exists( 'wc_blacklist_manager_record_action_upsell_event' ) ) {
 				wc_blacklist_manager_record_action_upsell_event( 'order_block' );
@@ -1638,9 +1852,12 @@ class WC_Blacklist_Manager_Order_Actions {
 				}
 
 				$view_json = wp_json_encode(
-					array(
+					$this->build_order_activity_view(
+						$order,
+						array(
 						'reason_code' => $reason_code,
 						'description' => $description,
+						)
 					)
 				);
 
@@ -1659,6 +1876,24 @@ class WC_Blacklist_Manager_Order_Actions {
 			}
 
 			$this->maybe_sync_order_device_status( $order, 'blocked', $reason_code );
+
+			do_action(
+				'wc_blacklist_manager_order_blocked',
+				$this->build_order_blacklist_event_payload(
+					$order,
+					array(
+						'blacklist_ids'  => $created_main_ids,
+						'address_ids'    => $created_address_ids,
+						'action'         => 'block',
+						'status'         => 'blocked',
+						'reason_code'    => $reason_code,
+						'description'    => $description,
+						'matched_fields' => $this->get_blacklist_event_fields_from_insert_data( $insert_data, $created_address_ids ),
+						'source'         => 'order_action',
+					)
+				),
+				$order
+			);
 
 			if ( function_exists( 'wc_blacklist_manager_record_action_upsell_event' ) ) {
 				wc_blacklist_manager_record_action_upsell_event( 'order_block' );
@@ -1856,7 +2091,9 @@ class WC_Blacklist_Manager_Order_Actions {
 			}
 
 			$view_json = wp_json_encode(
-				array(
+				$this->build_order_activity_view(
+					$order,
+					array(
 					'reason_code'         => $revoke_reason,
 					'note'                => $revoke_note ? substr( $revoke_note, 0, 255 ) : '',
 					'removed_from'        => $remove_type,
@@ -1866,6 +2103,7 @@ class WC_Blacklist_Manager_Order_Actions {
 						'main'    => $removed_main_count,
 						'address' => $removed_address_count,
 					),
+					)
 				)
 			);
 
@@ -1889,6 +2127,24 @@ class WC_Blacklist_Manager_Order_Actions {
 
 		$this->maybe_sync_order_device_status( $order, '', '' );
 
+		do_action(
+			'wc_blacklist_manager_order_blacklist_removed',
+			$this->build_order_blacklist_event_payload(
+				$order,
+				array(
+					'blacklist_ids'  => $main_ids_to_delete,
+					'address_ids'    => $addr_ids_to_delete,
+					'action'         => 'remove',
+					'status'         => 'removed',
+					'reason_code'    => $revoke_reason,
+					'description'    => $revoke_note,
+					'matched_fields' => $this->get_blacklist_event_fields_from_order( $order, $addr_ids_to_delete ),
+					'source'         => 'order_action',
+				)
+			),
+			$order
+		);
+
 		if ( function_exists( 'wc_blacklist_manager_record_action_upsell_event' ) ) {
 			wc_blacklist_manager_record_action_upsell_event( 'order_remove' );
 		}
@@ -1902,6 +2158,10 @@ class WC_Blacklist_Manager_Order_Actions {
 	}
 
 	public function display_blacklist_notices( WC_Order $order ) {
+		if ( $this->is_add_new_order_screen() ) {
+			return;
+		}
+
 		$state = $this->get_order_blacklist_state( $order );
 
 		if ( ! empty( $state['blocked_labels'] ) ) {

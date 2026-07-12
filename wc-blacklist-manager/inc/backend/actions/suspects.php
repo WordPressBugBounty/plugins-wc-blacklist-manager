@@ -138,6 +138,7 @@ class WC_Blacklist_Manager_Suspicious_Actions {
 		$view_data  = array(
 			'device_id'           => $device_id,
 			'ip_address'          => $user_ip,
+			'ip_hash'             => '' !== $user_ip ? hash_hmac( 'sha256', (string) $user_ip, wp_salt( 'auth' ) ) : '',
 			'first_name'          => $first_name,
 			'last_name'           => $last_name,
 			'shipping_first_name' => $shipping_first_name,
@@ -503,6 +504,14 @@ class WC_Blacklist_Manager_Suspicious_Actions {
 			);
 		}
 
+		if ( ! empty( $reasons ) ) {
+			do_action(
+				'wc_blacklist_manager_order_suspect_detected',
+				$this->build_suspect_detected_event_payload( $order, $reasons ),
+				$order
+			);
+		}
+
 		if ( $send_email ) {
 			$phones_to_email = array_filter( array_unique( array( $billing_phone, $shipping_phone ) ) );
 			$phone_for_email = implode( ', ', $phones_to_email );
@@ -524,6 +533,46 @@ class WC_Blacklist_Manager_Suspicious_Actions {
 		$order->update_meta_data( '_wc_blacklist_suspect_check_completed', 'yes' );
 		$order->delete_meta_data( '_wc_blacklist_suspect_check_scheduled' );
 		$order->save_meta_data();
+	}
+
+	private function build_suspect_detected_event_payload( WC_Order $order, array $reasons ): array {
+		return array(
+			'order_id'       => absint( $order->get_id() ),
+			'blacklist_ids'  => array(),
+			'address_ids'    => array(),
+			'action'         => 'detect',
+			'status'         => 'suspect',
+			'reason_code'    => 'async_match',
+			'description'    => __( 'Order matched suspect-list rules.', 'wc-blacklist-manager' ),
+			'matched_fields' => $this->get_suspect_detected_matched_fields( $reasons ),
+			'source'         => 'async_suspect_check',
+			'actor_user_id'  => 0,
+		);
+	}
+
+	private function get_suspect_detected_matched_fields( array $reasons ): array {
+		$fields = array();
+
+		foreach ( $reasons as $reason ) {
+			$reason = sanitize_key( strtok( (string) $reason, ':' ) );
+
+			foreach ( array(
+				'phone'    => 'phone',
+				'email'    => 'email',
+				'ip'       => 'ip',
+				'device'   => 'device',
+				'name'     => 'name',
+				'address'  => 'address',
+				'postcode' => 'postcode',
+				'state'    => 'state',
+			) as $needle => $field ) {
+				if ( false !== strpos( $reason, $needle ) ) {
+					$fields[] = $field;
+				}
+			}
+		}
+
+		return array_values( array_unique( array_filter( $fields ) ) );
 	}
 
 	private function address_exists_by_hash( $address_table_name, $address_hash ) {

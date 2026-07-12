@@ -2,6 +2,13 @@
 
 == Changelog ==
 
+= 2.2.8 (Jul 12, 2026) =
+* Improve: Prevented the device identity seed cookie from being set server-side on product pages to preserve product page cache behavior.
+* Improve: Deferred checkout device identity payload generation until the final Classic checkout submit or Store API checkout POST to reduce repeated checkout refresh work.
+* Improve: Debounced checkout email and phone verification scripts so field validation is not repeatedly triggered by normal checkout refreshes.
+* Improve: Added short checkout-attempt caching for strict Global Blacklist checks using cart, WooCommerce session, customer contact, IP, and browser context to avoid recalculating risk on validation retries.
+* Improve: Added stable integration hooks (`wc_blacklist_manager_order_suspected`, `wc_blacklist_manager_order_blocked`, `wc_blacklist_manager_order_blacklist_removed`, and `wc_blacklist_manager_order_suspect_detected`) with structured payloads for customer intelligence and external audit integrations.
+
 = 2.2.7 (Jun 14, 2026) =
 * Security: Strengthened email and phone verification against brute-force attacks.
 * Security: Improved verification code validation, expiration, and resend protection.

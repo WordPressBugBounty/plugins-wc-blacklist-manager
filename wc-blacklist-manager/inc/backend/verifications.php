@@ -90,7 +90,7 @@ class WC_Blacklist_Manager_Verifications {
 		$premium_active = $settings_instance->is_premium_active();
 		$active_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'verify';
 		?>
-		<div class="wrap">
+		<div class="wrap yobm-admin-page">
 			<?php if (!$premium_active): ?>
 				<p><?php esc_html_e('Please support us by', 'wc-blacklist-manager'); ?> <a href="https://wordpress.org/support/plugin/wc-blacklist-manager/reviews/#new-post" target="_blank"><?php esc_html_e('leaving a review', 'wc-blacklist-manager'); ?></a> <span style="color: #e26f56;">&#9733;&#9733;&#9733;&#9733;&#9733;</span> <?php esc_html_e('to keep updating & improving.', 'wc-blacklist-manager'); ?></p>
 			<?php endif; ?>
@@ -108,10 +108,10 @@ class WC_Blacklist_Manager_Verifications {
 				<?php endif; ?>
 			</h1>
 
-			<h2 class="nav-tab-wrapper">
-				<a href="?page=wc-blacklist-manager-verifications&tab=verify" class="nav-tab <?php echo $active_tab == 'verify' ? 'nav-tab-active' : ''; ?>"><?php echo esc_html__('Verify', 'wc-blacklist-manager'); ?></a>
-				<a href="?page=wc-blacklist-manager-verifications&tab=advanced" class="nav-tab <?php echo $active_tab == 'advanced' ? 'nav-tab-active' : ''; ?>"><?php echo esc_html__('Advanced', 'wc-blacklist-manager'); ?></a>
-			</h2>
+			<nav class="yobm-admin-tabs" aria-label="<?php echo esc_attr__( 'Verification sections', 'wc-blacklist-manager' ); ?>">
+				<a href="?page=wc-blacklist-manager-verifications&tab=verify" class="yobm-admin-tab<?php echo $active_tab == 'verify' ? ' is-active' : ''; ?>"<?php echo $active_tab == 'verify' ? ' aria-current="page"' : ''; ?>><?php echo esc_html__('Verify', 'wc-blacklist-manager'); ?></a>
+				<a href="?page=wc-blacklist-manager-verifications&tab=advanced" class="yobm-admin-tab<?php echo $active_tab == 'advanced' ? ' is-active' : ''; ?>"<?php echo $active_tab == 'advanced' ? ' aria-current="page"' : ''; ?>><?php echo esc_html__('Advanced', 'wc-blacklist-manager'); ?></a>
+			</nav>
 
 			<?php
 			if ( ! $premium_active && function_exists( 'wc_blacklist_manager_render_action_upsell' ) ) {

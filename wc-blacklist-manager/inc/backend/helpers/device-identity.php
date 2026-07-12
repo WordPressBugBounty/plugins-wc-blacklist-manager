@@ -215,21 +215,35 @@ class WC_Blacklist_Manager_Device_Identity {
 			return;
 		}
 
-		if ( empty( $_COOKIE['wc_bm_did_seed'] ) ) {
-			$seed = wp_generate_password( 32, false, false );
-
-			setcookie(
-				'wc_bm_did_seed',
-				$seed,
-				time() + YEAR_IN_SECONDS,
-				COOKIEPATH ? COOKIEPATH : '/',
-				COOKIE_DOMAIN,
-				is_ssl(),
-				true
-			);
-
-			$_COOKIE['wc_bm_did_seed'] = $seed;
+		if ( function_exists( 'is_product' ) && is_product() ) {
+			return;
 		}
+
+		$seed = '';
+
+		if ( ! empty( $_COOKIE['wc_bm_did_seed'] ) ) {
+			$seed = sanitize_text_field( wp_unslash( $_COOKIE['wc_bm_did_seed'] ) );
+		}
+
+		if ( '' === $seed ) {
+			$seed = wp_generate_password( 32, false, false );
+		}
+
+		$cookie_options = array(
+			'expires'  => time() + YEAR_IN_SECONDS,
+			'path'     => COOKIEPATH ? COOKIEPATH : '/',
+			'secure'   => is_ssl(),
+			'httponly' => false,
+			'samesite' => 'Lax',
+		);
+
+		if ( COOKIE_DOMAIN ) {
+			$cookie_options['domain'] = COOKIE_DOMAIN;
+		}
+
+		setcookie( 'wc_bm_did_seed', $seed, $cookie_options );
+
+		$_COOKIE['wc_bm_did_seed'] = $seed;
 	}
 
 	/**

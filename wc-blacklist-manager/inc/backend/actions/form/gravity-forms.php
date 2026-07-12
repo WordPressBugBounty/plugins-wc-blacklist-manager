@@ -243,6 +243,7 @@ class WC_Blacklist_Manager_Gravity_Forms {
 
 			$view_data = [
 				'ip_address' => $ip_address,
+				'ip_hash'    => '' !== (string) $ip_address ? hash_hmac( 'sha256', (string) $ip_address, wp_salt( 'auth' ) ) : '',
 				'email'      => $email_value,
 				'phone'      => $phone_value,
 			];

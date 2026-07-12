@@ -103,8 +103,32 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 		}
 	}
 
+	private function is_blocks_checkout_context() {
+		if ( ! function_exists( 'is_checkout' ) || ! is_checkout() || ! function_exists( 'has_block' ) ) {
+			return false;
+		}
+
+		$post = get_post();
+		if ( $post instanceof WP_Post && has_block( 'woocommerce/checkout', $post ) ) {
+			return true;
+		}
+
+		if ( function_exists( 'wc_get_page_id' ) ) {
+			$checkout_page_id = wc_get_page_id( 'checkout' );
+			if ( $checkout_page_id > 0 && has_block( 'woocommerce/checkout', $checkout_page_id ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 	public function enqueue_verification_scripts() {
 		if ( ! function_exists( 'is_checkout' ) || ! is_checkout() ) {
+			return;
+		}
+
+		if ( $this->is_blocks_checkout_context() ) {
 			return;
 		}
 
@@ -137,6 +161,10 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 
 	public function enqueue_blocks_verification_scripts() {
 		if ( ! function_exists( 'is_checkout' ) || ! is_checkout() ) {
+			return;
+		}
+
+		if ( ! $this->is_blocks_checkout_context() ) {
 			return;
 		}
 
@@ -695,6 +723,7 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 			global $wpdb;
 
 			$table_detection_log = $wpdb->prefix . 'wc_blacklist_detection_log';
+			$view_json           = wp_json_encode( $this->build_activity_log_view( $billing_details, 'email', $submitted_email ) );
 
 			$wpdb->insert(
 				$table_detection_log,
@@ -704,7 +733,9 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 					'source'    => 'woo_checkout',
 					'action'    => 'verify',
 					'details'   => 'verified_email_attempt: ' . $submitted_email,
-				)
+					'view'      => is_string( $view_json ) ? $view_json : '',
+				),
+				array( '%s', '%s', '%s', '%s', '%s', '%s' )
 			);
 		}
 
@@ -1019,6 +1050,40 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 		$request_body = json_decode( \WP_REST_Server::get_raw_data(), true );
 
 		return $this->validate_blocks_checkout_payload( $result, $request_body );
+	}
+
+	private function build_activity_log_view( array $billing_details, string $verified_type, string $verified_value ) : array {
+		$request_ip = $this->get_request_ip();
+
+		return array(
+			'email'          => isset( $billing_details['email'] ) ? sanitize_email( $billing_details['email'] ) : '',
+			'phone'          => isset( $billing_details['phone'] ) ? sanitize_text_field( (string) $billing_details['phone'] ) : '',
+			'ip_address'     => $request_ip,
+			'ip_hash'        => '' !== $request_ip ? $this->hash_value( $request_ip ) : '',
+			'verified_type'  => sanitize_key( $verified_type ),
+			'verified_value' => sanitize_text_field( $verified_value ),
+			'billing'        => $billing_details,
+			'request'        => array(
+				'ip'      => $request_ip,
+				'ip_hash' => '' !== $request_ip ? $this->hash_value( $request_ip ) : '',
+				'method'  => isset( $_SERVER['REQUEST_METHOD'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) : '',
+				'uri'     => isset( $_SERVER['REQUEST_URI'] ) ? esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '',
+			),
+		);
+	}
+
+	private function get_request_ip() : string {
+		if ( function_exists( 'get_real_customer_ip' ) ) {
+			$ip = (string) get_real_customer_ip();
+		} else {
+			$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? (string) wp_unslash( $_SERVER['REMOTE_ADDR'] ) : '';
+		}
+
+		return sanitize_text_field( $ip );
+	}
+
+	private function hash_value( string $value ) : string {
+		return hash_hmac( 'sha256', $value, wp_salt( 'auth' ) );
 	}
 }
 

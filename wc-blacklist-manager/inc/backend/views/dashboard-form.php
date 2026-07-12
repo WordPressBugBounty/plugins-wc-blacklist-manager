@@ -4,7 +4,7 @@ if (!defined('ABSPATH')) {
 }
 ?>
 
-<div class="wrap bm_dashboard">
+<div class="wrap bm_dashboard yobm-admin-page">
 	<?php if (!$premium_active): ?>
 	<p>Please support us by <a href="https://wordpress.org/support/plugin/wc-blacklist-manager/reviews/#new-post" target="_blank">leaving a review</a> <span style="color: #e26f56;">&#9733;&#9733;&#9733;&#9733;&#9733;</span> to keep updating & improving.</p>
 	<?php endif; ?>
@@ -419,8 +419,9 @@ if (!defined('ABSPATH')) {
 					<hr>
 
 					<span class="bm-actions">
-						<a href="<?php echo esc_url( admin_url( 'admin.php?page=wc-blacklist-manager-activity-logs' ) ); ?>"><?php echo esc_html__('See activity logs', 'wc-blacklist-manager'); ?></a>
-						<?php if (!$premium_active): ?>
+						<?php if ($premium_active): ?>
+							<a href="<?php echo esc_url( admin_url( 'admin.php?page=wc-blacklist-manager-activity-logs' ) ); ?>"><?php echo esc_html__('See activity logs', 'wc-blacklist-manager'); ?></a>
+						<?php else: ?>
 							<a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'><?php echo esc_html__( 'Unlock Activity Logs', 'wc-blacklist-manager' ); ?></a>
 						<?php endif; ?>
 					</span>
@@ -429,16 +430,34 @@ if (!defined('ABSPATH')) {
 		</div>
 	</div>
 
-	<!-- Search Form -->
-	<form method="get" action="<?php echo esc_url(admin_url('admin.php?page=wc-blacklist-manager')); ?>">
-		<p class="search-box wcbm-search-box">
+	<div class="yobm-dashboard-toolbar">
+		<nav class="yobm-admin-tabs yobm-dashboard-tabs" aria-label="<?php echo esc_attr__( 'Blacklist manager lists', 'wc-blacklist-manager' ); ?>">
+			<a href="#blacklisted" class="yobm-admin-tab is-active" data-tab="blacklisted"><?php echo esc_html__('Suspects', 'wc-blacklist-manager'); ?></a>
+			<a href="#blocked" class="yobm-admin-tab" data-tab="blocked"><?php echo esc_html__('Blocklist', 'wc-blacklist-manager'); ?></a>
+			<?php if ( $premium_active && get_option( 'wc_blacklist_enable_device_identity', '0' ) === '1' ): ?>
+				<a href="#device" class="yobm-admin-tab" data-tab="device"><?php echo esc_html__('Device', 'wc-blacklist-manager'); ?></a>
+			<?php endif; ?>
+			<?php if ($ip_blacklist_enabled): ?>
+				<a href="#ip-banned" class="yobm-admin-tab" data-tab="ip-banned"><?php echo esc_html__('IP address', 'wc-blacklist-manager'); ?></a>
+			<?php endif; ?>
+			<?php if ($premium_active && $customer_address_blocking_enabled && $woocommerce_active): ?>
+				<a href="#customer-address" class="yobm-admin-tab" data-tab="customer-address"><?php echo esc_html__('Address', 'wc-blacklist-manager'); ?></a>
+			<?php endif; ?>
+			<?php if ($domain_blocking_enabled): ?>
+				<a href="#domain-blocking" class="yobm-admin-tab" data-tab="domain-blocking"><?php echo esc_html__('Domain', 'wc-blacklist-manager'); ?></a>
+			<?php endif; ?>
+		</nav>
+
+		<form method="get" action="<?php echo esc_url(admin_url('admin.php?page=wc-blacklist-manager')); ?>" class="yobm-dashboard-search">
 			<label class="screen-reader-text" for="blacklist_search"><?php echo esc_html__('Search Blacklist', 'wc-blacklist-manager'); ?></label>
-			<input type="search" id="blacklist_search" name="blacklist_search" placeholder="<?php echo esc_attr__('Enter to search...', 'wc-blacklist-manager'); ?>" value="<?php echo esc_attr($search_query); ?>"/>
+			<input type="search" id="blacklist_search" name="blacklist_search" class="yobm-dashboard-search__input" placeholder="<?php echo esc_attr__('Enter to search...', 'wc-blacklist-manager'); ?>" value="<?php echo esc_attr($search_query); ?>"/>
 			<?php wp_nonce_field('blacklist_search_action', 'blacklist_search_nonce'); ?>
-			<input type="submit" id="search-submit" class="button" value="<?php echo esc_attr__('Search', 'wc-blacklist-manager'); ?>"/>
+			<button type="submit" id="search-submit" class="button yobm-dashboard-search__submit">
+				<span class="yobm-dashboard-search__label"><?php echo esc_html__('Search', 'wc-blacklist-manager'); ?></span>
+			</button>
 			<input type="hidden" name="page" value="wc-blacklist-manager" />
-		</p>
-	</form>
+		</form>
+	</div>
 
 	<script>
 	document.getElementById('blacklist_search').addEventListener('input', function() {
@@ -448,24 +467,6 @@ if (!defined('ABSPATH')) {
 		}
 	});
 	</script>
-
-	<!-- Tab Links -->
-	<nav class="nav-tab-wrapper">
-		<a href="#blacklisted" class="nav-tab nav-tab-active" data-tab="blacklisted"><?php echo esc_html__('Suspects', 'wc-blacklist-manager'); ?></a>
-		<a href="#blocked" class="nav-tab" data-tab="blocked"><?php echo esc_html__('Blocklist', 'wc-blacklist-manager'); ?></a>
-		<?php if ( $premium_active && get_option( 'wc_blacklist_enable_device_identity', '0' ) === '1' ): ?>
-			<a href="#device" class="nav-tab" data-tab="device"><?php echo esc_html__('Device', 'wc-blacklist-manager'); ?></a>
-		<?php endif; ?>
-		<?php if ($ip_blacklist_enabled): ?>
-			<a href="#ip-banned" class="nav-tab" data-tab="ip-banned"><?php echo esc_html__('IP address', 'wc-blacklist-manager'); ?></a>
-		<?php endif; ?>
-		<?php if ($premium_active && $customer_address_blocking_enabled && $woocommerce_active): ?>
-			<a href="#customer-address" class="nav-tab" data-tab="customer-address"><?php echo esc_html__('Address', 'wc-blacklist-manager'); ?></a>
-		<?php endif; ?>        
-		<?php if ($domain_blocking_enabled): ?>
-			<a href="#domain-blocking" class="nav-tab" data-tab="domain-blocking"><?php echo esc_html__('Domain', 'wc-blacklist-manager'); ?></a>
-		<?php endif; ?>
-	</nav>
 
 	<div class="tab-content">
 		<div id="blacklisted" class="tab-pane active">

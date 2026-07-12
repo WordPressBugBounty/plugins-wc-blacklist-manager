@@ -9,6 +9,13 @@ if ( ! class_exists( 'WC_Blacklist_Manager_Premium_CTA' ) ) {
 
 		const PAGE_SLUG = 'wc-blacklist-manager-premium';
 
+		private $notice_hooks = array(
+			'admin_notices',
+			'all_admin_notices',
+			'network_admin_notices',
+			'user_admin_notices',
+		);
+
 		public function __construct() {
 			add_action( 'admin_menu', array( $this, 'add_submenu' ), 20 );
 		}
@@ -31,7 +38,7 @@ if ( ! class_exists( 'WC_Blacklist_Manager_Premium_CTA' ) ) {
 				return;
 			}
 
-			add_submenu_page(
+			$hook_suffix = add_submenu_page(
 				'wc-blacklist-manager',
 				__( 'Free vs Premium', 'wc-blacklist-manager' ),
 				__( 'Go Premium', 'wc-blacklist-manager' ),
@@ -39,6 +46,21 @@ if ( ! class_exists( 'WC_Blacklist_Manager_Premium_CTA' ) ) {
 				self::PAGE_SLUG,
 				array( $this, 'render_page' )
 			);
+
+			if ( $hook_suffix ) {
+				add_action( 'load-' . $hook_suffix, array( $this, 'suppress_admin_notices' ), 0 );
+			}
+		}
+
+		public function suppress_admin_notices() {
+			foreach ( $this->notice_hooks as $hook ) {
+				remove_all_actions( $hook );
+				add_action( $hook, array( $this, 'clear_admin_notices_hook' ), PHP_INT_MIN );
+			}
+		}
+
+		public function clear_admin_notices_hook() {
+			remove_all_actions( current_filter() );
 		}
 
 		private function render_check() {

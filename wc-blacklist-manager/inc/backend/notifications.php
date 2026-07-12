@@ -76,7 +76,7 @@ class WC_Blacklist_Manager_Notifications {
 		$premium_active = $settings_instance->is_premium_active();
 		$active_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'emails';
 		?>
-		<div class="wrap">
+		<div class="wrap yobm-admin-page">
 			<?php if (!$premium_active): ?>
 				<p>Please support us by <a href="https://wordpress.org/support/plugin/wc-blacklist-manager/reviews/#new-post" target="_blank">leaving a review</a> <span style="color: #e26f56;">&#9733;&#9733;&#9733;&#9733;&#9733;</span> to keep updating & improving.</p>
 			<?php endif; ?>
@@ -94,10 +94,10 @@ class WC_Blacklist_Manager_Notifications {
 				<?php endif; ?>
 			</h1>
 
-			<h2 class="nav-tab-wrapper">
-				<a href="?page=wc-blacklist-manager-notifications&tab=emails" class="nav-tab <?php echo $active_tab == 'emails' ? 'nav-tab-active' : ''; ?>"><?php echo esc_html__('Emails', 'wc-blacklist-manager'); ?></a>
-				<a href="?page=wc-blacklist-manager-notifications&tab=notices" class="nav-tab <?php echo $active_tab == 'notices' ? 'nav-tab-active' : ''; ?>"><?php echo esc_html__('Notices', 'wc-blacklist-manager'); ?></a>
-			</h2>
+			<nav class="yobm-admin-tabs" aria-label="<?php echo esc_attr__( 'Notification sections', 'wc-blacklist-manager' ); ?>">
+				<a href="?page=wc-blacklist-manager-notifications&tab=emails" class="yobm-admin-tab<?php echo $active_tab == 'emails' ? ' is-active' : ''; ?>"<?php echo $active_tab == 'emails' ? ' aria-current="page"' : ''; ?>><?php echo esc_html__('Emails', 'wc-blacklist-manager'); ?></a>
+				<a href="?page=wc-blacklist-manager-notifications&tab=notices" class="yobm-admin-tab<?php echo $active_tab == 'notices' ? ' is-active' : ''; ?>"<?php echo $active_tab == 'notices' ? ' aria-current="page"' : ''; ?>><?php echo esc_html__('Notices', 'wc-blacklist-manager'); ?></a>
+			</nav>
 
 				<?php
 				if ($active_tab == 'emails') {

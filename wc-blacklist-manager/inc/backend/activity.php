@@ -35,13 +35,48 @@ class WC_Blacklist_Manager_Activity_Log {
 	public function print_activity_log_badge_styles() {
 		// Same badges used in the demo; now applied to the live table too.
 		echo '<style>
-			.bm-status-block   { background:#d63638; color:#fff; padding:2px 8px; border-radius:12px; font-size:12px; display:inline-block; line-height:1.6; }
-			.bm-status-suspect { background:#ffb900; color:#222; padding:2px 8px; border-radius:12px; font-size:12px; display:inline-block; line-height:1.6; }
-			.bm-status-verify  { background:#00a32a; color:#fff; padding:2px 8px; border-radius:12px; font-size:12px; display:inline-block; line-height:1.6; }
+			.bm-status-block,
+			.bm-status-suspect,
+			.bm-status-verify,
+			.bm-status-challenge,
+			.bm-status-warning,
+			.bm-status-allow,
+			.bm-status-notice { padding:2px 8px; border-radius:12px; font-size:12px; display:inline-block; line-height:1.6; white-space:nowrap; }
+			.bm-status-block { background:#d63638; color:#fff; }
+			.bm-status-suspect { background:#ffb900; color:#222; }
+			.bm-status-verify { background:#00a32a; color:#fff; }
+			.bm-status-challenge { background:#2271b1; color:#fff; }
+			.bm-status-warning { background:#dba617; color:#1d2327; }
+			.bm-status-allow { background:#008a20; color:#fff; }
+			.bm-status-notice { background:#646970; color:#fff; }
+			.bm-log-summary { line-height:1.45; }
+			.bm-log-chips { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
+			.bm-log-chip { display:inline-flex; align-items:center; gap:4px; max-width:100%; padding:2px 7px; border:1px solid #dcdcde; border-radius:12px; background:#f6f7f7; color:#1d2327; font-size:11px; line-height:1.5; }
+			.bm-log-chip span:first-child { color:#646970; font-weight:600; }
 			/* table niceties */
 			.wp-list-table.widefat.fixed tr td { vertical-align: middle; }
+			.wp-list-table.activity_logs.fixed { table-layout:auto; }
+			.wp-list-table.activity_logs .check-column { width:2.5em; }
+			.wp-list-table.activity_logs .column-timestamp { width:150px; white-space:nowrap; }
+			.wp-list-table.activity_logs .column-type { width:48px; text-align:center; }
+			.wp-list-table.activity_logs .column-source { width:170px; }
+			.wp-list-table.activity_logs .column-action { width:112px; white-space:nowrap; }
+			.wp-list-table.activity_logs .column-view { width:56px; text-align:center; }
+			.wp-list-table.activity_logs .column-details { width:auto; min-width:300px; }
+			.wp-list-table.activity_logs .column-source,
+			.wp-list-table.activity_logs .column-details { overflow-wrap:anywhere; }
 			@media (prefers-color-scheme: dark) {
 				.bm-status-suspect { color:#111; }
+			}
+			@media (max-width: 782px) {
+				.wp-list-table.activity_logs .column-timestamp,
+				.wp-list-table.activity_logs .column-type,
+				.wp-list-table.activity_logs .column-source,
+				.wp-list-table.activity_logs .column-action,
+				.wp-list-table.activity_logs .column-view,
+				.wp-list-table.activity_logs .column-details { width:auto; min-width:0; white-space:normal; }
+				.bm-log-chips { gap:3px; }
+				.bm-log-chip { font-size:10.5px; }
 			}
 		</style>';
 	}

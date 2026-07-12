@@ -1,11 +1,11 @@
 === Blacklist Manager - WooCommerce Anti-Fraud, Blacklist & Checkout Verification ===
 Contributors: yoohw, baonguyen0310
-Tags: woocommerce anti fraud, blacklist, checkout verification, fraud prevention, form spam
+Tags: woocommerce anti fraud, blacklist, checkout, fraud prevention, form spam
 Requires at least: 6.3
 Tested up to: 7.0
 WC tested up to: 10.8
 Requires PHP: 7.4
-Stable tag: 2.2.7
+Stable tag: 2.2.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -121,25 +121,11 @@ Global Blacklist Decisions is a connected fraud-prevention service. Data exchang
 
 == Changelog ==
 
-= 2.2.7 (Jun 14, 2026) =
-* Security: Strengthened email and phone verification against brute-force attacks.
-* Security: Improved verification code validation, expiration, and resend protection.
-* Security: Added nonces to verification merge and refresh-merging admin links.
-* Security: Stopped returning the stored SMS secret key from the SMS quota endpoint response.
-* Fix: Prevented Global Blacklist checks from being marked complete before a successful API response.
-* Fix: Prevented PHP fatal errors when Contact Form 7 submits checkbox, multiselect, or other array-based field values during submission logging.
-* Fix: Hardened Contact Form 7, WPForms, and Gravity Forms blacklist validation so submitted email and phone values are normalized before string validation.
-* Fix: Hardened verification and dashboard request handling so malformed array input cannot reach string-only email, trim, or phone normalization calls.
-* Fix: Prevented hidden admin settings controls from blocking Save changes through native browser validation.
-* Improve: Enhanced verification reliability, security, and overall user experience.
-* Improve: Added pending, success, failed, retry metadata and retry backoff for Global Blacklist order checks.
-* Improve: Counted Global Blacklist quota usage only after a valid API response.
-* Improve: Made blacklist sync and audit callbacks more consistent for manual add, update, delete, IP, domain, and address actions.
-
-= 2.2.6 (May 22, 2026) =
-* Update: WordPress version 7.0 compatibility.
-* Fix: Email verification now reliably blocks Classic Checkout until the customer enters a valid verification code.
-* Fix: Improved SMS quota API authentication by requiring the stored SMS key.
-* Improve: Strengthened admin permissions, nonce checks, blacklist cache invalidation, and request handling.
+= 2.2.8 (Jul 12, 2026) =
+* Improve: Added Activity Log records for manual dashboard additions and status changes, including suspect/block entries, IP addresses, domains, and address rules.
+* Improve: Added Activity Log records for Global Blacklist Decisions strict checkout blocks and async order block/challenge decisions.
+* Improve: Added readable Activity Log summaries for new structured events from manual dashboard actions, Global Blacklist Decisions, connection sync, order-status automation, and country access blocks.
+* Improve: Added consistent Activity Log detail payloads with raw IP, IP hash, request, order, user, verification, and blacklist match metadata for core checkout, registration, comment, verification, and user-blocking records.
+* Improve: Added stable integration hooks (`wc_blacklist_manager_order_suspected`, `wc_blacklist_manager_order_blocked`, `wc_blacklist_manager_order_blacklist_removed`, and `wc_blacklist_manager_order_suspect_detected`) with structured payloads for customer intelligence and external audit integrations.
 
 For older release notes, see `changelog.txt`.

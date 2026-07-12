@@ -46,6 +46,59 @@ class WC_Blacklist_Manager_Blocklist_Prevention {
 		return $wpdb->prefix . 'wc_blacklist_detection_log';
 	}
 
+	private function add_ip_hash_to_view_data( array $view_data ) {
+		if ( ! empty( $view_data['ip_address'] ) && empty( $view_data['ip_hash'] ) ) {
+			$view_data['ip_hash'] = hash_hmac( 'sha256', (string) $view_data['ip_address'], wp_salt( 'auth' ) );
+		}
+
+		return $view_data;
+	}
+
+	private function build_order_activity_view( $order, array $extra = array() ) {
+		if ( ! $order instanceof WC_Order ) {
+			return $extra;
+		}
+
+		$ip_address = sanitize_text_field( (string) $order->get_customer_ip_address() );
+		$view_data  = array(
+			'order_id'       => (int) $order->get_id(),
+			'ip_address'     => $ip_address,
+			'first_name'     => sanitize_text_field( (string) $order->get_billing_first_name() ),
+			'last_name'      => sanitize_text_field( (string) $order->get_billing_last_name() ),
+			'email'          => sanitize_email( (string) $order->get_billing_email() ),
+			'phone'          => sanitize_text_field( (string) $order->get_billing_phone() ),
+			'billing'        => array(
+				'first_name' => sanitize_text_field( (string) $order->get_billing_first_name() ),
+				'last_name'  => sanitize_text_field( (string) $order->get_billing_last_name() ),
+				'company'    => sanitize_text_field( (string) $order->get_billing_company() ),
+				'address_1'  => sanitize_text_field( (string) $order->get_billing_address_1() ),
+				'address_2'  => sanitize_text_field( (string) $order->get_billing_address_2() ),
+				'city'       => sanitize_text_field( (string) $order->get_billing_city() ),
+				'state'      => sanitize_text_field( (string) $order->get_billing_state() ),
+				'postcode'   => sanitize_text_field( (string) $order->get_billing_postcode() ),
+				'country'    => sanitize_text_field( (string) $order->get_billing_country() ),
+				'email'      => sanitize_email( (string) $order->get_billing_email() ),
+				'phone'      => sanitize_text_field( (string) $order->get_billing_phone() ),
+			),
+			'shipping'       => array(
+				'first_name' => sanitize_text_field( (string) $order->get_shipping_first_name() ),
+				'last_name'  => sanitize_text_field( (string) $order->get_shipping_last_name() ),
+				'company'    => sanitize_text_field( (string) $order->get_shipping_company() ),
+				'address_1'  => sanitize_text_field( (string) $order->get_shipping_address_1() ),
+				'address_2'  => sanitize_text_field( (string) $order->get_shipping_address_2() ),
+				'city'       => sanitize_text_field( (string) $order->get_shipping_city() ),
+				'state'      => sanitize_text_field( (string) $order->get_shipping_state() ),
+				'postcode'   => sanitize_text_field( (string) $order->get_shipping_postcode() ),
+				'country'    => sanitize_text_field( (string) $order->get_shipping_country() ),
+			),
+			'payment_method' => sanitize_text_field( (string) $order->get_payment_method() ),
+			'currency'       => sanitize_text_field( (string) $order->get_currency() ),
+			'cart_total'     => (string) $order->get_total(),
+		);
+
+		return array_merge( $this->add_ip_hash_to_view_data( $view_data ), $extra );
+	}
+
 	private function get_blacklist_action() {
 		return get_option( 'wc_blacklist_action', 'none' );
 	}
@@ -363,6 +416,7 @@ class WC_Blacklist_Manager_Blocklist_Prevention {
 			$view_data['shipping_phone'] = $shipping_phone;
 		}
 
+		$view_data = $this->add_ip_hash_to_view_data( $view_data );
 		WC_Blacklist_Manager_Premium_Activity_Logs_Insert::checkout_block( wp_json_encode( $view_data ) );
 	}
 
@@ -451,6 +505,7 @@ class WC_Blacklist_Manager_Blocklist_Prevention {
 			$view_data['shipping_phone'] = $shipping_phone;
 		}
 
+		$view_data = $this->add_ip_hash_to_view_data( $view_data );
 		WC_Blacklist_Manager_Premium_Activity_Logs_Insert::checkout_block( wp_json_encode( $view_data ) );
 	}
 
@@ -953,6 +1008,7 @@ class WC_Blacklist_Manager_Blocklist_Prevention {
 			$view_data['shipping_phone'] = $shipping_phone;
 		}
 
+		$view_data = $this->add_ip_hash_to_view_data( $view_data );
 		WC_Blacklist_Manager_Premium_Activity_Logs_Insert::checkout_block( wp_json_encode( $view_data ) );
 	}
 
@@ -1064,6 +1120,7 @@ class WC_Blacklist_Manager_Blocklist_Prevention {
 				$view_data['normalized_phone'] = $normalized_phone;
 			}
 
+			$view_data = $this->add_ip_hash_to_view_data( $view_data );
 			$view_json = wp_json_encode( $view_data );
 
 			WC_Blacklist_Manager_Premium_Activity_Logs_Insert::register_block( $view_json );
@@ -1230,6 +1287,17 @@ class WC_Blacklist_Manager_Blocklist_Prevention {
 					if ( $normalized_billing_phone !== $billing_phone ) {
 						$details .= ' | normalized: ' . $normalized_billing_phone;
 					}
+					$view_json = wp_json_encode(
+						$this->build_order_activity_view(
+							$order,
+							array(
+								'matched_field'     => 'phone',
+								'matched_value'     => $billing_phone,
+								'normalized_phone'  => $normalized_billing_phone,
+								'configured_action' => 'cancel',
+							)
+						)
+					);
 
 					$wpdb->insert(
 						$table_detection_log,
@@ -1239,7 +1307,9 @@ class WC_Blacklist_Manager_Blocklist_Prevention {
 							'source'    => $source,
 							'action'    => $action,
 							'details'   => $details,
-						)
+							'view'      => is_string( $view_json ) ? $view_json : '',
+						),
+						array( '%s', '%s', '%s', '%s', '%s', '%s' )
 					);
 				}
 			}
@@ -1272,6 +1342,17 @@ class WC_Blacklist_Manager_Blocklist_Prevention {
 					$source    = 'woo_order_' . $order_id;
 					$action    = 'cancel';
 					$details   = $this->format_email_reason( $billing_email, $normalized_billing_email, 'blocked_email_attempt: ' );
+					$view_json = wp_json_encode(
+						$this->build_order_activity_view(
+							$order,
+							array(
+								'matched_field'     => 'email',
+								'matched_value'     => $billing_email,
+								'normalized_email'  => $normalized_billing_email,
+								'configured_action' => 'cancel',
+							)
+						)
+					);
 
 					$wpdb->insert(
 						$table_detection_log,
@@ -1281,7 +1362,9 @@ class WC_Blacklist_Manager_Blocklist_Prevention {
 							'source'    => $source,
 							'action'    => $action,
 							'details'   => $details,
-						)
+							'view'      => is_string( $view_json ) ? $view_json : '',
+						),
+						array( '%s', '%s', '%s', '%s', '%s', '%s' )
 					);
 				}
 			}
@@ -1369,6 +1452,7 @@ class WC_Blacklist_Manager_Blocklist_Prevention {
 				'email'            => $author_email,
 				'normalized_email' => $normalized_author_email,
 			);
+			$view_data = $this->add_ip_hash_to_view_data( $view_data );
 			$view_json = wp_json_encode( $view_data );
 
 			$source = 'comment';

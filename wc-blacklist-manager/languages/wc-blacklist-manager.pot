@@ -2,21 +2,21 @@
 # This file is distributed under the GPL v2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Blacklist Manager 2.2.7\n"
+"Project-Id-Version: Blacklist Manager 2.2.8\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/wc-blacklist-manager\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-06-14T02:00:43+00:00\n"
+"POT-Creation-Date: 2026-07-05T03:33:16+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.9.0\n"
 "X-Domain: wc-blacklist-manager\n"
 
 #. Plugin Name of the plugin
 #: inc/backend/dashboard.php:334
-#: inc/backend/premium-cta.php:536
+#: inc/backend/premium-cta.php:558
 msgid "Blacklist Manager"
 msgstr ""
 
@@ -99,7 +99,7 @@ msgid "Block this user"
 msgstr ""
 
 #: inc/backend/actions/blocking-user.php:139
-#: inc/backend/views/dashboard-form.php:879
+#: inc/backend/views/dashboard-form.php:880
 msgid "No"
 msgstr ""
 
@@ -320,8 +320,8 @@ msgid "Verify your email address on {site_name}"
 msgstr ""
 
 #: inc/backend/actions/verifications-email.php:96
-#: inc/backend/actions/verifications-email.php:535
-#: inc/backend/actions/verifications-email.php:536
+#: inc/backend/actions/verifications-email.php:563
+#: inc/backend/actions/verifications-email.php:564
 #: inc/backend/verifications.php:59
 msgid "Verify your email address"
 msgstr ""
@@ -331,374 +331,374 @@ msgstr ""
 msgid "Hi {first_name} {last_name},<br><br>To complete your checkout process, please verify your email address by entering the following code:<br><br><strong>{code}</strong><br><br>If you did not request this, please ignore this email.<br><br>Thank you."
 msgstr ""
 
-#: inc/backend/actions/verifications-email.php:126
-#: inc/backend/actions/verifications-email.php:159
-#: inc/backend/actions/verifications-phone.php:126
-#: inc/backend/actions/verifications-phone.php:162
+#: inc/backend/actions/verifications-email.php:150
+#: inc/backend/actions/verifications-email.php:187
+#: inc/backend/actions/verifications-phone.php:150
+#: inc/backend/actions/verifications-phone.php:190
 msgid "Enter code"
 msgstr ""
 
-#: inc/backend/actions/verifications-email.php:127
-#: inc/backend/actions/verifications-email.php:160
-#: inc/backend/actions/verifications-phone.php:127
-#: inc/backend/actions/verifications-phone.php:163
+#: inc/backend/actions/verifications-email.php:151
+#: inc/backend/actions/verifications-email.php:188
+#: inc/backend/actions/verifications-phone.php:151
+#: inc/backend/actions/verifications-phone.php:191
 #: inc/backend/verifications.php:112
 #: inc/backend/views/table/activity-log.php:146
 msgid "Verify"
 msgstr ""
 
-#: inc/backend/actions/verifications-email.php:128
-#: inc/backend/actions/verifications-email.php:162
-#: inc/backend/actions/verifications-phone.php:128
-#: inc/backend/actions/verifications-phone.php:165
+#: inc/backend/actions/verifications-email.php:152
+#: inc/backend/actions/verifications-email.php:190
+#: inc/backend/actions/verifications-phone.php:152
+#: inc/backend/actions/verifications-phone.php:193
 msgid "Can resend in"
 msgstr ""
 
-#: inc/backend/actions/verifications-email.php:129
-#: inc/backend/actions/verifications-email.php:163
-#: inc/backend/actions/verifications-phone.php:129
-#: inc/backend/actions/verifications-phone.php:166
+#: inc/backend/actions/verifications-email.php:153
+#: inc/backend/actions/verifications-email.php:191
+#: inc/backend/actions/verifications-phone.php:153
+#: inc/backend/actions/verifications-phone.php:194
 msgid "seconds"
 msgstr ""
 
-#: inc/backend/actions/verifications-email.php:130
-#: inc/backend/actions/verifications-email.php:161
-#: inc/backend/actions/verifications-phone.php:130
-#: inc/backend/actions/verifications-phone.php:164
+#: inc/backend/actions/verifications-email.php:154
+#: inc/backend/actions/verifications-email.php:189
+#: inc/backend/actions/verifications-phone.php:154
+#: inc/backend/actions/verifications-phone.php:192
 msgid "Resend code"
 msgstr ""
 
-#: inc/backend/actions/verifications-email.php:131
-#: inc/backend/actions/verifications-email.php:164
-#: inc/backend/actions/verifications-phone.php:131
-#: inc/backend/actions/verifications-phone.php:167
+#: inc/backend/actions/verifications-email.php:155
+#: inc/backend/actions/verifications-email.php:192
+#: inc/backend/actions/verifications-phone.php:155
+#: inc/backend/actions/verifications-phone.php:195
 msgid "Please enter the verification code."
 msgstr ""
 
-#: inc/backend/actions/verifications-email.php:132
-#: inc/backend/actions/verifications-email.php:167
-#: inc/backend/actions/verifications-email.php:853
+#: inc/backend/actions/verifications-email.php:156
+#: inc/backend/actions/verifications-email.php:195
+#: inc/backend/actions/verifications-email.php:881
 msgid "A new code has been sent to your email."
 msgstr ""
 
-#: inc/backend/actions/verifications-email.php:133
-#: inc/backend/actions/verifications-email.php:168
-#: inc/backend/actions/verifications-phone.php:133
-#: inc/backend/actions/verifications-phone.php:171
+#: inc/backend/actions/verifications-email.php:157
+#: inc/backend/actions/verifications-email.php:196
+#: inc/backend/actions/verifications-phone.php:157
+#: inc/backend/actions/verifications-phone.php:199
 msgid "Failed to resend the code. Please try again."
 msgstr ""
 
-#: inc/backend/actions/verifications-email.php:166
-#: inc/backend/actions/verifications-email.php:906
+#: inc/backend/actions/verifications-email.php:194
+#: inc/backend/actions/verifications-email.php:934
 msgid "A verification code has been sent to your email."
 msgstr ""
 
-#: inc/backend/actions/verifications-email.php:169
-#: inc/backend/actions/verifications-email.php:713
+#: inc/backend/actions/verifications-email.php:197
+#: inc/backend/actions/verifications-email.php:741
 msgid "Your email has been successfully verified!"
 msgstr ""
 
-#: inc/backend/actions/verifications-email.php:228
+#: inc/backend/actions/verifications-email.php:256
 msgid "Please verify your email before placing the order."
 msgstr ""
 
-#: inc/backend/actions/verifications-email.php:429
-#: inc/backend/actions/verifications-phone.php:521
+#: inc/backend/actions/verifications-email.php:457
+#: inc/backend/actions/verifications-phone.php:549
 msgid "Too many verification code requests. Please wait before trying again."
 msgstr ""
 
-#: inc/backend/actions/verifications-email.php:497
-#: inc/backend/actions/verifications-email.php:514
-#: inc/backend/actions/verifications-email.php:557
+#: inc/backend/actions/verifications-email.php:525
+#: inc/backend/actions/verifications-email.php:542
+#: inc/backend/actions/verifications-email.php:585
 msgid "Unable to send the verification code. Please try again later."
 msgstr ""
 
-#: inc/backend/actions/verifications-email.php:538
+#: inc/backend/actions/verifications-email.php:566
 msgid "Hi there,<br><br>To complete your checkout process, please verify your email address by entering the following code:<br><br><strong>%s</strong><br><br>If you did not request this, please ignore this email.<br><br>Thank you."
 msgstr ""
 
-#: inc/backend/actions/verifications-email.php:575
-#: inc/backend/actions/verifications-phone.php:726
+#: inc/backend/actions/verifications-email.php:603
+#: inc/backend/actions/verifications-phone.php:754
 msgid "Too many attempts. Please try again later."
 msgstr ""
 
-#: inc/backend/actions/verifications-email.php:585
-#: inc/backend/actions/verifications-phone.php:736
+#: inc/backend/actions/verifications-email.php:613
+#: inc/backend/actions/verifications-phone.php:764
 msgid "Missing verification data. Please try again."
 msgstr ""
 
-#: inc/backend/actions/verifications-email.php:595
-#: inc/backend/actions/verifications-phone.php:746
+#: inc/backend/actions/verifications-email.php:623
+#: inc/backend/actions/verifications-phone.php:774
 msgid "No verification code was found. Please request a new one."
 msgstr ""
 
-#: inc/backend/actions/verifications-email.php:605
+#: inc/backend/actions/verifications-email.php:633
 msgid "The email address has changed. Please request a new verification code."
 msgstr ""
 
-#: inc/backend/actions/verifications-email.php:615
-#: inc/backend/actions/verifications-phone.php:766
+#: inc/backend/actions/verifications-email.php:643
+#: inc/backend/actions/verifications-phone.php:794
 msgid "Code expired. Please request a new one."
 msgstr ""
 
-#: inc/backend/actions/verifications-email.php:627
-#: inc/backend/actions/verifications-email.php:641
-#: inc/backend/actions/verifications-phone.php:778
-#: inc/backend/actions/verifications-phone.php:792
+#: inc/backend/actions/verifications-email.php:655
+#: inc/backend/actions/verifications-email.php:669
+#: inc/backend/actions/verifications-phone.php:806
+#: inc/backend/actions/verifications-phone.php:820
 msgid "Too many failed attempts. Please request a new verification code."
 msgstr ""
 
-#: inc/backend/actions/verifications-email.php:650
-#: inc/backend/actions/verifications-phone.php:801
+#: inc/backend/actions/verifications-email.php:678
+#: inc/backend/actions/verifications-phone.php:829
 msgid "Invalid code. Please try again."
 msgstr ""
 
-#: inc/backend/actions/verifications-email.php:814
+#: inc/backend/actions/verifications-email.php:842
 msgid "Unable to resend the verification code. Email not found."
 msgstr ""
 
 #. translators: %d: seconds remaining
-#: inc/backend/actions/verifications-email.php:831
-#: inc/backend/actions/verifications-phone.php:1015
+#: inc/backend/actions/verifications-email.php:859
+#: inc/backend/actions/verifications-phone.php:1043
 msgid "Please wait %d seconds before requesting a new code."
 msgstr ""
 
-#: inc/backend/actions/verifications-email.php:866
+#: inc/backend/actions/verifications-email.php:894
 msgid "Email not found."
 msgstr ""
 
-#: inc/backend/actions/verifications-phone.php:132
-#: inc/backend/actions/verifications-phone.php:170
-#: inc/backend/actions/verifications-phone.php:1041
+#: inc/backend/actions/verifications-phone.php:156
+#: inc/backend/actions/verifications-phone.php:198
+#: inc/backend/actions/verifications-phone.php:1069
 msgid "A new code has been sent to your phone."
 msgstr ""
 
-#: inc/backend/actions/verifications-phone.php:134
-#: inc/backend/actions/verifications-phone.php:172
-#: inc/backend/actions/verifications-phone.php:1003
+#: inc/backend/actions/verifications-phone.php:158
+#: inc/backend/actions/verifications-phone.php:200
+#: inc/backend/actions/verifications-phone.php:1031
 msgid "You have reached the resend limit. Please contact support."
 msgstr ""
 
-#: inc/backend/actions/verifications-phone.php:169
-#: inc/backend/actions/verifications-phone.php:1099
+#: inc/backend/actions/verifications-phone.php:197
+#: inc/backend/actions/verifications-phone.php:1127
 msgid "A verification code has been sent to your phone."
 msgstr ""
 
-#: inc/backend/actions/verifications-phone.php:173
-#: inc/backend/actions/verifications-phone.php:854
+#: inc/backend/actions/verifications-phone.php:201
+#: inc/backend/actions/verifications-phone.php:882
 msgid "Your phone number has been successfully verified!"
 msgstr ""
 
-#: inc/backend/actions/verifications-phone.php:188
+#: inc/backend/actions/verifications-phone.php:216
 msgid "Please enter your phone number for verification."
 msgstr ""
 
-#: inc/backend/actions/verifications-phone.php:234
+#: inc/backend/actions/verifications-phone.php:262
 msgid "Please verify your phone number before proceeding with the checkout."
 msgstr ""
 
-#: inc/backend/actions/verifications-phone.php:238
+#: inc/backend/actions/verifications-phone.php:266
 msgid "To complete the checkout, we need to verify your phone number, but we were unable to send the verification code. This may be because the phone number is incorrect or it's a landline, which can't receive text messages. Please check the number and try again. If the problem persists, contact customer support for help."
 msgstr ""
 
-#: inc/backend/actions/verifications-phone.php:631
+#: inc/backend/actions/verifications-phone.php:659
 msgid "SMS verification is not configured. Please contact support."
 msgstr ""
 
-#: inc/backend/actions/verifications-phone.php:756
+#: inc/backend/actions/verifications-phone.php:784
 msgid "The phone number has changed. Please request a new verification code."
 msgstr ""
 
-#: inc/backend/actions/verifications-phone.php:988
+#: inc/backend/actions/verifications-phone.php:1016
 msgid "Unable to resend the verification code. Phone number not found."
 msgstr ""
 
-#: inc/backend/actions/verifications-phone.php:1059
+#: inc/backend/actions/verifications-phone.php:1087
 msgid "Phone number not found."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:309
-#: inc/backend/actions/yogb-check-orders.php:424
+#: inc/backend/actions/yogb-check-orders.php:473
+#: inc/backend/actions/yogb-check-orders.php:588
 msgid "Your order cannot be placed at this time due to our fraud protection rules. Please contact the store owner for assistance."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:465
+#: inc/backend/actions/yogb-check-orders.php:629
 msgid "Global Blacklist Decisions check skipped: monthly limit exceeded for tier \"%1$s\" (HTTP %2$d)."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:517
+#: inc/backend/actions/yogb-check-orders.php:681
 msgid "Global Blacklist Decisions check could not be completed (HTTP %1$d, attempt %2$d/%3$d, error: %4$s). Retrying in %5$d minutes. Order allowed until the check completes."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:529
+#: inc/backend/actions/yogb-check-orders.php:693
 msgid "Global Blacklist Decisions check could not be completed (HTTP %1$d, attempt %2$d/%3$d, error: %4$s). No automatic retries remain. Order allowed by default."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:643
-#: inc/backend/order-action-button.php:994
-#: inc/backend/order-action-button.php:1285
+#: inc/backend/actions/yogb-check-orders.php:807
+#: inc/backend/order-action-button.php:1039
+#: inc/backend/order-action-button.php:1330
 msgid "Invalid order."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:647
+#: inc/backend/actions/yogb-check-orders.php:811
 msgid "You do not have permission to recheck this order."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:655
-#: inc/backend/order-action-button.php:1726
+#: inc/backend/actions/yogb-check-orders.php:819
+#: inc/backend/order-action-button.php:1771
 #: inc/backend/order-risk-score.php:82
 msgid "Order not found."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:760
+#: inc/backend/actions/yogb-check-orders.php:924
 msgid "%1$s matched through %2$s."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:766
+#: inc/backend/actions/yogb-check-orders.php:930
 msgid "%s matched."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:772
+#: inc/backend/actions/yogb-check-orders.php:936
 msgid "Risk: %s."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:778
+#: inc/backend/actions/yogb-check-orders.php:942
 msgid "Reports: %d."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:785
+#: inc/backend/actions/yogb-check-orders.php:949
 msgid "Related records: %d."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:792
+#: inc/backend/actions/yogb-check-orders.php:956
 msgid "Matched detail: %s."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:799
+#: inc/backend/actions/yogb-check-orders.php:963
 msgid "Last reported: %s."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:807
+#: inc/backend/actions/yogb-check-orders.php:971
 msgid "Scores — direct %1$s, related +%2$s, effective %3$s."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:816
+#: inc/backend/actions/yogb-check-orders.php:980
 msgid "Related neighbors: %d."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:851
+#: inc/backend/actions/yogb-check-orders.php:1015
 msgid "%1$s — %2$d"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:869
+#: inc/backend/actions/yogb-check-orders.php:1033
 msgid "Past reasons for %1$s: %2$s."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:886
-#: inc/backend/actions/yogb-check-orders.php:954
+#: inc/backend/actions/yogb-check-orders.php:1050
+#: inc/backend/actions/yogb-check-orders.php:1118
 msgid "Match detail: %s."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:915
+#: inc/backend/actions/yogb-check-orders.php:1079
 msgid "%1$s report: %2$s."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:923
+#: inc/backend/actions/yogb-check-orders.php:1087
 msgid "Source: %s."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:930
+#: inc/backend/actions/yogb-check-orders.php:1094
 msgid "Status: %s."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:937
+#: inc/backend/actions/yogb-check-orders.php:1101
 msgid "Date: %s."
 msgstr ""
 
 #. translators: 1: decision, 2: tier
-#: inc/backend/actions/yogb-check-orders.php:1003
+#: inc/backend/actions/yogb-check-orders.php:1167
 msgid "Global Blacklist decision: %1$s (tier: %2$s)."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1020
+#: inc/backend/actions/yogb-check-orders.php:1184
 msgid "Primary signal (%1$s): direct %2$s, linked +%3$s, effective %4$s, neighbors %5$d, risk %6$s."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1021
+#: inc/backend/actions/yogb-check-orders.php:1185
 msgid "unknown"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1026
+#: inc/backend/actions/yogb-check-orders.php:1190
 #: inc/backend/order-risk-score.php:402
 #: inc/backend/order-risk-score.php:714
 msgid "low"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1033
+#: inc/backend/actions/yogb-check-orders.php:1197
 msgid "mode %s"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1040
+#: inc/backend/actions/yogb-check-orders.php:1204
 msgid "variant %s"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1047
+#: inc/backend/actions/yogb-check-orders.php:1211
 msgid "nodes %d"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1054
+#: inc/backend/actions/yogb-check-orders.php:1218
 msgid "How found: %s."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1063
+#: inc/backend/actions/yogb-check-orders.php:1227
 msgid "Decision reasons:"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1070
+#: inc/backend/actions/yogb-check-orders.php:1234
 msgid "Signal summary:"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1077
+#: inc/backend/actions/yogb-check-orders.php:1241
 msgid "Identity risk summary:"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1084
+#: inc/backend/actions/yogb-check-orders.php:1248
 msgid "Individual reports:"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1101
+#: inc/backend/actions/yogb-check-orders.php:1265
 msgid "Order cancelled: blocked by Global Blacklist Decisions."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1111
+#: inc/backend/actions/yogb-check-orders.php:1275
 msgid "Order placed on hold: requires review by Global Blacklist Decisions."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1128
+#: inc/backend/actions/yogb-check-orders.php:1292
 #: inc/backend/emails/admin-new-order.php:515
 #: inc/backend/order-risk-score.php:759
 msgid "Exact match"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1131
+#: inc/backend/actions/yogb-check-orders.php:1295
 #: inc/backend/emails/admin-new-order.php:518
 #: inc/backend/order-risk-score.php:762
 msgid "Main address match"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1134
+#: inc/backend/actions/yogb-check-orders.php:1298
 #: inc/backend/emails/admin-new-order.php:521
 #: inc/backend/order-risk-score.php:765
 msgid "Unit / apartment match"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1137
+#: inc/backend/actions/yogb-check-orders.php:1301
 #: inc/backend/emails/admin-new-order.php:524
 #: inc/backend/order-risk-score.php:768
 msgid "Related match"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1141
+#: inc/backend/actions/yogb-check-orders.php:1305
 #: inc/backend/emails/admin-new-order.php:177
 #: inc/backend/emails/admin-new-order.php:295
 #: inc/backend/emails/admin-new-order.php:528
@@ -706,80 +706,80 @@ msgstr ""
 msgid "No match"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1148
+#: inc/backend/actions/yogb-check-orders.php:1312
 #: inc/backend/emails/admin-new-order.php:535
 #: inc/backend/order-risk-score.php:779
 msgid "Submitted details"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1151
+#: inc/backend/actions/yogb-check-orders.php:1315
 #: inc/backend/emails/admin-new-order.php:538
 #: inc/backend/order-risk-score.php:782
 msgid "Main address"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1154
+#: inc/backend/actions/yogb-check-orders.php:1318
 #: inc/backend/emails/admin-new-order.php:541
 #: inc/backend/order-risk-score.php:785
 msgid "Unit / apartment"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1157
+#: inc/backend/actions/yogb-check-orders.php:1321
 #: inc/backend/emails/admin-new-order.php:544
 #: inc/backend/order-risk-score.php:788
-#: inc/backend/views/dashboard-form.php:1306
+#: inc/backend/views/dashboard-form.php:1307
 msgid "Full address"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1167
+#: inc/backend/actions/yogb-check-orders.php:1331
 #: inc/backend/emails/admin-new-order.php:493
 #: inc/backend/order-risk-score.php:744
 msgid "Email"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1170
+#: inc/backend/actions/yogb-check-orders.php:1334
 #: inc/backend/emails/admin-new-order.php:496
 #: inc/backend/order-risk-score.php:746
 msgid "Phone"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1173
+#: inc/backend/actions/yogb-check-orders.php:1337
 #: inc/backend/emails/admin-new-order.php:499
 #: inc/backend/order-risk-score.php:748
 #: inc/backend/views/dashboard-form.php:185
 #: inc/backend/views/dashboard-form.php:375
-#: inc/backend/views/dashboard-form.php:460
-#: inc/backend/views/dashboard-form.php:1004
+#: inc/backend/views/dashboard-form.php:441
+#: inc/backend/views/dashboard-form.php:1005
 #: inc/backend/views/settings-form.php:166
 msgid "IP address"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1176
+#: inc/backend/actions/yogb-check-orders.php:1340
 #: inc/backend/emails/admin-new-order.php:502
 #: inc/backend/order-risk-score.php:750
 #: inc/backend/views/dashboard-form.php:196
 #: inc/backend/views/dashboard-form.php:386
-#: inc/backend/views/dashboard-form.php:463
-#: inc/backend/views/dashboard-form.php:1294
+#: inc/backend/views/dashboard-form.php:444
+#: inc/backend/views/dashboard-form.php:1295
 #: inc/backend/views/settings-form.php:244
 msgid "Address"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1179
+#: inc/backend/actions/yogb-check-orders.php:1343
 #: inc/backend/emails/admin-new-order.php:505
-#: inc/backend/views/dashboard-form.php:466
-#: inc/backend/views/dashboard-form.php:1504
+#: inc/backend/views/dashboard-form.php:447
+#: inc/backend/views/dashboard-form.php:1505
 msgid "Domain"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1182
+#: inc/backend/actions/yogb-check-orders.php:1346
 #: inc/backend/emails/admin-new-order.php:464
 #: inc/backend/emails/admin-new-order.php:508
 #: inc/backend/order-risk-score.php:507
 #: inc/backend/order-risk-score.php:552
-#: inc/backend/views/dashboard-form.php:520
-#: inc/backend/views/dashboard-form.php:657
-#: inc/backend/views/dashboard-form.php:1056
+#: inc/backend/views/dashboard-form.php:521
+#: inc/backend/views/dashboard-form.php:658
+#: inc/backend/views/dashboard-form.php:1057
 msgid "Unknown"
 msgstr ""
 
@@ -793,13 +793,13 @@ msgstr ""
 #: inc/backend/activity.php:51
 #: inc/backend/dashboard.php:355
 #: inc/backend/dashboard.php:550
-#: inc/backend/dashboard.php:1141
-#: inc/backend/dashboard.php:1214
-#: inc/backend/dashboard.php:1303
-#: inc/backend/dashboard.php:1566
-#: inc/backend/dashboard.php:1682
+#: inc/backend/dashboard.php:1156
+#: inc/backend/dashboard.php:1229
+#: inc/backend/dashboard.php:1318
+#: inc/backend/dashboard.php:1581
+#: inc/backend/dashboard.php:1697
 #: inc/backend/notifications.php:72
-#: inc/backend/premium-cta.php:54
+#: inc/backend/premium-cta.php:76
 #: inc/backend/settings.php:32
 #: inc/backend/verifications.php:86
 #: inc/cores/premium-gate.php:92
@@ -832,47 +832,47 @@ msgid "Dashboard"
 msgstr ""
 
 #: inc/backend/dashboard.php:387
-#: inc/backend/dashboard.php:644
-#: inc/backend/dashboard.php:723
-#: inc/backend/dashboard.php:792
+#: inc/backend/dashboard.php:659
+#: inc/backend/dashboard.php:738
+#: inc/backend/dashboard.php:807
 msgid "Security check failed. Please try again."
 msgstr ""
 
 #: inc/backend/dashboard.php:462
-#: inc/backend/order-action-button.php:787
-#: inc/backend/order-action-button.php:1255
+#: inc/backend/order-action-button.php:828
+#: inc/backend/order-action-button.php:1300
 msgid "Stolen card"
 msgstr ""
 
 #: inc/backend/dashboard.php:463
-#: inc/backend/order-action-button.php:788
-#: inc/backend/order-action-button.php:1256
+#: inc/backend/order-action-button.php:829
+#: inc/backend/order-action-button.php:1301
 msgid "Chargeback"
 msgstr ""
 
 #: inc/backend/dashboard.php:464
-#: inc/backend/order-action-button.php:789
-#: inc/backend/order-action-button.php:1257
+#: inc/backend/order-action-button.php:830
+#: inc/backend/order-action-button.php:1302
 msgid "Fraud network"
 msgstr ""
 
 #: inc/backend/dashboard.php:465
-#: inc/backend/order-action-button.php:790
-#: inc/backend/order-action-button.php:1258
+#: inc/backend/order-action-button.php:831
+#: inc/backend/order-action-button.php:1303
 msgid "Spam"
 msgstr ""
 
 #: inc/backend/dashboard.php:466
-#: inc/backend/order-action-button.php:791
-#: inc/backend/order-action-button.php:1259
+#: inc/backend/order-action-button.php:832
+#: inc/backend/order-action-button.php:1304
 msgid "Policy abuse"
 msgstr ""
 
 #: inc/backend/dashboard.php:467
-#: inc/backend/order-action-button.php:792
-#: inc/backend/order-action-button.php:821
-#: inc/backend/order-action-button.php:1260
-#: inc/backend/order-action-button.php:1718
+#: inc/backend/order-action-button.php:833
+#: inc/backend/order-action-button.php:862
+#: inc/backend/order-action-button.php:1305
+#: inc/backend/order-action-button.php:1763
 #: inc/backend/views/dashboard-form.php:408
 msgid "Other"
 msgstr ""
@@ -883,109 +883,109 @@ msgstr ""
 msgid "You are not allowed to perform this action."
 msgstr ""
 
-#: inc/backend/dashboard.php:573
+#: inc/backend/dashboard.php:588
 msgid "There is nothing to add."
 msgstr ""
 
-#: inc/backend/dashboard.php:624
+#: inc/backend/dashboard.php:639
 msgid "Entry has been added to the suspected list."
 msgstr ""
 
-#: inc/backend/dashboard.php:691
+#: inc/backend/dashboard.php:706
 msgid "Entry moved to blocked list successfully."
 msgstr ""
 
-#: inc/backend/dashboard.php:770
+#: inc/backend/dashboard.php:785
 msgid "Entry removed successfully."
 msgstr ""
 
-#: inc/backend/dashboard.php:816
+#: inc/backend/dashboard.php:831
 msgid "Address entry not found."
 msgstr ""
 
-#: inc/backend/dashboard.php:842
+#: inc/backend/dashboard.php:857
 msgid "Address entry removed successfully."
 msgstr ""
 
-#: inc/backend/dashboard.php:1228
+#: inc/backend/dashboard.php:1243
 msgid "No IP addresses were added. Please provide valid IP addresses."
 msgstr ""
 
-#: inc/backend/dashboard.php:1236
+#: inc/backend/dashboard.php:1251
 msgid "Submission failed: You can only add up to 50 IP addresses at a time."
 msgstr ""
 
-#: inc/backend/dashboard.php:1288
+#: inc/backend/dashboard.php:1303
 msgid "One IP address added."
 msgid_plural "%s IP addresses added."
 msgstr[0] ""
 msgstr[1] ""
 
-#: inc/backend/dashboard.php:1350
+#: inc/backend/dashboard.php:1365
 msgid "Please provide either a full address, or a postcode with country, or a state with country."
 msgstr ""
 
-#: inc/backend/dashboard.php:1364
+#: inc/backend/dashboard.php:1379
 msgid "No valid address provided. Please fill in at least one address field."
 msgstr ""
 
-#: inc/backend/dashboard.php:1423
+#: inc/backend/dashboard.php:1438
 msgid "This address rule already exists in the blacklist."
 msgstr ""
 
-#: inc/backend/dashboard.php:1525
+#: inc/backend/dashboard.php:1540
 msgid "Failed to add the address rule. Please check debug.log for details."
 msgstr ""
 
-#: inc/backend/dashboard.php:1546
+#: inc/backend/dashboard.php:1561
 msgid "Address added successfully."
 msgstr ""
 
-#: inc/backend/dashboard.php:1548
+#: inc/backend/dashboard.php:1563
 msgid "Postcode rule added successfully."
 msgstr ""
 
-#: inc/backend/dashboard.php:1550
+#: inc/backend/dashboard.php:1565
 msgid "State rule added successfully."
 msgstr ""
 
-#: inc/backend/dashboard.php:1570
+#: inc/backend/dashboard.php:1585
 msgid "Sorry, your nonce did not verify."
 msgstr ""
 
-#: inc/backend/dashboard.php:1582
+#: inc/backend/dashboard.php:1597
 msgid "No domains were provided."
 msgstr ""
 
-#: inc/backend/dashboard.php:1590
+#: inc/backend/dashboard.php:1605
 msgid "Submission failed: You can only add up to 50 domains at a time."
 msgstr ""
 
-#: inc/backend/dashboard.php:1648
+#: inc/backend/dashboard.php:1663
 msgid "One domain added."
 msgid_plural "%s domains added."
 msgstr[0] ""
 msgstr[1] ""
 
-#: inc/backend/dashboard.php:1655
+#: inc/backend/dashboard.php:1670
 msgid "One domain was not added because it is not in the right format."
 msgid_plural "%s domains were not added because they are not in the right format."
 msgstr[0] ""
 msgstr[1] ""
 
-#: inc/backend/dashboard.php:1668
+#: inc/backend/dashboard.php:1683
 msgid "No new domains were added."
 msgstr ""
 
-#: inc/backend/dashboard.php:1796
+#: inc/backend/dashboard.php:1811
 msgid "You do not have permission to access this data."
 msgstr ""
 
-#: inc/backend/dashboard.php:1811
+#: inc/backend/dashboard.php:1826
 msgid "Missing device ID."
 msgstr ""
 
-#: inc/backend/dashboard.php:1831
+#: inc/backend/dashboard.php:1846
 msgid "Device not found."
 msgstr ""
 
@@ -1244,7 +1244,7 @@ msgid "Premium activity logs help review who blocked, removed, or changed blackl
 msgstr ""
 
 #: inc/backend/helpers/action-upsells.php:85
-#: inc/backend/views/dashboard-form.php:424
+#: inc/backend/views/dashboard-form.php:425
 #: inc/backend/views/premium-preview-helpers.php:17
 msgid "Unlock Activity Logs"
 msgstr ""
@@ -1373,9 +1373,13 @@ msgstr ""
 msgid "Support"
 msgstr ""
 
+#: inc/backend/notifications.php:97
+msgid "Notification sections"
+msgstr ""
+
 #: inc/backend/notifications.php:98
-#: inc/backend/views/dashboard-form.php:723
-#: inc/backend/views/dashboard-form.php:893
+#: inc/backend/views/dashboard-form.php:724
+#: inc/backend/views/dashboard-form.php:894
 msgid "Emails"
 msgstr ""
 
@@ -1393,235 +1397,235 @@ msgstr ""
 msgid "Changes saved."
 msgstr ""
 
-#: inc/backend/order-action-button.php:630
-#: inc/backend/order-action-button.php:632
+#: inc/backend/order-action-button.php:671
+#: inc/backend/order-action-button.php:673
 msgid "phone"
 msgstr ""
 
-#: inc/backend/order-action-button.php:638
-#: inc/backend/order-action-button.php:640
+#: inc/backend/order-action-button.php:679
+#: inc/backend/order-action-button.php:681
 msgid "email"
 msgstr ""
 
-#: inc/backend/order-action-button.php:646
-#: inc/backend/order-action-button.php:648
+#: inc/backend/order-action-button.php:687
+#: inc/backend/order-action-button.php:689
 msgid "IP"
 msgstr ""
 
-#: inc/backend/order-action-button.php:654
-#: inc/backend/order-action-button.php:656
+#: inc/backend/order-action-button.php:695
+#: inc/backend/order-action-button.php:697
 msgid "device identity"
 msgstr ""
 
-#: inc/backend/order-action-button.php:661
+#: inc/backend/order-action-button.php:702
 msgid "customer name (%s)"
 msgstr ""
 
-#: inc/backend/order-action-button.php:674
-#: inc/backend/order-action-button.php:676
+#: inc/backend/order-action-button.php:715
+#: inc/backend/order-action-button.php:717
 msgid "billing address"
 msgstr ""
 
-#: inc/backend/order-action-button.php:678
-#: inc/backend/order-action-button.php:680
+#: inc/backend/order-action-button.php:719
+#: inc/backend/order-action-button.php:721
 msgid "billing address (core match)"
 msgstr ""
 
-#: inc/backend/order-action-button.php:694
-#: inc/backend/order-action-button.php:696
+#: inc/backend/order-action-button.php:735
+#: inc/backend/order-action-button.php:737
 msgid "shipping address"
 msgstr ""
 
-#: inc/backend/order-action-button.php:698
-#: inc/backend/order-action-button.php:700
+#: inc/backend/order-action-button.php:739
+#: inc/backend/order-action-button.php:741
 msgid "shipping address (core match)"
 msgstr ""
 
-#: inc/backend/order-action-button.php:782
+#: inc/backend/order-action-button.php:823
 msgid "Are you sure you want to add this to the suspects list?"
 msgstr ""
 
-#: inc/backend/order-action-button.php:783
-#: inc/backend/order-action-button.php:810
-#: inc/backend/order-action-button.php:839
+#: inc/backend/order-action-button.php:824
+#: inc/backend/order-action-button.php:851
+#: inc/backend/order-action-button.php:880
 msgid "Processing..."
 msgstr ""
 
-#: inc/backend/order-action-button.php:795
+#: inc/backend/order-action-button.php:836
 msgid "Payment appears to have been made using a stolen or unauthorized card/payment method."
 msgstr ""
 
-#: inc/backend/order-action-button.php:796
+#: inc/backend/order-action-button.php:837
 msgid "The transaction was charged back by the bank or payment provider as fraud or cardholder dispute."
 msgstr ""
 
-#: inc/backend/order-action-button.php:797
+#: inc/backend/order-action-button.php:838
 msgid "Identity is linked to multiple suspicious orders, bots, or coordinated fraud patterns across your store."
 msgstr ""
 
-#: inc/backend/order-action-button.php:798
+#: inc/backend/order-action-button.php:839
 msgid "Orders are clearly fake, low-value, or automated (e.g. card testing, dummy data, or bulk spam)."
 msgstr ""
 
-#: inc/backend/order-action-button.php:799
+#: inc/backend/order-action-button.php:840
 msgid "Customer repeatedly abuses your store policies (refund abuse, return abuse, reselling, or similar)."
 msgstr ""
 
-#: inc/backend/order-action-button.php:802
+#: inc/backend/order-action-button.php:843
 msgid "Block customer"
 msgstr ""
 
-#: inc/backend/order-action-button.php:803
-#: inc/backend/views/dashboard-form.php:594
-#: inc/backend/views/dashboard-form.php:1007
+#: inc/backend/order-action-button.php:844
+#: inc/backend/views/dashboard-form.php:595
+#: inc/backend/views/dashboard-form.php:1008
 msgid "Reason"
 msgstr ""
 
-#: inc/backend/order-action-button.php:804
-#: inc/backend/order-action-button.php:833
+#: inc/backend/order-action-button.php:845
+#: inc/backend/order-action-button.php:874
 msgid "Select a reason..."
 msgstr ""
 
-#: inc/backend/order-action-button.php:805
+#: inc/backend/order-action-button.php:846
 msgid "Description / internal note"
 msgstr ""
 
-#: inc/backend/order-action-button.php:806
-#: inc/backend/order-action-button.php:835
+#: inc/backend/order-action-button.php:847
+#: inc/backend/order-action-button.php:876
 msgid "Please select a reason."
 msgstr ""
 
-#: inc/backend/order-action-button.php:807
+#: inc/backend/order-action-button.php:848
 msgid "Please enter a description for “Other”."
 msgstr ""
 
-#: inc/backend/order-action-button.php:808
-#: inc/backend/order-action-button.php:837
+#: inc/backend/order-action-button.php:849
+#: inc/backend/order-action-button.php:878
 msgid "Cancel"
 msgstr ""
 
-#: inc/backend/order-action-button.php:809
+#: inc/backend/order-action-button.php:850
 msgid "Confirm block"
 msgstr ""
 
-#: inc/backend/order-action-button.php:816
-#: inc/backend/order-action-button.php:1713
+#: inc/backend/order-action-button.php:857
+#: inc/backend/order-action-button.php:1758
 msgid "Customer appeal / cleared"
 msgstr ""
 
-#: inc/backend/order-action-button.php:817
-#: inc/backend/order-action-button.php:1714
+#: inc/backend/order-action-button.php:858
+#: inc/backend/order-action-button.php:1759
 msgid "Merchant error / mis-report"
 msgstr ""
 
-#: inc/backend/order-action-button.php:818
-#: inc/backend/order-action-button.php:1715
+#: inc/backend/order-action-button.php:859
+#: inc/backend/order-action-button.php:1760
 msgid "Payment provider decision"
 msgstr ""
 
-#: inc/backend/order-action-button.php:819
-#: inc/backend/order-action-button.php:1716
+#: inc/backend/order-action-button.php:860
+#: inc/backend/order-action-button.php:1761
 msgid "Duplicate report"
 msgstr ""
 
-#: inc/backend/order-action-button.php:820
-#: inc/backend/order-action-button.php:1717
+#: inc/backend/order-action-button.php:861
+#: inc/backend/order-action-button.php:1762
 msgid "Test / QA data"
 msgstr ""
 
-#: inc/backend/order-action-button.php:824
+#: inc/backend/order-action-button.php:865
 msgid "Customer provided evidence; after manual review, merchant agrees the customer is legitimate."
 msgstr ""
 
-#: inc/backend/order-action-button.php:825
+#: inc/backend/order-action-button.php:866
 msgid "Wrong order / wrong customer / mis-click / misunderstood reason when reporting."
 msgstr ""
 
-#: inc/backend/order-action-button.php:826
+#: inc/backend/order-action-button.php:867
 msgid "Payment provider or bank dispute outcome indicates the original report no longer stands."
 msgstr ""
 
-#: inc/backend/order-action-button.php:827
+#: inc/backend/order-action-button.php:868
 msgid "Same incident or same identity accidentally reported multiple times by the same merchant."
 msgstr ""
 
-#: inc/backend/order-action-button.php:828
+#: inc/backend/order-action-button.php:869
 msgid "Report was created from test / QA / staging data that slipped into production."
 msgstr ""
 
-#: inc/backend/order-action-button.php:831
+#: inc/backend/order-action-button.php:872
 msgid "Remove from the blacklist"
 msgstr ""
 
-#: inc/backend/order-action-button.php:832
+#: inc/backend/order-action-button.php:873
 msgid "Revoke reason"
 msgstr ""
 
-#: inc/backend/order-action-button.php:834
+#: inc/backend/order-action-button.php:875
 msgid "Note"
 msgstr ""
 
-#: inc/backend/order-action-button.php:836
+#: inc/backend/order-action-button.php:877
 msgid "Please enter a note for “Other”."
 msgstr ""
 
-#: inc/backend/order-action-button.php:838
+#: inc/backend/order-action-button.php:879
 msgid "Confirm remove"
 msgstr ""
 
-#: inc/backend/order-action-button.php:870
+#: inc/backend/order-action-button.php:915
 msgid "Blacklist actions"
 msgstr ""
 
-#: inc/backend/order-action-button.php:886
+#: inc/backend/order-action-button.php:931
 msgid "Development Mode Active."
 msgstr ""
 
-#: inc/backend/order-action-button.php:887
+#: inc/backend/order-action-button.php:932
 msgid "The blacklist system is currently running in development mode."
 msgstr ""
 
-#: inc/backend/order-action-button.php:888
+#: inc/backend/order-action-button.php:933
 msgid "Switch to Production Mode"
 msgstr ""
 
-#: inc/backend/order-action-button.php:897
+#: inc/backend/order-action-button.php:942
 msgid "Add to the suspects list"
 msgstr ""
 
-#: inc/backend/order-action-button.php:897
+#: inc/backend/order-action-button.php:942
 #: inc/backend/views/dashboard-form.php:110
-#: inc/backend/views/dashboard-form.php:779
-#: inc/backend/views/dashboard-form.php:874
-#: inc/backend/views/dashboard-form.php:1075
-#: inc/backend/views/dashboard-form.php:1363
+#: inc/backend/views/dashboard-form.php:780
+#: inc/backend/views/dashboard-form.php:875
+#: inc/backend/views/dashboard-form.php:1076
+#: inc/backend/views/dashboard-form.php:1364
 #: inc/backend/views/table/activity-log.php:143
 #: inc/backend/views/verifications-form.php:42
 #: inc/backend/views/verifications-form.php:188
 msgid "Suspect"
 msgstr ""
 
-#: inc/backend/order-action-button.php:901
+#: inc/backend/order-action-button.php:946
 msgid "Add to blocklist"
 msgstr ""
 
-#: inc/backend/order-action-button.php:901
+#: inc/backend/order-action-button.php:946
 #: inc/backend/views/table/activity-log.php:140
 msgid "Block"
 msgstr ""
 
-#: inc/backend/order-action-button.php:903
+#: inc/backend/order-action-button.php:948
 msgid "This customer is already blocked."
 msgstr ""
 
-#: inc/backend/order-action-button.php:907
+#: inc/backend/order-action-button.php:952
 #: inc/backend/views/table/activity-log.php:152
 msgid "Remove"
 msgstr ""
 
-#: inc/backend/order-action-button.php:969
-#: inc/backend/order-action-button.php:1235
-#: inc/backend/order-action-button.php:1693
+#: inc/backend/order-action-button.php:1014
+#: inc/backend/order-action-button.php:1280
+#: inc/backend/order-action-button.php:1738
 #: inc/cores/alert.php:260
 #: inc/cores/notices.php:362
 #: inc/cores/notices.php:374
@@ -1629,91 +1633,91 @@ msgstr ""
 msgid "Permission denied."
 msgstr ""
 
-#: inc/backend/order-action-button.php:978
-#: inc/backend/order-action-button.php:1276
-#: inc/backend/order-action-button.php:1704
+#: inc/backend/order-action-button.php:1023
+#: inc/backend/order-action-button.php:1321
+#: inc/backend/order-action-button.php:1749
 msgid "Invalid order ID."
 msgstr ""
 
-#: inc/backend/order-action-button.php:1001
-#: inc/backend/order-action-button.php:1474
+#: inc/backend/order-action-button.php:1046
+#: inc/backend/order-action-button.php:1519
 msgid "Order ID: %d"
 msgstr ""
 
-#: inc/backend/order-action-button.php:1176
+#: inc/backend/order-action-button.php:1221
 msgid "Added to the suspect list by %s."
 msgstr ""
 
-#: inc/backend/order-action-button.php:1210
+#: inc/backend/order-action-button.php:1255
 msgid "Added to suspects list successfully."
 msgstr ""
 
-#: inc/backend/order-action-button.php:1217
+#: inc/backend/order-action-button.php:1262
 msgid "Nothing to add to the suspects list."
 msgstr ""
 
-#: inc/backend/order-action-button.php:1247
+#: inc/backend/order-action-button.php:1292
 msgid "Invalid reason."
 msgstr ""
 
-#: inc/backend/order-action-button.php:1267
+#: inc/backend/order-action-button.php:1312
 msgid "Please provide a description for “Other”."
 msgstr ""
 
-#: inc/backend/order-action-button.php:1291
-#: inc/backend/order-action-button.php:1829
+#: inc/backend/order-action-button.php:1336
+#: inc/backend/order-action-button.php:1874
 msgid "System"
 msgstr ""
 
-#: inc/backend/order-action-button.php:1413
+#: inc/backend/order-action-button.php:1458
 msgid "Moved to blocklist by %1$s. Reason: %2$s%3$s"
 msgstr ""
 
-#: inc/backend/order-action-button.php:1462
+#: inc/backend/order-action-button.php:1507
 msgid "Moved to the blocklist successfully."
 msgstr ""
 
-#: inc/backend/order-action-button.php:1620
+#: inc/backend/order-action-button.php:1665
 msgid "Added to blocklist by %1$s. Reason: %2$s%3$s"
 msgstr ""
 
-#: inc/backend/order-action-button.php:1669
+#: inc/backend/order-action-button.php:1714
 msgid "Added to blocklist successfully."
 msgstr ""
 
-#: inc/backend/order-action-button.php:1676
+#: inc/backend/order-action-button.php:1721
 msgid "Nothing to add to the blocklist."
 msgstr ""
 
-#: inc/backend/order-action-button.php:1762
+#: inc/backend/order-action-button.php:1807
 msgid "No blacklist entry found for this order."
 msgstr ""
 
-#: inc/backend/order-action-button.php:1795
+#: inc/backend/order-action-button.php:1840
 msgid "Database delete failed for main blacklist entry ID %d."
 msgstr ""
 
-#: inc/backend/order-action-button.php:1817
+#: inc/backend/order-action-button.php:1862
 msgid "Database delete failed for address blacklist entry ID %d."
 msgstr ""
 
-#: inc/backend/order-action-button.php:1832
+#: inc/backend/order-action-button.php:1877
 msgid "The customer details have been removed from the blacklist by %1$s. Revoke reason: %2$s%3$s"
 msgstr ""
 
-#: inc/backend/order-action-button.php:1898
+#: inc/backend/order-action-button.php:1943
 msgid "Remove from the blacklist successfully."
 msgstr ""
 
-#: inc/backend/order-action-button.php:1909
+#: inc/backend/order-action-button.php:1958
 msgid "This order's %s in the blocklist."
 msgstr ""
 
-#: inc/backend/order-action-button.php:1918
+#: inc/backend/order-action-button.php:1967
 msgid "This order's %s in the suspect list."
 msgstr ""
 
-#: inc/backend/order-action-button.php:1933
+#: inc/backend/order-action-button.php:1982
 msgid "Unauthorized"
 msgstr ""
 
@@ -1766,7 +1770,7 @@ msgid "Enterprise"
 msgstr ""
 
 #: inc/backend/order-risk-score.php:257
-#: inc/backend/premium-cta.php:603
+#: inc/backend/premium-cta.php:625
 #: inc/backend/views/dashboard-form.php:263
 msgid "Free"
 msgstr ""
@@ -1943,238 +1947,238 @@ msgstr ""
 msgid "moderate"
 msgstr ""
 
-#: inc/backend/premium-cta.php:36
-#: inc/backend/premium-cta.php:594
+#: inc/backend/premium-cta.php:43
+#: inc/backend/premium-cta.php:616
 msgid "Free vs Premium"
 msgstr ""
 
-#: inc/backend/premium-cta.php:37
+#: inc/backend/premium-cta.php:44
 msgid "Go Premium"
 msgstr ""
 
-#: inc/backend/premium-cta.php:68
+#: inc/backend/premium-cta.php:90
 msgid "Activate Premium license"
 msgstr ""
 
-#: inc/backend/premium-cta.php:68
+#: inc/backend/premium-cta.php:90
 msgid "View Premium plan"
 msgstr ""
 
-#: inc/backend/premium-cta.php:73
+#: inc/backend/premium-cta.php:95
 #: inc/backend/views/premium-settings-preview.php:88
 msgid "Risk scoring"
 msgstr ""
 
-#: inc/backend/premium-cta.php:74
+#: inc/backend/premium-cta.php:96
 msgid "Combine order, identity, device, address, and payment signals into decisions your team can act on."
 msgstr ""
 
-#: inc/backend/premium-cta.php:78
+#: inc/backend/premium-cta.php:100
 msgid "Repeat-abuse detection"
 msgstr ""
 
-#: inc/backend/premium-cta.php:79
+#: inc/backend/premium-cta.php:101
 msgid "Catch customers who rotate emails, phones, IPs, or addresses but keep the same behavior patterns."
 msgstr ""
 
-#: inc/backend/premium-cta.php:83
+#: inc/backend/premium-cta.php:105
 msgid "Operational history"
 msgstr ""
 
-#: inc/backend/premium-cta.php:84
+#: inc/backend/premium-cta.php:106
 msgid "Keep blacklist changes, verification checks, automation events, and order decisions reviewable."
 msgstr ""
 
-#: inc/backend/premium-cta.php:91
+#: inc/backend/premium-cta.php:113
 msgid "Detect"
 msgstr ""
 
-#: inc/backend/premium-cta.php:92
+#: inc/backend/premium-cta.php:114
 msgid "Identify suspicious checkout, form, device, address, and payment patterns earlier."
 msgstr ""
 
-#: inc/backend/premium-cta.php:96
+#: inc/backend/premium-cta.php:118
 msgid "Score"
 msgstr ""
 
-#: inc/backend/premium-cta.php:97
+#: inc/backend/premium-cta.php:119
 msgid "Turn scattered risk signals into thresholds for review, suspect, or block actions."
 msgstr ""
 
-#: inc/backend/premium-cta.php:101
+#: inc/backend/premium-cta.php:123
 msgid "Act"
 msgstr ""
 
-#: inc/backend/premium-cta.php:102
+#: inc/backend/premium-cta.php:124
 msgid "Automate repeat decisions and reduce the manual work of maintaining local lists."
 msgstr ""
 
-#: inc/backend/premium-cta.php:106
+#: inc/backend/premium-cta.php:128
 #: inc/backend/views/dashboard-form.php:297
 msgid "Review"
 msgstr ""
 
-#: inc/backend/premium-cta.php:107
+#: inc/backend/premium-cta.php:129
 msgid "Use activity logs and order context to audit what happened and tune future rules."
 msgstr ""
 
-#: inc/backend/premium-cta.php:113
+#: inc/backend/premium-cta.php:135
 msgid "Local email and phone blocklists"
 msgstr ""
 
-#: inc/backend/premium-cta.php:114
+#: inc/backend/premium-cta.php:136
 msgid "Included"
 msgstr ""
 
-#: inc/backend/premium-cta.php:115
+#: inc/backend/premium-cta.php:137
 msgid "Included with automation and activity history"
 msgstr ""
 
-#: inc/backend/premium-cta.php:119
+#: inc/backend/premium-cta.php:141
 msgid "IP and domain controls"
 msgstr ""
 
-#: inc/backend/premium-cta.php:120
+#: inc/backend/premium-cta.php:142
 msgid "Basic checkout, registration, comment, and form rules"
 msgstr ""
 
-#: inc/backend/premium-cta.php:121
+#: inc/backend/premium-cta.php:143
 msgid "Adds proxy, VPN, TOR, country, hosting IP, and high-risk domain intelligence"
 msgstr ""
 
-#: inc/backend/premium-cta.php:125
+#: inc/backend/premium-cta.php:147
 msgid "Customer identity matching"
 msgstr ""
 
-#: inc/backend/premium-cta.php:126
+#: inc/backend/premium-cta.php:148
 msgid "Email, phone, IP, and domain"
 msgstr ""
 
-#: inc/backend/premium-cta.php:127
+#: inc/backend/premium-cta.php:149
 msgid "Adds name, device identity, billing address, and shipping address matching"
 msgstr ""
 
-#: inc/backend/premium-cta.php:131
+#: inc/backend/premium-cta.php:153
 msgid "Risk scoring and automation"
 msgstr ""
 
-#: inc/backend/premium-cta.php:132
+#: inc/backend/premium-cta.php:154
 msgid "Manual review from local matches"
 msgstr ""
 
-#: inc/backend/premium-cta.php:133
+#: inc/backend/premium-cta.php:155
 msgid "Scoring thresholds, payment intelligence, and automatic order actions"
 msgstr ""
 
-#: inc/backend/premium-cta.php:137
+#: inc/backend/premium-cta.php:159
 msgid "Audit trail and activity logs"
 msgstr ""
 
-#: inc/backend/premium-cta.php:138
+#: inc/backend/premium-cta.php:160
 msgid "Limited"
 msgstr ""
 
-#: inc/backend/premium-cta.php:139
+#: inc/backend/premium-cta.php:161
 msgid "Detailed event history for blacklist, verification, automation, and order decisions"
 msgstr ""
 
-#: inc/backend/premium-cta.php:143
+#: inc/backend/premium-cta.php:165
 msgid "Advanced integrations"
 msgstr ""
 
-#: inc/backend/premium-cta.php:144
+#: inc/backend/premium-cta.php:166
 msgid "Core WooCommerce and supported form protections"
 msgstr ""
 
-#: inc/backend/premium-cta.php:145
+#: inc/backend/premium-cta.php:167
 msgid "Captcha, SMS and phone providers, payment gateway intelligence, and multi-store connection tools"
 msgstr ""
 
-#: inc/backend/premium-cta.php:514
+#: inc/backend/premium-cta.php:536
 msgid "Premium protection layer"
 msgstr ""
 
-#: inc/backend/premium-cta.php:516
+#: inc/backend/premium-cta.php:538
 msgid "Move from blacklist maintenance to fraud decisioning."
 msgstr ""
 
-#: inc/backend/premium-cta.php:517
+#: inc/backend/premium-cta.php:539
 msgid "Free handles core local blocking. Premium adds the risk, identity, automation, and audit layers that help busy stores catch repeat abuse before it becomes manual cleanup."
 msgstr ""
 
-#: inc/backend/premium-cta.php:529
+#: inc/backend/premium-cta.php:551
 msgid "Read docs"
 msgstr ""
 
-#: inc/backend/premium-cta.php:534
+#: inc/backend/premium-cta.php:556
 msgid "Premium status"
 msgstr ""
 
-#: inc/backend/premium-cta.php:538
+#: inc/backend/premium-cta.php:560
 msgid "Blacklist Manager Premium"
 msgstr ""
 
-#: inc/backend/premium-cta.php:539
+#: inc/backend/premium-cta.php:561
 msgid "Advanced protection for stores that need stronger fraud decisions."
 msgstr ""
 
-#: inc/backend/premium-cta.php:543
+#: inc/backend/premium-cta.php:565
 msgid "Add-on"
 msgstr ""
 
-#: inc/backend/premium-cta.php:545
+#: inc/backend/premium-cta.php:567
 msgid "Installed"
 msgstr ""
 
-#: inc/backend/premium-cta.php:545
+#: inc/backend/premium-cta.php:567
 msgid "Not installed"
 msgstr ""
 
-#: inc/backend/premium-cta.php:549
+#: inc/backend/premium-cta.php:571
 msgid "License"
 msgstr ""
 
-#: inc/backend/premium-cta.php:550
+#: inc/backend/premium-cta.php:572
 msgid "Needs activation"
 msgstr ""
 
-#: inc/backend/premium-cta.php:553
+#: inc/backend/premium-cta.php:575
 msgid "Best next step"
 msgstr ""
 
-#: inc/backend/premium-cta.php:554
+#: inc/backend/premium-cta.php:576
 msgid "Activate the license"
 msgstr ""
 
-#: inc/backend/premium-cta.php:554
+#: inc/backend/premium-cta.php:576
 msgid "Review the plan"
 msgstr ""
 
-#: inc/backend/premium-cta.php:576
+#: inc/backend/premium-cta.php:598
 msgid "What Premium changes in the workflow"
 msgstr ""
 
-#: inc/backend/premium-cta.php:578
+#: inc/backend/premium-cta.php:600
 msgid "The value is not just more settings. Premium connects more signals into a repeatable process: detect, score, act, and review."
 msgstr ""
 
-#: inc/backend/premium-cta.php:596
+#: inc/backend/premium-cta.php:618
 msgid "Free remains useful for direct local blocking. Premium is for stores that need richer identity matching, automation, and investigation context."
 msgstr ""
 
-#: inc/backend/premium-cta.php:602
+#: inc/backend/premium-cta.php:624
 msgid "Capability"
 msgstr ""
 
-#: inc/backend/premium-cta.php:604
+#: inc/backend/premium-cta.php:626
 msgid "Premium"
 msgstr ""
 
-#: inc/backend/premium-cta.php:632
+#: inc/backend/premium-cta.php:654
 msgid "Use Free for local lists. Use Premium when patterns keep changing."
 msgstr ""
 
-#: inc/backend/premium-cta.php:633
+#: inc/backend/premium-cta.php:655
 msgid "If blocked customers are rotating details, fraud review is taking too long, or you need clear history for decisions, Premium is the better operating mode."
 msgstr ""
 
@@ -2211,6 +2215,10 @@ msgstr ""
 #: inc/backend/verifications.php:95
 #: inc/backend/views/activity-log.php:43
 msgid "to keep updating & improving."
+msgstr ""
+
+#: inc/backend/verifications.php:111
+msgid "Verification sections"
 msgstr ""
 
 #: inc/backend/verifications.php:113
@@ -2272,7 +2280,7 @@ msgid "Activity log details"
 msgstr ""
 
 #: inc/backend/views/activity-log.php:130
-#: inc/backend/views/dashboard-form.php:819
+#: inc/backend/views/dashboard-form.php:820
 msgid "Close"
 msgstr ""
 
@@ -2327,8 +2335,8 @@ msgstr ""
 #: inc/backend/views/dashboard-form.php:60
 #: inc/backend/views/dashboard-form.php:150
 #: inc/backend/views/dashboard-form.php:340
-#: inc/backend/views/dashboard-form.php:490
-#: inc/backend/views/dashboard-form.php:588
+#: inc/backend/views/dashboard-form.php:491
+#: inc/backend/views/dashboard-form.php:589
 msgid "Customer name"
 msgstr ""
 
@@ -2343,8 +2351,8 @@ msgstr ""
 #: inc/backend/views/dashboard-form.php:74
 #: inc/backend/views/dashboard-form.php:161
 #: inc/backend/views/dashboard-form.php:351
-#: inc/backend/views/dashboard-form.php:492
-#: inc/backend/views/dashboard-form.php:590
+#: inc/backend/views/dashboard-form.php:493
+#: inc/backend/views/dashboard-form.php:591
 msgid "Phone number"
 msgstr ""
 
@@ -2360,8 +2368,8 @@ msgstr ""
 #: inc/backend/views/dashboard-form.php:93
 #: inc/backend/views/dashboard-form.php:167
 #: inc/backend/views/dashboard-form.php:357
-#: inc/backend/views/dashboard-form.php:493
-#: inc/backend/views/dashboard-form.php:591
+#: inc/backend/views/dashboard-form.php:494
+#: inc/backend/views/dashboard-form.php:592
 msgid "Email address"
 msgstr ""
 
@@ -2370,18 +2378,18 @@ msgid "Enter email address"
 msgstr ""
 
 #: inc/backend/views/dashboard-form.php:103
-#: inc/backend/views/dashboard-form.php:730
-#: inc/backend/views/dashboard-form.php:903
-#: inc/backend/views/dashboard-form.php:1012
-#: inc/backend/views/dashboard-form.php:1297
+#: inc/backend/views/dashboard-form.php:731
+#: inc/backend/views/dashboard-form.php:904
+#: inc/backend/views/dashboard-form.php:1013
+#: inc/backend/views/dashboard-form.php:1298
 msgid "Status"
 msgstr ""
 
 #: inc/backend/views/dashboard-form.php:114
-#: inc/backend/views/dashboard-form.php:777
-#: inc/backend/views/dashboard-form.php:872
-#: inc/backend/views/dashboard-form.php:1075
-#: inc/backend/views/dashboard-form.php:1363
+#: inc/backend/views/dashboard-form.php:778
+#: inc/backend/views/dashboard-form.php:873
+#: inc/backend/views/dashboard-form.php:1076
+#: inc/backend/views/dashboard-form.php:1364
 #: inc/backend/views/table/activity-log.php:214
 #: inc/backend/views/table/activity-log.php:261
 msgid "Blocked"
@@ -2415,7 +2423,7 @@ msgstr ""
 
 #: inc/backend/views/dashboard-form.php:174
 #: inc/backend/views/dashboard-form.php:364
-#: inc/backend/views/dashboard-form.php:457
+#: inc/backend/views/dashboard-form.php:438
 msgid "Device"
 msgstr ""
 
@@ -2462,40 +2470,36 @@ msgstr ""
 msgid "Detection attempts"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:422
+#: inc/backend/views/dashboard-form.php:423
 msgid "See activity logs"
 msgstr ""
 
+#: inc/backend/views/dashboard-form.php:434
+msgid "Blacklist manager lists"
+msgstr ""
+
 #: inc/backend/views/dashboard-form.php:435
-msgid "Search Blacklist"
-msgstr ""
-
-#: inc/backend/views/dashboard-form.php:436
-msgid "Enter to search..."
-msgstr ""
-
-#: inc/backend/views/dashboard-form.php:438
-msgid "Search"
-msgstr ""
-
-#: inc/backend/views/dashboard-form.php:454
 msgid "Suspects"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:455
+#: inc/backend/views/dashboard-form.php:436
 msgid "Blocklist"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:472
-msgid "Suspect entries"
+#: inc/backend/views/dashboard-form.php:452
+msgid "Search Blacklist"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:479
-#: inc/backend/views/dashboard-form.php:577
-#: inc/backend/views/dashboard-form.php:994
-#: inc/backend/views/dashboard-form.php:1275
-#: inc/backend/views/dashboard-form.php:1495
-msgid "Bulk Actions"
+#: inc/backend/views/dashboard-form.php:453
+msgid "Enter to search..."
+msgstr ""
+
+#: inc/backend/views/dashboard-form.php:456
+msgid "Search"
+msgstr ""
+
+#: inc/backend/views/dashboard-form.php:473
+msgid "Suspect entries"
 msgstr ""
 
 #: inc/backend/views/dashboard-form.php:480
@@ -2503,83 +2507,82 @@ msgstr ""
 #: inc/backend/views/dashboard-form.php:995
 #: inc/backend/views/dashboard-form.php:1276
 #: inc/backend/views/dashboard-form.php:1496
+msgid "Bulk Actions"
+msgstr ""
+
+#: inc/backend/views/dashboard-form.php:481
+#: inc/backend/views/dashboard-form.php:579
+#: inc/backend/views/dashboard-form.php:996
+#: inc/backend/views/dashboard-form.php:1277
+#: inc/backend/views/dashboard-form.php:1497
 #: inc/backend/views/table/activity-log.php:48
 msgid "Delete"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:482
-#: inc/backend/views/dashboard-form.php:580
-#: inc/backend/views/dashboard-form.php:997
-#: inc/backend/views/dashboard-form.php:1281
-#: inc/backend/views/dashboard-form.php:1498
+#: inc/backend/views/dashboard-form.php:483
+#: inc/backend/views/dashboard-form.php:581
+#: inc/backend/views/dashboard-form.php:998
+#: inc/backend/views/dashboard-form.php:1282
+#: inc/backend/views/dashboard-form.php:1499
 msgid "Apply"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:482
-#: inc/backend/views/dashboard-form.php:580
-#: inc/backend/views/dashboard-form.php:997
-#: inc/backend/views/dashboard-form.php:1282
-#: inc/backend/views/dashboard-form.php:1498
+#: inc/backend/views/dashboard-form.php:483
+#: inc/backend/views/dashboard-form.php:581
+#: inc/backend/views/dashboard-form.php:998
+#: inc/backend/views/dashboard-form.php:1283
+#: inc/backend/views/dashboard-form.php:1499
 msgid "Are you sure you want to delete the selected entries?"
-msgstr ""
-
-#: inc/backend/views/dashboard-form.php:494
-#: inc/backend/views/dashboard-form.php:597
-#: inc/backend/views/dashboard-form.php:1010
-#: inc/backend/views/dashboard-form.php:1296
-#: inc/backend/views/dashboard-form.php:1505
-msgid "Date added"
 msgstr ""
 
 #: inc/backend/views/dashboard-form.php:495
 #: inc/backend/views/dashboard-form.php:598
 #: inc/backend/views/dashboard-form.php:1011
-#: inc/backend/views/table/activity-log.php:31
-msgid "Source"
+#: inc/backend/views/dashboard-form.php:1297
+#: inc/backend/views/dashboard-form.php:1506
+msgid "Date added"
 msgstr ""
 
 #: inc/backend/views/dashboard-form.php:496
 #: inc/backend/views/dashboard-form.php:599
-#: inc/backend/views/dashboard-form.php:1013
-#: inc/backend/views/dashboard-form.php:1298
-#: inc/backend/views/dashboard-form.php:1506
+#: inc/backend/views/dashboard-form.php:1012
+#: inc/backend/views/table/activity-log.php:31
+msgid "Source"
+msgstr ""
+
+#: inc/backend/views/dashboard-form.php:497
+#: inc/backend/views/dashboard-form.php:600
+#: inc/backend/views/dashboard-form.php:1014
+#: inc/backend/views/dashboard-form.php:1299
+#: inc/backend/views/dashboard-form.php:1507
 msgid "Actions"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:524
-#: inc/backend/views/dashboard-form.php:661
-#: inc/backend/views/dashboard-form.php:1060
+#: inc/backend/views/dashboard-form.php:525
+#: inc/backend/views/dashboard-form.php:662
+#: inc/backend/views/dashboard-form.php:1061
 msgid "Manual form"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:530
+#: inc/backend/views/dashboard-form.php:531
 msgid "Order ID"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:541
-#: inc/backend/views/dashboard-form.php:1080
+#: inc/backend/views/dashboard-form.php:542
+#: inc/backend/views/dashboard-form.php:1081
 msgid "Are you sure you want to block this entry?"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:544
-#: inc/backend/views/dashboard-form.php:679
-#: inc/backend/views/dashboard-form.php:1086
-#: inc/backend/views/dashboard-form.php:1515
+#: inc/backend/views/dashboard-form.php:545
+#: inc/backend/views/dashboard-form.php:680
+#: inc/backend/views/dashboard-form.php:1087
+#: inc/backend/views/dashboard-form.php:1516
 msgid "Are you sure you want to remove this entry?"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:550
-#: inc/backend/views/dashboard-form.php:688
+#: inc/backend/views/dashboard-form.php:551
+#: inc/backend/views/dashboard-form.php:689
 msgid "No matching results found."
-msgstr ""
-
-#: inc/backend/views/dashboard-form.php:559
-#: inc/backend/views/dashboard-form.php:698
-#: inc/backend/views/dashboard-form.php:799
-#: inc/backend/views/dashboard-form.php:1105
-#: inc/backend/views/dashboard-form.php:1399
-#: inc/backend/views/dashboard-form.php:1527
-msgid "Go to the first page"
 msgstr ""
 
 #: inc/backend/views/dashboard-form.php:560
@@ -2588,16 +2591,16 @@ msgstr ""
 #: inc/backend/views/dashboard-form.php:1106
 #: inc/backend/views/dashboard-form.php:1400
 #: inc/backend/views/dashboard-form.php:1528
-msgid "Go to the previous page"
+msgid "Go to the first page"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:562
-#: inc/backend/views/dashboard-form.php:701
-#: inc/backend/views/dashboard-form.php:802
-#: inc/backend/views/dashboard-form.php:1108
-#: inc/backend/views/dashboard-form.php:1404
-#: inc/backend/views/dashboard-form.php:1530
-msgid "Go to the next page"
+#: inc/backend/views/dashboard-form.php:561
+#: inc/backend/views/dashboard-form.php:700
+#: inc/backend/views/dashboard-form.php:801
+#: inc/backend/views/dashboard-form.php:1107
+#: inc/backend/views/dashboard-form.php:1401
+#: inc/backend/views/dashboard-form.php:1529
+msgid "Go to the previous page"
 msgstr ""
 
 #: inc/backend/views/dashboard-form.php:563
@@ -2606,272 +2609,281 @@ msgstr ""
 #: inc/backend/views/dashboard-form.php:1109
 #: inc/backend/views/dashboard-form.php:1405
 #: inc/backend/views/dashboard-form.php:1531
+msgid "Go to the next page"
+msgstr ""
+
+#: inc/backend/views/dashboard-form.php:564
+#: inc/backend/views/dashboard-form.php:703
+#: inc/backend/views/dashboard-form.php:804
+#: inc/backend/views/dashboard-form.php:1110
+#: inc/backend/views/dashboard-form.php:1406
+#: inc/backend/views/dashboard-form.php:1532
 msgid "Go to the last page"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:570
+#: inc/backend/views/dashboard-form.php:571
 msgid "Blocked entries"
 msgstr ""
 
 #. translators: %d: order id
-#: inc/backend/views/dashboard-form.php:667
-#: inc/backend/views/dashboard-form.php:1066
+#: inc/backend/views/dashboard-form.php:668
+#: inc/backend/views/dashboard-form.php:1067
 msgid "Order ID: %1$s"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:710
+#: inc/backend/views/dashboard-form.php:711
 msgid "Device entries"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:711
+#: inc/backend/views/dashboard-form.php:712
 msgid "This tab shows tracked device identities and their activity across the site."
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:720
-#: inc/backend/views/dashboard-form.php:888
-msgid "Device ID"
-msgstr ""
-
 #: inc/backend/views/dashboard-form.php:721
-#: inc/backend/views/dashboard-form.php:891
-msgid "Orders"
+#: inc/backend/views/dashboard-form.php:889
+msgid "Device ID"
 msgstr ""
 
 #: inc/backend/views/dashboard-form.php:722
 #: inc/backend/views/dashboard-form.php:892
-msgid "Users"
+msgid "Orders"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:724
-#: inc/backend/views/dashboard-form.php:894
-msgid "Phones"
+#: inc/backend/views/dashboard-form.php:723
+#: inc/backend/views/dashboard-form.php:893
+msgid "Users"
 msgstr ""
 
 #: inc/backend/views/dashboard-form.php:725
 #: inc/backend/views/dashboard-form.php:895
-msgid "IPs"
+msgid "Phones"
 msgstr ""
 
 #: inc/backend/views/dashboard-form.php:726
-#: inc/backend/views/dashboard-form.php:898
-msgid "Confidence"
+#: inc/backend/views/dashboard-form.php:896
+msgid "IPs"
 msgstr ""
 
 #: inc/backend/views/dashboard-form.php:727
-msgid "Payload"
+#: inc/backend/views/dashboard-form.php:899
+msgid "Confidence"
 msgstr ""
 
 #: inc/backend/views/dashboard-form.php:728
-msgid "Last order"
+msgid "Payload"
 msgstr ""
 
 #: inc/backend/views/dashboard-form.php:729
-#: inc/backend/views/dashboard-form.php:890
+msgid "Last order"
+msgstr ""
+
+#: inc/backend/views/dashboard-form.php:730
+#: inc/backend/views/dashboard-form.php:891
 msgid "Last seen"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:754
+#: inc/backend/views/dashboard-form.php:755
 msgid "Valid"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:756
+#: inc/backend/views/dashboard-form.php:757
 msgid "Invalid"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:774
-#: inc/backend/views/dashboard-form.php:870
+#: inc/backend/views/dashboard-form.php:775
+#: inc/backend/views/dashboard-form.php:871
 msgid "Tracked"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:789
+#: inc/backend/views/dashboard-form.php:790
 msgid "No device entries found."
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:812
+#: inc/backend/views/dashboard-form.php:813
 msgid "Device details"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:816
-#: inc/backend/views/dashboard-form.php:948
+#: inc/backend/views/dashboard-form.php:817
+#: inc/backend/views/dashboard-form.php:949
 msgid "Loading..."
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:877
+#: inc/backend/views/dashboard-form.php:878
 msgid "Yes"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:889
+#: inc/backend/views/dashboard-form.php:890
 msgid "First seen"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:896
+#: inc/backend/views/dashboard-form.php:897
 msgid "Last order ID"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:897
+#: inc/backend/views/dashboard-form.php:898
 msgid "Last IP"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:899
+#: inc/backend/views/dashboard-form.php:900
 msgid "Payload valid"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:900
+#: inc/backend/views/dashboard-form.php:901
 msgid "Browser ID"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:901
+#: inc/backend/views/dashboard-form.php:902
 msgid "Session ID"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:902
+#: inc/backend/views/dashboard-form.php:903
 msgid "Fingerprint hash"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:906
+#: inc/backend/views/dashboard-form.php:907
 msgid "Block reason"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:910
+#: inc/backend/views/dashboard-form.php:911
 msgid "Validation reasons"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:917
+#: inc/backend/views/dashboard-form.php:918
 msgid "Linked emails"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:918
+#: inc/backend/views/dashboard-form.php:919
 msgid "Linked phones"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:919
+#: inc/backend/views/dashboard-form.php:920
 msgid "Linked IPs"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:920
+#: inc/backend/views/dashboard-form.php:921
 msgid "Linked users"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:925
+#: inc/backend/views/dashboard-form.php:926
 msgid "Linked orders"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:959
-#: inc/backend/views/dashboard-form.php:963
+#: inc/backend/views/dashboard-form.php:960
+#: inc/backend/views/dashboard-form.php:964
 msgid "Failed to load device details."
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:976
+#: inc/backend/views/dashboard-form.php:977
 msgid "IP entries"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:981
+#: inc/backend/views/dashboard-form.php:982
 msgid "Add IP address(es)"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:983
+#: inc/backend/views/dashboard-form.php:984
 msgid "Enter IP address(es) here... (One per line, max 50 lines)"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:984
-#: inc/backend/views/dashboard-form.php:1222
-#: inc/backend/views/dashboard-form.php:1484
+#: inc/backend/views/dashboard-form.php:985
+#: inc/backend/views/dashboard-form.php:1223
+#: inc/backend/views/dashboard-form.php:1485
 msgid "Submit"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:1095
+#: inc/backend/views/dashboard-form.php:1096
 msgid "No IP banned entries found."
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:1133
+#: inc/backend/views/dashboard-form.php:1134
 msgid "Address entries"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:1136
+#: inc/backend/views/dashboard-form.php:1137
 msgid "Add address"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:1151
+#: inc/backend/views/dashboard-form.php:1152
 msgid "You can add a full address, or only a postcode + country, or only a state + country."
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:1157
+#: inc/backend/views/dashboard-form.php:1158
 msgid "Select a country..."
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:1173
-#: inc/backend/views/dashboard-form.php:1234
+#: inc/backend/views/dashboard-form.php:1174
+#: inc/backend/views/dashboard-form.php:1235
 msgid "Select a state..."
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:1181
-#: inc/backend/views/dashboard-form.php:1308
+#: inc/backend/views/dashboard-form.php:1182
+#: inc/backend/views/dashboard-form.php:1309
 msgid "State / Province"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:1192
+#: inc/backend/views/dashboard-form.php:1193
 msgid "Address 1"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:1199
+#: inc/backend/views/dashboard-form.php:1200
 msgid "Address 2"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:1209
+#: inc/backend/views/dashboard-form.php:1210
 msgid "City"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:1216
+#: inc/backend/views/dashboard-form.php:1217
 msgid "Postcode / ZIP"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:1293
+#: inc/backend/views/dashboard-form.php:1294
 #: inc/backend/views/table/activity-log.php:30
 msgid "Type"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:1295
+#: inc/backend/views/dashboard-form.php:1296
 msgid "Region"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:1307
+#: inc/backend/views/dashboard-form.php:1308
 msgid "Postcode"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:1370
+#: inc/backend/views/dashboard-form.php:1371
 msgid "Are you sure you want to remove this address entry?"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:1380
+#: inc/backend/views/dashboard-form.php:1381
 msgid "No address blocking entries found."
 msgstr ""
 
 #. translators: %s: number of items
-#: inc/backend/views/dashboard-form.php:1393
+#: inc/backend/views/dashboard-form.php:1394
 msgid "%s items"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:1465
+#: inc/backend/views/dashboard-form.php:1466
 msgid "Domain entries"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:1466
+#: inc/backend/views/dashboard-form.php:1467
 msgid "This is the blocklist of email domains."
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:1469
+#: inc/backend/views/dashboard-form.php:1470
 msgid "Add domain(s)"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:1476
+#: inc/backend/views/dashboard-form.php:1477
 msgid "Add Top-level domain(s)"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:1483
+#: inc/backend/views/dashboard-form.php:1484
 msgid "Enter domain(s) here... (One per line, max 50 lines)"
 msgstr ""
 
-#: inc/backend/views/dashboard-form.php:1519
+#: inc/backend/views/dashboard-form.php:1520
 msgid "No domain entries found."
 msgstr ""
 
@@ -3585,6 +3597,10 @@ msgstr ""
 
 #: inc/backend/views/settings-form.php:15
 msgid "Blacklist manager settings"
+msgstr ""
+
+#: inc/backend/views/settings-form.php:22
+msgid "Blacklist Manager settings sections"
 msgstr ""
 
 #: inc/backend/views/settings-form.php:23
