@@ -10,6 +10,12 @@ if ( ! defined( 'ABSPATH' ) ) {
  * as YOGB_BM_Report uses when reporting, but applies tier-based limits.
  */
 final class YOGB_BM_Check {
+	const MONTHLY_LIMITS = [
+		'free'       => 20,
+		'basic'      => 150,
+		'pro'        => 1000,
+		'enterprise' => 0,
+	];
 
 	/**
 	 * Main entry: call global server /check for this order’s identities,
@@ -42,13 +48,15 @@ final class YOGB_BM_Check {
 		// 1) Rate limit per tier (monthly)
 		$rl = self::enforce_rate_limit( $tier );
 		if ( ! $rl['allowed'] ) {
+			self::mark_monthly_limit_reached( $tier, (int) $rl['used'], 'local_preflight' );
 			return [
 				'ok'   => false,
 				'code' => 429,
 				'body' => '',
 				'json' => null,
 				'tier' => $tier,
-				'err'  => 'rate_month',
+				'err'         => 'plan_quota_exceeded',
+				'retry_after' => self::seconds_until_month_reset(),
 			];
 		}
 
@@ -96,6 +104,8 @@ final class YOGB_BM_Check {
 		$ok = ! empty( $res['ok'] ) && is_array( $json );
 		if ( $ok ) {
 			self::record_rate_limit_usage( $tier );
+		} elseif ( 429 === (int) ( $res['code'] ?? 0 ) && 'plan_quota_exceeded' === (string) ( $res['error_code'] ?? '' ) ) {
+			self::synchronize_monthly_limit_reached( $tier, 'server' );
 		}
 
 		return [
@@ -104,7 +114,8 @@ final class YOGB_BM_Check {
 			'body' => $res['body'] ?? '',
 			'json' => $json,
 			'tier' => $tier,
-			'err'  => $res['err'] ?? ( ! $ok && ! empty( $res['ok'] ) ? 'invalid_json' : '' ),
+			'err'  => $res['error_code'] ?? ( $res['err'] ?? ( ! $ok && ! empty( $res['ok'] ) ? 'invalid_json' : '' ) ),
+			'retry_after' => isset( $res['retry_after'] ) ? max( 0, (int) $res['retry_after'] ) : 0,
 		];
 	}
 
@@ -450,61 +461,133 @@ final class YOGB_BM_Check {
 			return [
 				'allowed' => true,
 				'reason'  => null,
+				'used'    => self::get_monthly_usage( $tier ),
 			];
 		}
 
-		$used = (int) get_option( self::get_monthly_counter_option_name( $tier ), 0 );
+		$used = self::get_monthly_usage( $tier );
 
 		if ( $used >= $limit ) {
 			return [
 				'allowed' => false,
 				'reason'  => 'rate_month',
+				'used'    => $used,
 			];
 		}
 
 		return [
 			'allowed' => true,
 			'reason'  => null,
+			'used'    => $used,
 		];
 	}
 
-	private static function get_monthly_limit_for_tier( string $tier ) : int {
-		switch ( $tier ) {
-			case 'basic':
-				return 150;
-
-			case 'pro':
-				return 1000;
-
-			case 'enterprise':
-				return 0;
-
-			case 'free':
-			default:
-				return 20;
-		}
+	public static function get_monthly_limit_for_tier( string $tier ) : int {
+		$tier = strtolower( trim( $tier ) );
+		return isset( self::MONTHLY_LIMITS[ $tier ] ) ? (int) self::MONTHLY_LIMITS[ $tier ] : (int) self::MONTHLY_LIMITS['free'];
 	}
 
-	private static function get_monthly_counter_option_name( string $tier ) : string {
-		$month_key = gmdate( 'Ym' );
+	public static function get_monthly_counter_option_name( string $tier, ?int $timestamp = null ) : string {
+		$tier      = strtolower( trim( $tier ) );
+		$tier      = isset( self::MONTHLY_LIMITS[ $tier ] ) ? $tier : 'free';
+		$month_key = gmdate( 'Ym', $timestamp && $timestamp > 0 ? $timestamp : time() );
 		return 'yogb_bm_chk_month_' . $tier . '_' . $month_key;
 	}
 
-	private static function record_rate_limit_usage( string $tier ) : void {
+	public static function get_monthly_usage( string $tier, ?int $timestamp = null ) : int {
+		return max( 0, (int) get_option( self::get_monthly_counter_option_name( $tier, $timestamp ), 0 ) );
+	}
+
+	public static function get_monthly_limit_transient_key( string $tier, ?int $timestamp = null ) : string {
+		$tier      = strtolower( trim( $tier ) );
+		$tier      = isset( self::MONTHLY_LIMITS[ $tier ] ) ? $tier : 'free';
+		$month_key = gmdate( 'Ym', $timestamp && $timestamp > 0 ? $timestamp : time() );
+		return 'yogb_gbd_limit_reached_' . $tier . '_' . $month_key;
+	}
+
+	public static function mark_monthly_limit_reached( string $tier, int $used = 0, string $source = 'client' ) : void {
+		$limit = self::get_monthly_limit_for_tier( $tier );
+		if ( $limit <= 0 ) {
+			return;
+		}
+
+		set_transient(
+			self::get_monthly_limit_transient_key( $tier ),
+			[
+				'tier'     => strtolower( trim( $tier ) ),
+				'used'     => max( $used, $limit ),
+				'limit'    => $limit,
+				'source'   => sanitize_key( $source ),
+				'ts'       => time(),
+				'reset_at' => time() + self::seconds_until_month_reset(),
+			],
+			35 * DAY_IN_SECONDS
+		);
+	}
+
+	public static function clear_monthly_limit_reached( string $tier, ?int $timestamp = null ) : void {
+		delete_transient( self::get_monthly_limit_transient_key( $tier, $timestamp ) );
+	}
+
+	public static function seconds_until_month_reset() : int {
+		$reset_at = strtotime( 'first day of next month 00:00:00 UTC' );
+		return max( 60, (int) $reset_at - time() );
+	}
+
+	private static function invalidate_counter_cache( string $option_name ) : void {
+		wp_cache_delete( $option_name, 'options' );
+		wp_cache_delete( $option_name, 'notoptions' );
+		wp_cache_delete( 'alloptions', 'options' );
+	}
+
+	private static function record_rate_limit_usage( string $tier ) : int {
+		global $wpdb;
+
+		$opt_name = self::get_monthly_counter_option_name( $tier );
+		add_option( $opt_name, 0, '', false );
+
+		$updated = $wpdb->query(
+			$wpdb->prepare(
+				"UPDATE {$wpdb->options} SET option_value = CAST(option_value AS UNSIGNED) + 1 WHERE option_name = %s",
+				$opt_name
+			)
+		);
+
+		if ( false === $updated ) {
+			$used = max( 0, (int) get_option( $opt_name, 0 ) ) + 1;
+			update_option( $opt_name, $used, false );
+		} else {
+			self::invalidate_counter_cache( $opt_name );
+			$used = (int) $wpdb->get_var( $wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", $opt_name ) );
+		}
+
+		$limit = self::get_monthly_limit_for_tier( $tier );
+		if ( $limit > 0 && $used >= $limit ) {
+			self::mark_monthly_limit_reached( $tier, $used, 'successful_check' );
+		}
+
+		return max( 0, $used );
+	}
+
+	private static function synchronize_monthly_limit_reached( string $tier, string $source ) : void {
+		global $wpdb;
+
 		$limit = self::get_monthly_limit_for_tier( $tier );
 		if ( $limit <= 0 ) {
 			return;
 		}
 
 		$opt_name = self::get_monthly_counter_option_name( $tier );
-		$used     = (int) get_option( $opt_name, 0 );
-		$used++;
-
-		if ( get_option( $opt_name, null ) === null ) {
-			add_option( $opt_name, $used, '', false );
-		} else {
-			update_option( $opt_name, $used, false );
-		}
+		add_option( $opt_name, 0, '', false );
+		$wpdb->query(
+			$wpdb->prepare(
+				"UPDATE {$wpdb->options} SET option_value = GREATEST(CAST(option_value AS UNSIGNED), %d) WHERE option_name = %s",
+				$limit,
+				$opt_name
+			)
+		);
+		self::invalidate_counter_cache( $opt_name );
+		self::mark_monthly_limit_reached( $tier, max( $limit, self::get_monthly_usage( $tier ) ), $source );
 	}
 
 	/**
@@ -529,10 +612,8 @@ final class YOGB_BM_Check {
 
 		$ts_utc = is_int( $ts_utc ) && $ts_utc > 0 ? $ts_utc : time();
 
-		$month_key = gmdate( 'Ym', $ts_utc );
-
-		$old_opt = 'yogb_bm_chk_month_' . $old_tier . '_' . $month_key;
-		$new_opt = 'yogb_bm_chk_month_' . $new_tier . '_' . $month_key;
+		$old_opt = self::get_monthly_counter_option_name( $old_tier, $ts_utc );
+		$new_opt = self::get_monthly_counter_option_name( $new_tier, $ts_utc );
 
 		$old_used = (int) get_option( $old_opt, 0 );
 		$new_used = (int) get_option( $new_opt, 0 );
@@ -543,6 +624,14 @@ final class YOGB_BM_Check {
 			add_option( $new_opt, $target, '', false );
 		} else {
 			update_option( $new_opt, $target, false );
+		}
+
+		self::clear_monthly_limit_reached( $old_tier, $ts_utc );
+		$new_limit = self::get_monthly_limit_for_tier( $new_tier );
+		if ( $new_limit > 0 && $target >= $new_limit ) {
+			self::mark_monthly_limit_reached( $new_tier, $target, 'tier_change' );
+		} else {
+			self::clear_monthly_limit_reached( $new_tier, $ts_utc );
 		}
 	}
 }

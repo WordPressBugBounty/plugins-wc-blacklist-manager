@@ -90,6 +90,7 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 						?>
 					</td>
 				</tr>
+
 			</table>
 
 			<h2><?php echo esc_html__('Email address & Phone number', 'wc-blacklist-manager'); ?></h2>
@@ -385,87 +386,14 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 			?>
 
 			<?php
-			$reporter_id = get_option( 'yogb_bm_reporter_id', '' );
-			$api_key     = get_option( 'yogb_bm_api_key', '' );
-			$api_secret  = get_option( 'yogb_bm_api_secret', '' );
-
-			// Default to "free" if not set.
-			$tier        = get_option( 'yogb_bm_tier', 'free' );
-
-			// Normalise tier to one of the 4 known levels.
+			$tier = sanitize_key( (string) get_option( 'yogb_bm_tier', 'free' ) );
 			$allowed_tiers = array( 'free', 'basic', 'pro', 'enterprise' );
 			if ( ! in_array( $tier, $allowed_tiers, true ) ) {
 				$tier = 'free';
 			}
-
-			$has_global_creds = ( $reporter_id && $api_key && $api_secret );
-
-			// Translate / prettify label.
-			switch ( $tier ) {
-				case 'basic':
-					$tier_label = esc_html( 'Basic', 'wc-blacklist-manager' );
-					break;
-				case 'pro':
-					$tier_label = esc_html( 'Pro', 'wc-blacklist-manager' );
-					break;
-				case 'enterprise':
-					$tier_label = esc_html( 'Enterprise', 'wc-blacklist-manager' );
-					break;
-				case 'free':
-				default:
-					$tier_label = esc_html( 'Free', 'wc-blacklist-manager' );
-					break;
-			}
-
-			// Mirror the limits from enforce_rate_limit(), adding "enterprise" as unlimited.
-			switch ( $tier ) {
-				case 'basic':
-					$tier_limit = 150;
-					break;
-				case 'pro':
-					$tier_limit = 1000;
-					break;
-				case 'enterprise':
-					$tier_limit = 0; // unlimited
-					break;
-				case 'free':
-				default:
-					$tier_limit = 20;
-					break;
-			}
-
-			// Read current month usage WITHOUT incrementing.
-			// This mirrors: 'yogb_bm_chk_month_' . $tier . '_' . gmdate('Ym')
-			$month_key  = gmdate( 'Ym' ); // e.g. 202511
-			$usage_opt  = 'yogb_bm_chk_month_' . $tier . '_' . $month_key;
-			$tier_used  = (int) get_option( $usage_opt, 0 );
-
-			// Build the display text: "3/20 used"
-			if ( $tier_limit > 0 ) {
-				$tier_limit_text = sprintf(
-					/* translators: 1: used checks, 2: monthly limit */
-					__( 'This tier allows up to %2$d global checks per calendar month. (%1$d/%2$d used this month)', 'wc-blacklist-manager' ),
-					$tier_used,
-					$tier_limit
-				);
-			} else {
-				// Unlimited: show used count only.
-				$tier_limit_text = sprintf(
-					/* translators: 1: used checks */
-					__( 'This tier includes unlimited global checks per calendar month. (%1$d used this month)', 'wc-blacklist-manager' ),
-					$tier_used
-				);
-			}
-
-			// Upgrade button: all tiers except Enterprise.
-			$can_upgrade   = ( 'enterprise' !== $tier );
-			$upgrade_url   = 'https://yoohw.com/global-blacklist-plan/';
-
-			$retry_url = wp_nonce_url(
-				admin_url( 'admin-post.php?action=yogb_bm_retry_registration' ),
-				'yogb_bm_retry_registration',
-				'yogb_bm_retry_nonce'
-			);
+			$has_global_creds = get_option( 'yogb_bm_reporter_id' )
+				&& get_option( 'yogb_bm_api_key' )
+				&& get_option( 'yogb_bm_api_secret' );
 			?>
 
 			<h2 id="global_blacklist"><?php echo esc_html__( 'Global Blacklist', 'wc-blacklist-manager' ); ?></h2>
@@ -473,6 +401,9 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 			<p class="description"><?php echo esc_html__( 'The Global Blacklist enhances your site’s local blacklist by identifying real customers already flagged as high-risk (not bots). It helps detect suspicious information during checkout, allowing you to block bad actors, reduce fraud, and minimize chargebacks more effectively.', 'wc-blacklist-manager' ); ?></p>
 
 			<table class="form-table">
+				<?php
+				do_action( 'yogb_bm_global_blacklist_settings_rows', (bool) $has_global_creds );
+				?>
 				<tr>
 					<th scope="row">
 						<label for="enable_global_blacklist"><?php echo esc_html__( 'Order checking', 'wc-blacklist-manager' ); ?></label>
@@ -524,130 +455,9 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 					</td>
 				</tr>
 
-				<?php if ( $has_global_creds ) : ?>
-					<tr>
-						<th scope="row">
-							<?php esc_html_e( 'Site Global ID', 'wc-blacklist-manager' ); ?>
-						</th>
-						<td>
-							<input type="text" class="regular-text" value="<?php echo esc_attr( $reporter_id ); ?>" readonly>
-							<p class="description">
-								<?php esc_html_e( 'Use this ID when purchasing the non-free plan.', 'wc-blacklist-manager' ); ?>
-							</p>
-						</td>
-					</tr>
-
-					<tr>
-						<th scope="row">
-							<?php esc_html_e( 'Site key', 'wc-blacklist-manager' ); ?>
-						</th>
-						<td>
-							<input type="text" class="regular-text" value="<?php echo esc_attr( $api_key ); ?>" readonly>
-						</td>
-					</tr>
-
-					<tr>
-						<th scope="row">
-							<?php esc_html_e( 'Secret key', 'wc-blacklist-manager' ); ?>
-						</th>
-						<td>
-							<div class="yogb-secret-wrapper">
-								<input
-									type="password"
-									id="yogb_api_secret"
-									class="regular-text"
-									value="<?php echo esc_attr( $api_secret ); ?>"
-									readonly
-								/>
-
-								<button
-									type="button"
-									class="yogb-secret-toggle"
-									data-target="yogb_api_secret"
-								>
-									<span class="dashicons dashicons-visibility" aria-hidden="true"></span>
-									<span class="screen-reader-text">
-										<?php esc_html_e( 'Show secret key', 'wc-blacklist-manager' ); ?>
-									</span>
-								</button>
-							</div>
-						</td>
-					</tr>
-
-					<tr>
-						<th scope="row">
-							<?php esc_html_e( 'Tier', 'wc-blacklist-manager' ); ?>
-						</th>
-						<td>
-							<div class="yogb-tier-row">
-								<span class="yogb-tier-badge yogb-tier-<?php echo esc_attr( $tier ); ?>">
-									<span class="yogb-tier-dot"></span>
-									<span class="yogb-tier-text"><?php echo esc_html( $tier_label ); ?></span>
-								</span>
-
-								<?php if ( $can_upgrade ) : ?>
-									<a
-										href="<?php echo esc_url( $upgrade_url ); ?>"
-										class="yogb-tier-cta"
-										target="_blank"
-										rel="noopener noreferrer"
-									>
-										<?php esc_html_e( 'Upgrade', 'wc-blacklist-manager' ); ?>
-									</a>
-								<?php endif; ?>
-							</div>
-
-							<?php if ( ! empty( $tier_limit_text ) ) : ?>
-								<p class="yogb-tier-limit">
-									<?php echo esc_html( $tier_limit_text ); ?>
-								</p>
-							<?php endif; ?>
-						</td>
-					</tr>
-				<?php else : ?>
-					<tr>
-						<th scope="row">
-							<?php esc_html_e( 'Connection status', 'wc-blacklist-manager' ); ?>
-						</th>
-						<td>
-							<div class="notice inline notice-warning yogb-global-connection-warning">
-								<p>
-									<strong><?php esc_html_e( 'Not connected to Global Blacklist', 'wc-blacklist-manager' ); ?></strong>
-								</p>
-								<p>
-									<?php
-									echo wp_kses(
-										sprintf(
-											/* translators: %1$s: opening <strong>, %2$s: closing </strong>, %3$s: contact URL */
-											__(
-												'This site has not completed registration with the Global Blacklist service. %1$sOrder checking%2$s will not work until a Site Global ID and API keys are issued. If you need help, please <a href="%3$s" target="_blank" rel="noopener noreferrer">contact us here</a>.',
-												'wc-blacklist-manager'
-											),
-											'<strong>',
-											'</strong>',
-											esc_url( 'https://yoohw.com/contact-us' )
-										),
-										array(
-											'strong' => array(),
-											'a'      => array(
-												'href'   => array(),
-												'target' => array(),
-												'rel'    => array(),
-											),
-										)
-									);
-									?>
-								</p>
-
-								<p>
-									<a href="<?php echo esc_url( $retry_url ); ?>" class="button button-secondary">
-										<?php esc_html_e( 'Retry registration now', 'wc-blacklist-manager' ); ?>
-									</a>
-								</p>
-							</div>
-						</td>
-					</tr>
-				<?php endif; ?>
+				<?php
+				do_action( 'yogb_bm_global_blacklist_diagnostics_rows', (bool) $has_global_creds );
+				?>
 			</table>
 
 			<script type="text/javascript">
@@ -749,41 +559,6 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 					toggleDisplay(domainCommentRow, !!(domainBlockingEnabledCheckbox && domainBlockingEnabledCheckbox.checked));
 					toggleDisplay(domainFormRow, !!(domainBlockingEnabledCheckbox && domainBlockingEnabledCheckbox.checked));
 
-					// Secret key field
-					const toggles = document.querySelectorAll('.yogb-secret-toggle');
-
-					toggles.forEach(function (btn) {
-						btn.addEventListener('click', function () {
-							const targetId = btn.getAttribute('data-target');
-							const input    = document.getElementById(targetId);
-							if (!input) {
-								return;
-							}
-
-							const icon = btn.querySelector('.dashicons');
-							const sr   = btn.querySelector('.screen-reader-text');
-
-							if (input.type === 'password') {
-								input.type = 'text';
-								if (icon) {
-									icon.classList.remove('dashicons-visibility');
-									icon.classList.add('dashicons-hidden');
-								}
-								if (sr) {
-									sr.textContent = '<?php echo esc_js( esc_html( 'Hide secret key', 'wc-blacklist-manager' ) ); ?>';
-								}
-							} else {
-								input.type = 'password';
-								if (icon) {
-									icon.classList.remove('dashicons-hidden');
-									icon.classList.add('dashicons-visibility');
-								}
-								if (sr) {
-									sr.textContent = '<?php echo esc_js( esc_html( 'Show secret key', 'wc-blacklist-manager' ) ); ?>';
-								}
-							}
-						});
-					});
 				});
 			</script>
 

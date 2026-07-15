@@ -29,6 +29,8 @@ final class YOGB_BM_Check_Orders {
 	const META_CHECK_NEXT_RETRY_AT    = '_yogb_gbl_check_next_retry_at';
 	const META_CHECK_LAST_ERROR       = '_yogb_gbl_check_last_error';
 	const META_CHECK_LAST_HTTP_CODE   = '_yogb_gbl_check_last_http_code';
+	const META_DECISION_REF          = '_yogb_gbl_decision_ref';
+	const META_DECISION_AT           = '_yogb_gbl_decision_at';
 
 	// Structured Phase 3 signal meta.
 	const META_EFFECTIVE_SCORE        = '_yogb_gbl_effective_score';
@@ -91,6 +93,12 @@ final class YOGB_BM_Check_Orders {
 			'admin_post_yogb_gbl_manual_order_check',
 			[ __CLASS__, 'handle_manual_order_check' ]
 		);
+
+		add_filter( 'bulk_actions-edit-shop_order', [ __CLASS__, 'register_bulk_recheck_action' ] );
+		add_filter( 'handle_bulk_actions-edit-shop_order', [ __CLASS__, 'handle_bulk_recheck_action' ], 10, 3 );
+		add_filter( 'bulk_actions-woocommerce_page_wc-orders', [ __CLASS__, 'register_bulk_recheck_action' ] );
+		add_filter( 'handle_bulk_actions-woocommerce_page_wc-orders', [ __CLASS__, 'handle_bulk_recheck_action' ], 10, 3 );
+		add_action( 'admin_notices', [ __CLASS__, 'show_bulk_recheck_notice' ] );
 
 		if ( 'strict' === $mode ) {
 			add_action(
@@ -235,10 +243,18 @@ final class YOGB_BM_Check_Orders {
 			return true;
 		}
 
-		return 408 === $code || $code >= 500;
+		return 408 === $code || 425 === $code || 429 === $code || $code >= 500;
 	}
 
-	private static function get_retry_delay_seconds( int $attempt ) : int {
+	private static function get_retry_delay_seconds( int $attempt, array $resp = [] ) : int {
+		$code        = isset( $resp['code'] ) ? (int) $resp['code'] : 0;
+		$error_code  = isset( $resp['err'] ) ? sanitize_key( (string) $resp['err'] ) : '';
+		$retry_after = isset( $resp['retry_after'] ) ? max( 0, (int) $resp['retry_after'] ) : 0;
+
+		if ( 429 === $code && 'rate_limited' === $error_code && $retry_after > 0 ) {
+			return min( HOUR_IN_SECONDS, max( 5, $retry_after ) );
+		}
+
 		$delays = [
 			1 => 5 * MINUTE_IN_SECONDS,
 			2 => 15 * MINUTE_IN_SECONDS,
@@ -428,6 +444,36 @@ final class YOGB_BM_Check_Orders {
 		}
 
 		set_transient( $key, $resp, $ttl );
+		$transfer_key = self::get_strict_transfer_cache_key( $order );
+		if ( '' !== $transfer_key ) {
+			set_transient( $transfer_key, $resp, $ttl );
+		}
+	}
+
+	private static function get_strict_transfer_cache_key( WC_Order $order ) : string {
+		if ( ! class_exists( 'YOGB_BM_Report' ) || ! class_exists( 'YOGB_BM_Check' ) ) {
+			return '';
+		}
+		$payload = YOGB_BM_Report::build_check_payload_from_order( $order );
+		if ( empty( $payload['identities'] ) ) {
+			return '';
+		}
+		$material = [
+			'version' => 1,
+			'site'    => home_url( '/' ),
+			'tier'    => YOGB_BM_Check::get_tier(),
+			'payload' => self::normalize_strict_cache_payload( $payload ),
+		];
+		return 'yogb_gbl_strict_transfer_' . hash( 'sha256', wp_json_encode( $material ) );
+	}
+
+	private static function get_transferred_strict_check( WC_Order $order ) : ?array {
+		$key = self::get_strict_transfer_cache_key( $order );
+		if ( '' === $key ) {
+			return null;
+		}
+		$value = get_transient( $key );
+		return is_array( $value ) ? $value : null;
 	}
 
 	private static function check_order_for_strict_mode( WC_Order $order ) : array {
@@ -622,11 +668,15 @@ final class YOGB_BM_Check_Orders {
 		$attempt = self::begin_global_check_attempt( $order );
 		$mode    = self::get_decision_mode();
 
-		$resp      = YOGB_BM_Check::check_order( $order );
+		$resp = 'strict' === $mode ? self::get_transferred_strict_check( $order ) : null;
+		if ( ! is_array( $resp ) ) {
+			$resp = YOGB_BM_Check::check_order( $order );
+		}
 		$tier      = isset( $resp['tier'] ) ? (string) $resp['tier'] : '';
 		$http_code = isset( $resp['code'] ) ? (int) $resp['code'] : 0;
+		$error_code = isset( $resp['err'] ) ? sanitize_key( (string) $resp['err'] ) : '';
 
-		if ( empty( $resp['ok'] ) && 429 === $http_code ) {
+		if ( empty( $resp['ok'] ) && 429 === $http_code && in_array( $error_code, [ 'plan_quota_exceeded', 'rate_month' ], true ) ) {
 			$order->add_order_note(
 				sprintf(
 					__( 'Global Blacklist Decisions check skipped: monthly limit exceeded for tier "%1$s" (HTTP %2$d).', 'wc-blacklist-manager' ),
@@ -642,19 +692,9 @@ final class YOGB_BM_Check_Orders {
 			$order->delete_meta_data( self::META_CHECK_NEXT_RETRY_AT );
 			$order->delete_meta_data( self::META_CHECK_LAST_ERROR );
 
-			$month_key = gmdate( 'Ym' );
 			$tier_safe = $tier ?: 'free';
 
-			$transient_key = 'yogb_gbd_limit_reached_' . $tier_safe . '_' . $month_key;
-
-			set_transient(
-				$transient_key,
-				[
-					'tier' => $tier_safe,
-					'ts'   => time(),
-				],
-				35 * DAY_IN_SECONDS
-			);
+			YOGB_BM_Check::mark_monthly_limit_reached( $tier_safe, 0, 'order_skip' );
 
 			$order->save();
 
@@ -666,7 +706,7 @@ final class YOGB_BM_Check_Orders {
 			$error_message = self::get_check_error_message( $resp );
 			$max_attempts  = max( 1, (int) apply_filters( 'yogb_gbl_check_max_attempts', 3, $order, $resp ) );
 			$will_retry    = $attempt < $max_attempts && self::is_retryable_check_response( $resp );
-			$retry_delay   = $will_retry ? self::get_retry_delay_seconds( $attempt ) : 0;
+			$retry_delay   = $will_retry ? self::get_retry_delay_seconds( $attempt, $resp ) : 0;
 			$retry_at      = $will_retry ? time() + $retry_delay : 0;
 
 			$order->update_meta_data( self::META_DECISION, 'check_failed' );
@@ -721,6 +761,8 @@ final class YOGB_BM_Check_Orders {
 
 		$order->update_meta_data( self::META_DECISION, $decision );
 		$order->update_meta_data( self::META_TIER, $tier );
+		$decision_ref=is_array($resp['json']??null)?(string)($resp['json']['decision']['decision_ref']??''):'';
+		if(preg_match('/^gbl_dec_[a-f0-9]{32}$/',$decision_ref)){$order->update_meta_data(self::META_DECISION_REF,$decision_ref);$order->update_meta_data(self::META_DECISION_AT,time());}
 
 		// Structured signal meta.
 		$order->update_meta_data( self::META_EFFECTIVE_SCORE, (float) $overall_signal['max_effective_score'] );
@@ -826,14 +868,7 @@ final class YOGB_BM_Check_Orders {
 			wp_die( esc_html__( 'Order not found.', 'wc-blacklist-manager' ) );
 		}
 
-		// Allow manual recheck even if a previous async attempt marked it checked or failed.
-		$order->delete_meta_data( self::META_CHECKED );
-		$order->delete_meta_data( self::META_CHECK_STATUS );
-		$order->delete_meta_data( self::META_CHECK_ATTEMPTS );
-		$order->delete_meta_data( self::META_CHECK_STARTED_AT );
-		$order->delete_meta_data( self::META_CHECK_NEXT_RETRY_AT );
-		$order->delete_meta_data( self::META_CHECK_LAST_ERROR );
-		$order->delete_meta_data( self::META_CHECK_LAST_HTTP_CODE );
+		self::reset_order_check_state( $order );
 		$order->save();
 
 		self::run_global_check_async( $order_id );
@@ -849,6 +884,74 @@ final class YOGB_BM_Check_Orders {
 			)
 		);
 		exit;
+	}
+
+	private static function reset_order_check_state( WC_Order $order ) : void {
+		// Allow recheck even if a previous async attempt marked it checked or failed.
+		$order->delete_meta_data( self::META_CHECKED );
+		$order->delete_meta_data( self::META_CHECK_STATUS );
+		$order->delete_meta_data( self::META_CHECK_ATTEMPTS );
+		$order->delete_meta_data( self::META_CHECK_STARTED_AT );
+		$order->delete_meta_data( self::META_CHECK_NEXT_RETRY_AT );
+		$order->delete_meta_data( self::META_CHECK_LAST_ERROR );
+		$order->delete_meta_data( self::META_CHECK_LAST_HTTP_CODE );
+		$transfer_key = self::get_strict_transfer_cache_key( $order );
+		if ( '' !== $transfer_key ) {
+			delete_transient( $transfer_key );
+		}
+	}
+
+	public static function register_bulk_recheck_action( array $actions ) : array {
+		$actions['yogb_gbl_recheck_skipped'] = __( 'Recheck skipped Global Blacklist orders', 'wc-blacklist-manager' );
+		return $actions;
+	}
+
+	public static function handle_bulk_recheck_action( string $redirect_to, string $action, array $order_ids ) : string {
+		if ( 'yogb_gbl_recheck_skipped' !== $action ) {
+			return $redirect_to;
+		}
+
+		$queued = 0;
+		foreach ( array_unique( array_map( 'absint', $order_ids ) ) as $order_id ) {
+			if ( $order_id <= 0 || ! current_user_can( 'edit_shop_order', $order_id ) ) {
+				continue;
+			}
+
+			$order = wc_get_order( $order_id );
+			if ( ! $order instanceof WC_Order ) {
+				continue;
+			}
+
+			$decision = strtolower( trim( (string) $order->get_meta( self::META_DECISION, true ) ) );
+			if ( 'skipped_rate_limit' !== $decision || ! $order->has_status( [ 'pending', 'processing', 'on-hold', 'failed' ] ) ) {
+				continue;
+			}
+
+			self::reset_order_check_state( $order );
+			$order->save();
+			self::enqueue_global_check_async( $order );
+			$queued++;
+		}
+
+		return add_query_arg( 'yogb_gbl_bulk_rechecked', $queued, $redirect_to );
+	}
+
+	public static function show_bulk_recheck_notice() : void {
+		if ( ! isset( $_GET['yogb_gbl_bulk_rechecked'] ) ) {
+			return;
+		}
+
+		$count = absint( wp_unslash( $_GET['yogb_gbl_bulk_rechecked'] ) );
+		printf(
+			'<div class="notice notice-success is-dismissible"><p>%s</p></div>',
+			esc_html(
+				sprintf(
+					/* translators: %d: number of orders queued for Global Blacklist recheck. */
+					_n( '%d skipped order queued for recheck.', '%d skipped orders queued for recheck.', $count, 'wc-blacklist-manager' ),
+					$count
+				)
+			)
+		);
 	}
 
 	/**

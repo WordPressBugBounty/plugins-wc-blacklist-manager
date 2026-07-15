@@ -3,9 +3,9 @@ Contributors: yoohw, baonguyen0310
 Tags: woocommerce anti fraud, blacklist, checkout, fraud prevention, form spam
 Requires at least: 6.3
 Tested up to: 7.0
-WC tested up to: 10.8
+WC tested up to: 10.9
 Requires PHP: 7.4
-Stable tag: 2.2.8
+Stable tag: 2.2.9
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -121,11 +121,27 @@ Global Blacklist Decisions is a connected fraud-prevention service. Data exchang
 
 == Changelog ==
 
-= 2.2.8 (Jul 12, 2026) =
-* Improve: Added Activity Log records for manual dashboard additions and status changes, including suspect/block entries, IP addresses, domains, and address rules.
-* Improve: Added Activity Log records for Global Blacklist Decisions strict checkout blocks and async order block/challenge decisions.
-* Improve: Added readable Activity Log summaries for new structured events from manual dashboard actions, Global Blacklist Decisions, connection sync, order-status automation, and country access blocks.
-* Improve: Added consistent Activity Log detail payloads with raw IP, IP hash, request, order, user, verification, and blacklist match metadata for core checkout, registration, comment, verification, and user-blocking records.
-* Improve: Added stable integration hooks (`wc_blacklist_manager_order_suspected`, `wc_blacklist_manager_order_blocked`, `wc_blacklist_manager_order_blacklist_removed`, and `wc_blacklist_manager_order_suspect_detected`) with structured payloads for customer intelligence and external audit integrations.
+= 2.2.9 (Jul 15, 2026) =
+* New: Added reporter-authenticated subscription key activation for securely applying purchased Global Blacklist plans to the current site.
+* New: Added a signed plan summary, server connection health, activation method, and masked advanced diagnostics to Global Blacklist settings.
+* New: Added a durable, encrypted Global Blacklist outbox with bounded retry and atomic claims.
+* New: Added opaque Global Blacklist decision correlation for WooCommerce orders.
+* New: Added privacy-safe outcome instrumentation for payment, order, refund, chargeback, fraud, appeal, false-positive, and manual-review events.
+* New: Added server capability negotiation so outcome delivery is enabled only when supported.
+* Improve: Added encrypted durable outcome delivery with retry, idempotency, atomic claims, and dead-letter handling.
+* Improve: Aligned identity, quota, tier sync, credential recovery, and PHP 7.4 contracts with the Global Blacklist server.
+* Improve: Preserved compatibility with older Global Blacklist server and client contracts without changing existing blocking behavior.
+* Improve: Reworked Global Blacklist settings into a compact plan and connection card, with clearer usage, activation controls, and collapsed diagnostics after operational settings.
+* Improve: Centralized Global Blacklist tier limits, made local usage counters concurrency-safe, and records unlimited-tier usage for accurate plan displays.
+* Improve: Added single-order and bulk recheck controls for unfinished orders skipped after reaching the monthly Global Blacklist quota.
+* Improve: Added modern quota progress indicators with warning and reached-limit states in Global Blacklist settings and order metaboxes.
+* Improve: Replaced Global Blacklist disable-service quota actions with clear plan and Premium upgrade paths.
+* Improve: Tailored the monthly quota notice so licensed Premium sites see their Global Blacklist discount benefit without a redundant Get Premium button.
+* Improve: Added the bundled Premium discount offer to the Global Blacklist plan card for non-Premium sites.
+* Security: Removed the Global Blacklist secret from settings-page HTML and masked the connection key.
+* Security: Refreshes tier and plan state only from a signed server snapshot after subscription-key activation.
+* Fix: Prevented authenticated tier snapshots from being reused from shared HTTP caches.
+* Fix: Kept monthly quota and temporary server throttling separate from connection-health errors, and honors Retry-After for temporary throttling.
+* Fix: Shows the monthly quota notice as soon as the final included check is used and clears stale notice flags after plan changes.
 
 For older release notes, see `changelog.txt`.

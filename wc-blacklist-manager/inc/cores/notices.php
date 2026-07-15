@@ -384,7 +384,9 @@ class WC_Blacklist_Manager_Notices {
 		$tier      = strtolower( trim( $tier ) );
 		$month_key = gmdate( 'Ym' );
 
-		$transient_key = 'yogb_gbd_limit_reached_' . $tier . '_' . $month_key;
+		$transient_key = class_exists( 'YOGB_BM_Check' )
+			? YOGB_BM_Check::get_monthly_limit_transient_key( $tier )
+			: 'yogb_gbd_limit_reached_' . $tier . '_' . $month_key;
 
 		$flag = get_transient( $transient_key );
 		if ( empty( $flag ) ) {
@@ -399,28 +401,24 @@ class WC_Blacklist_Manager_Notices {
 			return;
 		}
 
-		$upgrade_url = 'https://yoohw.com/global-blacklist-plan/';
+		$upgrade_url     = 'https://yoohw.com/global-blacklist-plan/';
+		$get_premium_url = 'https://yoohw.com/product/blacklist-manager-premium/';
 
 		$message = esc_html__( 'Your monthly Global Blacklist Decisions checks are used up. New orders will not be screened against the shared fraud network until the quota resets or your plan is upgraded.', 'wc-blacklist-manager' );
 
 		if ( $premium_active ) {
-			$message .= '<br>' . wp_kses_post( __( 'Premium users can get <b>up to 50% off</b> when upgrading to a higher Global Blacklist plan.', 'wc-blacklist-manager' ) );
+			$message .= '<br>' . wp_kses_post( __( 'You are a Blacklist Manager Premium user, so you are eligible for <b>up to 50% off</b> when upgrading your Global Blacklist plan.', 'wc-blacklist-manager' ) );
+		} else {
+			$message .= '<br>' . wp_kses_post( __( 'Get Blacklist Manager Premium with a Global Blacklist plan to receive <b>up to 50% off</b> the eligible Global Blacklist plan.', 'wc-blacklist-manager' ) );
 		}
 
-		$disable_btn = '';
-
-		if ( $premium_active ) {
-			$disable_url = wp_nonce_url(
-				admin_url( 'admin-post.php?action=disable_global_blacklist' ),
-				'disable_global_blacklist'
+		$get_premium_button = $premium_active
+			? ''
+			: sprintf(
+				'<a href="%1$s" class="button" target="_blank" rel="noopener noreferrer">%2$s</a>',
+				esc_url( $get_premium_url ),
+				esc_html__( 'Get Premium', 'wc-blacklist-manager' )
 			);
-
-			$disable_btn = sprintf(
-				'<a href="%1$s" class="button" onclick="return confirm(\'This will stop Global Blacklist checks for all new orders. Continue?\');">%2$s</a>',
-				esc_url( $disable_url ),
-				esc_html__( 'Disable Global Blacklist', 'wc-blacklist-manager-premium' )
-			);
-		}
 
 		printf(
 			'<div class="notice notice-warning is-dismissible yobm-gbd-limit">
@@ -437,7 +435,7 @@ class WC_Blacklist_Manager_Notices {
 			esc_url( $upgrade_url ),
 			esc_html__( 'Upgrade plan', 'wc-blacklist-manager' ),
 			esc_html__( 'Dismiss', 'wc-blacklist-manager' ),
-			$disable_btn
+			$get_premium_button
 		);
 	}
 

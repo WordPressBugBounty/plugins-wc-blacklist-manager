@@ -18,6 +18,16 @@ class YOGB_BM_Registrar {
 	const TRANSIENT_PREFIX = 'yogb_bm_challenge_';
 	const CRON_HOOK        = 'yogb_bm_run_registration';
 
+	private static function server_base() : string {
+		if ( defined( 'YOGB_BM_SERVER_BASE' ) ) {
+			$root = rtrim( (string) YOGB_BM_SERVER_BASE, '/' );
+			$base = false === strpos( $root, '/wp-json/' ) ? $root . '/wp-json/yoohw-gbl' : $root;
+		} else {
+			$base = self::SERVER_BASE;
+		}
+		return rtrim( (string) apply_filters( 'yogb_bm_registration_server_base', $base ), '/' );
+	}
+
 	public static function init() {
 		// A) REST proof route (public)
 		add_action( 'rest_api_init', function() {
@@ -188,6 +198,37 @@ class YOGB_BM_Registrar {
 		}
 	}
 
+	/** Recover automatically when the server rejects stored credentials. */
+	public static function handle_auth_failure( string $source = '' ) : void {
+		if ( get_transient( 'yogb_bm_auth_recovery_lock' ) ) {
+			return;
+		}
+		set_transient( 'yogb_bm_auth_recovery_lock', 1, 5 * MINUTE_IN_SECONDS );
+		self::mark_connection_error( 'unauthorized', $source );
+		delete_option( self::OPT_API_KEY );
+		delete_option( self::OPT_API_SECRET );
+		delete_option( self::OPT_REPORTER_ID );
+		delete_option( 'yogb_bm_reg_attempts' );
+		delete_option( 'yogb_bm_reg_backoff' );
+		delete_option( 'yogb_bm_reg_cooldown_until' );
+		self::schedule_registration( 30 );
+		do_action( 'yogb_bm_auth_recovery', sanitize_key( $source ) );
+	}
+
+	public static function mark_auth_success() : void {
+		delete_transient( 'yogb_bm_auth_recovery_lock' );
+		update_option( 'yogb_bm_last_server_success_at', time(), false );
+		delete_option( 'yogb_bm_last_server_error_code' );
+		delete_option( 'yogb_bm_last_server_error_at' );
+		delete_option( 'yogb_bm_last_server_error_source' );
+	}
+
+	public static function mark_connection_error( string $code, string $source = '' ) : void {
+		update_option( 'yogb_bm_last_server_error_code', sanitize_key( $code ), false );
+		update_option( 'yogb_bm_last_server_error_at', time(), false );
+		update_option( 'yogb_bm_last_server_error_source', sanitize_key( $source ), false );
+	}
+
 	/** Public REST: echo the token as plain text + no-cache */
 	public static function rest_challenge_echo( WP_REST_Request $req ) {
 		$id    = sanitize_text_field( (string) $req->get_param( 'id' ) );
@@ -256,7 +297,7 @@ class YOGB_BM_Registrar {
 				return;
 			}
 
-			$server_pub = trailingslashit( self::SERVER_BASE ) . 'public/v1';
+				$server_pub = trailingslashit( self::server_base() ) . 'public/v1';
 			$site_url   = home_url( '/' );
 			$host       = wp_parse_url( $site_url, PHP_URL_HOST );
 			$domain     = is_string( $host ) ? strtolower( $host ) : '';
@@ -274,7 +315,11 @@ class YOGB_BM_Registrar {
 			}
 
 			// STEP 1: /register/start
-			$start = wp_safe_remote_post( $server_pub . '/register/start', [
+			$start_url = $server_pub . '/register/start';
+			$start_host = wp_parse_url( $start_url, PHP_URL_HOST );
+			$local_default = YOGB_BM_ALLOW_NONPROD && 'production' !== wp_get_environment_type() && is_string( $start_host ) && (bool) preg_match( '/\.local$/i', $start_host );
+			$allow_unsafe_local = (bool) apply_filters( 'yogb_bm_registration_allow_unsafe_local_url', $local_default, $start_url );
+			$start_args = [
 				'timeout' => 10,
 				'headers' => [
 					'Content-Type' => 'application/json',
@@ -286,8 +331,9 @@ class YOGB_BM_Registrar {
 					'site_url'    => $site_url,
 					'owner_email' => $email,
 				] ),
-				'reject_unsafe_urls' => true,
-			] );
+				'reject_unsafe_urls' => ! $allow_unsafe_local,
+			];
+			$start = $allow_unsafe_local ? wp_remote_post( $start_url, $start_args ) : wp_safe_remote_post( $start_url, $start_args );
 
 			if ( is_wp_error( $start ) ) {
 				self::schedule_registration_with_backoff( $quiet, 'start_err', $start->get_error_message() );
@@ -332,7 +378,11 @@ class YOGB_BM_Registrar {
 			set_transient( self::TRANSIENT_PREFIX . $challenge_id, $token, 15 * MINUTE_IN_SECONDS );
 
 			// STEP 2: /register/verify  — send ONLY the challenge_id
-			$verify = wp_safe_remote_post( $server_pub . '/register/verify', [
+			$verify_url = $server_pub . '/register/verify';
+			$verify_host = wp_parse_url( $verify_url, PHP_URL_HOST );
+			$local_default = YOGB_BM_ALLOW_NONPROD && 'production' !== wp_get_environment_type() && is_string( $verify_host ) && (bool) preg_match( '/\.local$/i', $verify_host );
+			$allow_unsafe_local = (bool) apply_filters( 'yogb_bm_registration_allow_unsafe_local_url', $local_default, $verify_url );
+			$verify_args = [
 				'timeout' => 10,
 				'headers' => [
 					'Content-Type' => 'application/json',
@@ -342,8 +392,9 @@ class YOGB_BM_Registrar {
 				'body'    => wp_json_encode( [
 					'challenge_id' => $challenge_id,
 				] ),
-				'reject_unsafe_urls' => true,
-			] );
+				'reject_unsafe_urls' => ! $allow_unsafe_local,
+			];
+			$verify = $allow_unsafe_local ? wp_remote_post( $verify_url, $verify_args ) : wp_safe_remote_post( $verify_url, $verify_args );
 
 			if ( is_wp_error( $verify ) ) {
 				self::schedule_registration_with_backoff( $quiet, 'verify_err', $verify->get_error_message() );
@@ -560,15 +611,15 @@ class YOGB_BM_Registrar {
 		if ( $is_ip || $host === 'localhost' ) { $score += $weights['localhost_or_ip']; $strong = true; $reasons[] = 'host='.$host; }
 
 		foreach ( ['.test','.local','.example','.invalid','.internal'] as $tld ) {
-			if ( str_ends_with($host, $tld) ) { $score += $weights['reserved_tld']; $strong = true; $reasons[] = 'tld='.$tld; break; }
+			if ( substr( $host, -strlen( $tld ) ) === $tld ) { $score += $weights['reserved_tld']; $strong = true; $reasons[] = 'tld='.$tld; break; }
 		}
 
 		foreach ( ['kinsta.cloud','wpenginepowered.com','flywheelsites.com','pantheonsite.io','cloudwaysapps.com'] as $pat ) {
-			if ( str_ends_with($host, $pat) ) { $score += $weights['provider_host']; $reasons[] = 'provider='.$pat; break; }
+			if ( substr( $host, -strlen( $pat ) ) === $pat ) { $score += $weights['provider_host']; $reasons[] = 'provider='.$pat; break; }
 		}
 
 		$kw_regex = '/(^|\.)(staging|stage|dev|develop|development|test|testing|preview|sandbox|qa|demo|beta|alpha|preprod|pre-prod)(\.|-)/i';
-		if ( preg_match($kw_regex, $host) || str_contains($host, '-dev') ) { $score += $weights['host_keyword']; $reasons[] = 'host_kw'; }
+		if ( preg_match($kw_regex, $host) || false !== strpos( $host, '-dev' ) ) { $score += $weights['host_keyword']; $reasons[] = 'host_kw'; }
 
 		$path_kws = ['staging','stage','preview','sandbox','qa','demo','beta','alpha','preprod','pre-prod','testing'];
 		foreach ( $path_kws as $kw ) {

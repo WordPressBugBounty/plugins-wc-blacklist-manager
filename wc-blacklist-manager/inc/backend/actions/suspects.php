@@ -94,6 +94,9 @@ class WC_Blacklist_Manager_Suspicious_Actions {
 		$shipping_first_name = sanitize_text_field( $order->get_shipping_first_name() );
 		$shipping_last_name  = sanitize_text_field( $order->get_shipping_last_name() );
 		$shipping_full_name  = trim( $shipping_first_name . ' ' . $shipping_last_name );
+		$use_shipping_name   = method_exists( $order, 'needs_shipping_address' )
+			? (bool) $order->needs_shipping_address()
+			: ( '' !== $shipping_first_name && '' !== $shipping_last_name );
 
 		$billing_phone  = sanitize_text_field( $order->get_billing_phone() );
 		$shipping_phone = sanitize_text_field( $order->get_shipping_phone() );
@@ -132,6 +135,22 @@ class WC_Blacklist_Manager_Suspicious_Actions {
 
 		$customer_address         = $billing_address['address_display'];
 		$shipping_address_display = $shipping_address['address_display'];
+		$name_match_context       = array();
+
+		if ( $premium_active && class_exists( 'WC_Blacklist_Manager_Premium_Customer_Name_Matcher' ) ) {
+			$name_match_context = WC_Blacklist_Manager_Premium_Customer_Name_Matcher::normalize_match_context(
+				array(
+					'phone'            => $billing_phone,
+					'shipping_phone'   => $shipping_phone,
+					'email'            => $email,
+					'normalized_email' => $normalized_email,
+					'ip'               => $user_ip,
+					'device_id'        => $device_id,
+					'billing_address'  => $billing_address,
+					'shipping_address' => $shipping_address,
+				)
+			);
+		}
 
 		$send_email = false;
 		$reasons    = array();
@@ -241,24 +260,25 @@ class WC_Blacklist_Manager_Suspicious_Actions {
 		}
 
 		// Billing name.
-		if ( ! empty( $customer_name ) && $premium_active && get_option( 'wc_blacklist_customer_name_blocking_enabled' ) === '1' ) {
-			$sql_billing_name = $wpdb->prepare(
-				"SELECT 1
-				FROM {$table_name}
-				WHERE LOWER(CONCAT(first_name, ' ', last_name)) = %s
-				AND is_blocked = 0
-				LIMIT 1",
-				strtolower( $customer_name )
-			);
+		if (
+			$premium_active
+			&& '1' === (string) get_option( 'wc_blacklist_customer_name_blocking_enabled', '0' )
+			&& class_exists( 'WC_Blacklist_Manager_Premium_Customer_Name_Matcher' )
+		) {
+			$customer_name_match = WC_Blacklist_Manager_Premium_Customer_Name_Matcher::match_pair( $first_name, $last_name, 0, $name_match_context, true );
+			$customer_name_blacklisted = ! empty( $customer_name_match['matched'] ) && 'suspect' === (string) $customer_name_match['decision_action'];
 
-			$customer_name_blacklisted = ! empty( $wpdb->get_var( $sql_billing_name ) );
+			if ( ! $customer_name_blacklisted ) {
+				$customer_name_match = WC_Blacklist_Manager_Premium_Customer_Name_Matcher::match_pair( $first_name, $last_name, 1, $name_match_context, true );
+				$customer_name_blacklisted = ! empty( $customer_name_match['matched'] ) && 'suspect' === (string) $customer_name_match['decision_action'];
+			}
 
 			if ( $customer_name_blacklisted ) {
 				$send_email = true;
-				$reasons[]  = 'suspected_billing_name_attempt: ' . $customer_name;
+				$reasons[]  = 'suspected_billing_name_' . sanitize_key( (string) $customer_name_match['match_type'] ) . '_attempt: ' . $customer_name;
 
-				update_option( 'wc_blacklist_sum_block_name', (int) get_option( 'wc_blacklist_sum_block_name', 0 ) + 1 );
-				update_option( 'wc_blacklist_sum_block_total', (int) get_option( 'wc_blacklist_sum_block_total', 0 ) + 1 );
+				WC_Blacklist_Manager_Premium_Customer_Name_Matcher::increment_option_counter( 'wc_blacklist_sum_block_name' );
+				WC_Blacklist_Manager_Premium_Customer_Name_Matcher::increment_option_counter( 'wc_blacklist_sum_block_total' );
 			} else {
 				$customer_name = '';
 			}
@@ -267,24 +287,26 @@ class WC_Blacklist_Manager_Suspicious_Actions {
 		}
 
 		// Shipping name.
-		if ( ! empty( $shipping_full_name ) && $premium_active && get_option( 'wc_blacklist_customer_name_blocking_enabled' ) === '1' ) {
-			$sql_shipping_name = $wpdb->prepare(
-				"SELECT 1
-				FROM {$table_name}
-				WHERE LOWER(CONCAT(first_name, ' ', last_name)) = %s
-				AND is_blocked = 0
-				LIMIT 1",
-				strtolower( $shipping_full_name )
-			);
+		if (
+			$use_shipping_name
+			&& $premium_active
+			&& '1' === (string) get_option( 'wc_blacklist_customer_name_blocking_enabled', '0' )
+			&& class_exists( 'WC_Blacklist_Manager_Premium_Customer_Name_Matcher' )
+		) {
+			$shipping_name_match = WC_Blacklist_Manager_Premium_Customer_Name_Matcher::match_pair( $shipping_first_name, $shipping_last_name, 0, $name_match_context, true );
+			$shipping_name_blacklisted = ! empty( $shipping_name_match['matched'] ) && 'suspect' === (string) $shipping_name_match['decision_action'];
 
-			$shipping_name_blacklisted = ! empty( $wpdb->get_var( $sql_shipping_name ) );
+			if ( ! $shipping_name_blacklisted ) {
+				$shipping_name_match = WC_Blacklist_Manager_Premium_Customer_Name_Matcher::match_pair( $shipping_first_name, $shipping_last_name, 1, $name_match_context, true );
+				$shipping_name_blacklisted = ! empty( $shipping_name_match['matched'] ) && 'suspect' === (string) $shipping_name_match['decision_action'];
+			}
 
 			if ( $shipping_name_blacklisted ) {
 				$send_email = true;
-				$reasons[]  = 'suspected_shipping_name_attempt: ' . $shipping_full_name;
+				$reasons[]  = 'suspected_shipping_name_' . sanitize_key( (string) $shipping_name_match['match_type'] ) . '_attempt: ' . $shipping_full_name;
 
-				update_option( 'wc_blacklist_sum_block_name', (int) get_option( 'wc_blacklist_sum_block_name', 0 ) + 1 );
-				update_option( 'wc_blacklist_sum_block_total', (int) get_option( 'wc_blacklist_sum_block_total', 0 ) + 1 );
+				WC_Blacklist_Manager_Premium_Customer_Name_Matcher::increment_option_counter( 'wc_blacklist_sum_block_name' );
+				WC_Blacklist_Manager_Premium_Customer_Name_Matcher::increment_option_counter( 'wc_blacklist_sum_block_total' );
 
 				if ( '' === $customer_name ) {
 					$customer_name = $shipping_full_name;

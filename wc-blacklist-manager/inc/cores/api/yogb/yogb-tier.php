@@ -10,6 +10,7 @@ final class YOGB_BM_Tier_Webhook {
 	const OPTION_TIER_UPDATED_AT   = 'yogb_bm_tier_updated_at';
 	const OPTION_TIER_LAST_EVENT   = 'yogb_bm_tier_last_event_id';
 	const OPTION_TIER_LAST_SOURCE  = 'yogb_bm_tier_last_source';
+	const OPTION_PLAN_SUMMARY      = 'yogb_bm_plan_summary';
 
 	/**
 	 * Small rolling map of processed event IDs:
@@ -169,6 +170,11 @@ final class YOGB_BM_Tier_Webhook {
 			];
 		}
 
+		// Plan metadata is part of the authenticated/signed payload. Refresh it even
+		// when the tier event itself is a duplicate, because entitlement state can
+		// change without changing the effective tier (for example Pro -> Pro).
+		self::sync_plan_summary( $payload );
+
 		$local_version = (int) get_option( self::OPTION_TIER_VERSION, 0 );
 		$local_tier    = (string) get_option( self::OPTION_TIER, 'free' );
 		$local_tier    = strtolower( trim( $local_tier ) );
@@ -218,15 +224,25 @@ final class YOGB_BM_Tier_Webhook {
 				];
 			}
 
-			if ( isset( $context['source'] ) && 'pull' === $context['source'] ) {
-				update_option( self::OPTION_TIER, $tier, false );
-				update_option( self::OPTION_TIER_UPDATED_AT, current_time( 'mysql' ), false );
+				if ( isset( $context['source'] ) && 'pull' === $context['source'] ) {
+					update_option( self::OPTION_TIER, $tier, false );
+					if ( 'free' !== $tier ) {
+						update_option( 'wc_blacklist_enable_global_blacklist', '1', false );
+					}
+					update_option( self::OPTION_TIER_UPDATED_AT, current_time( 'mysql' ), false );
 				update_option( self::OPTION_TIER_LAST_SOURCE, 'pull', false );
 
-				if ( '' !== $event_id ) {
+					if ( '' !== $event_id ) {
 					update_option( self::OPTION_TIER_LAST_EVENT, $event_id, false );
 					self::mark_event_processed( $event_id );
-				}
+					}
+					if ( $local_tier !== $tier ) {
+						YOGB_BM_Check::migrate_monthly_counter_on_tier_change(
+							$local_tier,
+							$tier,
+							isset( $payload['ts'] ) ? (int) $payload['ts'] : null
+						);
+					}
 
 				return [
 					'ok'            => true,
@@ -282,6 +298,40 @@ final class YOGB_BM_Tier_Webhook {
 			'event_id'        => $event_id,
 			'code'            => 200,
 		];
+	}
+
+	public static function plan_summary() : array {
+		$summary = get_option( self::OPTION_PLAN_SUMMARY, [] );
+		return is_array( $summary ) ? $summary : [];
+	}
+
+	private static function sync_plan_summary( array $payload ) : void {
+		if ( empty( $payload['plan'] ) || ! is_array( $payload['plan'] ) ) return;
+		$plan=$payload['plan'];$status=sanitize_key((string)($plan['status']??''));$type=sanitize_key((string)($plan['type']??''));$tier=sanitize_key((string)($plan['tier']??'free'));
+		if(!in_array($status,['active','inactive','none'],true)||!in_array($type,['subscription','legacy','mixed','none'],true)||!in_array($tier,['free','basic','pro','enterprise'],true))return;
+		$subscription_ids = array_slice(
+			array_values( array_unique( array_filter( array_map( 'sanitize_text_field', (array) ( $plan['subscription_ids'] ?? [] ) ) ) ) ),
+			0,
+			10
+		);
+		$active_subscriptions = max( 0, (int) ( $plan['active_subscriptions'] ?? 0 ) );
+		update_option(self::OPTION_PLAN_SUMMARY,[
+			'status'=>$status,'type'=>$type,'tier'=>$tier,
+			'active_entitlements'=>max(0,(int)($plan['active_entitlements']??0)),
+			'active_subscriptions'=>$active_subscriptions,
+			'active_legacy'=>max(0,(int)($plan['active_legacy']??0)),
+			'subscription_ids'=>$subscription_ids,
+			'updated_at'=>time(),
+		],false);
+
+		$has_activated_key = '' !== (string) get_option( 'yogb_bm_subscription_key_last4', '' );
+		if ( in_array( $type, [ 'subscription', 'mixed' ], true ) || $has_activated_key ) {
+			update_option(
+				'yogb_bm_subscription_activation_status',
+				$active_subscriptions > 0 ? 'active' : 'inactive',
+				false
+			);
+		}
 	}
 
 	private static function normalize_host( string $host ) : string {

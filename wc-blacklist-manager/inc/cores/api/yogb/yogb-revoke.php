@@ -76,6 +76,11 @@ final class YOGB_BM_Revoke_Report {
 			return;
 		}
 
+		$route = YOGB_BM_Report::REST_ROUTE . '/reports/' . $numeric_id . '/revoke';
+		if ( class_exists( 'YOGB_BM_Outbox' ) && YOGB_BM_Outbox::enqueue_revoke( $route, $payload ) > 0 ) {
+			return;
+		}
+
 		$key = md5(
 			wp_json_encode(
 				[
@@ -135,31 +140,10 @@ final class YOGB_BM_Revoke_Report {
 
 		$res = YOGB_BM_Report::post_json_signed( $route, $payload );
 
-		// Simple retry on transient server errors.
-		if ( empty( $res['ok'] ) && in_array( (int) ( $res['code'] ?? 0 ), [ 429, 500, 502, 503, 504 ], true ) ) {
-			$retry_key = md5(
-				wp_json_encode(
-					[
-						$numeric_id,
-						$payload,
-						'retry',
-					]
-				)
-			);
-
-			$retry_transient = 'yogb_bm_revoke_' . $retry_key;
-			set_transient(
-				$retry_transient,
-				[
-					'report_id' => $numeric_id,
-					'payload'   => $payload,
-				],
-				10 * MINUTE_IN_SECONDS
-			);
-
-			if ( ! wp_next_scheduled( self::CRON_HOOK, [ $retry_key ] ) ) {
-				wp_schedule_single_event( time() + 60, self::CRON_HOOK, [ $retry_key ] );
-			}
+		// Move failed legacy transient jobs into the durable outbox. Code zero
+		// covers DNS, TLS, timeout and connection failures.
+		if ( empty( $res['ok'] ) && class_exists( 'YOGB_BM_Outbox' ) ) {
+			YOGB_BM_Outbox::enqueue_revoke( $route, $payload );
 		}
 
 		// Optional debug logging

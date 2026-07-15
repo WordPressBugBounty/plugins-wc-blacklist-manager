@@ -239,30 +239,20 @@ class WC_Blacklist_Manager_Order_Risk_Score {
 			$tier = 'free';
 		}
 
-		switch ( $tier ) {
-			case 'basic':
-				$tier_label = __( 'Basic', 'wc-blacklist-manager' );
-				$tier_limit = 150;
-				break;
-			case 'pro':
-				$tier_label = __( 'Pro', 'wc-blacklist-manager' );
-				$tier_limit = 1000;
-				break;
-			case 'enterprise':
-				$tier_label = __( 'Enterprise', 'wc-blacklist-manager' );
-				$tier_limit = 0;
-				break;
-			case 'free':
-			default:
-				$tier_label = __( 'Free', 'wc-blacklist-manager' );
-				$tier_limit = 20;
-				break;
-		}
-
-		$month_key         = gmdate( 'Ym' );
-		$usage_opt         = 'yogb_bm_chk_month_' . $tier . '_' . $month_key;
-		$tier_used         = (int) get_option( $usage_opt, 0 );
+		$tier_labels = [
+			'free'       => __( 'Free', 'wc-blacklist-manager' ),
+			'basic'      => __( 'Basic', 'wc-blacklist-manager' ),
+			'pro'        => __( 'Pro', 'wc-blacklist-manager' ),
+			'enterprise' => __( 'Enterprise', 'wc-blacklist-manager' ),
+		];
+		$tier_label        = $tier_labels[ $tier ];
+		$tier_limit        = YOGB_BM_Check::get_monthly_limit_for_tier( $tier );
+		$tier_used         = YOGB_BM_Check::get_monthly_usage( $tier );
 		$has_reached_limit = ( $tier_limit > 0 && $tier_used >= $tier_limit );
+		$tier_usage_percent = $tier_limit > 0 ? min( 100, round( ( $tier_used / $tier_limit ) * 100, 2 ) ) : 100;
+		$tier_usage_state   = $tier_limit <= 0
+			? 'unlimited'
+			: ( $has_reached_limit ? 'error' : ( $tier_usage_percent >= 80 ? 'warning' : 'normal' ) );
 
 		if ( $tier_limit > 0 ) {
 			$tier_usage_text = $has_reached_limit
@@ -287,6 +277,19 @@ class WC_Blacklist_Manager_Order_Risk_Score {
 		$upgrade_url = 'https://yoohw.com/global-blacklist-plan/';
 
 		$decision_raw = strtolower( trim( (string) $order->get_meta( '_yogb_gbl_decision', true ) ) );
+		$can_recheck_skipped = 'skipped_rate_limit' === $decision_raw && $order->has_status( [ 'pending', 'processing', 'on-hold', 'failed' ] );
+		$recheck_url = $can_recheck_skipped
+			? wp_nonce_url(
+				add_query_arg(
+					[
+						'action'   => 'yogb_gbl_manual_order_check',
+						'order_id' => $order->get_id(),
+					],
+					admin_url( 'admin-post.php' )
+				),
+				'yogb_gbl_manual_order_check_' . $order->get_id()
+			)
+			: '';
 
 		$meta_effective_score    = (float) $order->get_meta( '_yogb_gbl_effective_score', true );
 		$meta_direct_score       = (float) $order->get_meta( '_yogb_gbl_direct_score', true );
@@ -447,11 +450,26 @@ class WC_Blacklist_Manager_Order_Risk_Score {
 					tabindex="0" 
 					data-tip="<?php esc_attr_e('Global Blacklist works alongside your site’s local blacklist to add extra protection by identifying real customers already flagged on our global blacklist (not bots), helping you block known high-risk users more accurately.', 'wc-blacklist-manager'); ?>">
 				</span>
-				<br />
-				<small class="bm-order-risk-tier-usage<?php echo $has_reached_limit ? ' bm-order-risk-tier-usage--limit' : ''; ?>">
-					<?php echo esc_html( $tier_usage_text ); ?>
-				</small>
 			</p>
+
+			<div class="bm-order-risk-quota bm-order-risk-quota--<?php echo esc_attr( $tier_usage_state ); ?>">
+				<div class="bm-order-risk-quota__row">
+					<span><?php esc_html_e( 'Monthly checks', 'wc-blacklist-manager' ); ?></span>
+					<strong>
+						<?php
+						echo esc_html(
+								$tier_limit > 0
+									? sprintf( __( '%1$d of %2$d', 'wc-blacklist-manager' ), $tier_used, $tier_limit )
+									: sprintf( __( '%d used · Unlimited', 'wc-blacklist-manager' ), $tier_used )
+							);
+						?>
+					</strong>
+				</div>
+				<div class="bm-order-risk-quota__progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="<?php echo esc_attr( (string) $tier_usage_percent ); ?>">
+					<span style="width: <?php echo esc_attr( (string) $tier_usage_percent ); ?>%"></span>
+				</div>
+				<div class="bm-order-risk-quota__status"><?php echo esc_html( $tier_usage_text ); ?></div>
+			</div>
 
 			<div class="bm-gbl-summary-card bm-gbl-summary-card--<?php echo esc_attr( $decision_slug ); ?>">
 				<div class="bm-gbl-summary-card__label">
@@ -486,6 +504,9 @@ class WC_Blacklist_Manager_Order_Risk_Score {
 			<div class="bm-gbl-merchant-section">
 				<div class="bm-gbl-merchant-section__title"><?php esc_html_e( 'Recommended action', 'wc-blacklist-manager' ); ?></div>
 				<p><?php echo esc_html( $action_text ); ?></p>
+				<?php if ( $can_recheck_skipped ) : ?>
+					<p><a href="<?php echo esc_url( $recheck_url ); ?>" class="button button-secondary"><?php esc_html_e( 'Recheck now', 'wc-blacklist-manager' ); ?></a></p>
+				<?php endif; ?>
 			</div>
 
 			<?php if ( ! empty( $matched_types ) ) : ?>

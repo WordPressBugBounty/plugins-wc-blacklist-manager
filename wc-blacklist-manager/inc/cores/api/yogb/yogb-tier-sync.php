@@ -31,7 +31,7 @@ final class YOGB_BM_Tier_Sync {
 	public static function run() : void {
 		$api_key     = (string) get_option( YOGB_BM_Report::OPT_KEY );
 		$secret      = (string) get_option( YOGB_BM_Report::OPT_SECRET );
-		$server_base = (string) YOGB_BM_Report::SERVER_BASE;
+		$server_base = YOGB_BM_Report::server_base();
 		$rest_route  = (string) YOGB_BM_Report::REST_ROUTE;
 
 		if ( '' === $api_key || '' === $secret || '' === $server_base || '' === $rest_route ) {
@@ -51,27 +51,30 @@ final class YOGB_BM_Tier_Sync {
 			hash_hmac( 'sha256', $api_key . "\n" . $ts, $secret, true )
 		);
 
-		$query = http_build_query(
-			[
-				'api_key' => $api_key,
-				'ts'      => $ts,
-				'sig'     => $sig,
-			],
-			'',
-			'&',
-			PHP_QUERY_RFC3986
+		$url = add_query_arg(
+			'yogb_cb',
+			rawurlencode( $ts ),
+			$server_base . $rest_route . '/client/tier'
 		);
 
-		$url = $server_base . $rest_route . '/client/tier?' . $query;
-
-		$res = wp_safe_remote_get(
-			$url,
-			[
+		$transport_host = wp_parse_url( $url, PHP_URL_HOST );
+		$local_default = defined( 'YOGB_BM_ALLOW_NONPROD' ) && YOGB_BM_ALLOW_NONPROD && 'production' !== wp_get_environment_type() && is_string( $transport_host ) && (bool) preg_match( '/\.local$/i', $transport_host );
+		$allow_unsafe_local = (bool) apply_filters( 'yogb_bm_allow_unsafe_local_url', $local_default, $url, $rest_route . '/client/tier' );
+		$args = [
 				'timeout' => 15,
-			]
-		);
+				'headers' => [
+					'X-API-Key'           => $api_key,
+					'X-Request-Timestamp' => $ts,
+					'X-Signature'         => $sig,
+					'Cache-Control'       => 'no-cache',
+					'Pragma'              => 'no-cache',
+				],
+				'reject_unsafe_urls' => ! $allow_unsafe_local,
+			];
+		$res = $allow_unsafe_local ? wp_remote_get( $url, $args ) : wp_safe_remote_get( $url, $args );
 
 		if ( is_wp_error( $res ) ) {
+			if ( class_exists( 'YOGB_BM_Registrar' ) ) YOGB_BM_Registrar::mark_connection_error( 'transport_error', 'tier_pull' );
 			return;
 		}
 
@@ -79,6 +82,11 @@ final class YOGB_BM_Tier_Sync {
 		$body_raw  = (string) wp_remote_retrieve_body( $res );
 
 		if ( 200 !== $http_code ) {
+			if ( 401 === $http_code && class_exists( 'YOGB_BM_Registrar' ) ) {
+				YOGB_BM_Registrar::handle_auth_failure( 'tier_pull' );
+			} elseif ( class_exists( 'YOGB_BM_Registrar' ) ) {
+				YOGB_BM_Registrar::mark_connection_error( 'http_' . $http_code, 'tier_pull' );
+			}
 			return;
 		}
 
@@ -87,6 +95,7 @@ final class YOGB_BM_Tier_Sync {
 		$resp_sig = (string) wp_remote_retrieve_header( $res, 'x-yogb-signature' );
 
 		if ( '' === $body_raw || '' === $resp_ts || '' === $resp_sig ) {
+			if ( class_exists( 'YOGB_BM_Registrar' ) ) YOGB_BM_Registrar::mark_connection_error( 'missing_response_signature', 'tier_pull' );
 			return;
 		}
 
@@ -95,13 +104,17 @@ final class YOGB_BM_Tier_Sync {
 		);
 
 		if ( ! hash_equals( $expected, $resp_sig ) ) {
+			if ( class_exists( 'YOGB_BM_Registrar' ) ) YOGB_BM_Registrar::mark_connection_error( 'bad_response_signature', 'tier_pull' );
 			return;
 		}
 
 		$payload = json_decode( $body_raw, true );
 		if ( ! is_array( $payload ) ) {
+			if ( class_exists( 'YOGB_BM_Registrar' ) ) YOGB_BM_Registrar::mark_connection_error( 'invalid_json', 'tier_pull' );
 			return;
 		}
+		if ( class_exists( 'YOGB_BM_Registrar' ) ) YOGB_BM_Registrar::mark_auth_success();
+		update_option('yogb_bm_server_capabilities',array_values(array_filter(array_map('sanitize_key',(array)($payload['capabilities']??[])))),false);
 
 		$result = YOGB_BM_Tier_Webhook::apply_tier_payload(
 			$payload,

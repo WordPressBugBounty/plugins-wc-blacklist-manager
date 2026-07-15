@@ -15,6 +15,12 @@ final class YOGB_BM_Report {
 	const META_EVIDENCE_SNAPSHOT = '_yogb_evidence_snapshot_v1';
 	const META_EVIDENCE_HASH     = '_yogb_evidence_hash_v1';
 
+	/** Production default with an explicit override for staging/local gates. */
+	public static function server_base() : string {
+		$base = defined( 'YOGB_BM_SERVER_BASE' ) ? (string) YOGB_BM_SERVER_BASE : self::SERVER_BASE;
+		return rtrim( (string) apply_filters( 'yogb_bm_server_base', $base ), '/' );
+	}
+
 	// ---- Public API --------------------------------------------------------
 
 	/**
@@ -47,6 +53,11 @@ final class YOGB_BM_Report {
 
 		foreach ( $payloads as $p ) {
 			$idemp = self::make_idempotency_key_per_identity( $order, $reason_code, $p['identity'] );
+			if ( class_exists( 'YOGB_BM_Outbox' ) && YOGB_BM_Outbox::enqueue_report( $p, $idemp, (int) $order->get_id() ) > 0 ) {
+				continue;
+			}
+
+			// Upgrade fallback: retain the previous queue only if outbox creation fails.
 			$envelope = [
 				'payload'     => $p,
 				'idempotency' => $idemp,
@@ -103,14 +114,10 @@ final class YOGB_BM_Report {
 			}
 		}
 
-		// Simple backoff on transient errors (5xx/429) – reschedule once
-		if ( empty($res['ok']) && in_array( (int) $res['code'], [429,500,502,503,504], true ) ) {
-			// re-enqueue in ~60s (idempotent so safe)
-			$retry_key = md5( wp_json_encode( [ $idemp, $payload, 'retry' ] ) );
-			if ( ! wp_next_scheduled( self::CRON_HOOK, [ $retry_key ] ) ) {
-				set_transient( 'yogb_bm_payload_' . $retry_key, [ 'payload'=>$payload, 'idempotency'=>$idemp ], 10 * MINUTE_IN_SECONDS );
-				wp_schedule_single_event( time() + 60, self::CRON_HOOK, [ $retry_key ] );
-			}
+		// Move failed legacy transient jobs into the durable outbox, including
+		// transport failures where WordPress reports HTTP code zero.
+		if ( empty( $res['ok'] ) && class_exists( 'YOGB_BM_Outbox' ) ) {
+			YOGB_BM_Outbox::enqueue_report( (array) $payload, (string) $idemp, $order_id );
 		}
 
 		// Optional: log for visibility in debug.log
@@ -382,6 +389,11 @@ final class YOGB_BM_Report {
 		);
 
 		foreach ( $idents as $ident ) {
+			// Domain is a supporting graph identity. The server intentionally does
+			// not accept it as a primary report identity.
+			if ( 'domain' === (string) ( $ident['type'] ?? '' ) ) {
+				continue;
+			}
 			$ctx = array(
 				'reason_code'  => $reason_code,
 				'description'  => $description,
@@ -740,8 +752,7 @@ final class YOGB_BM_Report {
 			];
 		}
 
-		// Build URL: SERVER_BASE should be like 'https://globalblacklist.org/'.
-		$url    = trailingslashit( self::SERVER_BASE ) . 'wp-json' . $route;
+		$url    = trailingslashit( self::server_base() ) . 'wp-json' . $route;
 		$method = 'POST';
 
 		$ts    = (string) time();
@@ -793,30 +804,56 @@ final class YOGB_BM_Report {
 			// Explicit, even though WP defaults to true.
 			'sslverify'   => true,
 		];
+		$transport_host = wp_parse_url( $url, PHP_URL_HOST );
+		$local_default = defined( 'YOGB_BM_ALLOW_NONPROD' ) && YOGB_BM_ALLOW_NONPROD && 'production' !== wp_get_environment_type() && is_string( $transport_host ) && (bool) preg_match( '/\.local$/i', $transport_host );
+		$allow_unsafe_local = (bool) apply_filters( 'yogb_bm_allow_unsafe_local_url', $local_default, $url, $route );
+		$args['reject_unsafe_urls'] = ! $allow_unsafe_local;
 
 		/**
 		 * Final chance to tweak args (debug proxies, etc).
 		 */
 		$args = apply_filters( 'yogb_bm_http_request_args', $args, $route, $payload );
 
-			$res = wp_safe_remote_post( $url, $args );
+		$res = $allow_unsafe_local ? wp_remote_post( $url, $args ) : wp_safe_remote_post( $url, $args );
 
 		if ( is_wp_error( $res ) ) {
 			// Timeout / DNS / SSL / connection issues.
+			if ( class_exists( 'YOGB_BM_Registrar' ) ) YOGB_BM_Registrar::mark_connection_error( 'transport_error', 'signed_post' );
+			do_action( 'yogb_bm_http_event', 'transport_error', [ 'route' => $route, 'error_code' => sanitize_key( $res->get_error_code() ) ] );
 			return [
 				'ok'   => false,
 				'code' => 0,
-				'err'  => $res->get_error_message(),
+				'err'  => 'transport_error',
+				'error_code' => 'transport_error',
 			];
 		}
 
 		$code = (int) wp_remote_retrieve_response_code( $res );
 		$rb   = (string) wp_remote_retrieve_body( $res );
+		$decoded = json_decode( $rb, true );
+		$error_code = is_array( $decoded ) && isset( $decoded['error'] )
+			? sanitize_key( (string) $decoded['error'] )
+			: '';
+		$retry_after = max( 0, (int) wp_remote_retrieve_header( $res, 'retry-after' ) );
+		if ( 401 === $code && class_exists( 'YOGB_BM_Registrar' ) ) {
+			YOGB_BM_Registrar::handle_auth_failure( 'signed_post' );
+		} elseif ( $code >= 200 && $code < 300 && class_exists( 'YOGB_BM_Registrar' ) ) {
+			YOGB_BM_Registrar::mark_auth_success();
+		} elseif ( in_array( $error_code, [ 'plan_quota_exceeded', 'rate_limited' ], true ) && class_exists( 'YOGB_BM_Registrar' ) ) {
+			// The signed server answered successfully. Quota exhaustion and burst
+			// throttling are operational states, not connection failures.
+			YOGB_BM_Registrar::mark_auth_success();
+		} elseif ( class_exists( 'YOGB_BM_Registrar' ) ) {
+			YOGB_BM_Registrar::mark_connection_error( $error_code ?: 'http_' . $code, 'signed_post' );
+		}
+		do_action( 'yogb_bm_http_event', $code >= 200 && $code < 300 ? 'success' : 'http_error', [ 'route' => $route, 'code' => $code, 'error_code' => $error_code ] );
 
 		return [
 			'ok'   => $code >= 200 && $code < 300,
 			'code' => $code,
 			'body' => $rb,
+			'error_code' => $error_code,
+			'retry_after' => $retry_after,
 		];
 	}
 }

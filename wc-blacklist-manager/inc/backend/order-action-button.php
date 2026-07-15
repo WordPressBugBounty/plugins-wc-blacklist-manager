@@ -688,11 +688,6 @@ class WC_Blacklist_Manager_Order_Actions {
 			$params[]     = $ctx['device_id'];
 		}
 
-		if ( $premium_active && $name_enabled && '' !== $ctx['full_name'] ) {
-			$conditions[] = 'CONCAT(first_name, " ", last_name) = %s';
-			$params[]     = $ctx['full_name'];
-		}
-
 		if ( ! empty( $conditions ) ) {
 			$sql = "SELECT id, is_blocked, phone_number, normalized_phone, email_address, normalized_email, ip_address, device_id, first_name, last_name
 				FROM {$table}
@@ -737,12 +732,15 @@ class WC_Blacklist_Manager_Order_Actions {
 		if ( $premium_active && $name_enabled && '' !== $ctx['full_name'] ) {
 			$name_exists  = false;
 			$name_blocked = false;
+
+			if ( class_exists( 'WC_Blacklist_Manager_Premium_Customer_Name_Matcher' ) ) {
+				$name_blocked = WC_Blacklist_Manager_Premium_Customer_Name_Matcher::is_listed( $ctx['first_name'], $ctx['last_name'], 1 );
+				$name_exists  = $name_blocked || WC_Blacklist_Manager_Premium_Customer_Name_Matcher::is_listed( $ctx['first_name'], $ctx['last_name'], 0 );
+			}
 		}
 
 		foreach ( $main_rows as $row ) {
 			$is_blocked = 1 === (int) $row['is_blocked'];
-
-			$row_full_name = trim( (string) $row['first_name'] . ' ' . (string) $row['last_name'] );
 
 			$phone_match = (
 				( '' !== $ctx['phone'] && (string) $row['phone_number'] === $ctx['phone'] ) ||
@@ -760,7 +758,6 @@ class WC_Blacklist_Manager_Order_Actions {
 
 			$ip_match = ( $ip_enabled && '' !== $ctx['ip'] && (string) $row['ip_address'] === $ctx['ip'] );
 			$device_match = ( $premium_active && $device_identity_enabled && '' !== $ctx['device_id'] && (string) $row['device_id'] === $ctx['device_id'] );
-			$name_match = ( $premium_active && $name_enabled && '' !== $ctx['full_name'] && $row_full_name === $ctx['full_name'] );
 
 			if ( $phone_match ) {
 				$phone_exists = true;
@@ -790,12 +787,6 @@ class WC_Blacklist_Manager_Order_Actions {
 				}
 			}
 
-			if ( $name_match ) {
-				$name_exists = true;
-				if ( $is_blocked ) {
-					$name_blocked = true;
-				}
-			}
 		}
 
 		if ( '' !== $ctx['phone'] || '' !== $ctx['normalized_phone'] ) {
@@ -1210,6 +1201,9 @@ class WC_Blacklist_Manager_Order_Actions {
 		}
 
 		$insert_data = array_merge( $contact_data, $insert_data );
+		if ( $premium_active && class_exists( 'WC_Blacklist_Manager_Premium_Customer_Name_Matcher' ) ) {
+			$insert_data = WC_Blacklist_Manager_Premium_Customer_Name_Matcher::add_key_to_row( $insert_data );
+		}
 
 		$created_main_ids    = array();
 		$created_address_ids = array();
@@ -1722,6 +1716,9 @@ class WC_Blacklist_Manager_Order_Actions {
 		}
 
 		$insert_data = array_merge( $contact_data, $insert_data );
+		if ( $premium_active && class_exists( 'WC_Blacklist_Manager_Premium_Customer_Name_Matcher' ) ) {
+			$insert_data = WC_Blacklist_Manager_Premium_Customer_Name_Matcher::add_key_to_row( $insert_data );
+		}
 
 		$created_main_ids    = array();
 		$created_address_ids = array();

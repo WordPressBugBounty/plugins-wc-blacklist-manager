@@ -718,6 +718,10 @@ class WC_Blacklist_Manager_Dashboard {
 				'is_blocked'       => (int) $is_blocked,
 			);
 
+			if ( class_exists( 'WC_Blacklist_Manager_Premium_Customer_Name_Matcher' ) ) {
+				$data = WC_Blacklist_Manager_Premium_Customer_Name_Matcher::add_key_to_row( $data );
+			}
+
 			$this->wpdb->insert( $this->table_name, $data );
 			$new_insert_id = (int) $this->wpdb->insert_id;
 

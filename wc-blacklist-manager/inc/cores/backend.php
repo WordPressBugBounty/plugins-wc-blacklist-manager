@@ -31,8 +31,8 @@ class WC_Blacklist_Manager_Backend {
 	public function enqueue_assets( $hook_suffix ) {
 		global $wp_version;
 
-		$style_ver  = '1.6.12';
-		$script_ver = '1.2';
+		$style_ver  = '1.6.14';
+		$script_ver = '1.3';
 
 		// Determine current admin screen context
 		$screen     = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
@@ -168,12 +168,16 @@ class WC_Blacklist_Manager_Backend {
 
 		include_once plugin_dir_path(__FILE__) . '../backend/emails/admin-new-order.php';
 
-		require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-register.php';
-		require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-reports.php';
+			require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-register.php';
+			require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-observability.php';
+			require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-outbox.php';
+			require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-outcomes.php';
+			require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-reports.php';
 		require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-revoke.php';
 		require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-check.php';
 		require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-tier.php';
 		require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-tier-sync.php';
+		require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-subscription-activation.php';
 
 		include_once plugin_dir_path(__FILE__) . '/api/sms/sms-quota.php';
 		include_once plugin_dir_path(__FILE__) . '/api/push-subscription.php';

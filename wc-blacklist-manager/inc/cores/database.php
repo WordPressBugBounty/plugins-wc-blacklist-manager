@@ -15,6 +15,7 @@ class WC_Blacklist_Manager_DB {
 	private $blacklist_device_links_table_name;
 	private $whitelist_table_name;
 	private $detection_log_table_name;
+	private $gbl_outbox_table_name;
 	private $version;
 
 	public function __construct() {
@@ -25,6 +26,7 @@ class WC_Blacklist_Manager_DB {
 		$this->blacklist_device_links_table_name = $wpdb->prefix . 'wc_blacklist_device_links';
 		$this->whitelist_table_name              = $wpdb->prefix . 'wc_whitelist';
 		$this->detection_log_table_name          = $wpdb->prefix . 'wc_blacklist_detection_log';
+		$this->gbl_outbox_table_name             = $wpdb->prefix . 'wc_blacklist_gbl_outbox';
 		$this->version                           = WC_BLACKLIST_MANAGER_VERSION;
 
 		register_activation_hook( WC_BLACKLIST_MANAGER_PLUGIN_FILE, [ $this, 'activate' ] );
@@ -230,7 +232,7 @@ class WC_Blacklist_Manager_DB {
 				PRIMARY KEY  (id)
 			) {$charset_collate};";
 
-			$detection_log_sql = "CREATE TABLE {$this->detection_log_table_name} (
+				$detection_log_sql = "CREATE TABLE {$this->detection_log_table_name} (
 				id mediumint(9) NOT NULL AUTO_INCREMENT,
 				`timestamp` datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
 				type varchar(255) NOT NULL,
@@ -239,7 +241,29 @@ class WC_Blacklist_Manager_DB {
 				details text NOT NULL,
 				view text NOT NULL,
 				PRIMARY KEY (id)
-			) {$charset_collate};";
+				) {$charset_collate};";
+
+				$gbl_outbox_sql = "CREATE TABLE {$this->gbl_outbox_table_name} (
+					id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+					event_key varchar(64) NOT NULL,
+					event_type varchar(20) NOT NULL,
+					route varchar(255) NOT NULL,
+					payload_json longtext NOT NULL,
+					headers_json text NOT NULL,
+					order_id bigint(20) unsigned NOT NULL DEFAULT 0,
+					attempts int(10) unsigned NOT NULL DEFAULT 0,
+					max_attempts int(10) unsigned NOT NULL DEFAULT 8,
+					status varchar(20) NOT NULL DEFAULT 'pending',
+					next_attempt_at datetime DEFAULT NULL,
+					last_http_code int(11) NOT NULL DEFAULT 0,
+					last_error varchar(255) NOT NULL DEFAULT '',
+					created_at datetime NOT NULL,
+					updated_at datetime NOT NULL,
+					PRIMARY KEY  (id),
+					UNIQUE KEY event_key (event_key),
+					KEY status_next (status, next_attempt_at),
+					KEY order_id (order_id)
+				) {$charset_collate};";
 
 			require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
@@ -248,7 +272,8 @@ class WC_Blacklist_Manager_DB {
 			dbDelta( $blacklist_devices_sql );
 			dbDelta( $blacklist_device_links_sql );
 			dbDelta( $whitelist_sql );
-			dbDelta( $detection_log_sql );
+				dbDelta( $detection_log_sql );
+				dbDelta( $gbl_outbox_sql );
 
 			$this->backfill_normalized_emails( $this->blacklist_table_name, 500 );
 			$this->maybe_upgrade_blacklist_normalized_phone();
