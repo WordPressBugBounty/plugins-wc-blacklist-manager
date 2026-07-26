@@ -31,7 +31,7 @@ class WC_Blacklist_Manager_Backend {
 	public function enqueue_assets( $hook_suffix ) {
 		global $wp_version;
 
-		$style_ver  = '1.6.14';
+		$style_ver  = '1.6.22';
 		$script_ver = '1.3';
 
 		// Determine current admin screen context
@@ -173,6 +173,8 @@ class WC_Blacklist_Manager_Backend {
 			require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-outbox.php';
 			require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-outcomes.php';
 			require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-reports.php';
+			require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-decision-actions.php';
+			require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-compact-meta-migration.php';
 		require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-revoke.php';
 		require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-check.php';
 		require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-tier.php';

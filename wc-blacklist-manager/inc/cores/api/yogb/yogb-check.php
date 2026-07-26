@@ -88,6 +88,12 @@ final class YOGB_BM_Check {
 			];
 		}
 
+		// Compact responses are opt-in so Core can still work unchanged with an
+		// older server during a rolling upgrade.
+		if ( self::supports_capability( 'compact_decision_v1' ) ) {
+			$payload['response_profile'] = 'compact_v1';
+		}
+
 		$res = YOGB_BM_Report::post_json_signed(
 			YOGB_BM_Report::REST_ROUTE . '/check',
 			$payload
@@ -155,6 +161,69 @@ final class YOGB_BM_Check {
 		}
 
 		return [];
+	}
+
+	/**
+	 * Normalize both the legacy full response and compact_v1 into one snapshot.
+	 */
+	public static function get_decision_snapshot( array $resp ) : array {
+		$json     = isset( $resp['json'] ) && is_array( $resp['json'] ) ? $resp['json'] : [];
+		$decision = isset( $json['decision'] ) && is_array( $json['decision'] ) ? $json['decision'] : [];
+		$overall  = sanitize_key( (string) ( $decision['overall'] ?? 'allow' ) );
+		if ( ! in_array( $overall, [ 'allow', 'challenge', 'block' ], true ) ) {
+			$overall = 'allow';
+		}
+
+		$reasons = [];
+		foreach ( (array) ( $decision['reasons'] ?? [] ) as $reason ) {
+			$reason = sanitize_key( (string) $reason );
+			if ( '' !== $reason ) {
+				$reasons[] = $reason;
+			}
+			if ( count( $reasons ) >= 5 ) {
+				break;
+			}
+		}
+
+		$summary = (string) ( $decision['summary'] ?? '' );
+		if ( '' === $summary && isset( $decision['explanation']['message'] ) ) {
+			$summary = (string) $decision['explanation']['message'];
+		}
+		$summary = sanitize_text_field( $summary );
+		if ( function_exists( 'mb_strlen' ) && mb_strlen( $summary ) > 240 ) {
+			$summary = mb_substr( $summary, 0, 237 ) . '...';
+		} elseif ( strlen( $summary ) > 240 ) {
+			$summary = substr( $summary, 0, 237 ) . '...';
+		}
+
+		$schema = 'yogb_decision_compact_v1' === (string) ( $json['schema'] ?? '' )
+			? 'compact_v1'
+			: 'legacy_v1';
+		$ref    = sanitize_text_field( (string) ( $decision['decision_ref'] ?? '' ) );
+		if ( ! preg_match( '/^gbl_dec_[a-f0-9]{32}$/', $ref ) ) {
+			$ref = '';
+		}
+
+		return [
+			'schema'           => $schema,
+			'overall'          => $overall,
+			'decision_ref'     => $ref,
+			'reason_code'      => sanitize_key( (string) ( $decision['reason_code'] ?? ( $reasons[0] ?? '' ) ) ),
+			'reasons'          => $reasons,
+			'summary'          => $summary,
+			'confidence'       => sanitize_key( (string) ( $decision['confidence'] ?? ( $decision['explanation']['confidence'] ?? '' ) ) ),
+			'checked_at'       => sanitize_text_field( (string) ( $decision['checked_at'] ?? '' ) ),
+			'tier'             => sanitize_key( (string) ( $decision['tier'] ?? ( $resp['tier'] ?? '' ) ) ),
+			'detail_available' => isset( $decision['detail_available'] )
+				? (bool) $decision['detail_available']
+				: ( '' !== $ref && self::supports_capability( 'decision_detail_view_v1' ) ),
+		];
+	}
+
+	public static function supports_capability( string $capability ) : bool {
+		$capability   = sanitize_key( $capability );
+		$capabilities = array_map( 'sanitize_key', (array) get_option( 'yogb_bm_server_capabilities', [] ) );
+		return '' !== $capability && in_array( $capability, $capabilities, true );
 	}
 
 	/**

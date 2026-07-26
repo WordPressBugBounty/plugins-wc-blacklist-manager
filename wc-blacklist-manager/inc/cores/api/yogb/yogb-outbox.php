@@ -176,6 +176,9 @@ final class YOGB_BM_Outbox {
 		$payload = self::decode_payload( (string) $row['payload_json'] );
 		$headers = json_decode( (string) $row['headers_json'], true );
 		if ( ! is_array( $payload ) || ! is_array( $headers ) ) {
+			if ( 'outcome' === (string) $row['event_type'] ) {
+				self::store_outcome_delivery( (int) $row['order_id'], 'failed' );
+			}
 			self::mark_dead( $id, 0, 'payload_decode_failed' );
 			return;
 		}
@@ -185,6 +188,8 @@ final class YOGB_BM_Outbox {
 		if ( ! empty( $res['ok'] ) ) {
 			if ( 'report' === (string) $row['event_type'] ) {
 				self::store_report_id( (int) $row['order_id'], (string) ( $res['body'] ?? '' ) );
+			} elseif ( 'outcome' === (string) $row['event_type'] ) {
+				self::store_outcome_delivery( (int) $row['order_id'], 'delivered' );
 			}
 			$wpdb->delete( $table, [ 'id' => $id ], [ '%d' ] );
 			do_action( 'yogb_bm_outbox_event', 'delivered', [ 'type' => (string) $row['event_type'], 'code' => $code, 'attempts' => (int) $row['attempts'] ] );
@@ -194,6 +199,9 @@ final class YOGB_BM_Outbox {
 		$attempts = (int) $row['attempts'];
 		$error    = self::response_error_code( $res );
 		if ( $attempts >= (int) $row['max_attempts'] || ! self::is_retryable( $res ) ) {
+			if ( 'outcome' === (string) $row['event_type'] ) {
+				self::store_outcome_delivery( (int) $row['order_id'], 'failed' );
+			}
 			self::mark_dead( $id, $code, $error );
 			return;
 		}
@@ -212,7 +220,22 @@ final class YOGB_BM_Outbox {
 			[ 'id' => $id ]
 		);
 		self::schedule_item( $id, $delay );
+		if ( 'outcome' === (string) $row['event_type'] ) {
+			self::store_outcome_delivery( (int) $row['order_id'], 'retrying' );
+		}
 		do_action( 'yogb_bm_outbox_event', 'retry', [ 'type' => (string) $row['event_type'], 'code' => $code, 'attempts' => $attempts ] );
+	}
+
+	private static function store_outcome_delivery( int $order_id, string $status ) : void {
+		if ( $order_id <= 0 || ! function_exists( 'wc_get_order' ) ) {
+			return;
+		}
+		$order = wc_get_order( $order_id );
+		if ( ! $order ) {
+			return;
+		}
+		$order->update_meta_data( YOGB_BM_Decision_Actions::META_OUTCOME_DELIVERY, sanitize_key( $status ) );
+		$order->save();
 	}
 
 	private static function mark_dead( int $id, int $code, string $error ) : void {

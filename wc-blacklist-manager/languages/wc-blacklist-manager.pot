@@ -2,14 +2,14 @@
 # This file is distributed under the GPL v2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Blacklist Manager 2.2.9\n"
+"Project-Id-Version: Blacklist Manager 2.2.10\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/wc-blacklist-manager\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-07-15T04:16:34+00:00\n"
+"POT-Creation-Date: 2026-07-24T03:42:22+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.9.0\n"
 "X-Domain: wc-blacklist-manager\n"
@@ -521,235 +521,182 @@ msgstr ""
 msgid "Phone number not found."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:519
-#: inc/backend/actions/yogb-check-orders.php:636
+#: inc/backend/actions/yogb-check-orders.php:524
+#: inc/backend/actions/yogb-check-orders.php:641
 msgid "Your order cannot be placed at this time due to our fraud protection rules. Please contact the store owner for assistance."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:682
+#: inc/backend/actions/yogb-check-orders.php:687
 msgid "Global Blacklist Decisions check skipped: monthly limit exceeded for tier \"%1$s\" (HTTP %2$d)."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:724
+#: inc/backend/actions/yogb-check-orders.php:729
 msgid "Global Blacklist Decisions check could not be completed (HTTP %1$d, attempt %2$d/%3$d, error: %4$s). Retrying in %5$d minutes. Order allowed until the check completes."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:736
+#: inc/backend/actions/yogb-check-orders.php:741
 msgid "Global Blacklist Decisions check could not be completed (HTTP %1$d, attempt %2$d/%3$d, error: %4$s). No automatic retries remain. Order allowed by default."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:856
+#: inc/backend/actions/yogb-check-orders.php:812
 #: inc/backend/order-action-button.php:1162
 #: inc/backend/order-action-button.php:1472
 msgid "Invalid order."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:860
+#: inc/backend/actions/yogb-check-orders.php:816
 msgid "You do not have permission to recheck this order."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:868
+#: inc/backend/actions/yogb-check-orders.php:824
 #: inc/backend/order-action-button.php:1958
-#: inc/backend/order-risk-score.php:82
+#: inc/backend/order-risk-score.php:80
 msgid "Order not found."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:905
+#: inc/backend/actions/yogb-check-orders.php:861
 msgid "Recheck skipped Global Blacklist orders"
 msgstr ""
 
 #. translators: %d: number of orders queued for Global Blacklist recheck.
-#: inc/backend/actions/yogb-check-orders.php:950
+#: inc/backend/actions/yogb-check-orders.php:906
 msgid "%d skipped order queued for recheck."
 msgid_plural "%d skipped orders queued for recheck."
 msgstr[0] ""
 msgstr[1] ""
 
-#: inc/backend/actions/yogb-check-orders.php:1034
+#: inc/backend/actions/yogb-check-orders.php:990
 msgid "%1$s matched through %2$s."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1040
+#: inc/backend/actions/yogb-check-orders.php:996
 msgid "%s matched."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1046
+#: inc/backend/actions/yogb-check-orders.php:1002
 msgid "Risk: %s."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1052
+#: inc/backend/actions/yogb-check-orders.php:1008
 msgid "Reports: %d."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1059
+#: inc/backend/actions/yogb-check-orders.php:1015
 msgid "Related records: %d."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1066
+#: inc/backend/actions/yogb-check-orders.php:1022
 msgid "Matched detail: %s."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1073
+#: inc/backend/actions/yogb-check-orders.php:1029
 msgid "Last reported: %s."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1081
+#: inc/backend/actions/yogb-check-orders.php:1037
 msgid "Scores — direct %1$s, related +%2$s, effective %3$s."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1090
+#: inc/backend/actions/yogb-check-orders.php:1046
 msgid "Related neighbors: %d."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1125
+#: inc/backend/actions/yogb-check-orders.php:1081
 msgid "%1$s — %2$d"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1143
+#: inc/backend/actions/yogb-check-orders.php:1099
 msgid "Past reasons for %1$s: %2$s."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1160
-#: inc/backend/actions/yogb-check-orders.php:1228
+#: inc/backend/actions/yogb-check-orders.php:1116
+#: inc/backend/actions/yogb-check-orders.php:1184
 msgid "Match detail: %s."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1189
+#: inc/backend/actions/yogb-check-orders.php:1145
 msgid "%1$s report: %2$s."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1197
+#: inc/backend/actions/yogb-check-orders.php:1153
 msgid "Source: %s."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1204
+#: inc/backend/actions/yogb-check-orders.php:1160
 msgid "Status: %s."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1211
+#: inc/backend/actions/yogb-check-orders.php:1167
 msgid "Date: %s."
 msgstr ""
 
 #. translators: 1: decision, 2: tier
-#: inc/backend/actions/yogb-check-orders.php:1363
+#: inc/backend/actions/yogb-check-orders.php:1283
 msgid "Global Blacklist decision: %1$s (tier: %2$s)."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1380
-msgid "Primary signal (%1$s): direct %2$s, linked +%3$s, effective %4$s, neighbors %5$d, risk %6$s."
+#: inc/backend/actions/yogb-check-orders.php:1291
+msgid "Reason: %s."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1381
-#: inc/backend/views/table/activity-log.php:299
-msgid "unknown"
-msgstr ""
-
-#: inc/backend/actions/yogb-check-orders.php:1386
-#: inc/backend/order-risk-score.php:401
-#: inc/backend/order-risk-score.php:716
-msgid "low"
-msgstr ""
-
-#: inc/backend/actions/yogb-check-orders.php:1393
-msgid "mode %s"
-msgstr ""
-
-#: inc/backend/actions/yogb-check-orders.php:1400
-msgid "variant %s"
-msgstr ""
-
-#: inc/backend/actions/yogb-check-orders.php:1407
-msgid "nodes %d"
-msgstr ""
-
-#: inc/backend/actions/yogb-check-orders.php:1414
-msgid "How found: %s."
-msgstr ""
-
-#: inc/backend/actions/yogb-check-orders.php:1423
-msgid "Decision reasons:"
-msgstr ""
-
-#: inc/backend/actions/yogb-check-orders.php:1430
-msgid "Signal summary:"
-msgstr ""
-
-#: inc/backend/actions/yogb-check-orders.php:1437
-msgid "Identity risk summary:"
-msgstr ""
-
-#: inc/backend/actions/yogb-check-orders.php:1444
-msgid "Individual reports:"
-msgstr ""
-
-#: inc/backend/actions/yogb-check-orders.php:1461
+#: inc/backend/actions/yogb-check-orders.php:1310
 msgid "Order cancelled: blocked by Global Blacklist Decisions."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1471
+#: inc/backend/actions/yogb-check-orders.php:1323
 msgid "Order placed on hold: requires review by Global Blacklist Decisions."
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1488
+#: inc/backend/actions/yogb-check-orders.php:1340
 #: inc/backend/emails/admin-new-order.php:515
-#: inc/backend/order-risk-score.php:761
 msgid "Exact match"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1491
+#: inc/backend/actions/yogb-check-orders.php:1343
 #: inc/backend/emails/admin-new-order.php:518
-#: inc/backend/order-risk-score.php:764
 msgid "Main address match"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1494
+#: inc/backend/actions/yogb-check-orders.php:1346
 #: inc/backend/emails/admin-new-order.php:521
-#: inc/backend/order-risk-score.php:767
 msgid "Unit / apartment match"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1497
+#: inc/backend/actions/yogb-check-orders.php:1349
 #: inc/backend/emails/admin-new-order.php:524
-#: inc/backend/order-risk-score.php:770
 msgid "Related match"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1501
+#: inc/backend/actions/yogb-check-orders.php:1353
 #: inc/backend/emails/admin-new-order.php:177
 #: inc/backend/emails/admin-new-order.php:295
 #: inc/backend/emails/admin-new-order.php:528
-#: inc/backend/order-risk-score.php:774
 msgid "No match"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1508
+#: inc/backend/actions/yogb-check-orders.php:1360
 #: inc/backend/emails/admin-new-order.php:535
-#: inc/backend/order-risk-score.php:781
 msgid "Submitted details"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1511
+#: inc/backend/actions/yogb-check-orders.php:1363
 #: inc/backend/emails/admin-new-order.php:538
-#: inc/backend/order-risk-score.php:784
 msgid "Main address"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1514
+#: inc/backend/actions/yogb-check-orders.php:1366
 #: inc/backend/emails/admin-new-order.php:541
-#: inc/backend/order-risk-score.php:787
 msgid "Unit / apartment"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1517
+#: inc/backend/actions/yogb-check-orders.php:1369
 #: inc/backend/emails/admin-new-order.php:544
-#: inc/backend/order-risk-score.php:790
 #: inc/backend/views/dashboard-form.php:1307
 msgid "Full address"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1527
+#: inc/backend/actions/yogb-check-orders.php:1379
 #: inc/backend/emails/admin-new-order.php:493
-#: inc/backend/order-risk-score.php:746
 #: inc/backend/views/table/activity-log.php:568
 #: inc/backend/views/table/activity-log.php:669
 #: inc/backend/views/table/activity-log.php:708
@@ -757,9 +704,8 @@ msgstr ""
 msgid "Email"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1530
+#: inc/backend/actions/yogb-check-orders.php:1382
 #: inc/backend/emails/admin-new-order.php:496
-#: inc/backend/order-risk-score.php:748
 #: inc/backend/views/table/activity-log.php:569
 #: inc/backend/views/table/activity-log.php:670
 #: inc/backend/views/table/activity-log.php:710
@@ -767,9 +713,8 @@ msgstr ""
 msgid "Phone"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1533
+#: inc/backend/actions/yogb-check-orders.php:1385
 #: inc/backend/emails/admin-new-order.php:499
-#: inc/backend/order-risk-score.php:750
 #: inc/backend/views/dashboard-form.php:185
 #: inc/backend/views/dashboard-form.php:375
 #: inc/backend/views/dashboard-form.php:441
@@ -778,9 +723,8 @@ msgstr ""
 msgid "IP address"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1536
+#: inc/backend/actions/yogb-check-orders.php:1388
 #: inc/backend/emails/admin-new-order.php:502
-#: inc/backend/order-risk-score.php:752
 #: inc/backend/views/dashboard-form.php:196
 #: inc/backend/views/dashboard-form.php:386
 #: inc/backend/views/dashboard-form.php:444
@@ -789,7 +733,7 @@ msgstr ""
 msgid "Address"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1539
+#: inc/backend/actions/yogb-check-orders.php:1391
 #: inc/backend/emails/admin-new-order.php:505
 #: inc/backend/views/dashboard-form.php:447
 #: inc/backend/views/dashboard-form.php:1505
@@ -798,11 +742,9 @@ msgstr ""
 msgid "Domain"
 msgstr ""
 
-#: inc/backend/actions/yogb-check-orders.php:1542
+#: inc/backend/actions/yogb-check-orders.php:1394
 #: inc/backend/emails/admin-new-order.php:464
 #: inc/backend/emails/admin-new-order.php:508
-#: inc/backend/order-risk-score.php:509
-#: inc/backend/order-risk-score.php:554
 #: inc/backend/views/dashboard-form.php:521
 #: inc/backend/views/dashboard-form.php:658
 #: inc/backend/views/dashboard-form.php:1057
@@ -1050,14 +992,10 @@ msgid "Main signal: %s"
 msgstr ""
 
 #: inc/backend/emails/admin-new-order.php:178
-#: inc/backend/order-risk-score.php:411
-#: inc/backend/order-risk-score.php:588
 msgid "Match type: %s"
 msgstr ""
 
 #: inc/backend/emails/admin-new-order.php:182
-#: inc/backend/order-risk-score.php:418
-#: inc/backend/order-risk-score.php:593
 msgid "Matched detail: %s"
 msgstr ""
 
@@ -1078,7 +1016,6 @@ msgid "Neighbors: %d"
 msgstr ""
 
 #: inc/backend/emails/admin-new-order.php:207
-#: inc/backend/order-risk-score.php:525
 msgid "Last reported: %s"
 msgstr ""
 
@@ -1120,7 +1057,6 @@ msgid "Related records"
 msgstr ""
 
 #: inc/backend/emails/admin-new-order.php:341
-#: inc/backend/order-risk-score.php:495
 msgid "Matched checks"
 msgstr ""
 
@@ -1149,12 +1085,12 @@ msgid "Plan limit reached"
 msgstr ""
 
 #: inc/backend/emails/admin-new-order.php:407
-#: inc/cores/notices.php:440
+#: inc/cores/notices.php:436
 msgid "Upgrade plan"
 msgstr ""
 
 #: inc/backend/emails/admin-new-order.php:420
-#: inc/backend/order-risk-score.php:358
+#: inc/backend/order-risk-score.php:233
 msgid "High risk"
 msgstr ""
 
@@ -1163,7 +1099,7 @@ msgid "Review this order carefully before fulfilling it."
 msgstr ""
 
 #: inc/backend/emails/admin-new-order.php:431
-#: inc/backend/order-risk-score.php:365
+#: inc/backend/order-risk-score.php:239
 msgid "Needs review"
 msgstr ""
 
@@ -1172,7 +1108,7 @@ msgid "Some details matched previous suspicious activity and should be reviewed.
 msgstr ""
 
 #: inc/backend/emails/admin-new-order.php:442
-#: inc/backend/order-risk-score.php:372
+#: inc/backend/order-risk-score.php:245
 msgid "Clear"
 msgstr ""
 
@@ -1181,7 +1117,7 @@ msgid "No blocking result was returned for this order."
 msgstr ""
 
 #: inc/backend/emails/admin-new-order.php:453
-#: inc/backend/order-risk-score.php:379
+#: inc/backend/order-risk-score.php:251
 msgid "Check skipped"
 msgstr ""
 
@@ -1675,10 +1611,10 @@ msgstr ""
 #: inc/backend/order-action-button.php:1422
 #: inc/backend/order-action-button.php:1925
 #: inc/cores/alert.php:295
-#: inc/cores/notices.php:573
-#: inc/cores/notices.php:585
-#: inc/cores/notices.php:599
-#: inc/cores/notices.php:610
+#: inc/cores/notices.php:569
+#: inc/cores/notices.php:581
+#: inc/cores/notices.php:595
+#: inc/cores/notices.php:606
 msgid "Permission denied."
 msgstr ""
 
@@ -1771,231 +1707,213 @@ msgstr ""
 msgid "Unauthorized"
 msgstr ""
 
-#: inc/backend/order-risk-score.php:50
+#: inc/backend/order-risk-score.php:43
 msgid "Global blacklist check"
 msgstr ""
 
-#: inc/backend/order-risk-score.php:103
-msgid "Global Blacklist is enabled, but your site is not connected to the Global Blacklist server yet."
+#: inc/backend/order-risk-score.php:124
+#: inc/backend/order-risk-score.php:208
+msgid "Global Blacklist result"
 msgstr ""
 
-#: inc/backend/order-risk-score.php:110
-msgid "To see Global Blacklist results here, finish connecting your site on the <a href=\"%1$s\" target=\"_blank\" rel=\"noopener noreferrer\">Global Blacklist settings page</a>."
+#: inc/backend/order-risk-score.php:130
+msgid "Recommended:"
 msgstr ""
 
-#: inc/backend/order-risk-score.php:150
-#: inc/backend/order-risk-score.php:457
-msgid "Fraud check result"
-msgstr ""
-
-#: inc/backend/order-risk-score.php:155
-msgid "Pending check"
-msgstr ""
-
-#: inc/backend/order-risk-score.php:160
-msgid "The Global Blacklist check has not completed for this order yet. This can happen shortly after the order is created because the check runs in the background by schedule."
-msgstr ""
-
-#: inc/backend/order-risk-score.php:194
-#: inc/backend/order-risk-score.php:489
+#: inc/backend/order-risk-score.php:138
+#: inc/backend/order-risk-score.php:217
 msgid "Recheck now"
 msgstr ""
 
-#: inc/backend/order-risk-score.php:200
-msgid "The check is being processed. You can manually recheck in a moment if needed."
+#: inc/backend/order-risk-score.php:144
+msgid "View full analysis"
 msgstr ""
 
-#: inc/backend/order-risk-score.php:243
+#: inc/backend/order-risk-score.php:160
+msgid "Checked:"
+msgstr ""
+
+#: inc/backend/order-risk-score.php:167
+msgid "Full analysis will be available after the server capability refresh."
+msgstr ""
+
+#: inc/backend/order-risk-score.php:174
+msgid "This result was recorded by an older client and has no decision reference, so server details and result feedback are unavailable for this order."
+msgstr ""
+
+#: inc/backend/order-risk-score.php:192
+msgid "Connection required"
+msgstr ""
+
+#: inc/backend/order-risk-score.php:193
+msgid "Connect this site before Global Blacklist can check orders."
+msgstr ""
+
+#: inc/backend/order-risk-score.php:194
+msgid "Open settings"
+msgstr ""
+
+#: inc/backend/order-risk-score.php:209
+msgid "Checking order"
+msgstr ""
+
+#: inc/backend/order-risk-score.php:212
+msgid "The background check has not completed yet."
+msgstr ""
+
+#: inc/backend/order-risk-score.php:221
+msgid "This usually completes within a moment."
+msgstr ""
+
+#: inc/backend/order-risk-score.php:234
+msgid "Do not fulfill until the order is manually verified."
+msgstr ""
+
+#: inc/backend/order-risk-score.php:240
+msgid "Review the customer and payment details before fulfillment."
+msgstr ""
+
+#: inc/backend/order-risk-score.php:246
+msgid "Proceed with the normal order workflow."
+msgstr ""
+
+#: inc/backend/order-risk-score.php:252
+msgid "Recheck after quota becomes available or update the plan."
+msgstr ""
+
+#: inc/backend/order-risk-score.php:257
+msgid "Check unavailable"
+msgstr ""
+
+#: inc/backend/order-risk-score.php:258
+msgid "Keep the order under review and retry the check."
+msgstr ""
+
+#: inc/backend/order-risk-score.php:263
+msgid "No result"
+msgstr ""
+
+#: inc/backend/order-risk-score.php:264
+msgid "Run the check again if this order still requires review."
+msgstr ""
+
+#: inc/backend/order-risk-score.php:288
+msgid "Strong risk signals were found in the Global Blacklist network."
+msgstr ""
+
+#: inc/backend/order-risk-score.php:289
+msgid "Some order details matched previous risk reports."
+msgstr ""
+
+#: inc/backend/order-risk-score.php:290
+msgid "No blocking decision was returned for this order."
+msgstr ""
+
+#: inc/backend/order-risk-score.php:291
+msgid "The monthly Global Blacklist check limit was reached."
+msgstr ""
+
+#: inc/backend/order-risk-score.php:292
+msgid "The server could not complete this order check."
+msgstr ""
+
+#: inc/backend/order-risk-score.php:294
+msgid "No additional result summary is available."
+msgstr ""
+
+#: inc/backend/order-risk-score.php:310
+msgid "Report incorrect result"
+msgstr ""
+
+#: inc/backend/order-risk-score.php:313
+msgid "Reported"
+msgstr ""
+
+#: inc/backend/order-risk-score.php:317
+msgid "Routine order events are monitored automatically. Use this only when you know the result was wrong or can confirm what happened."
+msgstr ""
+
+#: inc/backend/order-risk-score.php:320
+msgid "Sending feedback only improves Global Blacklist. It does not change the order, customer, payment, or automation settings."
+msgstr ""
+
+#: inc/backend/order-risk-score.php:323
+msgid "Result feedback"
+msgstr ""
+
+#: inc/backend/order-risk-score.php:332
+msgid "Send feedback"
+msgstr ""
+
+#. translators: %s: previously reported result feedback.
+#: inc/backend/order-risk-score.php:339
+msgid "Current feedback: %s."
+msgstr ""
+
+#: inc/backend/order-risk-score.php:347
+msgid "Last updated:"
+msgstr ""
+
+#: inc/backend/order-risk-score.php:375
+#: inc/backend/order-risk-score.php:380
+msgid "Result feedback saved and queued securely. No order or customer settings were changed."
+msgstr ""
+
+#: inc/backend/order-risk-score.php:376
+#: inc/backend/order-risk-score.php:381
+msgid "The feedback was saved locally but could not be queued. Send it again to retry."
+msgstr ""
+
+#: inc/backend/order-risk-score.php:377
+msgid "The connected server does not support this feedback option yet."
+msgstr ""
+
+#: inc/backend/order-risk-score.php:378
+#: inc/backend/order-risk-score.php:383
+msgid "Select a valid feedback option."
+msgstr ""
+
+#: inc/backend/order-risk-score.php:379
+#: inc/backend/order-risk-score.php:384
+msgid "This older result has no decision reference."
+msgstr ""
+
+#: inc/backend/order-risk-score.php:382
+msgid "The connected server does not support result feedback yet."
+msgstr ""
+
+#: inc/backend/order-risk-score.php:385
+msgid "The connected server does not support the detailed decision view yet."
+msgstr ""
+
+#: inc/backend/order-risk-score.php:386
+msgid "This older result has no server decision reference."
+msgstr ""
+
+#: inc/backend/order-risk-score.php:387
+msgid "The secure analysis link could not be created. Please try again."
+msgstr ""
+
+#: inc/backend/order-risk-score.php:414
 #: inc/backend/premium-cta.php:625
 #: inc/backend/views/dashboard-form.php:263
 #: inc/cores/api/yogb/yogb-subscription-activation.php:119
 msgid "Free"
 msgstr ""
 
-#: inc/backend/order-risk-score.php:244
+#: inc/backend/order-risk-score.php:415
 #: inc/backend/views/dashboard-form.php:253
 msgid "Basic"
 msgstr ""
 
-#: inc/backend/order-risk-score.php:245
+#: inc/backend/order-risk-score.php:416
 #: inc/backend/views/dashboard-form.php:256
 msgid "Pro"
 msgstr ""
 
-#: inc/backend/order-risk-score.php:246
+#: inc/backend/order-risk-score.php:417
 #: inc/backend/views/dashboard-form.php:259
 msgid "Enterprise"
-msgstr ""
-
-#: inc/backend/order-risk-score.php:256
-msgid "%1$d / %2$d checks used this month. Your monthly limit has been reached."
-msgstr ""
-
-#: inc/backend/order-risk-score.php:261
-msgid "%1$d / %2$d checks used this month."
-msgstr ""
-
-#: inc/backend/order-risk-score.php:267
-msgid "%1$d checks used this month (unlimited tier)."
-msgstr ""
-
-#: inc/backend/order-risk-score.php:359
-msgid "This order matched strong fraud-related signals in the Global Blacklist network."
-msgstr ""
-
-#: inc/backend/order-risk-score.php:360
-msgid "Do not fulfill this order until it has been manually verified."
-msgstr ""
-
-#: inc/backend/order-risk-score.php:366
-msgid "Some order details matched previous fraud-related reports. Manual review is recommended."
-msgstr ""
-
-#: inc/backend/order-risk-score.php:367
-msgid "Review the order details before shipping or completing the order."
-msgstr ""
-
-#: inc/backend/order-risk-score.php:373
-msgid "No blocking decision was returned for this order."
-msgstr ""
-
-#: inc/backend/order-risk-score.php:374
-msgid "Proceed as normal."
-msgstr ""
-
-#: inc/backend/order-risk-score.php:380
-msgid "This order was not checked because your monthly Global Blacklist limit was reached."
-msgstr ""
-
-#: inc/backend/order-risk-score.php:381
-msgid "Upgrade your plan if you need more checks this month."
-msgstr ""
-
-#: inc/backend/order-risk-score.php:386
-msgid "No record"
-msgstr ""
-
-#: inc/backend/order-risk-score.php:387
-msgid "No Global Blacklist result has been stored for this order yet."
-msgstr ""
-
-#: inc/backend/order-risk-score.php:388
-msgid "No action is required unless you want to run a check manually."
-msgstr ""
-
-#: inc/backend/order-risk-score.php:399
-msgid "The strongest match was %1$s with %2$s risk."
-msgstr ""
-
-#: inc/backend/order-risk-score.php:425
-msgid "Related identity records: %s"
-msgstr ""
-
-#: inc/backend/order-risk-score.php:441
-msgid "Upgrade"
-msgstr ""
-
-#: inc/backend/order-risk-score.php:447
-#: inc/backend/views/dashboard-form.php:283
-#: inc/backend/views/dashboard-form.php:302
-#: inc/backend/views/dashboard-form.php:318
-msgid "Global Blacklist works alongside your site’s local blacklist to add extra protection by identifying real customers already flagged on our global blacklist (not bots), helping you block known high-risk users more accurately."
-msgstr ""
-
-#: inc/backend/order-risk-score.php:470
-msgid "What this means"
-msgstr ""
-
-#: inc/backend/order-risk-score.php:474
-msgid "No additional match details are available for this order."
-msgstr ""
-
-#: inc/backend/order-risk-score.php:480
-msgid "How this was matched"
-msgstr ""
-
-#: inc/backend/order-risk-score.php:486
-msgid "Recommended action"
-msgstr ""
-
-#: inc/backend/order-risk-score.php:501
-msgid "View advanced details"
-msgstr ""
-
-#: inc/backend/order-risk-score.php:506
-msgid "Strongest match"
-msgstr ""
-
-#: inc/backend/order-risk-score.php:509
-msgid "Type: %s"
-msgstr ""
-
-#: inc/backend/order-risk-score.php:511
-msgid "Risk: %s"
-msgstr ""
-
-#: inc/backend/order-risk-score.php:511
-msgid "Low"
-msgstr ""
-
-#: inc/backend/order-risk-score.php:513
-msgid "Matched checks: %s"
-msgstr ""
-
-#: inc/backend/order-risk-score.php:516
-#: inc/backend/order-risk-score.php:572
-msgid "Direct: %s"
-msgstr ""
-
-#: inc/backend/order-risk-score.php:518
-#: inc/backend/order-risk-score.php:574
-msgid "Linked: +%s"
-msgstr ""
-
-#: inc/backend/order-risk-score.php:520
-#: inc/backend/order-risk-score.php:576
-msgid "Effective: %s"
-msgstr ""
-
-#: inc/backend/order-risk-score.php:523
-#: inc/backend/order-risk-score.php:580
-msgid "Neighbors: %s"
-msgstr ""
-
-#: inc/backend/order-risk-score.php:570
-msgid "Reports: %s"
-msgstr ""
-
-#: inc/backend/order-risk-score.php:582
-msgid "Last: %s"
-msgstr ""
-
-#: inc/backend/order-risk-score.php:598
-msgid "Related records: %s"
-msgstr ""
-
-#: inc/backend/order-risk-score.php:608
-msgid "Why this order was flagged"
-msgstr ""
-
-#: inc/backend/order-risk-score.php:617
-msgid "Match history"
-msgstr ""
-
-#: inc/backend/order-risk-score.php:626
-msgid "Past related reports"
-msgstr ""
-
-#: inc/backend/order-risk-score.php:705
-msgid "very high"
-msgstr ""
-
-#: inc/backend/order-risk-score.php:709
-msgid "elevated"
-msgstr ""
-
-#: inc/backend/order-risk-score.php:713
-msgid "moderate"
 msgstr ""
 
 #: inc/backend/premium-cta.php:43
@@ -2503,6 +2421,12 @@ msgstr ""
 
 #: inc/backend/views/dashboard-form.php:278
 msgid "Enable"
+msgstr ""
+
+#: inc/backend/views/dashboard-form.php:283
+#: inc/backend/views/dashboard-form.php:302
+#: inc/backend/views/dashboard-form.php:318
+msgid "Global Blacklist works alongside your site’s local blacklist to add extra protection by identifying real customers already flagged on our global blacklist (not bots), helping you block known high-risk users more accurately."
 msgstr ""
 
 #: inc/backend/views/dashboard-form.php:293
@@ -4194,6 +4118,10 @@ msgstr ""
 msgid "Country"
 msgstr ""
 
+#: inc/backend/views/table/activity-log.php:299
+msgid "unknown"
+msgstr ""
+
 #: inc/backend/views/table/activity-log.php:312
 msgid "on"
 msgstr ""
@@ -5174,13 +5102,41 @@ msgid "PayPal payment flow"
 msgstr ""
 
 #. translators: 1: identity type, 2: direct score, 3: linked boost, 4: effective score, 5: linked neighbors count, 6: report count, 7: risk level
-#: inc/cores/api/yogb/yogb-check.php:264
+#: inc/cores/api/yogb/yogb-check.php:333
 msgid "Signal (%1$s): direct %2$s, linked +%3$s, effective %4$s, neighbors %5$d, reports %6$d, risk %7$s"
 msgstr ""
 
 #. translators: %s: last reported datetime
-#: inc/cores/api/yogb/yogb-check.php:277
+#: inc/cores/api/yogb/yogb-check.php:346
 msgid ", last reported %s"
+msgstr ""
+
+#: inc/cores/api/yogb/yogb-decision-actions.php:24
+msgid "Fraud was confirmed"
+msgstr ""
+
+#: inc/cores/api/yogb/yogb-decision-actions.php:25
+msgid "Customer was legitimate"
+msgstr ""
+
+#: inc/cores/api/yogb/yogb-decision-actions.php:26
+msgid "Not sure"
+msgstr ""
+
+#: inc/cores/api/yogb/yogb-decision-actions.php:27
+msgid "Manual review passed"
+msgstr ""
+
+#: inc/cores/api/yogb/yogb-decision-actions.php:28
+msgid "Manual review failed"
+msgstr ""
+
+#: inc/cores/api/yogb/yogb-decision-actions.php:70
+msgid "You do not have permission to view this decision."
+msgstr ""
+
+#: inc/cores/api/yogb/yogb-decision-actions.php:99
+msgid "You do not have permission to update this outcome."
 msgstr ""
 
 #: inc/cores/api/yogb/yogb-outbox.php:25
@@ -5255,61 +5211,61 @@ msgstr ""
 msgid "Inactive"
 msgstr ""
 
-#: inc/cores/api/yogb/yogb-subscription-activation.php:123
+#: inc/cores/api/yogb/yogb-subscription-activation.php:124
 msgid "View plans"
 msgstr ""
 
-#: inc/cores/api/yogb/yogb-subscription-activation.php:123
+#: inc/cores/api/yogb/yogb-subscription-activation.php:124
 msgid "Manage plan"
 msgstr ""
 
-#: inc/cores/api/yogb/yogb-subscription-activation.php:127
+#: inc/cores/api/yogb/yogb-subscription-activation.php:130
 msgid "Connected"
 msgstr ""
 
-#: inc/cores/api/yogb/yogb-subscription-activation.php:127
+#: inc/cores/api/yogb/yogb-subscription-activation.php:130
 msgid "Needs attention"
 msgstr ""
 
-#: inc/cores/api/yogb/yogb-subscription-activation.php:129
+#: inc/cores/api/yogb/yogb-subscription-activation.php:132
 msgid "Synced %s ago"
 msgstr ""
 
-#: inc/cores/api/yogb/yogb-subscription-activation.php:140
+#: inc/cores/api/yogb/yogb-subscription-activation.php:143
 msgid "Automatic recovery is enabled."
 msgstr ""
 
-#: inc/cores/api/yogb/yogb-subscription-activation.php:140
+#: inc/cores/api/yogb/yogb-subscription-activation.php:143
 msgid "Last error: %s"
 msgstr ""
 
-#: inc/cores/api/yogb/yogb-subscription-activation.php:143
+#: inc/cores/api/yogb/yogb-subscription-activation.php:146
 msgid "Monthly checks"
 msgstr ""
 
-#: inc/cores/api/yogb/yogb-subscription-activation.php:144
+#: inc/cores/api/yogb/yogb-subscription-activation.php:147
 msgid "%1$d of %2$d"
 msgstr ""
 
-#: inc/cores/api/yogb/yogb-subscription-activation.php:144
+#: inc/cores/api/yogb/yogb-subscription-activation.php:147
 msgid "%d used · Unlimited"
 msgstr ""
 
-#: inc/cores/api/yogb/yogb-subscription-activation.php:147
+#: inc/cores/api/yogb/yogb-subscription-activation.php:150
 msgid "Activation"
 msgstr ""
 
-#: inc/cores/api/yogb/yogb-subscription-activation.php:147
+#: inc/cores/api/yogb/yogb-subscription-activation.php:150
 msgid "key ••••%s"
 msgstr ""
 
-#: inc/cores/api/yogb/yogb-subscription-activation.php:150
+#: inc/cores/api/yogb/yogb-subscription-activation.php:153
 msgid "Subscription"
 msgid_plural "Subscriptions"
 msgstr[0] ""
 msgstr[1] ""
 
-#: inc/cores/api/yogb/yogb-subscription-activation.php:156
+#: inc/cores/api/yogb/yogb-subscription-activation.php:159
 msgid "Premium benefit: up to 50% off eligible paid plans."
 msgstr ""
 
@@ -5318,106 +5274,111 @@ msgid "Buy Blacklist Manager Premium together with an eligible Global Blacklist 
 msgstr ""
 
 #: inc/cores/api/yogb/yogb-subscription-activation.php:161
+#: inc/cores/notices.php:420
+msgid "Get Premium"
+msgstr ""
+
+#: inc/cores/api/yogb/yogb-subscription-activation.php:166
 msgid "Activate another subscription"
 msgstr ""
 
-#: inc/cores/api/yogb/yogb-subscription-activation.php:161
+#: inc/cores/api/yogb/yogb-subscription-activation.php:166
 msgid "Activate a subscription"
 msgstr ""
 
-#: inc/cores/api/yogb/yogb-subscription-activation.php:163
+#: inc/cores/api/yogb/yogb-subscription-activation.php:168
 msgid "Activate plan"
 msgstr ""
 
-#: inc/cores/api/yogb/yogb-subscription-activation.php:163
+#: inc/cores/api/yogb/yogb-subscription-activation.php:168
 msgid "The key is sent through this site’s signed connection and is never stored here in full."
 msgstr ""
 
-#: inc/cores/api/yogb/yogb-subscription-activation.php:165
+#: inc/cores/api/yogb/yogb-subscription-activation.php:170
 msgid "This server does not support subscription-key activation yet. Existing Site ID plans continue to synchronize normally."
 msgstr ""
 
-#: inc/cores/api/yogb/yogb-subscription-activation.php:185
+#: inc/cores/api/yogb/yogb-subscription-activation.php:190
 msgid "Diagnostics"
 msgstr ""
 
-#: inc/cores/api/yogb/yogb-subscription-activation.php:185
+#: inc/cores/api/yogb/yogb-subscription-activation.php:190
 msgid "View technical connection details"
 msgstr ""
 
-#: inc/cores/api/yogb/yogb-subscription-activation.php:186
+#: inc/cores/api/yogb/yogb-subscription-activation.php:191
 msgid "Site Global ID"
 msgstr ""
 
-#: inc/cores/api/yogb/yogb-subscription-activation.php:186
+#: inc/cores/api/yogb/yogb-subscription-activation.php:191
 msgid "Support ID; legacy purchases may still reference it."
 msgstr ""
 
-#: inc/cores/api/yogb/yogb-subscription-activation.php:187
+#: inc/cores/api/yogb/yogb-subscription-activation.php:192
 msgid "Connection key"
 msgstr ""
 
-#: inc/cores/api/yogb/yogb-subscription-activation.php:188
+#: inc/cores/api/yogb/yogb-subscription-activation.php:193
 msgid "Connection secret"
 msgstr ""
 
-#: inc/cores/api/yogb/yogb-subscription-activation.php:188
+#: inc/cores/api/yogb/yogb-subscription-activation.php:193
 msgid "Protected and never displayed"
 msgstr ""
 
-#: inc/cores/api/yogb/yogb-subscription-activation.php:189
+#: inc/cores/api/yogb/yogb-subscription-activation.php:194
 msgid "Tier snapshot"
 msgstr ""
 
-#: inc/cores/api/yogb/yogb-subscription-activation.php:189
+#: inc/cores/api/yogb/yogb-subscription-activation.php:194
 msgid "Version %1$d · %2$s"
 msgstr ""
 
-#: inc/cores/api/yogb/yogb-subscription-activation.php:189
+#: inc/cores/api/yogb/yogb-subscription-activation.php:194
 msgid "Version %d"
 msgstr ""
 
-#: inc/cores/api/yogb/yogb-subscription-activation.php:190
+#: inc/cores/api/yogb/yogb-subscription-activation.php:195
 msgid "Entitlements"
 msgstr ""
 
-#: inc/cores/api/yogb/yogb-subscription-activation.php:190
+#: inc/cores/api/yogb/yogb-subscription-activation.php:195
 msgid "%1$d subscription · %2$d legacy"
 msgstr ""
 
-#: inc/cores/api/yogb/yogb-subscription-activation.php:191
+#: inc/cores/api/yogb/yogb-subscription-activation.php:196
 msgid "Last successful contact"
 msgstr ""
 
-#: inc/cores/api/yogb/yogb-subscription-activation.php:191
+#: inc/cores/api/yogb/yogb-subscription-activation.php:196
 msgid "%s ago"
 msgstr ""
 
-#: inc/cores/api/yogb/yogb-subscription-activation.php:191
+#: inc/cores/api/yogb/yogb-subscription-activation.php:196
 msgid "Not recorded"
 msgstr ""
 
-#: inc/cores/api/yogb/yogb-subscription-activation.php:214
+#: inc/cores/api/yogb/yogb-subscription-activation.php:219
 msgid "The activation key was not found."
 msgstr ""
 
-#: inc/cores/api/yogb/yogb-subscription-activation.php:215
+#: inc/cores/api/yogb/yogb-subscription-activation.php:220
 msgid "This activation key is already assigned to another site."
 msgstr ""
 
-#: inc/cores/api/yogb/yogb-subscription-activation.php:216
+#: inc/cores/api/yogb/yogb-subscription-activation.php:221
 msgid "This activation key has been revoked."
 msgstr ""
 
-#: inc/cores/api/yogb/yogb-subscription-activation.php:217
+#: inc/cores/api/yogb/yogb-subscription-activation.php:222
 msgid "The subscription is not currently eligible for activation."
 msgstr ""
 
-#: inc/cores/api/yogb/yogb-subscription-activation.php:218
+#: inc/cores/api/yogb/yogb-subscription-activation.php:223
 msgid "The activation key format is invalid."
 msgstr ""
 
-#: inc/cores/api/yogb/yogb-subscription-activation.php:220
+#: inc/cores/api/yogb/yogb-subscription-activation.php:225
 msgid "The plan could not be activated. Please try again or contact support."
 msgstr ""
 
@@ -5508,7 +5469,7 @@ msgid "Premium adds risk scoring, payment intelligence, automation, multi-store 
 msgstr ""
 
 #: inc/cores/notices.php:360
-#: inc/cores/notices.php:441
+#: inc/cores/notices.php:437
 msgid "Dismiss"
 msgstr ""
 
@@ -5516,11 +5477,11 @@ msgstr ""
 msgid "Explore Premium Protection"
 msgstr ""
 
-#: inc/cores/notices.php:406
+#: inc/cores/notices.php:407
 msgid "Your monthly Global Blacklist Decisions checks are used up. New orders will not be screened against the shared fraud network until the quota resets or your plan is upgraded."
 msgstr ""
 
-#: inc/cores/notices.php:409
+#: inc/cores/notices.php:410
 msgid "You are a Blacklist Manager Premium user, so you are eligible for <b>up to 50% off</b> when upgrading your Global Blacklist plan."
 msgstr ""
 
@@ -5528,20 +5489,20 @@ msgstr ""
 msgid "Get Blacklist Manager Premium with a Global Blacklist plan to receive <b>up to 50% off</b> the eligible Global Blacklist plan."
 msgstr ""
 
-#: inc/cores/notices.php:437
+#: inc/cores/notices.php:433
 msgid "Global Blacklist Decisions monthly limit reached"
 msgstr ""
 
-#: inc/cores/notices.php:452
+#: inc/cores/notices.php:448
 msgid "activate it"
 msgstr ""
 
 #. translators: %s: Activate premium plugin link
-#: inc/cores/notices.php:457
+#: inc/cores/notices.php:453
 msgid "License activated, but the Premium add-on is not activated or installed on your site yet. Please %s, or login to your account on our website to download and install it."
 msgstr ""
 
-#: inc/cores/notices.php:472
+#: inc/cores/notices.php:468
 msgid "Go to My account"
 msgstr ""
 
@@ -5557,8 +5518,4 @@ msgstr ""
 
 #: inc/cores/premium-gate.php:106
 msgid "License management has moved to the Blacklist Manager Premium add-on. Install and activate Premium to manage your license."
-msgstr ""
-
-#: inc/cores/notices.php:429
-msgid "Get Premium"
 msgstr ""

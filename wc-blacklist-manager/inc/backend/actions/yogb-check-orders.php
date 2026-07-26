@@ -31,6 +31,11 @@ final class YOGB_BM_Check_Orders {
 	const META_CHECK_LAST_HTTP_CODE   = '_yogb_gbl_check_last_http_code';
 	const META_DECISION_REF          = '_yogb_gbl_decision_ref';
 	const META_DECISION_AT           = '_yogb_gbl_decision_at';
+	const META_DECISION_SUMMARY      = '_yogb_gbl_decision_summary';
+	const META_DECISION_REASON_CODE  = '_yogb_gbl_decision_reason_code';
+	const META_RESPONSE_SCHEMA       = '_yogb_gbl_response_schema';
+	const META_DETAIL_AVAILABLE      = '_yogb_gbl_detail_available';
+	const META_STORAGE_PROFILE       = '_yogb_gbl_storage_profile';
 
 	// Structured Phase 3 signal meta.
 	const META_EFFECTIVE_SCORE        = '_yogb_gbl_effective_score';
@@ -748,90 +753,41 @@ final class YOGB_BM_Check_Orders {
 			return;
 		}
 
-		$decision = YOGB_BM_Check::get_overall_decision( $resp );
-		$reasons  = YOGB_BM_Check::get_reasons( $resp );
-
-		$details        = self::extract_identity_details_from_response( $resp );
-		$overall_signal = YOGB_BM_Check::get_overall_signal_metrics( $resp );
-
-		$signal_summaries = $details['signal_summaries'];
-		$reason_summaries = $details['reason_summaries'];
-		$report_summaries = $details['report_summaries'];
-		$primary_meta     = $details['primary_meta'];
+		$snapshot  = YOGB_BM_Check::get_decision_snapshot( $resp );
+		$decision  = (string) $snapshot['overall'];
+		$tier      = '' !== (string) $snapshot['tier'] ? (string) $snapshot['tier'] : $tier;
+		$summary   = (string) $snapshot['summary'];
+		$reason    = (string) $snapshot['reason_code'];
 
 		$order->update_meta_data( self::META_DECISION, $decision );
 		$order->update_meta_data( self::META_TIER, $tier );
-		$decision_ref=is_array($resp['json']??null)?(string)($resp['json']['decision']['decision_ref']??''):'';
-		if(preg_match('/^gbl_dec_[a-f0-9]{32}$/',$decision_ref)){$order->update_meta_data(self::META_DECISION_REF,$decision_ref);$order->update_meta_data(self::META_DECISION_AT,time());}
+		$order->update_meta_data( self::META_DECISION_SUMMARY, $summary );
+		$order->update_meta_data( self::META_DECISION_REASON_CODE, $reason );
+		$order->update_meta_data( self::META_RESPONSE_SCHEMA, (string) $snapshot['schema'] );
+		$order->update_meta_data( self::META_DETAIL_AVAILABLE, ! empty( $snapshot['detail_available'] ) ? 1 : 0 );
+		$order->update_meta_data( self::META_STORAGE_PROFILE, 'compact_v1' );
 
-		// Structured signal meta.
-		$order->update_meta_data( self::META_EFFECTIVE_SCORE, (float) $overall_signal['max_effective_score'] );
-		$order->update_meta_data( self::META_DIRECT_SCORE, (float) $overall_signal['max_direct_score'] );
-		$order->update_meta_data( self::META_LINKED_BOOST, (float) $overall_signal['max_linked_boost'] );
-		$order->update_meta_data( self::META_LINKED_NEIGHBORS_COUNT, (int) $overall_signal['max_neighbors_count'] );
-		$order->update_meta_data( self::META_MATCHED_IDENTITIES, (int) $overall_signal['matched_identities'] );
-		$order->update_meta_data( self::META_PRIMARY_SIGNAL_TYPE, (string) $overall_signal['primary_signal_type'] );
-		$order->update_meta_data( self::META_PRIMARY_RISK_LEVEL, (string) $overall_signal['max_risk_level'] );
-		$order->update_meta_data( self::META_PRIMARY_LAST_REPORTED, $overall_signal['primary_last_reported'] );
-
-		// New smarter match meta.
-		$order->update_meta_data(
-			self::META_MATCHED_IDENTITY_NODES,
-			isset( $details['matched_identity_nodes'] ) ? (int) $details['matched_identity_nodes'] : 0
-		);
-
-		$order->update_meta_data(
-			self::META_PRIMARY_MATCH_MODE,
-			isset( $primary_meta['match_mode'] ) ? (string) $primary_meta['match_mode'] : ''
-		);
-
-		$order->update_meta_data(
-			self::META_PRIMARY_MATCHED_VARIANT,
-			isset( $primary_meta['matched_variant'] ) ? (string) $primary_meta['matched_variant'] : ''
-		);
-
-		$order->update_meta_data(
-			self::META_PRIMARY_MATCHED_IDENTITY_COUNT,
-			isset( $primary_meta['matched_identity_count'] ) ? (int) $primary_meta['matched_identity_count'] : 0
-		);
-
-		if ( ! empty( $reasons ) ) {
-			$order->update_meta_data( self::META_REASONS, $reasons );
+		$decision_ref = (string) $snapshot['decision_ref'];
+		if ( '' !== $decision_ref ) {
+			$order->update_meta_data( self::META_DECISION_REF, $decision_ref );
+			$order->update_meta_data( self::META_DECISION_AT, time() );
 		} else {
-			$order->delete_meta_data( self::META_REASONS );
+			$order->delete_meta_data( self::META_DECISION_REF );
+			$order->delete_meta_data( self::META_DECISION_AT );
 		}
 
-		if ( ! empty( $signal_summaries ) ) {
-			$order->update_meta_data( self::META_SIGNAL_SUMMARIES, $signal_summaries );
-		} else {
-			$order->delete_meta_data( self::META_SIGNAL_SUMMARIES );
-		}
-
-		if ( ! empty( $reason_summaries ) ) {
-			$order->update_meta_data( self::META_REASON_SUMMARIES, $reason_summaries );
-		} else {
-			$order->delete_meta_data( self::META_REASON_SUMMARIES );
-		}
-
-		if ( ! empty( $report_summaries ) ) {
-			$order->update_meta_data( self::META_REPORT_SUMMARIES, $report_summaries );
-		} else {
-			$order->delete_meta_data( self::META_REPORT_SUMMARIES );
-		}
-
-		if ( isset( $resp['body'] ) && '' !== $resp['body'] ) {
-			$order->update_meta_data( self::META_RAW, (string) $resp['body'] );
-		}
+		// Do not persist the full server response or per-identity scoring
+		// payloads on new checks. The server remains the detailed source of
+		// truth; these keys are deleted on recheck to avoid stale diagnostics.
+		self::delete_legacy_verbose_meta( $order );
 
 		self::apply_decision_to_order(
 			$order,
 			$decision,
-			$reasons,
 			$tier,
 			$mode,
-			$signal_summaries,
-			$reason_summaries,
-			$report_summaries
+			$summary,
+			$reason
 		);
 
 		if ( in_array( $decision, [ 'block', 'challenge' ], true ) ) {
@@ -1264,35 +1220,21 @@ final class YOGB_BM_Check_Orders {
 		$source         = sanitize_key( $source );
 		$tier           = isset( $resp['tier'] ) ? sanitize_key( (string) $resp['tier'] ) : '';
 		$mode           = self::get_decision_mode();
-		$reasons        = class_exists( 'YOGB_BM_Check' ) ? YOGB_BM_Check::get_reasons( $resp ) : [];
-		$overall_signal = class_exists( 'YOGB_BM_Check' ) ? YOGB_BM_Check::get_overall_signal_metrics( $resp ) : [];
-		$details        = self::extract_identity_details_from_response( $resp );
+		$snapshot       = class_exists( 'YOGB_BM_Check' )
+			? YOGB_BM_Check::get_decision_snapshot( $resp )
+			: [];
 		$action         = 'challenge' === $decision ? 'challenge' : 'block';
-		$ip_address     = sanitize_text_field( (string) $order->get_customer_ip_address() );
 
 		$view = array(
-			'schema'                 => 'yogb_gbl_decision_v1',
-			'context'                => $context,
-			'mode'                   => $mode,
-			'decision'               => $decision,
-			'tier'                   => $tier ?: 'free',
-			'score'                  => isset( $overall_signal['max_effective_score'] ) ? (float) $overall_signal['max_effective_score'] : 0,
-			'raw_score'              => isset( $overall_signal['max_direct_score'] ) ? (float) $overall_signal['max_direct_score'] : 0,
-			'linked_boost'           => isset( $overall_signal['max_linked_boost'] ) ? (float) $overall_signal['max_linked_boost'] : 0,
-			'neighbors_count'        => isset( $overall_signal['max_neighbors_count'] ) ? (int) $overall_signal['max_neighbors_count'] : 0,
-			'matched_identities'     => isset( $overall_signal['matched_identities'] ) ? (int) $overall_signal['matched_identities'] : 0,
-			'primary_signal_type'    => isset( $overall_signal['primary_signal_type'] ) ? sanitize_key( (string) $overall_signal['primary_signal_type'] ) : '',
-			'primary_risk_level'     => isset( $overall_signal['max_risk_level'] ) ? sanitize_key( (string) $overall_signal['max_risk_level'] ) : '',
-			'primary_match_mode'     => isset( $details['primary_meta']['match_mode'] ) ? sanitize_key( (string) $details['primary_meta']['match_mode'] ) : '',
-			'primary_match_variant'  => isset( $details['primary_meta']['matched_variant'] ) ? sanitize_key( (string) $details['primary_meta']['matched_variant'] ) : '',
-			'primary_match_count'    => isset( $details['primary_meta']['matched_identity_count'] ) ? (int) $details['primary_meta']['matched_identity_count'] : 0,
-			'matched_identity_nodes' => isset( $details['matched_identity_nodes'] ) ? (int) $details['matched_identity_nodes'] : 0,
-			'ip_address'             => $ip_address,
-			'ip_hash'                => '' !== $ip_address ? hash_hmac( 'sha256', $ip_address, wp_salt( 'auth' ) ) : '',
-			'reasons'                => self::limit_activity_log_list( $reasons, 8 ),
-			'signal_summaries'       => self::limit_activity_log_list( isset( $details['signal_summaries'] ) ? (array) $details['signal_summaries'] : [], 8 ),
-			'reason_summaries'       => self::limit_activity_log_list( isset( $details['reason_summaries'] ) ? (array) $details['reason_summaries'] : [], 8 ),
-			'report_summaries'       => self::limit_activity_log_list( isset( $details['report_summaries'] ) ? (array) $details['report_summaries'] : [], 10 ),
+			'schema'         => 'yogb_gbl_decision_v2',
+			'context'        => $context,
+			'mode'           => $mode,
+			'decision'       => $decision,
+			'tier'           => $tier ?: 'free',
+			'decision_ref'   => sanitize_text_field( (string) ( $snapshot['decision_ref'] ?? '' ) ),
+			'reason_code'    => sanitize_key( (string) ( $snapshot['reason_code'] ?? '' ) ),
+			'summary'        => sanitize_text_field( (string) ( $snapshot['summary'] ?? '' ) ),
+			'response_schema'=> sanitize_key( (string) ( $snapshot['schema'] ?? '' ) ),
 		);
 
 		$order_id = (int) $order->get_id();
@@ -1314,24 +1256,6 @@ final class YOGB_BM_Check_Orders {
 		);
 	}
 
-	private static function limit_activity_log_list( array $items, int $limit ) : array {
-		$clean_items = [];
-
-		foreach ( $items as $item ) {
-			if ( is_scalar( $item ) || ( is_object( $item ) && method_exists( $item, '__toString' ) ) ) {
-				$item = trim( (string) $item );
-
-				if ( '' !== $item ) {
-					$clean_items[] = $item;
-				}
-			} elseif ( is_array( $item ) && ! empty( $item ) ) {
-				$clean_items[] = $item;
-			}
-		}
-
-		return array_slice( $clean_items, 0, max( 1, $limit ) );
-	}
-
 	/**
 	 * Map global decision to WooCommerce order status / notes.
 	 *
@@ -1340,22 +1264,18 @@ final class YOGB_BM_Check_Orders {
 	 *
 	 * @param WC_Order $order
 	 * @param string   $decision
-	 * @param array    $reasons           Overall reasons from YOGB_BM_Check::get_reasons()
 	 * @param string   $tier
 	 * @param string   $mode
-	 * @param array    $signal_summaries  Identity-level signal summaries
-	 * @param array    $reason_summaries  Identity-level reason summaries
-	 * @param array    $report_summaries  Individual report lines
+	 * @param string   $summary           Compact server explanation.
+	 * @param string   $reason_code       Compact machine-readable reason.
 	 */
 	private static function apply_decision_to_order(
 		WC_Order $order,
 		string $decision,
-		array $reasons,
 		string $tier,
 		string $mode,
-		array $signal_summaries = [],
-		array $reason_summaries = [],
-		array $report_summaries = []
+		string $summary = '',
+		string $reason_code = ''
 	) : void {
 		$note_lines   = [];
 		$note_lines[] = sprintf(
@@ -1364,87 +1284,13 @@ final class YOGB_BM_Check_Orders {
 			$decision,
 			$tier ?: 'free'
 		);
-
-		$overall_effective      = (float) $order->get_meta( self::META_EFFECTIVE_SCORE, true );
-		$overall_direct         = (float) $order->get_meta( self::META_DIRECT_SCORE, true );
-		$overall_linked         = (float) $order->get_meta( self::META_LINKED_BOOST, true );
-		$overall_neighbors      = (int) $order->get_meta( self::META_LINKED_NEIGHBORS_COUNT, true );
-		$primary_type           = (string) $order->get_meta( self::META_PRIMARY_SIGNAL_TYPE, true );
-		$primary_risk           = (string) $order->get_meta( self::META_PRIMARY_RISK_LEVEL, true );
-		$primary_match_mode     = (string) $order->get_meta( self::META_PRIMARY_MATCH_MODE, true );
-		$primary_match_variant  = (string) $order->get_meta( self::META_PRIMARY_MATCHED_VARIANT, true );
-		$primary_match_count    = (int) $order->get_meta( self::META_PRIMARY_MATCHED_IDENTITY_COUNT, true );
-
-		if ( $overall_effective > 0 || $overall_direct > 0 || $overall_linked > 0 ) {
-			$note_line = sprintf(
-				__( 'Primary signal (%1$s): direct %2$s, linked +%3$s, effective %4$s, neighbors %5$d, risk %6$s.', 'wc-blacklist-manager' ),
-				$primary_type ?: __( 'unknown', 'wc-blacklist-manager' ),
-				number_format_i18n( $overall_direct, 2 ),
-				number_format_i18n( $overall_linked, 2 ),
-				number_format_i18n( $overall_effective, 2 ),
-				$overall_neighbors,
-				$primary_risk ?: __( 'low', 'wc-blacklist-manager' )
+		if ( '' !== $summary ) {
+			$note_lines[] = $summary;
+		} elseif ( '' !== $reason_code ) {
+			$note_lines[] = sprintf(
+				__( 'Reason: %s.', 'wc-blacklist-manager' ),
+				ucwords( str_replace( '_', ' ', $reason_code ) )
 			);
-
-			$smart_bits = [];
-
-			if ( '' !== $primary_match_mode && 'none' !== strtolower( $primary_match_mode ) ) {
-				$smart_bits[] = sprintf(
-					__( 'mode %s', 'wc-blacklist-manager' ),
-					self::format_match_mode_label_static( $primary_match_mode )
-				);
-			}
-
-			if ( '' !== $primary_match_variant && 'submitted' !== strtolower( $primary_match_variant ) ) {
-				$smart_bits[] = sprintf(
-					__( 'variant %s', 'wc-blacklist-manager' ),
-					self::format_matched_variant_label_static( $primary_match_variant )
-				);
-			}
-
-			if ( $primary_match_count > 0 ) {
-				$smart_bits[] = sprintf(
-					__( 'nodes %d', 'wc-blacklist-manager' ),
-					$primary_match_count
-				);
-			}
-
-			if ( ! empty( $smart_bits ) ) {
-				$note_line .= ' ' . sprintf(
-					__( 'How found: %s.', 'wc-blacklist-manager' ),
-					implode( ', ', $smart_bits )
-				);
-			}
-
-			$note_lines[] = $note_line;
-		}
-
-		if ( ! empty( $reasons ) ) {
-			$note_lines[] = __( 'Decision reasons:', 'wc-blacklist-manager' );
-			foreach ( $reasons as $r ) {
-				$note_lines[] = ' - ' . $r;
-			}
-		}
-
-		if ( ! empty( $signal_summaries ) ) {
-			$note_lines[] = __( 'Signal summary:', 'wc-blacklist-manager' );
-			foreach ( $signal_summaries as $r ) {
-				$note_lines[] = ' - ' . $r;
-			}
-		}
-
-		if ( ! empty( $reason_summaries ) ) {
-			$note_lines[] = __( 'Identity risk summary:', 'wc-blacklist-manager' );
-			foreach ( $reason_summaries as $r ) {
-				$note_lines[] = ' - ' . $r;
-			}
-		}
-
-		if ( ! empty( $report_summaries ) ) {
-			$note_lines[] = __( 'Individual reports:', 'wc-blacklist-manager' );
-			foreach ( $report_summaries as $r ) {
-				$note_lines[] = ' - ' . $r;
-			}
 		}
 
 		$note = implode( "\n", $note_lines );
@@ -1456,6 +1302,9 @@ final class YOGB_BM_Check_Orders {
 
 		switch ( $decision ) {
 			case 'block':
+				if ( class_exists( 'YOGB_BM_Outcomes' ) ) {
+					YOGB_BM_Outcomes::mark_system_status_change( (int) $order->get_id(), 'cancelled' );
+				}
 				$order->set_status(
 					'cancelled',
 					__( 'Order cancelled: blocked by Global Blacklist Decisions.', 'wc-blacklist-manager' )
@@ -1466,6 +1315,9 @@ final class YOGB_BM_Check_Orders {
 
 			case 'challenge':
 				if ( $order->has_status( [ 'pending', 'processing' ] ) ) {
+					if ( class_exists( 'YOGB_BM_Outcomes' ) ) {
+						YOGB_BM_Outcomes::mark_system_status_change( (int) $order->get_id(), 'on-hold' );
+					}
 					$order->set_status(
 						'on-hold',
 						__( 'Order placed on hold: requires review by Global Blacklist Decisions.', 'wc-blacklist-manager' )
@@ -1540,6 +1392,39 @@ final class YOGB_BM_Check_Orders {
 
 			default:
 				return '' !== $type ? ucfirst( str_replace( '_', ' ', $type ) ) : __( 'Unknown', 'wc-blacklist-manager' );
+			}
+		}
+
+	/**
+	 * Meta written by versions before compact_v1.
+	 *
+	 * @return string[]
+	 */
+	public static function legacy_verbose_meta_keys() : array {
+		return [
+			self::META_REASONS,
+			self::META_RAW,
+			self::META_REASON_SUMMARIES,
+			self::META_REPORT_SUMMARIES,
+			self::META_SIGNAL_SUMMARIES,
+			self::META_EFFECTIVE_SCORE,
+			self::META_DIRECT_SCORE,
+			self::META_LINKED_BOOST,
+			self::META_LINKED_NEIGHBORS_COUNT,
+			self::META_MATCHED_IDENTITIES,
+			self::META_PRIMARY_SIGNAL_TYPE,
+			self::META_PRIMARY_RISK_LEVEL,
+			self::META_PRIMARY_LAST_REPORTED,
+			self::META_MATCHED_IDENTITY_NODES,
+			self::META_PRIMARY_MATCH_MODE,
+			self::META_PRIMARY_MATCHED_VARIANT,
+			self::META_PRIMARY_MATCHED_IDENTITY_COUNT,
+		];
+	}
+
+	public static function delete_legacy_verbose_meta( WC_Order $order ) : void {
+		foreach ( self::legacy_verbose_meta_keys() as $meta_key ) {
+			$order->delete_meta_data( $meta_key );
 		}
 	}
 }

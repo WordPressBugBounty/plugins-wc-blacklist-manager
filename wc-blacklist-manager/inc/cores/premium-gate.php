@@ -4,29 +4,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-if ( ! function_exists( 'wc_blacklist_manager_premium_license_args' ) ) {
-	function wc_blacklist_manager_premium_license_args() {
-		return array(
-			'license_key_option' => 'wc_blacklist_manager_premium_license_key',
-			'status_option'      => 'wc_blacklist_manager_premium_license_status',
-			'state_option'       => 'wc_blacklist_manager_premium_license_state',
-			'entitlement_option' => 'wc_blacklist_manager_premium_entitlement',
-			'product_id'         => '44',
-		);
-	}
-}
-
 if ( ! function_exists( 'wc_blacklist_manager_premium_license_is_active' ) ) {
 	function wc_blacklist_manager_premium_license_is_active() {
-		if ( class_exists( 'YOBMP_License_Validator' ) && method_exists( 'YOBMP_License_Validator', 'is_premium_active' ) ) {
-			return (bool) YOBMP_License_Validator::is_premium_active();
+		if ( function_exists( 'yobmp_premium_license_active' ) ) {
+			return (bool) yobmp_premium_license_active();
 		}
 
-		if ( ! class_exists( 'YOBM_License_Runtime' ) ) {
-			return false;
-		}
+		/*
+		 * Core is loaded before its required Premium add-on. Use the legacy
+		 * status only as a read-only bootstrap snapshot until Premium exposes
+		 * its authoritative API later in the same request.
+		 */
+		$status = strtolower( trim( (string) get_option( 'wc_blacklist_manager_premium_license_status', 'deactivated' ) ) );
 
-		return (bool) YOBM_License_Runtime::is_active( wc_blacklist_manager_premium_license_args() );
+		return in_array( $status, array( 'activated', 'active', 'valid' ), true );
 	}
 }
 
