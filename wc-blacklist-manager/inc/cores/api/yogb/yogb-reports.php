@@ -351,6 +351,7 @@ final class YOGB_BM_Report {
 		);
 
 		$idents = self::build_identities_from_order( $order );
+		$supports_norm_v3 = class_exists( 'YOGB_BM_Check' ) && YOGB_BM_Check::supports_capability( 'normalization_v3' );
 
 		$ttl_days = (int) get_option( 'yogb_bm_default_ttl_days', 365 );
 		$ttl_days = max( 1, min( 1095, $ttl_days ) );
@@ -395,6 +396,8 @@ final class YOGB_BM_Report {
 				continue;
 			}
 			$ctx = array(
+				'identity_payload_version' => $supports_norm_v3 ? 3 : 2,
+				'address_norm_version'     => 2,
 				'reason_code'  => $reason_code,
 				'description'  => $description,
 				'order_id'     => (int) $order->get_id(),
@@ -403,6 +406,8 @@ final class YOGB_BM_Report {
 				'country'      => $billing_country,
 				'email_norm'   => $email,
 				'phone_norm'   => $phone,
+				'phone_country' => strtoupper( $billing_country ),
+				'phone_country_calling_code' => isset( $dial_code ) ? (string) $dial_code : '',
 				'ip_norm'      => $ip,
 
 				'billing_address_norm' => array(
@@ -569,13 +574,17 @@ final class YOGB_BM_Report {
 		);
 
 		$idents = self::build_identities_from_order( $order );
+		$supports_norm_v3 = class_exists( 'YOGB_BM_Check' ) && YOGB_BM_Check::supports_capability( 'normalization_v3' );
 
 		return array(
 			'identities' => $idents,
 			'context'    => array(
+				'identity_payload_version' => $supports_norm_v3 ? 3 : 2,
 				'ip'                   => $ip,
 				'email'                => $email,
 				'phone'                => $phone,
+				'phone_country'        => strtoupper( $billing_country ),
+				'phone_country_calling_code' => isset( $dial_code ) ? (string) $dial_code : '',
 				'email_domain'         => $email_domain,
 				'address_norm_version' => 2,
 

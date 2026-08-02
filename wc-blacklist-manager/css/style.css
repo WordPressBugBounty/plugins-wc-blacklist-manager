@@ -765,8 +765,48 @@
 
 .bm-gbl-feedback__actions {
 	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
 	justify-content: flex-end;
 	margin-top: 8px;
+}
+
+.bm-gbl-feedback__reason label,
+.bm-gbl-feedback__reference label {
+	display: block;
+	margin-bottom: 4px;
+	color: #2c3338;
+}
+
+.bm-gbl-feedback__reason select,
+.bm-gbl-feedback__reference input {
+	box-sizing: border-box;
+	width: 100%;
+	max-width: 100%;
+	font-size: 11px;
+}
+
+.bm-gbl-feedback__delivery {
+	margin-top: 8px !important;
+	padding: 7px 8px;
+	border-left: 3px solid #72aee6;
+	border-radius: 4px;
+	background: #f0f6fc;
+}
+
+.bm-gbl-feedback__delivery--success {
+	border-left-color: #00a32a;
+	background: #edfaef;
+}
+
+.bm-gbl-feedback__delivery--warning {
+	border-left-color: #dba617;
+	background: #fcf9e8;
+}
+
+.bm-gbl-feedback__delivery--error {
+	border-left-color: #d63638;
+	background: #fcf0f1;
 }
 
 .bm-gbl-feedback small {
@@ -1825,8 +1865,15 @@ th.column-name {
 	color: #2c3338;
 }
 
+.yogb-gbl-activation summary {
+	color: var(--wp-admin-theme-color, #2271b1);
+}
+
 .yogb-gbl-activation summary:hover,
-.yogb-gbl-activation summary:focus,
+.yogb-gbl-activation summary:focus {
+	color: var(--wp-admin-theme-color-darker-20, #135e96);
+}
+
 .yogb-gbl-diagnostics summary:hover,
 .yogb-gbl-diagnostics summary:focus {
 	color: #2271b1;

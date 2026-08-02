@@ -55,7 +55,62 @@ final class YOGB_BM_Outbox {
 			hash( 'sha256', 'revoke|' . $route . '|' . self::canonical_json( $payload ) )
 		);
 	}
-	public static function enqueue_outcome(array $payload,int $order_id):int{$uuid=(string)($payload['event_uuid']??'');return self::enqueue('outcome',YOGB_BM_Report::REST_ROUTE.'/decision/outcomes',$payload,['Idempotency-Key'=>$uuid],$order_id,hash('sha256','outcome|'.$uuid));}
+	public static function enqueue_outcome( array $payload, int $order_id ) : int {
+		return self::enqueue_outcome_route( $payload, $order_id, '/decision/outcomes' );
+	}
+
+	public static function enqueue_outcome_v2( array $payload, int $order_id ) : int {
+		return self::enqueue_outcome_route( $payload, $order_id, '/decision/outcomes/v2' );
+	}
+
+	private static function enqueue_outcome_route( array $payload, int $order_id, string $suffix ) : int {
+		$uuid = (string) ( $payload['event_uuid'] ?? '' );
+		return self::enqueue(
+			'outcome',
+			YOGB_BM_Report::REST_ROUTE . $suffix,
+			$payload,
+			[ 'Idempotency-Key' => $uuid ],
+			$order_id,
+			hash( 'sha256', 'outcome|' . $uuid )
+		);
+	}
+
+	public static function retry_outcome( string $event_uuid, int $order_id ) : bool {
+		global $wpdb;
+		if ( ! wp_is_uuid( $event_uuid, 4 ) || $order_id <= 0 || ! self::ensure_table() ) {
+			return false;
+		}
+		$table = self::table();
+		$id = (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT id FROM {$table}
+				WHERE event_key=%s AND event_type='outcome' AND order_id=%d
+				AND payload_json<>'' LIMIT 1",
+				hash( 'sha256', 'outcome|' . $event_uuid ),
+				$order_id
+			)
+		);
+		if ( $id <= 0 ) {
+			return false;
+		}
+		$updated = $wpdb->update(
+			$table,
+			[
+				'status'          => 'pending',
+				'attempts'        => 0,
+				'next_attempt_at' => null,
+				'last_http_code'  => 0,
+				'last_error'      => '',
+				'updated_at'      => current_time( 'mysql', true ),
+			],
+			[ 'id' => $id, 'event_type' => 'outcome' ]
+		);
+		if ( false === $updated ) {
+			return false;
+		}
+		self::schedule_item( $id, 3 );
+		return true;
+	}
 
 	private static function enqueue( string $type, string $route, array $payload, array $headers, int $order_id, string $event_key ) : int {
 		global $wpdb;
@@ -65,7 +120,8 @@ final class YOGB_BM_Outbox {
 
 		$table   = self::table();
 		$now     = current_time( 'mysql', true );
-		$encoded = self::encode_payload( $payload );
+		$requires_encryption = 'outcome' === $type && ! empty( $payload['evidence_reference'] );
+		$encoded = self::encode_payload( $payload, $requires_encryption );
 		if ( '' === $encoded ) {
 			return 0;
 		}
@@ -173,13 +229,16 @@ final class YOGB_BM_Outbox {
 		if ( ! $row ) {
 			return;
 		}
+		if ( 'outcome' === (string) $row['event_type'] ) {
+			self::store_outcome_delivery( (int) $row['order_id'], 'sending', 0, '', (int) $row['attempts'], '' );
+		}
 		$payload = self::decode_payload( (string) $row['payload_json'] );
 		$headers = json_decode( (string) $row['headers_json'], true );
 		if ( ! is_array( $payload ) || ! is_array( $headers ) ) {
 			if ( 'outcome' === (string) $row['event_type'] ) {
-				self::store_outcome_delivery( (int) $row['order_id'], 'failed' );
+				self::store_outcome_delivery( (int) $row['order_id'], 'failed', 0, 'payload_decode_failed', (int) $row['attempts'], '' );
 			}
-			self::mark_dead( $id, 0, 'payload_decode_failed' );
+			self::mark_dead( $id, 0, 'payload_decode_failed', true );
 			return;
 		}
 
@@ -189,7 +248,7 @@ final class YOGB_BM_Outbox {
 			if ( 'report' === (string) $row['event_type'] ) {
 				self::store_report_id( (int) $row['order_id'], (string) ( $res['body'] ?? '' ) );
 			} elseif ( 'outcome' === (string) $row['event_type'] ) {
-				self::store_outcome_delivery( (int) $row['order_id'], 'delivered' );
+				self::store_outcome_delivery( (int) $row['order_id'], 'delivered', $code, '', (int) $row['attempts'], '' );
 			}
 			$wpdb->delete( $table, [ 'id' => $id ], [ '%d' ] );
 			do_action( 'yogb_bm_outbox_event', 'delivered', [ 'type' => (string) $row['event_type'], 'code' => $code, 'attempts' => (int) $row['attempts'] ] );
@@ -200,9 +259,12 @@ final class YOGB_BM_Outbox {
 		$error    = self::response_error_code( $res );
 		if ( $attempts >= (int) $row['max_attempts'] || ! self::is_retryable( $res ) ) {
 			if ( 'outcome' === (string) $row['event_type'] ) {
-				self::store_outcome_delivery( (int) $row['order_id'], 'failed' );
+				$status = 401 === $code
+					? 'auth_failed'
+					: ( $code >= 400 && $code < 500 ? 'rejected' : 'failed' );
+				self::store_outcome_delivery( (int) $row['order_id'], $status, $code, $error, $attempts, '' );
 			}
-			self::mark_dead( $id, $code, $error );
+			self::mark_dead( $id, $code, $error, 'outcome' !== (string) $row['event_type'] );
 			return;
 		}
 
@@ -221,12 +283,19 @@ final class YOGB_BM_Outbox {
 		);
 		self::schedule_item( $id, $delay );
 		if ( 'outcome' === (string) $row['event_type'] ) {
-			self::store_outcome_delivery( (int) $row['order_id'], 'retrying' );
+			self::store_outcome_delivery( (int) $row['order_id'], 'retrying', $code, $error, $attempts, $next );
 		}
 		do_action( 'yogb_bm_outbox_event', 'retry', [ 'type' => (string) $row['event_type'], 'code' => $code, 'attempts' => $attempts ] );
 	}
 
-	private static function store_outcome_delivery( int $order_id, string $status ) : void {
+	private static function store_outcome_delivery(
+		int $order_id,
+		string $status,
+		int $http_code = 0,
+		string $error = '',
+		int $attempts = 0,
+		string $next_at = ''
+	) : void {
 		if ( $order_id <= 0 || ! function_exists( 'wc_get_order' ) ) {
 			return;
 		}
@@ -235,30 +304,41 @@ final class YOGB_BM_Outbox {
 			return;
 		}
 		$order->update_meta_data( YOGB_BM_Decision_Actions::META_OUTCOME_DELIVERY, sanitize_key( $status ) );
+		$order->update_meta_data( YOGB_BM_Decision_Actions::META_OUTCOME_HTTP_CODE, max( 0, $http_code ) );
+		$order->update_meta_data( YOGB_BM_Decision_Actions::META_OUTCOME_ATTEMPTS, max( 0, $attempts ) );
+		if ( '' !== $error ) {
+			$order->update_meta_data( YOGB_BM_Decision_Actions::META_OUTCOME_ERROR, substr( sanitize_key( $error ), 0, 255 ) );
+		} else {
+			$order->delete_meta_data( YOGB_BM_Decision_Actions::META_OUTCOME_ERROR );
+		}
+		if ( '' !== $next_at ) {
+			$order->update_meta_data( YOGB_BM_Decision_Actions::META_OUTCOME_NEXT_AT, sanitize_text_field( $next_at ) );
+		} else {
+			$order->delete_meta_data( YOGB_BM_Decision_Actions::META_OUTCOME_NEXT_AT );
+		}
 		$order->save();
 	}
 
-	private static function mark_dead( int $id, int $code, string $error ) : void {
+	private static function mark_dead( int $id, int $code, string $error, bool $clear_payload = true ) : void {
 		global $wpdb;
-		$wpdb->update(
-			self::table(),
-			[
-				'payload_json'    => '',
-				'headers_json'    => '',
-				'status'          => 'dead',
-				'next_attempt_at' => null,
-				'last_http_code'  => $code,
-				'last_error'      => substr( sanitize_key( $error ), 0, 255 ),
-				'updated_at'      => current_time( 'mysql', true ),
-			],
-			[ 'id' => $id ]
-		);
+		$values = [
+			'status'          => 'dead',
+			'next_attempt_at' => null,
+			'last_http_code'  => $code,
+			'last_error'      => substr( sanitize_key( $error ), 0, 255 ),
+			'updated_at'      => current_time( 'mysql', true ),
+		];
+		if ( $clear_payload ) {
+			$values['payload_json'] = '';
+			$values['headers_json'] = '';
+		}
+		$wpdb->update( self::table(), $values, [ 'id' => $id ] );
 		do_action( 'yogb_bm_outbox_event', 'dead', [ 'code' => $code, 'error_code' => sanitize_key( $error ) ] );
 	}
 
 	private static function is_retryable( array $res ) : bool {
 		$code = (int) ( $res['code'] ?? 0 );
-		return 0 === $code || in_array( $code, [ 401, 408, 425, 429 ], true ) || $code >= 500;
+		return 0 === $code || in_array( $code, [ 408, 425, 429 ], true ) || $code >= 500;
 	}
 
 	private static function retry_delay( int $attempt, int $retry_after ) : int {
@@ -345,7 +425,7 @@ final class YOGB_BM_Outbox {
 		return $wpdb->prefix . 'wc_blacklist_gbl_outbox';
 	}
 
-	private static function encode_payload( array $payload ) : string {
+	private static function encode_payload( array $payload, bool $requires_encryption = false ) : string {
 		$json = self::canonical_json( $payload );
 		if ( '' === $json ) {
 			return '';
@@ -360,8 +440,11 @@ final class YOGB_BM_Outbox {
 					return 'enc1:' . base64_encode( $iv . $tag . $raw );
 				}
 			} catch ( Throwable $e ) {
-				// Fall through to encoded JSON; delivery must remain available.
+				// Strong evidence references must never fall back to plain base64.
 			}
+		}
+		if ( $requires_encryption ) {
+			return '';
 		}
 		return 'json1:' . base64_encode( $json );
 	}

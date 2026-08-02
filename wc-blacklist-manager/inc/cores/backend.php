@@ -171,6 +171,7 @@ class WC_Blacklist_Manager_Backend {
 			require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-register.php';
 			require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-observability.php';
 			require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-outbox.php';
+			require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-evidence-reference-resolver.php';
 			require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-outcomes.php';
 			require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-reports.php';
 			require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-decision-actions.php';

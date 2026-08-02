@@ -203,6 +203,21 @@ final class YOGB_BM_Check {
 		if ( ! preg_match( '/^gbl_dec_[a-f0-9]{32}$/', $ref ) ) {
 			$ref = '';
 		}
+		$match_summary = [];
+		if ( self::supports_capability( 'match_explanation_v2' ) ) {
+			foreach ( array_slice( (array) ( $decision['match_summary'] ?? [] ), 0, 8 ) as $match ) {
+				if ( ! is_array( $match ) ) {
+					continue;
+				}
+				$match_summary[] = [
+					'type'                   => sanitize_key( (string) ( $match['type'] ?? '' ) ),
+					'match_mode'             => sanitize_key( (string) ( $match['match_mode'] ?? 'none' ) ),
+					'confidence'             => isset( $match['confidence'] ) ? max( 0.0, min( 1.0, (float) $match['confidence'] ) ) : null,
+					'requires_corroboration' => ! empty( $match['requires_corroboration'] ),
+					'direct'                 => ! empty( $match['direct'] ),
+				];
+			}
+		}
 
 		return [
 			'schema'           => $schema,
@@ -217,6 +232,7 @@ final class YOGB_BM_Check {
 			'detail_available' => isset( $decision['detail_available'] )
 				? (bool) $decision['detail_available']
 				: ( '' !== $ref && self::supports_capability( 'decision_detail_view_v1' ) ),
+			'match_summary'    => $match_summary,
 		];
 	}
 
@@ -283,6 +299,9 @@ final class YOGB_BM_Check {
 			$match_mode            = isset( $row['match_mode'] ) ? (string) $row['match_mode'] : 'none';
 			$matched_variant       = isset( $row['matched_variant'] ) ? (string) $row['matched_variant'] : '';
 			$matched_identity_count = isset( $row['matched_identity_count'] ) ? (int) $row['matched_identity_count'] : 0;
+			$match_confidence       = isset( $row['match_confidence'] ) ? max( 0.0, min( 1.0, (float) $row['match_confidence'] ) ) : null;
+			$requires_corroboration = ! empty( $row['requires_corroboration'] );
+			$direct_match           = isset( $row['direct_match'] ) ? (bool) $row['direct_match'] : ( 'exact' === $match_mode );
 
 			$found = (
 				! empty( $matches ) ||
@@ -306,6 +325,9 @@ final class YOGB_BM_Check {
 				'match_mode'              => $match_mode,
 				'matched_variant'         => $matched_variant,
 				'matched_identity_count'  => $matched_identity_count,
+				'match_confidence'        => $match_confidence,
+				'requires_corroboration'  => $requires_corroboration,
+				'direct_match'            => $direct_match,
 			];
 		}
 
@@ -346,6 +368,15 @@ final class YOGB_BM_Check {
 					__( ', last reported %s', 'wc-blacklist-manager' ),
 					(string) $row['last_reported']
 				);
+			}
+			if ( null !== $row['match_confidence'] ) {
+				$line .= sprintf(
+					__( ', match confidence %s%%', 'wc-blacklist-manager' ),
+					number_format_i18n( (float) $row['match_confidence'] * 100, 0 )
+				);
+			}
+			if ( ! empty( $row['requires_corroboration'] ) ) {
+				$line .= __( ', requires another confirming identity', 'wc-blacklist-manager' );
 			}
 
 			$lines[] = $line;

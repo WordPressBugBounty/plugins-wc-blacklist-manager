@@ -145,6 +145,9 @@ if ( ! function_exists( 'yobm_normalize_phone' ) ) {
 		}
 
 		$phone = trim( $phone );
+		// Extensions identify a destination behind the same subscriber number
+		// and must never become part of the global phone identity.
+		$phone = preg_replace( '/(?:\bext(?:ension)?\.?|\bx|#)\s*\d+\s*$/iu', '', $phone );
 
 		// Remove common separators.
 		$phone = str_replace(
@@ -183,7 +186,7 @@ if ( ! function_exists( 'yobm_normalize_phone' ) ) {
 		// Local number.
 		$digits = ltrim( $digits, '0' );
 
-		if ( '' !== $dial_digits ) {
+		if ( '' !== $dial_digits && 0 !== strpos( $digits, $dial_digits ) ) {
 			$digits = $dial_digits . $digits;
 		}
 

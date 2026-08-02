@@ -114,6 +114,9 @@ if ( ! function_exists( 'yobm_gbl_normalize_phone' ) ) {
 		}
 
 		$phone = trim( $phone );
+		// An extension is routing metadata behind the subscriber number, not
+		// part of the globally comparable phone identity.
+		$phone = preg_replace( '/(?:\bext(?:ension)?\.?|\bx|#)\s*\d+\s*$/iu', '', $phone );
 
 		// Keep only digits and '+'.
 		$phone = preg_replace( '/[^\d+]+/u', '', $phone );
@@ -156,7 +159,10 @@ if ( ! function_exists( 'yobm_gbl_normalize_phone' ) ) {
 		}
 
 		if ( '' !== $dial_digits ) {
-			$digits = ltrim( $dial_digits, '0' ) . $digits;
+			$dial_digits = ltrim( $dial_digits, '0' );
+			if ( 0 !== strpos( $digits, $dial_digits ) ) {
+				$digits = $dial_digits . $digits;
+			}
 		}
 
 		if ( strlen( $digits ) < 8 || strlen( $digits ) > 15 ) {

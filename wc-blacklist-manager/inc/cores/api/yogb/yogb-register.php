@@ -443,6 +443,10 @@ class YOGB_BM_Registrar {
 			delete_option( 'yogb_bm_reg_cooldown_until' );
 			delete_option( 'yogb_bm_reg_attempts' );
 
+			// Credentials are ready now, so negotiate tier, plan, and server
+			// capabilities immediately instead of waiting for the first cron pull.
+			do_action( 'yogb_bm_registration_completed' );
+
 			if ( ! $quiet ) {
 				self::admin_notice_once(
 					'yogb_bm_reg_ok',

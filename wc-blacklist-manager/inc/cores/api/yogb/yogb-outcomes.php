@@ -9,6 +9,8 @@ final class YOGB_BM_Outcomes {
 	const META_AT                = '_yogb_gbl_decision_at';
 	const OPT_CAPABILITIES       = 'yogb_bm_server_capabilities';
 	const AUTOMATION_CAPABILITY  = 'decision_outcome_automation_v1';
+	const OUTCOME_V2_CAPABILITY  = 'decision_outcomes_v2';
+	const OUTCOME_PROVENANCE_CAPABILITY = 'decision_outcomes_v2_provenance';
 	const MATURE_HOOK            = 'yogb_bm_capture_mature_order_outcome';
 	const ACTION_GROUP           = 'yogb-global-blacklist';
 	const DEFAULT_MATURE_DAYS    = 30;
@@ -62,6 +64,10 @@ final class YOGB_BM_Outcomes {
 
 	public static function supports_automation() : bool {
 		return self::supports_capability( self::AUTOMATION_CAPABILITY );
+	}
+
+	public static function supports_v2() : bool {
+		return self::supports_capability( self::OUTCOME_V2_CAPABILITY );
 	}
 
 	public static function mark_system_status_change( int $order_id, string $status ) : void {
@@ -269,7 +275,8 @@ final class YOGB_BM_Outcomes {
 		string $type,
 		string $event_uuid,
 		string $occurred_at,
-		int $revision
+		int $revision,
+		array $provenance = []
 	) : int {
 		return self::enqueue(
 			$order,
@@ -282,6 +289,60 @@ final class YOGB_BM_Outcomes {
 				'revision'      => max( 1, $revision ),
 			]
 		);
+	}
+
+	/**
+	 * Queue a manually reviewed V2 conclusion. The server owns classification
+	 * and strength; the client sends only the conclusion and supporting basis.
+	 */
+	public static function capture_manual_revision_v2(
+		WC_Order $order,
+		string $conclusion,
+		string $review_status,
+		string $evidence_type,
+		string $reason_code,
+		string $evidence_reference,
+		string $event_uuid,
+		string $occurred_at,
+		int $revision
+	) : int {
+		if ( ! self::supports_v2() || ! class_exists( 'YOGB_BM_Outbox' ) ) {
+			return 0;
+		}
+		$ref = (string) $order->get_meta( self::META_REF, true );
+		if ( ! preg_match( '/^gbl_dec_[a-f0-9]{32}$/', $ref ) || ! wp_is_uuid( $event_uuid, 4 ) ) {
+			return 0;
+		}
+
+		$payload = [
+			'schema_version' => 2,
+			'event_uuid'     => $event_uuid,
+			'decision_ref'   => $ref,
+			'conclusion'     => sanitize_key( $conclusion ),
+			'review_status'  => sanitize_key( $review_status ),
+			'evidence_type'  => sanitize_key( $evidence_type ),
+			'occurred_at'    => sanitize_text_field( $occurred_at ),
+			'metadata'       => [
+				'review_source' => 'woocommerce_order_outcome',
+				'reason_code'   => substr( sanitize_key( $reason_code ), 0, 64 ),
+				'revision'      => max( 1, $revision ),
+			],
+		];
+		$evidence_reference = substr( trim( sanitize_text_field( $evidence_reference ) ), 0, 128 );
+		if ( '' !== $evidence_reference ) {
+			$payload['evidence_reference'] = $evidence_reference;
+		}
+		if ( self::supports_capability( self::OUTCOME_PROVENANCE_CAPABILITY ) && ! empty( $provenance ) ) {
+			foreach ( [ 'evidence_origin', 'evidence_provider', 'evidence_event_type', 'adapter_version' ] as $key ) {
+				if ( isset( $provenance[ $key ] ) && is_scalar( $provenance[ $key ] ) ) {
+					$payload[ $key ] = substr( sanitize_text_field( (string) $provenance[ $key ] ), 0, 64 );
+				}
+			}
+			if ( ! empty( $provenance['detected_at'] ) ) {
+				$payload['metadata']['detected_at'] = substr( sanitize_text_field( (string) $provenance['detected_at'] ), 0, 64 );
+			}
+		}
+		return YOGB_BM_Outbox::enqueue_outcome_v2( $payload, (int) $order->get_id() );
 	}
 
 	public static function capture_refund( $order_id, $refund_id = 0 ) : void {

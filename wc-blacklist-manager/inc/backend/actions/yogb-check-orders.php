@@ -36,6 +36,7 @@ final class YOGB_BM_Check_Orders {
 	const META_RESPONSE_SCHEMA       = '_yogb_gbl_response_schema';
 	const META_DETAIL_AVAILABLE      = '_yogb_gbl_detail_available';
 	const META_STORAGE_PROFILE       = '_yogb_gbl_storage_profile';
+	const META_MATCH_SUMMARY         = '_yogb_gbl_match_summary_v2';
 
 	// Structured Phase 3 signal meta.
 	const META_EFFECTIVE_SCORE        = '_yogb_gbl_effective_score';
@@ -766,6 +767,14 @@ final class YOGB_BM_Check_Orders {
 		$order->update_meta_data( self::META_RESPONSE_SCHEMA, (string) $snapshot['schema'] );
 		$order->update_meta_data( self::META_DETAIL_AVAILABLE, ! empty( $snapshot['detail_available'] ) ? 1 : 0 );
 		$order->update_meta_data( self::META_STORAGE_PROFILE, 'compact_v1' );
+		if ( ! empty( $snapshot['match_summary'] ) ) {
+			$order->update_meta_data(
+				self::META_MATCH_SUMMARY,
+				wp_json_encode( $snapshot['match_summary'], JSON_UNESCAPED_SLASHES )
+			);
+		} else {
+			$order->delete_meta_data( self::META_MATCH_SUMMARY );
+		}
 
 		$decision_ref = (string) $snapshot['decision_ref'];
 		if ( '' !== $decision_ref ) {

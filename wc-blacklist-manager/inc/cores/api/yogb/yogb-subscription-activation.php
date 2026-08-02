@@ -74,19 +74,21 @@ final class YOGB_BM_Subscription_Activation {
 			$tier = 'free';
 		}
 
-		$last_success   = (int) get_option( 'yogb_bm_last_server_success_at', 0 );
-		$last_error_at  = (int) get_option( 'yogb_bm_last_server_error_at', 0 );
-		$last_error     = sanitize_key( (string) get_option( 'yogb_bm_last_server_error_code', '' ) );
-		$capabilities   = array_values( array_filter( array_map( 'sanitize_key', (array) get_option( 'yogb_bm_server_capabilities', [] ) ) ) );
-		$supports_key   = in_array( 'subscription_activation_v1', $capabilities, true );
-		$plan           = class_exists( 'YOGB_BM_Tier_Webhook' ) ? YOGB_BM_Tier_Webhook::plan_summary() : [];
-		$plan_status    = sanitize_key( (string) ( $plan['status'] ?? '' ) );
-		$plan_type      = sanitize_key( (string) ( $plan['type'] ?? '' ) );
-		$last4          = sanitize_text_field( (string) get_option( 'yogb_bm_subscription_key_last4', '' ) );
-		$subscription   = sanitize_text_field( (string) get_option( 'yogb_bm_subscription_id', '' ) );
-		$subscriptions  = array_values( array_filter( array_map( 'sanitize_text_field', (array) ( $plan['subscription_ids'] ?? [] ) ) ) );
-		$notice_key     = 'yogb_activation_notice_' . get_current_user_id();
-		$notice         = get_transient( $notice_key );
+		$last_success        = (int) get_option( 'yogb_bm_last_server_success_at', 0 );
+		$last_error_at       = (int) get_option( 'yogb_bm_last_server_error_at', 0 );
+		$last_error          = sanitize_key( (string) get_option( 'yogb_bm_last_server_error_code', '' ) );
+		$capabilities_option = get_option( 'yogb_bm_server_capabilities', false );
+		$capabilities_known  = false !== $capabilities_option;
+		$capabilities        = array_values( array_filter( array_map( 'sanitize_key', (array) $capabilities_option ) ) );
+		$supports_key        = in_array( 'subscription_activation_v1', $capabilities, true );
+		$plan                = class_exists( 'YOGB_BM_Tier_Webhook' ) ? YOGB_BM_Tier_Webhook::plan_summary() : [];
+		$plan_status         = sanitize_key( (string) ( $plan['status'] ?? '' ) );
+		$plan_type           = sanitize_key( (string) ( $plan['type'] ?? '' ) );
+		$last4               = sanitize_text_field( (string) get_option( 'yogb_bm_subscription_key_last4', '' ) );
+		$subscription        = sanitize_text_field( (string) get_option( 'yogb_bm_subscription_id', '' ) );
+		$subscriptions       = array_values( array_filter( array_map( 'sanitize_text_field', (array) ( $plan['subscription_ids'] ?? [] ) ) ) );
+		$notice_key          = 'yogb_activation_notice_' . get_current_user_id();
+		$notice              = get_transient( $notice_key );
 
 		delete_transient( $notice_key );
 		if ( $subscription && ! in_array( $subscription, $subscriptions, true ) ) {
@@ -166,8 +168,10 @@ final class YOGB_BM_Subscription_Activation {
 			echo '<details id="yogb-subscription-activation" class="yogb-gbl-activation"><summary>' . esc_html( 'active' === $plan_status || $last4 ? __( 'Activate another subscription', 'wc-blacklist-manager' ) : __( 'Activate a subscription', 'wc-blacklist-manager' ) ) . '</summary><div class="yogb-gbl-activation__body">';
 			wp_nonce_field( self::ACTION );
 			echo '<div class="yogb-gbl-activation__fields"><input type="text" id="yogb_activation_key" name="yogb_activation_key" class="regular-text" placeholder="YOGB-SUB-XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX" autocomplete="off"><button type="submit" name="action" value="' . esc_attr( self::ACTION ) . '" class="button button-primary" formaction="' . esc_url( admin_url( 'admin-post.php' ) ) . '" formmethod="post">' . esc_html__( 'Activate plan', 'wc-blacklist-manager' ) . '</button></div><p class="description">' . esc_html__( 'The key is sent through this site’s signed connection and is never stored here in full.', 'wc-blacklist-manager' ) . '</p></div></details>';
-		} else {
+		} elseif ( $capabilities_known ) {
 			echo '<div class="yogb-gbl-legacy-note">' . esc_html__( 'This server does not support subscription-key activation yet. Existing Site ID plans continue to synchronize normally.', 'wc-blacklist-manager' ) . '</div>';
+		} else {
+			echo '<div class="yogb-gbl-legacy-note">' . esc_html__( 'Synchronizing server features… Activation options will be updated after this check finishes.', 'wc-blacklist-manager' ) . '</div>';
 		}
 		echo '</section></td></tr>';
 	}

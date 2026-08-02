@@ -13,10 +13,21 @@ final class YOGB_BM_Decision_Actions {
 	const META_OUTCOME_AT       = '_yogb_gbl_outcome_at';
 	const META_OUTCOME_UUID     = '_yogb_gbl_outcome_event_uuid';
 	const META_OUTCOME_DELIVERY = '_yogb_gbl_outcome_delivery';
+	const META_OUTCOME_SCHEMA   = '_yogb_gbl_outcome_schema';
+	const META_OUTCOME_CONCLUSION = '_yogb_gbl_outcome_conclusion';
+	const META_OUTCOME_REVIEW_STATUS = '_yogb_gbl_outcome_review_status';
+	const META_OUTCOME_EVIDENCE = '_yogb_gbl_outcome_evidence';
+	const META_OUTCOME_REASON   = '_yogb_gbl_outcome_reason';
+	const META_OUTCOME_SIGNATURE = '_yogb_gbl_outcome_signature';
+	const META_OUTCOME_HTTP_CODE = '_yogb_gbl_outcome_http_code';
+	const META_OUTCOME_ERROR    = '_yogb_gbl_outcome_error';
+	const META_OUTCOME_ATTEMPTS = '_yogb_gbl_outcome_attempts';
+	const META_OUTCOME_NEXT_AT  = '_yogb_gbl_outcome_next_at';
 
 	public static function init() : void {
 		add_action( 'admin_post_yogb_gbl_view_decision', [ __CLASS__, 'handle_view_decision' ] );
 		add_action( 'admin_post_yogb_gbl_record_outcome', [ __CLASS__, 'handle_record_outcome' ] );
+		add_action( 'admin_post_yogb_gbl_retry_outcome', [ __CLASS__, 'handle_retry_outcome' ] );
 	}
 
 	public static function outcome_labels() : array {
@@ -36,6 +47,71 @@ final class YOGB_BM_Decision_Actions {
 			$keys[] = 'manual_review_inconclusive';
 		}
 		return array_intersect_key( $labels, array_flip( $keys ) );
+	}
+
+	public static function supports_v2() : bool {
+		return self::supports( 'decision_outcomes_v2' );
+	}
+
+	public static function actual_outcome_labels( string $decision ) : array {
+		$labels = [
+			'risk'         => __( 'Risk or fraud was confirmed', 'wc-blacklist-manager' ),
+			'safe'         => __( 'Customer was legitimate', 'wc-blacklist-manager' ),
+			'inconclusive' => __( 'Review was inconclusive', 'wc-blacklist-manager' ),
+		];
+		$keys = 'allow' === sanitize_key( $decision )
+			? [ 'risk', 'inconclusive' ]
+			: [ 'risk', 'safe', 'inconclusive' ];
+		return array_intersect_key( $labels, array_flip( $keys ) );
+	}
+
+	public static function evidence_labels( string $conclusion = '' ) : array {
+		$labels = [
+			'chargeback'                   => __( 'Chargeback confirmed', 'wc-blacklist-manager' ),
+			'stolen_card'                  => __( 'Stolen card confirmed', 'wc-blacklist-manager' ),
+			'payment_processor_alert'      => __( 'Payment provider risk alert', 'wc-blacklist-manager' ),
+			'fraud_network'                => __( 'Fraud network confirmation', 'wc-blacklist-manager' ),
+			'identity_verified'            => __( 'Customer identity verified', 'wc-blacklist-manager' ),
+			'customer_verification_passed' => __( 'Customer verification passed', 'wc-blacklist-manager' ),
+			'known_customer'               => __( 'Known legitimate customer', 'wc-blacklist-manager' ),
+			'merchant_error'               => __( 'Merchant or staff error', 'wc-blacklist-manager' ),
+			'incorrect_identity_match'     => __( 'Identity match was incorrect', 'wc-blacklist-manager' ),
+			'manual_investigation'         => __( 'Manual investigation', 'wc-blacklist-manager' ),
+			'other'                        => __( 'Other documented reason', 'wc-blacklist-manager' ),
+		];
+		$keys = [
+			'risk' => [ 'chargeback', 'stolen_card', 'payment_processor_alert', 'fraud_network', 'manual_investigation', 'other' ],
+			'safe' => [ 'identity_verified', 'customer_verification_passed', 'known_customer', 'merchant_error', 'incorrect_identity_match', 'manual_investigation', 'other' ],
+		];
+		return isset( $keys[ $conclusion ] )
+			? array_intersect_key( $labels, array_flip( $keys[ $conclusion ] ) )
+			: $labels;
+	}
+
+	public static function reference_required( string $evidence_type ) : bool {
+		return in_array(
+			sanitize_key( $evidence_type ),
+			[ 'chargeback', 'stolen_card', 'payment_processor_alert', 'fraud_network', 'identity_verified', 'customer_verification_passed' ],
+			true
+		);
+	}
+
+	public static function evidence_reference_placeholder( string $evidence_type ) : string {
+		$placeholders = [
+			'chargeback'                   => __( 'e.g. payment provider dispute ID', 'wc-blacklist-manager' ),
+			'stolen_card'                  => __( 'e.g. provider fraud case ID', 'wc-blacklist-manager' ),
+			'payment_processor_alert'      => __( 'e.g. payment provider alert ID', 'wc-blacklist-manager' ),
+			'fraud_network'                => __( 'e.g. internal fraud incident ID', 'wc-blacklist-manager' ),
+			'identity_verified'            => __( 'e.g. KYC verification session ID', 'wc-blacklist-manager' ),
+			'customer_verification_passed' => __( 'e.g. verification check or ticket ID', 'wc-blacklist-manager' ),
+			'known_customer'               => __( 'e.g. internal review ticket ID', 'wc-blacklist-manager' ),
+			'merchant_error'               => __( 'e.g. internal correction ticket ID', 'wc-blacklist-manager' ),
+			'incorrect_identity_match'     => __( 'e.g. identity-review ticket ID', 'wc-blacklist-manager' ),
+			'manual_investigation'         => __( 'e.g. internal investigation ID', 'wc-blacklist-manager' ),
+			'other'                        => __( 'e.g. documented case ID', 'wc-blacklist-manager' ),
+		];
+		$evidence_type = sanitize_key( $evidence_type );
+		return $placeholders[ $evidence_type ] ?? __( 'e.g. case or ticket ID', 'wc-blacklist-manager' );
 	}
 
 	public static function can_manage_order( WC_Order $order ) : bool {
@@ -100,53 +176,160 @@ final class YOGB_BM_Decision_Actions {
 		}
 		$order_id = (int) $order->get_id();
 		check_admin_referer( 'yogb_gbl_record_outcome_' . $order_id );
-		if ( ! self::supports( 'decision_outcomes_v1' ) ) {
+		$use_v2 = self::supports_v2();
+		if ( ! $use_v2 && ! self::supports( 'decision_outcomes_v1' ) ) {
 			self::redirect_to_order( $order, 'outcome_unsupported' );
 		}
 
-		$type    = isset( $_POST['outcome_type'] ) ? sanitize_key( wp_unslash( $_POST['outcome_type'] ) ) : '';
-		$allowed = self::outcome_labels();
-		if ( ! isset( $allowed[ $type ] ) ) {
-			self::redirect_to_order( $order, 'feedback_invalid' );
-		}
-		if ( 'manual_review_inconclusive' === $type
-			&& ( ! class_exists( 'YOGB_BM_Outcomes' ) || ! YOGB_BM_Outcomes::supports_automation() ) ) {
-			self::redirect_to_order( $order, 'feedback_unsupported' );
-		}
 		$ref = (string) $order->get_meta( YOGB_BM_Check_Orders::META_DECISION_REF, true );
 		if ( ! preg_match( '/^gbl_dec_[a-f0-9]{32}$/', $ref ) ) {
 			self::redirect_to_order( $order, 'feedback_missing' );
 		}
 
-		$current_type = (string) $order->get_meta( self::META_OUTCOME_TYPE, true );
+		$type          = '';
+		$conclusion    = '';
+		$review_status = '';
+		$evidence_type = '';
+		$reason_code   = '';
+		$reference     = '';
+		if ( $use_v2 ) {
+			$decision  = sanitize_key( (string) $order->get_meta( '_yogb_gbl_decision', true ) );
+			$conclusion = self::posted_key( 'conclusion' );
+			$allowed    = self::actual_outcome_labels( $decision );
+			if ( ! in_array( $decision, [ 'allow', 'challenge', 'block' ], true ) || ! isset( $allowed[ $conclusion ] ) ) {
+				self::redirect_to_order( $order, 'outcome_invalid' );
+			}
+
+			$review_status = 'inconclusive' === $conclusion ? 'inconclusive' : 'resolved';
+			$evidence_type = 'inconclusive' === $conclusion
+				? 'none'
+				: self::posted_key( 'evidence_type' );
+			$reason_code   = $evidence_type;
+			if ( 'resolved' === $review_status && ! isset( self::evidence_labels( $conclusion )[ $evidence_type ] ) ) {
+				self::redirect_to_order( $order, 'outcome_reason_required' );
+			}
+
+			$reference = trim( self::posted_text( 'evidence_reference' ) );
+			$reference = substr( $reference, 0, 128 );
+			if ( self::reference_required( $evidence_type ) && '' === $reference ) {
+				self::redirect_to_order( $order, 'outcome_reference_required' );
+			}
+			$type = 'review_' . $conclusion;
+			$provenance = class_exists( 'YOGB_BM_Evidence_Reference_Resolver' )
+				? YOGB_BM_Evidence_Reference_Resolver::provenance_for_reference( $order, $evidence_type, $reference )
+				: [];
+		} else {
+			$type    = self::posted_key( 'outcome_type' );
+			$allowed = self::feedback_labels();
+			if ( ! isset( $allowed[ $type ] ) ) {
+				self::redirect_to_order( $order, 'feedback_invalid' );
+			}
+			$conclusion = self::legacy_conclusion( $type );
+			$review_status = 'manual_review_inconclusive' === $type ? 'inconclusive' : 'resolved';
+			$evidence_type = 'legacy_merchant_assertion';
+			$provenance = [];
+		}
+
+		$signature = hash(
+			'sha256',
+			implode( '|', [ $use_v2 ? '2' : '1', $type, $conclusion, $review_status, $evidence_type, $reason_code, hash( 'sha256', $reference ) ] )
+		);
+		$current_signature = (string) $order->get_meta( self::META_OUTCOME_SIGNATURE, true );
 		$event_uuid   = (string) $order->get_meta( self::META_OUTCOME_UUID, true );
 		$revision     = max( 0, (int) $order->get_meta( self::META_OUTCOME_REVISION, true ) );
 		$occurred_at  = (string) $order->get_meta( self::META_OUTCOME_AT, true );
-		if ( $type !== $current_type || ! wp_is_uuid( $event_uuid, 4 ) || '' === $occurred_at ) {
+		if ( ! hash_equals( $signature, $current_signature ) || ! wp_is_uuid( $event_uuid, 4 ) || '' === $occurred_at ) {
 			$revision++;
 			$event_uuid  = wp_generate_uuid4();
 			$occurred_at = gmdate( 'c' );
 		}
 
 		$order->update_meta_data( self::META_OUTCOME_TYPE, $type );
+		$order->update_meta_data( self::META_OUTCOME_SCHEMA, $use_v2 ? 2 : 1 );
+		$order->update_meta_data( self::META_OUTCOME_CONCLUSION, $conclusion );
+		$order->update_meta_data( self::META_OUTCOME_REVIEW_STATUS, $review_status );
+		$order->update_meta_data( self::META_OUTCOME_EVIDENCE, $evidence_type );
+		$order->update_meta_data( self::META_OUTCOME_REASON, $reason_code );
+		$order->update_meta_data( self::META_OUTCOME_SIGNATURE, $signature );
 		$order->update_meta_data( self::META_OUTCOME_REVISION, max( 1, $revision ) );
 		$order->update_meta_data( self::META_OUTCOME_USER_ID, get_current_user_id() );
 		$order->update_meta_data( self::META_OUTCOME_AT, $occurred_at );
 		$order->update_meta_data( self::META_OUTCOME_UUID, $event_uuid );
 		$order->update_meta_data( self::META_OUTCOME_DELIVERY, 'queueing' );
+		$order->delete_meta_data( self::META_OUTCOME_HTTP_CODE );
+		$order->delete_meta_data( self::META_OUTCOME_ERROR );
+		$order->delete_meta_data( self::META_OUTCOME_ATTEMPTS );
+		$order->delete_meta_data( self::META_OUTCOME_NEXT_AT );
 		$order->save();
 
-		$outbox_id = YOGB_BM_Outcomes::capture_manual_revision(
-			$order,
-			$type,
-			$event_uuid,
-			$occurred_at,
-			max( 1, $revision )
-		);
+		$outbox_id = $use_v2
+			? YOGB_BM_Outcomes::capture_manual_revision_v2(
+				$order,
+				$conclusion,
+				$review_status,
+				$evidence_type,
+				$reason_code,
+				$reference,
+				$event_uuid,
+				$occurred_at,
+				max( 1, $revision ),
+				$provenance
+			)
+			: YOGB_BM_Outcomes::capture_manual_revision(
+				$order,
+				$type,
+				$event_uuid,
+				$occurred_at,
+				max( 1, $revision )
+			);
 		$order->update_meta_data( self::META_OUTCOME_DELIVERY, $outbox_id > 0 ? 'queued' : 'queue_failed' );
 		$order->save();
 
-		self::redirect_to_order( $order, $outbox_id > 0 ? 'feedback_saved' : 'feedback_queue_failed' );
+		self::redirect_to_order( $order, $outbox_id > 0 ? 'outcome_saved' : 'outcome_queue_failed' );
+	}
+
+	public static function handle_retry_outcome() : void {
+		$order = self::requested_order( 'post' );
+		if ( ! $order || ! self::can_manage_order( $order ) ) {
+			wp_die( esc_html__( 'You do not have permission to retry this outcome.', 'wc-blacklist-manager' ), 403 );
+		}
+		$order_id = (int) $order->get_id();
+		check_admin_referer( 'yogb_gbl_retry_outcome_' . $order_id );
+		$event_uuid = (string) $order->get_meta( self::META_OUTCOME_UUID, true );
+		$queued = wp_is_uuid( $event_uuid, 4 )
+			&& class_exists( 'YOGB_BM_Outbox' )
+			&& YOGB_BM_Outbox::retry_outcome( $event_uuid, $order_id );
+		if ( $queued ) {
+			$order->update_meta_data( self::META_OUTCOME_DELIVERY, 'queued' );
+			$order->delete_meta_data( self::META_OUTCOME_ERROR );
+			$order->delete_meta_data( self::META_OUTCOME_NEXT_AT );
+			$order->save();
+		}
+		self::redirect_to_order( $order, $queued ? 'outcome_retry_queued' : 'outcome_retry_failed' );
+	}
+
+	private static function legacy_conclusion( string $type ) : string {
+		if ( 'fraud_confirmed' === $type ) {
+			return 'risk';
+		}
+		if ( 'false_positive_confirmed' === $type ) {
+			return 'safe';
+		}
+		return 'inconclusive';
+	}
+
+	private static function posted_key( string $name ) : string {
+		if ( ! isset( $_POST[ $name ] ) || ! is_scalar( $_POST[ $name ] ) ) {
+			return '';
+		}
+		return sanitize_key( wp_unslash( (string) $_POST[ $name ] ) );
+	}
+
+	private static function posted_text( string $name ) : string {
+		if ( ! isset( $_POST[ $name ] ) || ! is_scalar( $_POST[ $name ] ) ) {
+			return '';
+		}
+		return sanitize_text_field( wp_unslash( (string) $_POST[ $name ] ) );
 	}
 
 	private static function supports( string $capability ) : bool {

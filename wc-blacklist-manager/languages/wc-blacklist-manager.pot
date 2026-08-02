@@ -2,7 +2,7 @@
 # This file is distributed under the GPL v2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Blacklist Manager 2.2.10\n"
+"Project-Id-Version: Blacklist Manager 2.2.11\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/wc-blacklist-manager\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -5296,6 +5296,10 @@ msgstr ""
 
 #: inc/cores/api/yogb/yogb-subscription-activation.php:170
 msgid "This server does not support subscription-key activation yet. Existing Site ID plans continue to synchronize normally."
+msgstr ""
+
+#: inc/cores/api/yogb/yogb-subscription-activation.php:174
+msgid "Synchronizing server features… Activation options will be updated after this check finishes."
 msgstr ""
 
 #: inc/cores/api/yogb/yogb-subscription-activation.php:190

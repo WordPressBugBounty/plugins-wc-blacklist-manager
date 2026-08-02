@@ -5,7 +5,7 @@ Requires at least: 6.3
 Tested up to: 7.0
 WC tested up to: 10.9
 Requires PHP: 7.4
-Stable tag: 2.2.10
+Stable tag: 2.2.11
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -121,18 +121,19 @@ Global Blacklist Decisions is a connected fraud-prevention service. Data exchang
 
 == Changelog ==
 
-= 2.2.10 (Jul 26, 2026) =
-* New: Added a compact Global Blacklist order result with a secure server-hosted full-analysis view.
-* New: Added Core-owned outcome automation for order lifecycle, merchant Block/Suspect/Remove actions, disputes, overrides, and matured completions with durable, idempotent delivery.
-* New: Replaced the always-visible Review outcome form with optional “Report incorrect result” feedback that clearly states it cannot change store operations.
-* Improve: Centralized the WooCommerce order Global Blacklist result panel in Core so Core and Premium share one presentation while retaining separate metabox containers.
-* Improve: Negotiates compact decision responses with updated servers while preserving the full legacy response contract with older servers.
-* Improve: Stops storing raw server responses and verbose per-identity scoring data for new order checks.
-* Improve: Migrates legacy verbose order meta in bounded background batches only after the server confirms it retains the full decision payload.
-* Improve: Displays the Global Blacklist plan badge and checked time with natural spacing, using the WordPress date, time, and timezone settings.
-* Improve: Places Recheck and View full analysis inside the result card with aligned icon/text and colors inherited from each user’s WordPress Admin Color Scheme.
-* Safety: Ignores order status changes initiated by Global Blacklist itself and never treats delayed or inferred evidence as a confirmed readiness label.
-* Compatibility: Preserves readable summaries for existing orders and retains their local verbose data whenever the server copy is compact, missing, or unavailable.
-* Security: Uses short-lived one-time view grants, strict server URL validation, order capabilities, and nonces for full analysis and outcome actions.
+= 2.2.11 (Aug 2, 2026) =
+* New: Negotiates identity normalization v3 with compatible Global Blacklist servers while preserving the v2 payload for older servers.
+* Fix: Prevents the compact order-meta migration from repeatedly saving historic orders on stores using WooCommerce legacy order storage and safely drains duplicate queued migration actions.
+* Fix: Synchronizes server capabilities immediately after registration and shows a pending state instead of incorrectly reporting that subscription-key activation is unsupported.
+* Improve: Colors interactive subscription activation controls with each user’s WordPress Admin Color Scheme while keeping passive synchronization and legacy messages visually neutral.
+* Improve: Shows outcome choices that are valid for the original allow, challenge, or block decision and requires a reason for resolved reviews.
+* Improve: Clarifies the optional or required case/evidence ID with reason-specific examples and hides the field until a documented reason is selected.
+* Improve: Displays queued, sending, retrying, delivered, rejected, and authentication-failure delivery states with explicit retry when safe.
+* Improve: Sends phone country context and versioned address normalization metadata to improve international phone and address matching.
+* Improve: Normalizes phone extensions without changing legacy canonical phone behavior.
+* Improve: Displays privacy-safe probable-match confidence and corroboration requirements without allowing fuzzy identity evidence to block an order by itself.
+* Security: Treats HTTP 401 as a credential problem instead of repeatedly retrying, encrypts strong evidence references at rest, and narrows the legacy handler to visible feedback choices.
+* Compatibility: Retains the existing “Report incorrect result” V1 interface when the connected server does not advertise decision outcomes v2.
+* Compatibility: Keeps the existing compact and legacy server response contracts fully supported.
 
-For older release notes, see `changelog.txt`.
+See `changelog.txt` for the complete release history.

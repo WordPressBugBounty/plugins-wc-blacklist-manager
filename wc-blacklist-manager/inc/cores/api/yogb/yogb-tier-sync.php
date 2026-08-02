@@ -9,6 +9,7 @@ final class YOGB_BM_Tier_Sync {
 		add_filter( 'cron_schedules', [ __CLASS__, 'add_schedule' ] );
 		add_action( 'init', [ __CLASS__, 'schedule' ] );
 		add_action( 'yogb_bm_tier_sync_hourly', [ __CLASS__, 'run' ] );
+		add_action( 'yogb_bm_registration_completed', [ __CLASS__, 'run' ] );
 	}
 
 	public static function add_schedule( array $schedules ) : array {

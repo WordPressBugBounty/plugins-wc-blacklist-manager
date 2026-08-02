@@ -113,6 +113,16 @@ class WC_Blacklist_Manager_Order_Risk_Score {
 			&& YOGB_BM_Outcomes::supports()
 			&& class_exists( 'YOGB_BM_Decision_Actions' )
 			&& YOGB_BM_Decision_Actions::can_manage_order( $order );
+		$match_rows = json_decode( (string) $order->get_meta( '_yogb_gbl_match_summary_v2', true ), true );
+		$match_rows = is_array( $match_rows ) ? $match_rows : [];
+		$probable_match = null;
+		foreach ( $match_rows as $match_row ) {
+			if ( ! is_array( $match_row ) || empty( $match_row['requires_corroboration'] ) ) {
+				continue;
+			}
+			$probable_match = $match_row;
+			break;
+		}
 		?>
 		<div class="bm-order-risk-meta bm-gbl-compact-panel">
 			<?php self::render_notice( $notice ); ?>
@@ -126,6 +136,17 @@ class WC_Blacklist_Manager_Order_Risk_Score {
 					</div>
 				</div>
 				<p class="bm-gbl-result__summary"><?php echo esc_html( $summary ); ?></p>
+				<?php if ( is_array( $probable_match ) ) : ?>
+					<p class="bm-gbl-result__summary">
+						<?php
+						printf(
+							esc_html__( 'Probable %1$s match (%2$s%% confidence). This signal requires another confirming identity and cannot block by itself.', 'wc-blacklist-manager' ),
+							esc_html( sanitize_key( (string) ( $probable_match['type'] ?? 'identity' ) ) ),
+							esc_html( number_format_i18n( max( 0, min( 1, (float) ( $probable_match['confidence'] ?? 0 ) ) ) * 100, 0 ) )
+						);
+						?>
+					</p>
+				<?php endif; ?>
 				<p class="bm-gbl-result__action">
 					<strong><?php esc_html_e( 'Recommended:', 'wc-blacklist-manager' ); ?></strong>
 					<?php echo esc_html( $view['action'] ); ?>
@@ -168,7 +189,7 @@ class WC_Blacklist_Manager_Order_Risk_Score {
 			<?php endif; ?>
 
 			<?php if ( $show_outcomes ) : ?>
-				<?php self::render_feedback_control( $order ); ?>
+				<?php self::render_feedback_control( $order, $decision ); ?>
 			<?php elseif ( ! $has_ref && in_array( $decision, [ 'allow', 'challenge', 'block' ], true ) ) : ?>
 				<p class="bm-gbl-compact-hint">
 					<?php esc_html_e( 'This result was recorded by an older client and has no decision reference, so server details and result feedback are unavailable for this order.', 'wc-blacklist-manager' ); ?>
@@ -294,44 +315,121 @@ class WC_Blacklist_Manager_Order_Risk_Score {
 		return $fallback[ $decision ] ?? __( 'No additional result summary is available.', 'wc-blacklist-manager' );
 	}
 
-	private static function render_feedback_control( WC_Order $order ) : void {
+	private static function render_feedback_control( WC_Order $order, string $decision ) : void {
 		$current_type = (string) $order->get_meta( YOGB_BM_Decision_Actions::META_OUTCOME_TYPE, true );
 		$current_at   = (string) $order->get_meta( YOGB_BM_Decision_Actions::META_OUTCOME_AT, true );
+		$current_conclusion = sanitize_key( (string) $order->get_meta( YOGB_BM_Decision_Actions::META_OUTCOME_CONCLUSION, true ) );
+		$current_evidence = sanitize_key( (string) $order->get_meta( YOGB_BM_Decision_Actions::META_OUTCOME_EVIDENCE, true ) );
+		$delivery = sanitize_key( (string) $order->get_meta( YOGB_BM_Decision_Actions::META_OUTCOME_DELIVERY, true ) );
 		$updated_at   = self::site_datetime( $current_at );
 		$all_labels   = YOGB_BM_Decision_Actions::outcome_labels();
 		$labels       = YOGB_BM_Decision_Actions::feedback_labels();
 		$form_id      = 'yogb-gbl-outcome-form-' . (int) $order->get_id();
-		self::register_outcome_form( $order, $form_id );
+		$retry_form_id = 'yogb-gbl-outcome-retry-' . (int) $order->get_id();
+		$use_v2 = YOGB_BM_Decision_Actions::supports_v2()
+			&& in_array( $decision, [ 'allow', 'challenge', 'block' ], true );
+		$conclusion_labels = $use_v2 ? YOGB_BM_Decision_Actions::actual_outcome_labels( $decision ) : [];
+		$evidence_labels = $use_v2 ? YOGB_BM_Decision_Actions::evidence_labels() : [];
+		$detected_references = $use_v2 && class_exists( 'YOGB_BM_Evidence_Reference_Resolver' )
+			? YOGB_BM_Evidence_Reference_Resolver::for_order( $order )
+			: [];
+		$retry_available = in_array( $delivery, [ 'auth_failed', 'failed' ], true );
+		self::register_outcome_form( $order, $form_id, $retry_form_id, $use_v2 );
 		?>
 		<details class="bm-gbl-feedback">
 			<summary>
 				<span class="bm-gbl-feedback__summary-label">
 					<span class="dashicons dashicons-flag" aria-hidden="true"></span>
-					<?php esc_html_e( 'Report incorrect result', 'wc-blacklist-manager' ); ?>
+					<?php $use_v2 ? esc_html_e( 'Record actual outcome', 'wc-blacklist-manager' ) : esc_html_e( 'Report incorrect result', 'wc-blacklist-manager' ); ?>
 				</span>
-				<?php if ( isset( $all_labels[ $current_type ] ) ) : ?>
-					<span class="bm-gbl-feedback__saved"><?php esc_html_e( 'Reported', 'wc-blacklist-manager' ); ?></span>
+				<?php if ( ( $use_v2 && isset( $conclusion_labels[ $current_conclusion ] ) ) || ( ! $use_v2 && isset( $all_labels[ $current_type ] ) ) ) : ?>
+					<span class="bm-gbl-feedback__saved"><?php esc_html_e( 'Recorded', 'wc-blacklist-manager' ); ?></span>
 				<?php endif; ?>
 			</summary>
 			<div class="bm-gbl-feedback__body">
-				<p><?php esc_html_e( 'Routine order events are monitored automatically. Use this only when you know the result was wrong or can confirm what happened.', 'wc-blacklist-manager' ); ?></p>
+				<?php if ( $use_v2 ) : ?>
+					<p><?php esc_html_e( 'Record what was established after review. The server validates the conclusion and supporting reason before using it as evidence.', 'wc-blacklist-manager' ); ?></p>
+				<?php else : ?>
+					<p><?php esc_html_e( 'Routine order events are monitored automatically. Use this only when you know the result was wrong or can confirm what happened.', 'wc-blacklist-manager' ); ?></p>
+				<?php endif; ?>
 				<p class="bm-gbl-feedback__safety">
 					<span class="dashicons dashicons-lock" aria-hidden="true"></span>
-					<?php esc_html_e( 'Sending feedback only improves Global Blacklist. It does not change the order, customer, payment, or automation settings.', 'wc-blacklist-manager' ); ?>
+					<?php esc_html_e( 'Recording an outcome only improves Global Blacklist. It does not change the order, customer, payment, or automation settings.', 'wc-blacklist-manager' ); ?>
 				</p>
-				<fieldset class="bm-gbl-feedback__choices">
-					<legend class="screen-reader-text"><?php esc_html_e( 'Result feedback', 'wc-blacklist-manager' ); ?></legend>
-					<?php foreach ( $labels as $value => $label ) : ?>
-						<label>
-							<input form="<?php echo esc_attr( $form_id ); ?>" type="radio" name="outcome_type" value="<?php echo esc_attr( $value ); ?>" <?php checked( $current_type, $value ); ?> required>
-							<span><?php echo esc_html( $label ); ?></span>
+				<?php if ( $use_v2 ) : ?>
+					<fieldset class="bm-gbl-feedback__choices">
+						<legend><?php esc_html_e( 'Actual outcome', 'wc-blacklist-manager' ); ?></legend>
+						<?php foreach ( $conclusion_labels as $value => $label ) : ?>
+							<label>
+								<input form="<?php echo esc_attr( $form_id ); ?>" type="radio" name="conclusion" value="<?php echo esc_attr( $value ); ?>" <?php checked( $current_conclusion, $value ); ?> required>
+								<span><?php echo esc_html( $label ); ?></span>
+							</label>
+						<?php endforeach; ?>
+					</fieldset>
+					<p class="bm-gbl-feedback__reason">
+						<label for="<?php echo esc_attr( $form_id . '-evidence' ); ?>"><strong><?php esc_html_e( 'Review reason', 'wc-blacklist-manager' ); ?></strong></label>
+						<select form="<?php echo esc_attr( $form_id ); ?>" id="<?php echo esc_attr( $form_id . '-evidence' ); ?>" name="evidence_type">
+							<option value=""><?php esc_html_e( 'Select a documented reason', 'wc-blacklist-manager' ); ?></option>
+							<?php foreach ( $evidence_labels as $value => $label ) : ?>
+								<?php
+								$conclusions = [];
+								foreach ( [ 'risk', 'safe' ] as $possible_conclusion ) {
+									if ( isset( YOGB_BM_Decision_Actions::evidence_labels( $possible_conclusion )[ $value ] ) ) {
+										$conclusions[] = $possible_conclusion;
+									}
+								}
+								?>
+								<option
+									value="<?php echo esc_attr( $value ); ?>"
+									data-conclusions="<?php echo esc_attr( implode( ' ', $conclusions ) ); ?>"
+									data-reference-required="<?php echo YOGB_BM_Decision_Actions::reference_required( $value ) ? '1' : '0'; ?>"
+									data-reference-placeholder="<?php echo esc_attr( YOGB_BM_Decision_Actions::evidence_reference_placeholder( $value ) ); ?>"
+									data-detected-reference="<?php echo esc_attr( $detected_references[ $value ]['reference'] ?? '' ); ?>"
+									data-detected-source="<?php echo esc_attr( $detected_references[ $value ]['source_label'] ?? '' ); ?>"
+									<?php selected( $current_evidence, $value ); ?>
+								><?php echo esc_html( $label ); ?></option>
+							<?php endforeach; ?>
+						</select>
+					</p>
+					<p class="bm-gbl-feedback__reference" <?php echo '' === $current_evidence ? 'hidden' : ''; ?>>
+						<label for="<?php echo esc_attr( $form_id . '-reference' ); ?>">
+							<strong><?php esc_html_e( 'Case or evidence ID', 'wc-blacklist-manager' ); ?></strong>
+							<span class="bm-gbl-feedback__reference-requirement" aria-live="polite"></span>
 						</label>
-					<?php endforeach; ?>
-				</fieldset>
+						<input form="<?php echo esc_attr( $form_id ); ?>" id="<?php echo esc_attr( $form_id . '-reference' ); ?>" type="text" name="evidence_reference" maxlength="128" autocomplete="off">
+						<small class="bm-gbl-feedback__reference-help"></small>
+						<small class="bm-gbl-feedback__reference-detected" hidden></small>
+					</p>
+				<?php else : ?>
+					<fieldset class="bm-gbl-feedback__choices">
+						<legend class="screen-reader-text"><?php esc_html_e( 'Result feedback', 'wc-blacklist-manager' ); ?></legend>
+						<?php foreach ( $labels as $value => $label ) : ?>
+							<label>
+								<input form="<?php echo esc_attr( $form_id ); ?>" type="radio" name="outcome_type" value="<?php echo esc_attr( $value ); ?>" <?php checked( $current_type, $value ); ?> required>
+								<span><?php echo esc_html( $label ); ?></span>
+							</label>
+						<?php endforeach; ?>
+					</fieldset>
+				<?php endif; ?>
 				<div class="bm-gbl-feedback__actions">
-					<button form="<?php echo esc_attr( $form_id ); ?>" type="submit" class="button button-secondary"><?php esc_html_e( 'Send feedback', 'wc-blacklist-manager' ); ?></button>
+					<button form="<?php echo esc_attr( $form_id ); ?>" type="submit" class="button button-secondary">
+						<?php $use_v2 ? esc_html_e( 'Record outcome', 'wc-blacklist-manager' ) : esc_html_e( 'Send feedback', 'wc-blacklist-manager' ); ?>
+					</button>
+					<?php if ( $retry_available ) : ?>
+						<button form="<?php echo esc_attr( $retry_form_id ); ?>" type="submit" class="button button-secondary"><?php esc_html_e( 'Retry delivery', 'wc-blacklist-manager' ); ?></button>
+					<?php endif; ?>
 				</div>
-				<?php if ( isset( $all_labels[ $current_type ] ) ) : ?>
+				<?php if ( $use_v2 && isset( $conclusion_labels[ $current_conclusion ] ) ) : ?>
+					<small class="bm-gbl-feedback__status">
+						<?php
+						printf(
+							/* translators: %s: saved actual outcome. */
+							esc_html__( 'Current outcome: %s.', 'wc-blacklist-manager' ),
+							esc_html( $conclusion_labels[ $current_conclusion ] )
+						);
+						?>
+					</small>
+				<?php elseif ( ! $use_v2 && isset( $all_labels[ $current_type ] ) ) : ?>
 					<small class="bm-gbl-feedback__status">
 						<?php
 						printf(
@@ -342,6 +440,7 @@ class WC_Blacklist_Manager_Order_Risk_Score {
 						?>
 					</small>
 				<?php endif; ?>
+				<?php self::render_outcome_delivery( $order, $delivery ); ?>
 				<?php if ( '' !== $updated_at['display'] ) : ?>
 					<small>
 						<?php esc_html_e( 'Last updated:', 'wc-blacklist-manager' ); ?>
@@ -353,17 +452,145 @@ class WC_Blacklist_Manager_Order_Risk_Score {
 		<?php
 	}
 
-	private static function register_outcome_form( WC_Order $order, string $form_id ) : void {
+	private static function render_outcome_delivery( WC_Order $order, string $delivery ) : void {
+		if ( '' === $delivery ) {
+			return;
+		}
+		$states = [
+			'queueing'    => [ 'pending', __( 'Preparing delivery', 'wc-blacklist-manager' ) ],
+			'queued'      => [ 'pending', __( 'Queued for delivery', 'wc-blacklist-manager' ) ],
+			'sending'     => [ 'pending', __( 'Sending to server', 'wc-blacklist-manager' ) ],
+			'retrying'    => [ 'warning', __( 'Delivery will retry automatically', 'wc-blacklist-manager' ) ],
+			'delivered'   => [ 'success', __( 'Delivered to server', 'wc-blacklist-manager' ) ],
+			'auth_failed' => [ 'error', __( 'Authentication failed—reconnect the site, then retry', 'wc-blacklist-manager' ) ],
+			'rejected'    => [ 'error', __( 'Server rejected this outcome—review the selected reason', 'wc-blacklist-manager' ) ],
+			'failed'      => [ 'error', __( 'Delivery failed', 'wc-blacklist-manager' ) ],
+			'queue_failed'=> [ 'error', __( 'Could not create the delivery queue item', 'wc-blacklist-manager' ) ],
+		];
+		if ( ! isset( $states[ $delivery ] ) ) {
+			return;
+		}
+		$http_code = max( 0, (int) $order->get_meta( YOGB_BM_Decision_Actions::META_OUTCOME_HTTP_CODE, true ) );
+		$error = sanitize_key( (string) $order->get_meta( YOGB_BM_Decision_Actions::META_OUTCOME_ERROR, true ) );
+		$attempts = max( 0, (int) $order->get_meta( YOGB_BM_Decision_Actions::META_OUTCOME_ATTEMPTS, true ) );
+		$next_at = self::site_datetime( (string) $order->get_meta( YOGB_BM_Decision_Actions::META_OUTCOME_NEXT_AT, true ) );
+		?>
+		<p class="bm-gbl-feedback__delivery bm-gbl-feedback__delivery--<?php echo esc_attr( $states[ $delivery ][0] ); ?>">
+			<strong><?php esc_html_e( 'Delivery:', 'wc-blacklist-manager' ); ?></strong>
+			<?php echo esc_html( $states[ $delivery ][1] ); ?>.
+			<?php if ( $http_code > 0 ) : ?>
+				<?php printf( esc_html__( 'HTTP %d.', 'wc-blacklist-manager' ), $http_code ); ?>
+			<?php endif; ?>
+			<?php if ( '' !== $error ) : ?>
+				<?php printf( esc_html__( 'Code: %s.', 'wc-blacklist-manager' ), esc_html( $error ) ); ?>
+			<?php endif; ?>
+			<?php if ( $attempts > 0 ) : ?>
+				<?php printf( esc_html__( 'Attempts: %d.', 'wc-blacklist-manager' ), $attempts ); ?>
+			<?php endif; ?>
+			<?php if ( '' !== $next_at['display'] ) : ?>
+				<?php esc_html_e( 'Next retry:', 'wc-blacklist-manager' ); ?>
+				<time datetime="<?php echo esc_attr( $next_at['datetime'] ); ?>"><?php echo esc_html( $next_at['display'] ); ?></time>.
+			<?php endif; ?>
+		</p>
+		<?php if ( 'auth_failed' === $delivery ) : ?>
+			<p><a href="<?php echo esc_url( admin_url( 'admin.php?page=wc-blacklist-manager-settings#global_blacklist' ) ); ?>"><?php esc_html_e( 'Open connection settings', 'wc-blacklist-manager' ); ?></a></p>
+		<?php endif; ?>
+		<?php
+	}
+
+	private static function register_outcome_form( WC_Order $order, string $form_id, string $retry_form_id, bool $use_v2 ) : void {
 		$order_id = (int) $order->get_id();
 		add_action(
 			'admin_footer',
-			static function() use ( $order_id, $form_id ) {
+			static function() use ( $order_id, $form_id, $retry_form_id, $use_v2 ) {
 				?>
 				<form id="<?php echo esc_attr( $form_id ); ?>" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" hidden>
 					<input type="hidden" name="action" value="yogb_gbl_record_outcome">
 					<input type="hidden" name="order_id" value="<?php echo esc_attr( (string) $order_id ); ?>">
 					<?php wp_nonce_field( 'yogb_gbl_record_outcome_' . $order_id ); ?>
 				</form>
+				<form id="<?php echo esc_attr( $retry_form_id ); ?>" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" hidden>
+					<input type="hidden" name="action" value="yogb_gbl_retry_outcome">
+					<input type="hidden" name="order_id" value="<?php echo esc_attr( (string) $order_id ); ?>">
+					<?php wp_nonce_field( 'yogb_gbl_retry_outcome_' . $order_id ); ?>
+				</form>
+				<?php if ( $use_v2 ) : ?>
+					<script>
+					(function() {
+						var formId = <?php echo wp_json_encode( $form_id ); ?>;
+						var conclusions = document.querySelectorAll('input[form="' + formId + '"][name="conclusion"]');
+						var evidence = document.querySelector('select[form="' + formId + '"][name="evidence_type"]');
+						var reference = document.querySelector('input[form="' + formId + '"][name="evidence_reference"]');
+						var referenceRow = reference ? reference.closest('.bm-gbl-feedback__reference') : null;
+						var referenceRequirement = referenceRow ? referenceRow.querySelector('.bm-gbl-feedback__reference-requirement') : null;
+						var referenceHelp = referenceRow ? referenceRow.querySelector('.bm-gbl-feedback__reference-help') : null;
+						var referenceDetected = referenceRow ? referenceRow.querySelector('.bm-gbl-feedback__reference-detected') : null;
+						var requiredLabel = <?php echo wp_json_encode( __( '(required)', 'wc-blacklist-manager' ) ); ?>;
+						var optionalLabel = <?php echo wp_json_encode( __( '(optional)', 'wc-blacklist-manager' ) ); ?>;
+						var requiredHelp = <?php echo wp_json_encode( __( 'Enter only the provider, verification, or internal case ID. Never enter customer, card, or identity data.', 'wc-blacklist-manager' ) ); ?>;
+						var optionalHelp = <?php echo wp_json_encode( __( 'Enter an internal case or ticket ID if one exists. Never enter customer, card, or identity data.', 'wc-blacklist-manager' ) ); ?>;
+						var detectedPrefix = <?php echo wp_json_encode( __( 'Automatically detected from', 'wc-blacklist-manager' ) ); ?>;
+						if (!evidence || !reference || !referenceRow || !conclusions.length) {
+							return;
+						}
+						var sync = function() {
+							var selected = document.querySelector('input[form="' + formId + '"][name="conclusion"]:checked');
+							var conclusion = selected ? selected.value : '';
+							var resolved = conclusion === 'risk' || conclusion === 'safe';
+							evidence.disabled = !resolved;
+							evidence.required = resolved;
+							Array.prototype.forEach.call(evidence.options, function(option) {
+								if (!option.value) {
+									option.disabled = false;
+									return;
+								}
+								option.disabled = !resolved || (' ' + option.getAttribute('data-conclusions') + ' ').indexOf(' ' + conclusion + ' ') === -1;
+							});
+							if (resolved && evidence.selectedOptions.length && evidence.selectedOptions[0].disabled) {
+								evidence.value = '';
+							}
+							var selectedEvidence = evidence.options[evidence.selectedIndex];
+							var hasEvidence = !!(resolved && selectedEvidence && selectedEvidence.value);
+							var referenceRequired = !!(hasEvidence && selectedEvidence.getAttribute('data-reference-required') === '1');
+							var detectedReference = hasEvidence ? (selectedEvidence.getAttribute('data-detected-reference') || '') : '';
+							var detectedSource = hasEvidence ? (selectedEvidence.getAttribute('data-detected-source') || '') : '';
+							var wasAutoFilled = reference.getAttribute('data-auto-filled') === '1';
+							if (detectedReference && (!reference.value || wasAutoFilled)) {
+								reference.value = detectedReference;
+								reference.setAttribute('data-auto-filled', '1');
+							} else if (!detectedReference && wasAutoFilled) {
+								reference.value = '';
+								reference.setAttribute('data-auto-filled', '0');
+							}
+							referenceRow.hidden = !hasEvidence;
+							reference.disabled = !hasEvidence;
+							reference.required = referenceRequired;
+							reference.placeholder = hasEvidence ? (selectedEvidence.getAttribute('data-reference-placeholder') || '') : '';
+							if (referenceRequirement) {
+								referenceRequirement.textContent = referenceRequired ? requiredLabel : optionalLabel;
+							}
+							if (referenceHelp) {
+								referenceHelp.textContent = referenceRequired ? requiredHelp : optionalHelp;
+							}
+							if (referenceDetected) {
+								var showDetected = !!(detectedReference && reference.getAttribute('data-auto-filled') === '1');
+								referenceDetected.hidden = !showDetected;
+								referenceDetected.textContent = showDetected ? detectedPrefix + ' ' + detectedSource + '.' : '';
+							}
+						};
+						reference.addEventListener('input', function() {
+							reference.setAttribute('data-auto-filled', '0');
+							if (referenceDetected) {
+								referenceDetected.hidden = true;
+								referenceDetected.textContent = '';
+							}
+						});
+						Array.prototype.forEach.call(conclusions, function(input) { input.addEventListener('change', sync); });
+						evidence.addEventListener('change', sync);
+						sync();
+					}());
+					</script>
+				<?php endif; ?>
 				<?php
 			},
 			20
@@ -377,11 +604,15 @@ class WC_Blacklist_Manager_Order_Risk_Score {
 			'feedback_unsupported'  => [ 'error', __( 'The connected server does not support this feedback option yet.', 'wc-blacklist-manager' ) ],
 			'feedback_invalid'      => [ 'error', __( 'Select a valid feedback option.', 'wc-blacklist-manager' ) ],
 			'feedback_missing'      => [ 'error', __( 'This older result has no decision reference.', 'wc-blacklist-manager' ) ],
-			'outcome_saved'         => [ 'success', __( 'Result feedback saved and queued securely. No order or customer settings were changed.', 'wc-blacklist-manager' ) ],
-			'outcome_queue_failed'  => [ 'error', __( 'The feedback was saved locally but could not be queued. Send it again to retry.', 'wc-blacklist-manager' ) ],
-			'outcome_unsupported'   => [ 'error', __( 'The connected server does not support result feedback yet.', 'wc-blacklist-manager' ) ],
-			'outcome_invalid'       => [ 'error', __( 'Select a valid feedback option.', 'wc-blacklist-manager' ) ],
+			'outcome_saved'         => [ 'success', __( 'Actual outcome saved and queued securely. No order or customer settings were changed.', 'wc-blacklist-manager' ) ],
+			'outcome_queue_failed'  => [ 'error', __( 'The outcome was saved locally but could not be queued. Submit it again to retry.', 'wc-blacklist-manager' ) ],
+			'outcome_unsupported'   => [ 'error', __( 'The connected server does not support outcome recording yet.', 'wc-blacklist-manager' ) ],
+			'outcome_invalid'       => [ 'error', __( 'Select an outcome that is valid for the original decision.', 'wc-blacklist-manager' ) ],
+			'outcome_reason_required' => [ 'error', __( 'Select a documented review reason for a resolved outcome.', 'wc-blacklist-manager' ) ],
+			'outcome_reference_required' => [ 'error', __( 'Enter an evidence or case reference for the selected reason.', 'wc-blacklist-manager' ) ],
 			'outcome_missing'       => [ 'error', __( 'This older result has no decision reference.', 'wc-blacklist-manager' ) ],
+			'outcome_retry_queued'  => [ 'success', __( 'Outcome delivery was queued again.', 'wc-blacklist-manager' ) ],
+			'outcome_retry_failed'  => [ 'error', __( 'The saved delivery payload is no longer available. Submit the outcome again.', 'wc-blacklist-manager' ) ],
 			'detail_unsupported'   => [ 'error', __( 'The connected server does not support the detailed decision view yet.', 'wc-blacklist-manager' ) ],
 			'detail_missing'       => [ 'error', __( 'This older result has no server decision reference.', 'wc-blacklist-manager' ) ],
 			'detail_error'         => [ 'error', __( 'The secure analysis link could not be created. Please try again.', 'wc-blacklist-manager' ) ],
