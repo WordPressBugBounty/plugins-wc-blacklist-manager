@@ -2235,3 +2235,55 @@ code.yogb-gbl-diagnostic__value {
     margin-right: 0;
   }
 }
+
+.bm-gbl-source {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid #dcdcde;
+  border-radius: 7px;
+  background: #f6f7f7;
+}
+
+.bm-gbl-source__badge {
+  display: inline-block;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: #2271b1;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.bm-gbl-source__content {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  color: #50575e;
+  font-size: 12px;
+}
+
+.bm-gbl-source__content strong {
+  color: #1d2327;
+  font-size: 13px;
+}
+
+.bm-gbl-source--demo {
+  border-color: #dba617;
+  background: #fff9e8;
+}
+
+.bm-gbl-source__notice {
+  margin: -4px 0 12px;
+  padding: 8px 10px;
+  border-left: 3px solid #dba617;
+  background: #fff9e8;
+  color: #50575e;
+  font-size: 12px;
+}

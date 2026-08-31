@@ -31,7 +31,7 @@ class WC_Blacklist_Manager_Backend {
 	public function enqueue_assets( $hook_suffix ) {
 		global $wp_version;
 
-		$style_ver  = '1.6.22';
+		$style_ver  = '1.6.23';
 		$script_ver = '1.3';
 
 		// Determine current admin screen context

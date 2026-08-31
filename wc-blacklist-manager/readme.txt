@@ -123,6 +123,7 @@ Global Blacklist Decisions is a connected fraud-prevention service. Data exchang
 
 = 2.2.11 (Aug 2, 2026) =
 * New: Negotiates identity normalization v3 with compatible Global Blacklist servers while preserving the v2 payload for older servers.
+* Fix: Rechecks Global Blacklist email settings at render time and limits output strictly to the admin New Order email.
 * Fix: Prevents the compact order-meta migration from repeatedly saving historic orders on stores using WooCommerce legacy order storage and safely drains duplicate queued migration actions.
 * Fix: Synchronizes server capabilities immediately after registration and shows a pending state instead of incorrectly reporting that subscription-key activation is unsupported.
 * Improve: Colors interactive subscription activation controls with each user’s WordPress Admin Color Scheme while keeping passive synchronization and legacy messages visually neutral.
@@ -132,6 +133,8 @@ Global Blacklist Decisions is a connected fraud-prevention service. Data exchang
 * Improve: Sends phone country context and versioned address normalization metadata to improve international phone and address matching.
 * Improve: Normalizes phone extensions without changing legacy canonical phone behavior.
 * Improve: Displays privacy-safe probable-match confidence and corroboration requirements without allowing fuzzy identity evidence to block an order by itself.
+* Improve: Adds a Core-owned Global source header with extension context for safe Premium demo notices.
+* Improve: Replaces the verbose Global Blacklist email with a compact shared summary API that coordinates combined Core and Premium output.
 * Security: Treats HTTP 401 as a credential problem instead of repeatedly retrying, encrypts strong evidence references at rest, and narrows the legacy handler to visible feedback choices.
 * Compatibility: Retains the existing “Report incorrect result” V1 interface when the connected server does not advertise decision outcomes v2.
 * Compatibility: Keeps the existing compact and legacy server response contracts fully supported.

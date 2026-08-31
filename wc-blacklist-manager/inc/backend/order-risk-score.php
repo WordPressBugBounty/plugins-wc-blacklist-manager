@@ -87,6 +87,18 @@ class WC_Blacklist_Manager_Order_Risk_Score {
 		}
 
 		$order_id = (int) $order->get_id();
+		$source_context = apply_filters(
+			'wc_blacklist_manager_global_source_context',
+			[
+				'is_demo'     => false,
+				'demo_notice' => '',
+			]
+		);
+		$source_context = is_array( $source_context ) ? $source_context : [];
+		$is_demo        = ! empty( $source_context['is_demo'] );
+		$demo_notice    = isset( $source_context['demo_notice'] )
+			? sanitize_text_field( (string) $source_context['demo_notice'] )
+			: '';
 		$decision = sanitize_key( (string) $order->get_meta( '_yogb_gbl_decision', true ) );
 		if ( '' === $decision ) {
 			self::render_pending( $order );
@@ -125,6 +137,16 @@ class WC_Blacklist_Manager_Order_Risk_Score {
 		}
 		?>
 		<div class="bm-order-risk-meta bm-gbl-compact-panel">
+			<div class="bm-gbl-source<?php echo $is_demo ? ' bm-gbl-source--demo' : ''; ?>">
+				<span class="bm-gbl-source__badge"><?php esc_html_e( 'Global', 'wc-blacklist-manager' ); ?></span>
+				<div class="bm-gbl-source__content">
+					<strong><?php esc_html_e( 'Blacklist check', 'wc-blacklist-manager' ); ?></strong>
+					<span><?php esc_html_e( 'Shared network risk result', 'wc-blacklist-manager' ); ?></span>
+				</div>
+			</div>
+			<?php if ( '' !== $demo_notice ) : ?>
+				<p class="bm-gbl-source__notice"><?php echo esc_html( $demo_notice ); ?></p>
+			<?php endif; ?>
 			<?php self::render_notice( $notice ); ?>
 
 			<div class="bm-gbl-result bm-gbl-result--<?php echo esc_attr( $view['slug'] ); ?>">
