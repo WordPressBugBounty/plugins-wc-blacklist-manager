@@ -28,10 +28,18 @@ if ( ! function_exists( 'wc_blacklist_manager_render_premium_preview_banner' ) )
 	function wc_blacklist_manager_render_premium_preview_banner( array $args ) {
 		$title       = isset( $args['title'] ) ? $args['title'] : __( 'Premium feature', 'wc-blacklist-manager' );
 		$description = isset( $args['description'] ) ? $args['description'] : '';
-		$unlock_url  = ! empty( $args['unlock_url'] ) ? $args['unlock_url'] : 'https://yoohw.com/product/blacklist-manager-premium/';
+		$premium_action = WC_Blacklist_Manager_Commercial_Router::premium_action();
+		$unlock_url  = ! empty( $premium_action['url'] ) ? $premium_action['url'] : ( ! empty( $args['unlock_url'] ) ? $args['unlock_url'] : WC_Blacklist_Manager_Commercial_Router::premium_product_url() );
 		$context     = ! empty( $args['context'] ) ? $args['context'] : 'premium';
 		$cta_label   = ! empty( $args['cta_label'] ) ? $args['cta_label'] : wc_blacklist_manager_premium_cta_label( $context );
+		if ( WC_Blacklist_Manager_Commercial_Router::PREMIUM_SETUP === WC_Blacklist_Manager_Commercial_Router::premium_state() ) {
+			$cta_label = $premium_action['label'];
+		}
 		$icon        = ! empty( $args['icon'] ) ? $args['icon'] : 'dashicons-lock';
+		$candidate_id = ! empty( $args['candidate_id'] ) ? (string) $args['candidate_id'] : '';
+		$show_action = '' !== $candidate_id
+			&& class_exists( 'WC_Blacklist_Manager_Opportunity_Engine' )
+			&& WC_Blacklist_Manager_Opportunity_Engine::is_selected( $candidate_id );
 		?>
 		<div class="yobm-premium-preview-banner">
 			<span class="dashicons <?php echo esc_attr( $icon ); ?> yobm-premium-preview-banner__icon"></span>
@@ -41,9 +49,11 @@ if ( ! function_exists( 'wc_blacklist_manager_render_premium_preview_banner' ) )
 					<p><?php echo esc_html( $description ); ?></p>
 				<?php endif; ?>
 			</div>
-			<a href="<?php echo esc_url( $unlock_url ); ?>" target="_blank" rel="noopener noreferrer" class="button button-primary yobm-premium-preview-banner__button">
-				<?php echo esc_html( $cta_label ); ?>
-			</a>
+			<?php if ( $show_action ) : ?>
+				<a href="<?php echo esc_url( $unlock_url ); ?>"<?php echo ! empty( $premium_action['external'] ) ? ' target="_blank" rel="noopener noreferrer"' : ''; ?> class="button button-primary yobm-premium-preview-banner__button">
+					<?php echo esc_html( $cta_label ); ?>
+				</a>
+			<?php endif; ?>
 		</div>
 		<?php
 	}
@@ -52,6 +62,31 @@ if ( ! function_exists( 'wc_blacklist_manager_render_premium_preview_banner' ) )
 if ( ! function_exists( 'wc_blacklist_manager_render_premium_preview_cards' ) ) {
 	function wc_blacklist_manager_render_premium_preview_cards( array $cards, array $args = array() ) {
 		if ( empty( $cards ) ) {
+			return;
+		}
+
+		$compact = ! empty( $args['compact'] );
+		if ( $compact ) {
+			?>
+			<ul class="yobm-premium-feature-summary">
+				<?php foreach ( $cards as $card ) : ?>
+					<?php
+					$title       = isset( $card['title'] ) ? $card['title'] : '';
+					$description = isset( $card['description'] ) ? $card['description'] : '';
+					$icon        = ! empty( $card['icon'] ) ? $card['icon'] : 'dashicons-yes-alt';
+					?>
+					<li>
+						<span class="dashicons <?php echo esc_attr( $icon ); ?>" aria-hidden="true"></span>
+						<span>
+							<strong><?php echo esc_html( $title ); ?></strong>
+							<?php if ( '' !== $description ) : ?>
+								<span><?php echo esc_html( $description ); ?></span>
+							<?php endif; ?>
+						</span>
+					</li>
+				<?php endforeach; ?>
+			</ul>
+			<?php
 			return;
 		}
 
@@ -114,14 +149,26 @@ if ( ! function_exists( 'wc_blacklist_manager_render_premium_preview_tab' ) ) {
 }
 
 if ( ! function_exists( 'wc_blacklist_manager_render_premium_inline_cta' ) ) {
-	function wc_blacklist_manager_render_premium_inline_cta( $unlock_url, $context = 'premium', $label = '' ) {
-		$cta_label = '' !== $label ? $label : wc_blacklist_manager_premium_cta_label( $context );
+	function wc_blacklist_manager_render_premium_inline_cta( $unlock_url, $context = 'premium', $label = '', $candidate_id = '' ) {
+		$premium_action = WC_Blacklist_Manager_Commercial_Router::premium_action();
+		$unlock_url     = ! empty( $premium_action['url'] ) ? $premium_action['url'] : $unlock_url;
+		$cta_label      = WC_Blacklist_Manager_Commercial_Router::PREMIUM_SETUP === WC_Blacklist_Manager_Commercial_Router::premium_state()
+			? $premium_action['label']
+			: ( '' !== $label ? $label : wc_blacklist_manager_premium_cta_label( $context ) );
+		$show_action = '' !== (string) $candidate_id
+			&& class_exists( 'WC_Blacklist_Manager_Opportunity_Engine' )
+			&& WC_Blacklist_Manager_Opportunity_Engine::is_selected( $candidate_id );
+
+		if ( ! $show_action ) {
+			return false;
+		}
 		?>
 		<p class="yobm-premium-cta-row">
-			<a href="<?php echo esc_url( $unlock_url ); ?>" target="_blank" rel="noopener noreferrer" class="button button-secondary yobm-premium-inline-cta">
+			<a href="<?php echo esc_url( $unlock_url ); ?>"<?php echo ! empty( $premium_action['external'] ) ? ' target="_blank" rel="noopener noreferrer"' : ''; ?> class="button button-secondary yobm-premium-inline-cta">
 				<?php echo esc_html( $cta_label ); ?>
 			</a>
 		</p>
 		<?php
+		return true;
 	}
 }

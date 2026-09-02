@@ -6,7 +6,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 if ( ! function_exists( 'wc_blacklist_manager_action_upsell_catalog' ) ) {
 	function wc_blacklist_manager_action_upsell_catalog() {
-		$premium_url = 'https://yoohw.com/product/blacklist-manager-premium/';
+		$premium_action = WC_Blacklist_Manager_Commercial_Router::premium_action();
+		$premium_url    = ! empty( $premium_action['url'] ) ? $premium_action['url'] : WC_Blacklist_Manager_Commercial_Router::premium_product_url();
 
 		return array(
 			'manual_entry' => array(
@@ -91,7 +92,7 @@ if ( ! function_exists( 'wc_blacklist_manager_action_upsell_catalog' ) ) {
 			),
 			'sms_key' => array(
 				'title'     => __( 'Use a verification provider that fits your workflow', 'wc-blacklist-manager' ),
-				'message'   => __( 'Premium supports Twilio/Textmagic and phone intelligence when Yo Credits is not enough.', 'wc-blacklist-manager' ),
+				'message'   => __( 'Premium adds Twilio/TextMagic phone OTP and phone intelligence.', 'wc-blacklist-manager' ),
 				'cta'       => __( 'Unlock Integrations', 'wc-blacklist-manager' ),
 				'url'       => $premium_url,
 				'threshold' => 1,
@@ -143,6 +144,14 @@ if ( ! function_exists( 'wc_blacklist_manager_action_upsell_recently_shown' ) ) 
 	}
 }
 
+if ( ! function_exists( 'wc_blacklist_manager_action_upsell_snoozed' ) ) {
+	function wc_blacklist_manager_action_upsell_snoozed( $user_id, $event ) {
+		$snoozed_until = wc_blacklist_manager_action_upsell_get_meta_array( $user_id, 'wc_blacklist_manager_action_upsell_snoozed_until' );
+
+		return ! empty( $snoozed_until[ $event ] ) && time() < (int) $snoozed_until[ $event ];
+	}
+}
+
 if ( ! function_exists( 'wc_blacklist_manager_queue_action_upsell' ) ) {
 	function wc_blacklist_manager_queue_action_upsell( $event ) {
 		$catalog = wc_blacklist_manager_action_upsell_catalog();
@@ -152,7 +161,7 @@ if ( ! function_exists( 'wc_blacklist_manager_queue_action_upsell' ) ) {
 		}
 
 		$user_id = wc_blacklist_manager_action_upsell_user_id();
-		if ( ! $user_id || wc_blacklist_manager_action_upsell_dismissed( $user_id, $event ) ) {
+		if ( ! $user_id || wc_blacklist_manager_action_upsell_dismissed( $user_id, $event ) || wc_blacklist_manager_action_upsell_snoozed( $user_id, $event ) ) {
 			return false;
 		}
 
@@ -178,7 +187,7 @@ if ( ! function_exists( 'wc_blacklist_manager_record_action_upsell_event' ) ) {
 		}
 
 		$user_id = wc_blacklist_manager_action_upsell_user_id();
-		if ( ! $user_id || wc_blacklist_manager_action_upsell_dismissed( $user_id, $event ) ) {
+		if ( ! $user_id || wc_blacklist_manager_action_upsell_dismissed( $user_id, $event ) || wc_blacklist_manager_action_upsell_snoozed( $user_id, $event ) ) {
 			return false;
 		}
 
@@ -222,27 +231,83 @@ if ( ! function_exists( 'wc_blacklist_manager_get_current_admin_url' ) ) {
 	}
 }
 
-if ( ! function_exists( 'wc_blacklist_manager_get_action_upsell_dismiss_url' ) ) {
-	function wc_blacklist_manager_get_action_upsell_dismiss_url( $event ) {
+if ( ! function_exists( 'wc_blacklist_manager_get_action_upsell_candidates' ) ) {
+	/**
+	 * Read-only pending candidates for Core's request-local resolver.
+	 */
+	function wc_blacklist_manager_get_action_upsell_candidates( $surface ) {
+		if ( wc_blacklist_manager_action_upsells_premium_active() ) {
+			return array();
+		}
+
+		$user_id = wc_blacklist_manager_action_upsell_user_id();
+		if ( ! $user_id ) {
+			return array();
+		}
+
+		$surface    = sanitize_key( (string) $surface );
+		$catalog    = wc_blacklist_manager_action_upsell_catalog();
+		$pending    = wc_blacklist_manager_action_upsell_get_meta_array( $user_id, 'wc_blacklist_manager_action_upsell_pending' );
+		$candidates = array();
+
+		foreach ( $pending as $event => $queued_at ) {
+			if ( empty( $catalog[ $event ] ) || ! in_array( $surface, $catalog[ $event ]['surfaces'], true ) ) {
+				continue;
+			}
+
+			if ( wc_blacklist_manager_action_upsell_dismissed( $user_id, $event ) || wc_blacklist_manager_action_upsell_snoozed( $user_id, $event ) ) {
+				continue;
+			}
+
+			$candidates[] = array(
+				'id'       => class_exists( 'WC_Blacklist_Manager_Opportunity_Engine' )
+					? WC_Blacklist_Manager_Opportunity_Engine::action_candidate_id( $event, $surface, 'pending' )
+					: 'premium.action.pending.' . $surface . '.' . sanitize_key( $event ),
+				'target'   => 'premium',
+				'priority' => 200,
+				'sort'     => 0,
+				'recency'  => (int) $queued_at,
+				'event'    => sanitize_key( $event ),
+			);
+		}
+
+		return $candidates;
+	}
+}
+
+if ( ! function_exists( 'wc_blacklist_manager_get_action_upsell_action_url' ) ) {
+	function wc_blacklist_manager_get_action_upsell_action_url( $event, $mode ) {
+		$event = sanitize_key( $event );
+		$mode  = 'dismiss' === $mode ? 'dismiss' : 'snooze';
+
 		$url = add_query_arg(
 			array(
 				'action'      => 'wc_blacklist_manager_dismiss_action_upsell',
-				'event'       => sanitize_key( $event ),
+				'event'       => $event,
+				'mode'        => $mode,
 				'redirect_to' => rawurlencode( wc_blacklist_manager_get_current_admin_url() ),
 			),
 			admin_url( 'admin-post.php' )
 		);
 
-		return wp_nonce_url( $url, 'wc_blacklist_manager_dismiss_action_upsell_' . sanitize_key( $event ) );
+		return wp_nonce_url( $url, 'wc_blacklist_manager_dismiss_action_upsell_' . $mode . '_' . $event );
 	}
 }
 
 if ( ! function_exists( 'wc_blacklist_manager_action_upsell_markup' ) ) {
 	function wc_blacklist_manager_action_upsell_markup( $event, array $config, array $args = array() ) {
+		$premium_action = WC_Blacklist_Manager_Commercial_Router::premium_action();
+		if ( ! empty( $premium_action ) ) {
+			$config['url']      = $premium_action['url'];
+			$config['external'] = $premium_action['external'];
+			if ( WC_Blacklist_Manager_Commercial_Router::PREMIUM_SETUP === WC_Blacklist_Manager_Commercial_Router::premium_state() ) {
+				$config['cta'] = $premium_action['label'];
+			}
+		}
 		$inline      = ! empty( $args['inline'] );
 		$class_names = $inline
 			? 'notice notice-info inline yobm-action-upsell yobm-action-upsell--inline'
-			: 'notice notice-info is-dismissible yobm-action-upsell';
+			: 'notice notice-info yobm-action-upsell';
 
 		ob_start();
 		?>
@@ -252,11 +317,14 @@ if ( ! function_exists( 'wc_blacklist_manager_action_upsell_markup' ) ) {
 				<?php echo esc_html( $config['message'] ); ?>
 			</p>
 			<p class="yobm-action-upsell__actions">
-				<a href="<?php echo esc_url( $config['url'] ); ?>" target="_blank" rel="noopener noreferrer" class="button button-primary">
+				<a href="<?php echo esc_url( $config['url'] ); ?>"<?php echo ! empty( $config['external'] ) ? ' target="_blank" rel="noopener noreferrer"' : ''; ?> class="button button-primary">
 					<?php echo esc_html( $config['cta'] ); ?>
 				</a>
-				<a href="<?php echo esc_url( wc_blacklist_manager_get_action_upsell_dismiss_url( $event ) ); ?>" class="button-link yobm-action-upsell__dismiss">
+				<a href="<?php echo esc_url( wc_blacklist_manager_get_action_upsell_action_url( $event, 'snooze' ) ); ?>" class="button-link yobm-action-upsell__dismiss">
 					<?php esc_html_e( 'Not now', 'wc-blacklist-manager' ); ?>
+				</a>
+				<a href="<?php echo esc_url( wc_blacklist_manager_get_action_upsell_action_url( $event, 'dismiss' ) ); ?>" class="button-link yobm-action-upsell__dismiss">
+					<?php esc_html_e( 'Don\'t show this again', 'wc-blacklist-manager' ); ?>
 				</a>
 			</p>
 		</div>
@@ -284,6 +352,17 @@ if ( ! function_exists( 'wc_blacklist_manager_action_upsell_clear_pending' ) ) {
 	}
 }
 
+if ( ! function_exists( 'wc_blacklist_manager_action_upsell_validate_redirect' ) ) {
+	function wc_blacklist_manager_action_upsell_validate_redirect( $redirect_to ) {
+		if ( null === $redirect_to || '' === $redirect_to ) {
+			return admin_url();
+		}
+
+		$redirect = esc_url_raw( rawurldecode( wp_unslash( $redirect_to ) ) );
+		return wp_validate_redirect( $redirect, false );
+	}
+}
+
 if ( ! function_exists( 'wc_blacklist_manager_render_action_upsell' ) ) {
 	function wc_blacklist_manager_render_action_upsell( $surface, array $args = array() ) {
 		if ( wc_blacklist_manager_action_upsells_premium_active() ) {
@@ -303,6 +382,11 @@ if ( ! function_exists( 'wc_blacklist_manager_render_action_upsell' ) ) {
 		}
 
 		arsort( $pending );
+		$selected_id = '';
+		if ( class_exists( 'WC_Blacklist_Manager_Opportunity_Engine' ) ) {
+			$winner = WC_Blacklist_Manager_Opportunity_Engine::winner();
+			$selected_id = is_array( $winner ) && ! empty( $winner['id'] ) ? (string) $winner['id'] : '';
+		}
 
 		foreach ( $pending as $event => $queued_at ) {
 			if ( empty( $catalog[ $event ] ) ) {
@@ -314,9 +398,19 @@ if ( ! function_exists( 'wc_blacklist_manager_render_action_upsell' ) ) {
 				continue;
 			}
 
-			if ( wc_blacklist_manager_action_upsell_dismissed( $user_id, $event ) ) {
+			if ( wc_blacklist_manager_action_upsell_dismissed( $user_id, $event ) || wc_blacklist_manager_action_upsell_snoozed( $user_id, $event ) ) {
 				wc_blacklist_manager_action_upsell_clear_pending( $user_id, $event );
 				continue;
+			}
+
+			$candidate_id = class_exists( 'WC_Blacklist_Manager_Opportunity_Engine' )
+				? WC_Blacklist_Manager_Opportunity_Engine::action_candidate_id( $event, $surface, 'pending' )
+				: '';
+			if ( '' !== $selected_id && $candidate_id !== $selected_id ) {
+				continue;
+			}
+			if ( class_exists( 'WC_Blacklist_Manager_Opportunity_Engine' ) && '' === $selected_id ) {
+				return false;
 			}
 
 			echo wp_kses_post( wc_blacklist_manager_action_upsell_markup( $event, $config, $args ) );
@@ -332,6 +426,12 @@ if ( ! function_exists( 'wc_blacklist_manager_render_action_upsell' ) ) {
 
 if ( ! function_exists( 'wc_blacklist_manager_render_static_action_upsell' ) ) {
 	function wc_blacklist_manager_render_static_action_upsell( $event, $surface, array $args = array() ) {
+		return wc_blacklist_manager_render_static_action_upsell_candidates( array( $event ), $surface, $args );
+	}
+}
+
+if ( ! function_exists( 'wc_blacklist_manager_render_static_action_upsell_candidates' ) ) {
+	function wc_blacklist_manager_render_static_action_upsell_candidates( array $events, $surface, array $args = array() ) {
 		if ( wc_blacklist_manager_action_upsells_premium_active() ) {
 			return false;
 		}
@@ -339,20 +439,58 @@ if ( ! function_exists( 'wc_blacklist_manager_render_static_action_upsell' ) ) {
 		$user_id = wc_blacklist_manager_action_upsell_user_id();
 		$catalog = wc_blacklist_manager_action_upsell_catalog();
 
-		if ( ! $user_id || empty( $catalog[ $event ] ) ) {
+		if ( ! $user_id ) {
 			return false;
 		}
 
-		$config = $catalog[ $event ];
-		if (
-			! in_array( $surface, $config['surfaces'], true ) ||
-			wc_blacklist_manager_action_upsell_dismissed( $user_id, $event ) ||
-			wc_blacklist_manager_action_upsell_recently_shown( $user_id, $event, $config['cooldown'] )
-		) {
+		$surface    = sanitize_key( (string) $surface );
+		$additional = array();
+		$eligible   = array();
+
+		foreach ( array_values( array_unique( array_map( 'sanitize_key', $events ) ) ) as $event ) {
+			if ( empty( $catalog[ $event ] ) ) {
+				continue;
+			}
+
+			$config = $catalog[ $event ];
+			if (
+				! in_array( $surface, $config['surfaces'], true ) ||
+				wc_blacklist_manager_action_upsell_dismissed( $user_id, $event ) ||
+				wc_blacklist_manager_action_upsell_snoozed( $user_id, $event ) ||
+				wc_blacklist_manager_action_upsell_recently_shown( $user_id, $event, $config['cooldown'] )
+			) {
+				continue;
+			}
+
+			$candidate_id = class_exists( 'WC_Blacklist_Manager_Opportunity_Engine' )
+				? WC_Blacklist_Manager_Opportunity_Engine::action_candidate_id( $event, $surface, 'static' )
+				: 'premium.action.static.' . $surface . '.' . $event;
+			$eligible[ $candidate_id ] = $event;
+			$additional[] = array(
+				'id'       => $candidate_id,
+				'target'   => 'premium',
+				'priority' => 200,
+				'sort'     => 1,
+				'recency'  => 0,
+			);
+		}
+
+		if ( empty( $eligible ) ) {
 			return false;
 		}
 
-		echo wp_kses_post( wc_blacklist_manager_action_upsell_markup( $event, $config, $args ) );
+		if ( class_exists( 'WC_Blacklist_Manager_Opportunity_Engine' ) ) {
+			$winner = WC_Blacklist_Manager_Opportunity_Engine::winner( $additional );
+			$winner_id = is_array( $winner ) && ! empty( $winner['id'] ) ? (string) $winner['id'] : '';
+			if ( empty( $eligible[ $winner_id ] ) ) {
+				return false;
+			}
+			$event = $eligible[ $winner_id ];
+		} else {
+			$event = reset( $eligible );
+		}
+
+		echo wp_kses_post( wc_blacklist_manager_action_upsell_markup( $event, $catalog[ $event ], $args ) );
 		wc_blacklist_manager_action_upsell_mark_shown( $user_id, $event );
 		return true;
 	}
@@ -361,8 +499,10 @@ if ( ! function_exists( 'wc_blacklist_manager_render_static_action_upsell' ) ) {
 if ( ! function_exists( 'wc_blacklist_manager_dismiss_action_upsell' ) ) {
 	function wc_blacklist_manager_dismiss_action_upsell() {
 		$event = isset( $_GET['event'] ) ? sanitize_key( wp_unslash( $_GET['event'] ) ) : '';
+		$mode  = isset( $_GET['mode'] ) ? sanitize_key( wp_unslash( $_GET['mode'] ) ) : 'dismiss';
+		$catalog = wc_blacklist_manager_action_upsell_catalog();
 
-		if ( '' === $event ) {
+		if ( '' === $event || empty( $catalog[ $event ] ) || ! in_array( $mode, array( 'snooze', 'dismiss' ), true ) ) {
 			wp_die( esc_html__( 'Invalid prompt.', 'wc-blacklist-manager' ) );
 		}
 
@@ -370,18 +510,28 @@ if ( ! function_exists( 'wc_blacklist_manager_dismiss_action_upsell' ) ) {
 			wp_die( esc_html__( 'You are not allowed to perform this action.', 'wc-blacklist-manager' ) );
 		}
 
-		check_admin_referer( 'wc_blacklist_manager_dismiss_action_upsell_' . $event );
+		check_admin_referer( 'wc_blacklist_manager_dismiss_action_upsell_' . $mode . '_' . $event );
+
+		$redirect = wc_blacklist_manager_action_upsell_validate_redirect( $_GET['redirect_to'] ?? null );
+		if ( ! $redirect ) {
+			wp_die( esc_html__( 'Invalid redirect.', 'wc-blacklist-manager' ) );
+		}
 
 		$user_id = wc_blacklist_manager_action_upsell_user_id();
 		if ( $user_id ) {
-			$dismissed           = wc_blacklist_manager_action_upsell_get_meta_array( $user_id, 'wc_blacklist_manager_action_upsell_dismissed' );
-			$dismissed[ $event ] = time();
-			update_user_meta( $user_id, 'wc_blacklist_manager_action_upsell_dismissed', $dismissed );
+			if ( 'snooze' === $mode ) {
+				$snoozed_until           = wc_blacklist_manager_action_upsell_get_meta_array( $user_id, 'wc_blacklist_manager_action_upsell_snoozed_until' );
+				$snoozed_until[ $event ] = time() + ( 30 * DAY_IN_SECONDS );
+				update_user_meta( $user_id, 'wc_blacklist_manager_action_upsell_snoozed_until', $snoozed_until );
+			} else {
+				$dismissed           = wc_blacklist_manager_action_upsell_get_meta_array( $user_id, 'wc_blacklist_manager_action_upsell_dismissed' );
+				$dismissed[ $event ] = time();
+				update_user_meta( $user_id, 'wc_blacklist_manager_action_upsell_dismissed', $dismissed );
+			}
 			wc_blacklist_manager_action_upsell_clear_pending( $user_id, $event );
 		}
 
-		$redirect = isset( $_GET['redirect_to'] ) ? esc_url_raw( rawurldecode( wp_unslash( $_GET['redirect_to'] ) ) ) : admin_url();
-		wp_safe_redirect( wp_validate_redirect( $redirect, admin_url() ) );
+		wp_safe_redirect( $redirect );
 		exit;
 	}
 }

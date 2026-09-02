@@ -15,7 +15,6 @@ class WC_Blacklist_Manager_Notices {
 	public function __construct() {
 		add_action('admin_notices', [$this, 'display_notices']);
 		add_action('wp_ajax_dismiss_first_time_notice', [$this, 'dismiss_first_time_notice']);
-		add_action('wp_ajax_dismiss_ads_notice', [$this, 'dismiss_ads_notice']);
 		add_action('wp_ajax_dismiss_gbd_limit_notice', [ $this, 'dismiss_gbd_limit_notice'] );
 		add_action('wp_ajax_dismiss_customer_intelligence_notice', [$this, 'dismiss_customer_intelligence_notice']);
 		add_action('admin_enqueue_scripts', [$this, 'enqueue_inline_scripts']);
@@ -25,7 +24,6 @@ class WC_Blacklist_Manager_Notices {
 	public function display_notices() {
 		$this->first_time_notice();
 		$this->customer_intelligence_notice();
-		$this->bm_ads_notice();
 		$this->premium_update_notice();
 		$this->gbd_limit_notice();
 	}
@@ -43,32 +41,6 @@ class WC_Blacklist_Manager_Notices {
 		}
 
 		return false;
-	}
-
-	private function installed_for_days() {
-		$install_date = get_option( 'wc_blacklist_manager_first_install_date', '' );
-
-		if ( empty( $install_date ) ) {
-			return 0;
-		}
-
-		$installed_time = strtotime( $install_date );
-		if ( false === $installed_time ) {
-			return 0;
-		}
-
-		return (int) floor( ( time() - $installed_time ) / DAY_IN_SECONDS );
-	}
-
-	private function recently_showed_action_upsell( $user_id ) {
-		$last_shown = get_user_meta( $user_id, 'wc_blacklist_manager_action_upsell_last_shown', true );
-
-		if ( ! is_array( $last_shown ) || empty( $last_shown ) ) {
-			return false;
-		}
-
-		$latest = max( array_map( 'absint', $last_shown ) );
-		return ( time() - $latest ) < ( 7 * DAY_IN_SECONDS );
 	}
 
     /**
@@ -107,7 +79,7 @@ class WC_Blacklist_Manager_Notices {
 					</div>',
 					esc_html( sprintf( __('You’re running v%s', 'wc-blacklist-manager'), $current ) ),
 					esc_html( $required_version ),
-					esc_url( 'https://yoohw.com/my-account/downloads/' ),
+					esc_url( WC_Blacklist_Manager_Commercial_Router::downloads_url() ),
 					esc_url( admin_url( 'plugins.php' ) )
 				);
             }
@@ -126,8 +98,8 @@ class WC_Blacklist_Manager_Notices {
 		    echo '<div class="notice notice-info yobm-first-time is-dismissible">
 				  <p><strong>' . esc_html__( 'Blacklist Manager is ready to configure.', 'wc-blacklist-manager' ) . '</strong> ' . sprintf(
 					/* translators: 1: settings link, 2: docs link */
-					esc_html__( 'Review the %1$s and %2$s before enabling blocking rules on a live store.', 'wc-blacklist-manager' ),
-					'<a href="' . esc_url( admin_url( 'admin.php?page=wc-blacklist-manager-settings' ) ) . '">' . esc_html__( 'settings', 'wc-blacklist-manager' ) . '</a>',
+					esc_html__( 'Start by configuring and saving your local protection in %1$s. Global Blacklist is optional; %2$s can help with the details.', 'wc-blacklist-manager' ),
+					'<a href="' . esc_url( admin_url( 'admin.php?page=wc-blacklist-manager-settings' ) ) . '">' . esc_html__( 'Settings', 'wc-blacklist-manager' ) . '</a>',
 					'<a href="https://docs.yoohw.com/category/blacklist-manager/" target="_blank" rel="noopener noreferrer">' . esc_html__( 'documentation', 'wc-blacklist-manager' ) . '</a>'
 				  ) . '</p>
 				  <p><a href="#" onclick="WC_Blacklist_Manager_Admin_Notice.dismissFirstTimeNotice(); return false;">' . esc_html__( 'Got it', 'wc-blacklist-manager' ) . '</a></p>
@@ -311,135 +283,65 @@ class WC_Blacklist_Manager_Notices {
 		return empty( $plugin_state['installed'] ) && empty( $plugin_state['active'] );
 	}
 
-	public function bm_ads_notice() {
-		if ( ! current_user_can( 'manage_options' ) ) {
-            return;
-        }
-
-		if ( ! $this->is_blacklist_manager_admin_page() ) {
-			return;
-		}
-
-		if ( $this->installed_for_days() < 7 ) {
-			return;
-		}
-		
-		$settings_instance = new WC_Blacklist_Manager_Settings();
-		$premium_active = $settings_instance->is_premium_active();
-
-		$user_id = get_current_user_id();
-		if ( get_user_meta( $user_id, 'wc_blacklist_manager_first_time_notice_dismissed', true ) !== 'yes' ) {
-			return;
-		}
-
-		if ( $this->recently_showed_action_upsell( $user_id ) ) {
-			return;
-		}
-
-		$last_shown_time = get_user_meta( $user_id, 'blacklist_manager_premium_ads_time', true );
-        $current_time    = current_time( 'timestamp' );
-        $delay_seconds   = 30 * DAY_IN_SECONDS;
-
-        $should_show = false;
-
-		if ( ! $last_shown_time ) {
-            // Never seen before -> show now
-            $should_show = true;
-        } else {
-            $time_since = $current_time - (int) $last_shown_time;
-            if ( $time_since >= $delay_seconds ) {
-                $should_show = true;
-            }
-        }
-	  
-		if ( $should_show ) {
-			// Check if user is administrator and notice hasn't been dismissed
-			if (!$premium_active) {
-				echo '<div class="notice notice-info yobm-ads is-dismissible">
-					<p><strong>' . esc_html__( 'Need deeper fraud review?', 'wc-blacklist-manager' ) . '</strong> ' . esc_html__( 'Premium adds risk scoring, payment intelligence, automation, multi-store sync, and activity logs when manual review is no longer enough.', 'wc-blacklist-manager' ) . '</p>
-					<p><a href="#" onclick="WC_Blacklist_Manager_Admin_Notice.dismissAdsNotice(); return false;" class="button button-secondary">' . esc_html__( 'Dismiss', 'wc-blacklist-manager' ) . '</a> <a href="https://yoohw.com/product/blacklist-manager-premium/" class="button button-primary" target="_blank" rel="noopener noreferrer">' . esc_html__( 'Explore Premium Protection', 'wc-blacklist-manager' ) . '</a></p>
-				</div>';
-			}
-		}
-	}
-
 	/**
 	 * Admin notice when Global Blacklist Decisions monthly limit reached (HTTP 429).
 	 */
 	public function gbd_limit_notice() {
-		if ( ! current_user_can( 'manage_options' ) ) {
+		$quota = class_exists( 'WC_Blacklist_Manager_Opportunity_Engine' )
+			? WC_Blacklist_Manager_Opportunity_Engine::get_global_quota_context()
+			: array( 'eligible' => false );
+
+		if (
+			empty( $quota['transient_key'] ) ||
+			empty( get_transient( $quota['transient_key'] ) ) ||
+			'yes' === get_user_meta( get_current_user_id(), $quota['dismiss_key'], true )
+		) {
 			return;
 		}
 
-		$settings_instance = new WC_Blacklist_Manager_Settings();
-		$premium_active    = $settings_instance->is_premium_active();
-
-		// Only when Global Blacklist is enabled.
-		$enabled = (int) get_option( 'wc_blacklist_enable_global_blacklist', 0 );
-		if ( 1 !== $enabled ) {
-			return;
-		}
-
-		$tier      = (string) get_option( 'yogb_bm_tier', 'free' );
-		$tier      = strtolower( trim( $tier ) );
-		$month_key = gmdate( 'Ym' );
-
-		$transient_key = class_exists( 'YOGB_BM_Check' )
-			? YOGB_BM_Check::get_monthly_limit_transient_key( $tier )
-			: 'yogb_gbd_limit_reached_' . $tier . '_' . $month_key;
-
-		$flag = get_transient( $transient_key );
-		if ( empty( $flag ) ) {
-			return;
-		}
-
-		// Per-user dismiss for this tier+month.
-		$user_id   = get_current_user_id();
-		$dismiss_k = 'yogb_gbd_limit_notice_dismissed_' . $tier . '_' . $month_key;
-
-		if ( 'yes' === get_user_meta( $user_id, $dismiss_k, true ) ) {
-			return;
-		}
-
-		$upgrade_url     = 'https://yoohw.com/global-blacklist-plan/';
-		$get_premium_url = 'https://yoohw.com/product/blacklist-manager-premium/';
+		$connected = class_exists( 'YOGB_BM_Report' ) && YOGB_BM_Report::is_ready();
+		$plan      = class_exists( 'YOGB_BM_Tier_Webhook' ) ? YOGB_BM_Tier_Webhook::plan_summary() : array();
+		$context   = WC_Blacklist_Manager_Commercial_Router::global_context(
+			$connected,
+			(string) ( $quota['tier'] ?? '' ),
+			(string) ( $plan['status'] ?? '' ),
+			(string) ( $plan['type'] ?? '' )
+		);
+		$action = WC_Blacklist_Manager_Commercial_Router::global_quota_action( $context );
+		$paid_selected = ! class_exists( 'WC_Blacklist_Manager_Opportunity_Engine' )
+			|| WC_Blacklist_Manager_Opportunity_Engine::is_selected( WC_Blacklist_Manager_Opportunity_Engine::GLOBAL_QUOTA_ID );
 
 		$message = esc_html__( 'Your monthly Global Blacklist Decisions checks are used up. New orders will not be screened against the shared fraud network until the quota resets or your plan is upgraded.', 'wc-blacklist-manager' );
-
-		if ( $premium_active ) {
-			$message .= '<br>' . wp_kses_post( __( 'You are a Blacklist Manager Premium user, so you are eligible for <b>up to 50% off</b> when upgrading your Global Blacklist plan.', 'wc-blacklist-manager' ) );
-		} else {
-			$message .= '<br>' . wp_kses_post( __( 'Get Blacklist Manager Premium with a Global Blacklist plan to receive <b>up to 50% off</b> the eligible Global Blacklist plan.', 'wc-blacklist-manager' ) );
-		}
-
-		$get_premium_button = $premium_active
-			? ''
-			: sprintf(
-				'<a href="%1$s" class="button" target="_blank" rel="noopener noreferrer">%2$s</a>',
-				esc_url( $get_premium_url ),
-				esc_html__( 'Get Premium', 'wc-blacklist-manager' )
-			);
+		$upgrade_button = $paid_selected
+			? sprintf(
+				'<a href="%1$s" class="button button-primary"%3$s>%2$s</a>',
+				esc_url( $action['url'] ),
+				esc_html( $action['label'] ),
+				! empty( $action['external'] ) ? ' target="_blank" rel="noopener noreferrer"' : ''
+			)
+			: '';
 
 		printf(
 			'<div class="notice notice-warning is-dismissible yobm-gbd-limit">
 				<p><strong>%1$s</strong></p>
 				<p>%2$s</p>
 				<p>
-					<a href="#" class="button button-secondary" onclick="WC_Blacklist_Manager_Admin_Notice.dismissGBDLimitNotice(); return false;">%5$s</a>
-					%6$s
-					<a href="%3$s" class="button button-primary" target="_blank">%4$s</a>
+					<a href="#" class="button button-secondary" onclick="WC_Blacklist_Manager_Admin_Notice.dismissGBDLimitNotice(); return false;">%3$s</a>
+					%4$s
 				</p>
 			</div>',
 			esc_html__( 'Global Blacklist Decisions monthly limit reached', 'wc-blacklist-manager' ),
 			wp_kses_post( $message ),
-			esc_url( $upgrade_url ),
-			esc_html__( 'Upgrade plan', 'wc-blacklist-manager' ),
 			esc_html__( 'Dismiss', 'wc-blacklist-manager' ),
-			$get_premium_button
+			$upgrade_button
 		);
 	}
 
 	public static function show_download_premium_notice() {
+		if ( ! self::current_user_can_recover_premium_addon() ) {
+			return;
+		}
+
 		$plugins_page = admin_url( 'plugins.php' );
 
 		$activate_link = sprintf(
@@ -464,11 +366,25 @@ class WC_Blacklist_Manager_Notices {
 			]
 		) . '</p>';
 
-		echo '<p><a href="' . esc_url( 'https://yoohw.com/my-account/' ) . '" class="button-primary" target="_blank" rel="noopener noreferrer">'
+		echo '<p><a href="' . esc_url( WC_Blacklist_Manager_Commercial_Router::account_url() ) . '" class="button-primary" target="_blank" rel="noopener noreferrer">'
 			. esc_html__( 'Go to My account', 'wc-blacklist-manager' )
 			. '</a></p>';
 
 		echo '</div>';
+	}
+
+	/**
+	 * Whether the current user can perform the action required by this notice.
+	 *
+	 * An installed-but-inactive add-on requires plugin activation authority. A
+	 * missing add-on requires plugin installation authority. Keep this separate
+	 * from order-moderation and Blacklist Manager dashboard permissions.
+	 */
+	public static function current_user_can_recover_premium_addon() {
+		$plugin_file = WP_PLUGIN_DIR . '/wc-blacklist-manager-premium/wc-blacklist-manager-premium.php';
+		$capability  = is_file( $plugin_file ) ? 'activate_plugins' : 'install_plugins';
+
+		return current_user_can( $capability );
 	}
 
 	public function enqueue_inline_scripts() {
@@ -480,7 +396,6 @@ class WC_Blacklist_Manager_Notices {
 		}
 
 		$nonce_first_time = wp_create_nonce('dismiss_first_time_notice_nonce');
-		$nonce_ads_notice = wp_create_nonce('dismiss_ads_notice_nonce');
 		$nonce_gbd_limit = wp_create_nonce( 'dismiss_gbd_limit_notice_nonce' );
 		$nonce_customer_intelligence = wp_create_nonce( 'dismiss_customer_intelligence_notice_nonce' );
 
@@ -496,19 +411,6 @@ class WC_Blacklist_Manager_Notices {
 						},
 						success: function() {
 							jQuery('.notice.yobm-first-time').hide();
-						}
-					});
-				},
-				dismissAdsNotice: function() {
-					jQuery.ajax({
-						url: ajaxurl,
-						type: 'POST',
-						data: {
-							action: 'dismiss_ads_notice',
-							security: '{$nonce_ads_notice}'
-						},
-						success: function() {
-							jQuery('.notice.yobm-ads').hide();
 						}
 					});
 				},
@@ -545,10 +447,6 @@ class WC_Blacklist_Manager_Notices {
 					WC_Blacklist_Manager_Admin_Notice.dismissFirstTimeNotice();
 				});
 
-				$(document).on('click', '.notice.yobm-ads .notice-dismiss', function() {
-					WC_Blacklist_Manager_Admin_Notice.dismissAdsNotice();
-				});
-
 				$(document).on('click', '.notice.yobm-ci-notice .notice-dismiss', function() {
 					WC_Blacklist_Manager_Admin_Notice.dismissCustomerIntelligenceNotice();
 				});
@@ -571,20 +469,6 @@ class WC_Blacklist_Manager_Notices {
 
 			$user_id = get_current_user_id();
 			update_user_meta($user_id, 'wc_blacklist_manager_first_time_notice_dismissed', 'yes');
-			wp_send_json_success();
-		}
-
-		public function dismiss_ads_notice() {
-			check_ajax_referer('dismiss_ads_notice_nonce', 'security');
-
-			if ( ! current_user_can( 'manage_options' ) ) {
-				wp_send_json_error( array( 'message' => __( 'Permission denied.', 'wc-blacklist-manager' ) ), 403 );
-			}
-
-			$user_id = get_current_user_id();
-			$current_time = current_time( 'timestamp' );
-
-	        update_user_meta( $user_id, 'blacklist_manager_premium_ads_time', $current_time );
 			wp_send_json_success();
 		}
 

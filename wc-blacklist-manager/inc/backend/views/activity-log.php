@@ -39,10 +39,6 @@ $logs = $wpdb->get_results(
 ?>
 
 <div class="wrap">
-	<?php if (!$premium_active): ?>
-		<p><?php esc_html_e('Please support us by', 'wc-blacklist-manager'); ?> <a href="https://wordpress.org/support/plugin/wc-blacklist-manager/reviews/#new-post" target="_blank"><?php esc_html_e('leaving a review', 'wc-blacklist-manager'); ?></a> <span style="color: #e26f56;">&#9733;&#9733;&#9733;&#9733;&#9733;</span> <?php esc_html_e('to keep updating & improving.', 'wc-blacklist-manager'); ?></p>
-	<?php endif; ?>
-
 	<h1>
 		<?php echo esc_html__('Activity logs', 'wc-blacklist-manager'); ?>
 		<?php if (get_option('yoohw_settings_disable_menu') != 1): ?>
@@ -610,6 +606,7 @@ $logs = $wpdb->get_results(
 				'unlock_url'  => $unlock_url,
 				'context'     => 'activity',
 				'icon'        => 'dashicons-list-view',
+				'candidate_id' => 'premium.passive.activity.banner',
 			)
 		);
 

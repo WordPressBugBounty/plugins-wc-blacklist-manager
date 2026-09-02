@@ -23,6 +23,8 @@ final class YOGB_BM_Decision_Actions {
 	const META_OUTCOME_ERROR    = '_yogb_gbl_outcome_error';
 	const META_OUTCOME_ATTEMPTS = '_yogb_gbl_outcome_attempts';
 	const META_OUTCOME_NEXT_AT  = '_yogb_gbl_outcome_next_at';
+	const META_OUTCOME_DECISION_REF = '_yogb_gbl_outcome_decision_ref';
+	const META_OUTCOME_DELIVERY_STATE_PREFIX = '_yogb_gbl_outcome_delivery_state_';
 
 	public static function init() : void {
 		add_action( 'admin_post_yogb_gbl_view_decision', [ __CLASS__, 'handle_view_decision' ] );
@@ -51,6 +53,83 @@ final class YOGB_BM_Decision_Actions {
 
 	public static function supports_v2() : bool {
 		return self::supports( 'decision_outcomes_v2' );
+	}
+
+	public static function current_decision_context( WC_Order $order ) : array {
+		$decision = sanitize_key( (string) $order->get_meta( YOGB_BM_Check_Orders::META_DECISION, true ) );
+		$status   = sanitize_key( (string) $order->get_meta( YOGB_BM_Check_Orders::META_CHECK_STATUS, true ) );
+		$ref      = (string) $order->get_meta( YOGB_BM_Check_Orders::META_DECISION_REF, true );
+		$at       = max( 0, (int) $order->get_meta( YOGB_BM_Check_Orders::META_DECISION_AT, true ) );
+
+		if ( 'success' !== $status
+			|| ! in_array( $decision, [ 'allow', 'challenge', 'block' ], true )
+			|| ! preg_match( '/^gbl_dec_[a-f0-9]{32}$/', $ref )
+			|| $at <= 0 ) {
+			return [];
+		}
+
+		return [
+			'decision'     => $decision,
+			'decision_ref' => $ref,
+			'decision_at'  => $at,
+		];
+	}
+
+	public static function outcome_protocol() : string {
+		if ( self::supports_v2() ) {
+			return 'v2';
+		}
+		return self::supports( 'decision_outcomes_v1' ) ? 'v1' : '';
+	}
+
+	public static function outcome_delivery_state( WC_Order $order, string $decision_ref, string $event_uuid ) : array {
+		$key = self::outcome_delivery_state_key( $decision_ref, $event_uuid );
+		if ( '' === $key ) {
+			return [];
+		}
+		$state = $order->get_meta( $key, true );
+		if ( ! is_array( $state )
+			|| ! hash_equals( $decision_ref, (string) ( $state['decision_ref'] ?? '' ) )
+			|| ! hash_equals( strtolower( $event_uuid ), (string) ( $state['event_uuid'] ?? '' ) ) ) {
+			return [];
+		}
+		return [
+			'status'     => sanitize_key( (string) ( $state['status'] ?? '' ) ),
+			'http_code'  => max( 0, (int) ( $state['http_code'] ?? 0 ) ),
+			'error'      => substr( sanitize_key( (string) ( $state['error'] ?? '' ) ), 0, 255 ),
+			'attempts'   => max( 0, (int) ( $state['attempts'] ?? 0 ) ),
+			'next_at'    => sanitize_text_field( (string) ( $state['next_at'] ?? '' ) ),
+		];
+	}
+
+	public static function store_outcome_delivery_state(
+		WC_Order $order,
+		string $decision_ref,
+		string $event_uuid,
+		string $status,
+		int $http_code = 0,
+		string $error = '',
+		int $attempts = 0,
+		string $next_at = ''
+	) : bool {
+		$key = self::outcome_delivery_state_key( $decision_ref, $event_uuid );
+		if ( '' === $key ) {
+			return false;
+		}
+		$order->update_meta_data(
+			$key,
+			[
+				'decision_ref' => $decision_ref,
+				'event_uuid'   => strtolower( $event_uuid ),
+				'status'       => sanitize_key( $status ),
+				'http_code'    => max( 0, $http_code ),
+				'error'        => substr( sanitize_key( $error ), 0, 255 ),
+				'attempts'     => max( 0, $attempts ),
+				'next_at'      => sanitize_text_field( $next_at ),
+			]
+		);
+		$order->save_meta_data();
+		return true;
 	}
 
 	public static function actual_outcome_labels( string $decision ) : array {
@@ -115,28 +194,26 @@ final class YOGB_BM_Decision_Actions {
 	}
 
 	public static function can_manage_order( WC_Order $order ) : bool {
-		$order_id       = (int) $order->get_id();
-		$can_manage_woo = current_user_can( 'manage_woocommerce' ) || current_user_can( 'manage_options' );
-		$can_edit_order = current_user_can( 'edit_shop_order', $order_id )
-			|| current_user_can( 'edit_post', $order_id )
-			|| $can_manage_woo;
-		return $order_id > 0 && $can_manage_woo && $can_edit_order;
+		return function_exists( 'wc_blacklist_manager_user_can_moderate_order' )
+			&& wc_blacklist_manager_user_can_moderate_order( $order );
 	}
 
 	public static function detail_url( WC_Order $order ) : string {
-		$ref = (string) $order->get_meta( YOGB_BM_Check_Orders::META_DECISION_REF, true );
-		if ( ! self::supports( 'decision_detail_view_v1' ) || ! preg_match( '/^gbl_dec_[a-f0-9]{32}$/', $ref ) || ! self::can_manage_order( $order ) ) {
+		$context = self::current_decision_context( $order );
+		$ref     = (string) ( $context['decision_ref'] ?? '' );
+		if ( ! self::supports( 'decision_detail_view_v1' ) || '' === $ref || ! self::can_manage_order( $order ) ) {
 			return '';
 		}
 		return wp_nonce_url(
 			add_query_arg(
 				[
-					'action'   => 'yogb_gbl_view_decision',
-					'order_id' => (int) $order->get_id(),
+					'action'       => 'yogb_gbl_view_decision',
+					'order_id'     => (int) $order->get_id(),
+					'decision_ref' => $ref,
 				],
 				admin_url( 'admin-post.php' )
 			),
-			'yogb_gbl_view_decision_' . (int) $order->get_id()
+			'yogb_gbl_view_decision_' . (int) $order->get_id() . '_' . $ref
 		);
 	}
 
@@ -146,13 +223,17 @@ final class YOGB_BM_Decision_Actions {
 			wp_die( esc_html__( 'You do not have permission to view this decision.', 'wc-blacklist-manager' ), 403 );
 		}
 		$order_id = (int) $order->get_id();
-		check_admin_referer( 'yogb_gbl_view_decision_' . $order_id );
+		$submitted_ref = self::requested_text( 'decision_ref', 'get' );
+		check_admin_referer( 'yogb_gbl_view_decision_' . $order_id . '_' . $submitted_ref );
 		if ( ! self::supports( 'decision_detail_view_v1' ) ) {
 			self::redirect_to_order( $order, 'detail_unsupported' );
 		}
 
-		$ref = (string) $order->get_meta( YOGB_BM_Check_Orders::META_DECISION_REF, true );
-		if ( ! preg_match( '/^gbl_dec_[a-f0-9]{32}$/', $ref ) ) {
+		$context = self::current_decision_context( $order );
+		$ref     = (string) ( $context['decision_ref'] ?? '' );
+		if ( ! preg_match( '/^gbl_dec_[a-f0-9]{32}$/', $submitted_ref )
+			|| '' === $ref
+			|| ! hash_equals( $ref, $submitted_ref ) ) {
 			self::redirect_to_order( $order, 'detail_missing' );
 		}
 		$response = YOGB_BM_Report::post_json_signed(
@@ -176,15 +257,21 @@ final class YOGB_BM_Decision_Actions {
 		}
 		$order_id = (int) $order->get_id();
 		check_admin_referer( 'yogb_gbl_record_outcome_' . $order_id );
-		$use_v2 = self::supports_v2();
-		if ( ! $use_v2 && ! self::supports( 'decision_outcomes_v1' ) ) {
+		$protocol           = self::outcome_protocol();
+		$submitted_protocol = self::posted_key( 'outcome_protocol' );
+		if ( '' === $protocol || ! hash_equals( $protocol, $submitted_protocol ) ) {
 			self::redirect_to_order( $order, 'outcome_unsupported' );
 		}
 
-		$ref = (string) $order->get_meta( YOGB_BM_Check_Orders::META_DECISION_REF, true );
-		if ( ! preg_match( '/^gbl_dec_[a-f0-9]{32}$/', $ref ) ) {
-			self::redirect_to_order( $order, 'feedback_missing' );
+		$context       = self::current_decision_context( $order );
+		$ref           = (string) ( $context['decision_ref'] ?? '' );
+		$submitted_ref = self::posted_text( 'decision_ref' );
+		if ( ! preg_match( '/^gbl_dec_[a-f0-9]{32}$/', $submitted_ref )
+			|| '' === $ref
+			|| ! hash_equals( $ref, $submitted_ref ) ) {
+			self::redirect_to_order( $order, 'outcome_stale' );
 		}
+		$use_v2 = 'v2' === $protocol;
 
 		$type          = '';
 		$conclusion    = '';
@@ -193,7 +280,7 @@ final class YOGB_BM_Decision_Actions {
 		$reason_code   = '';
 		$reference     = '';
 		if ( $use_v2 ) {
-			$decision  = sanitize_key( (string) $order->get_meta( '_yogb_gbl_decision', true ) );
+			$decision  = (string) $context['decision'];
 			$conclusion = self::posted_key( 'conclusion' );
 			$allowed    = self::actual_outcome_labels( $decision );
 			if ( ! in_array( $decision, [ 'allow', 'challenge', 'block' ], true ) || ! isset( $allowed[ $conclusion ] ) ) {
@@ -232,17 +319,12 @@ final class YOGB_BM_Decision_Actions {
 
 		$signature = hash(
 			'sha256',
-			implode( '|', [ $use_v2 ? '2' : '1', $type, $conclusion, $review_status, $evidence_type, $reason_code, hash( 'sha256', $reference ) ] )
+			implode( '|', [ $ref, $use_v2 ? '2' : '1', $type, $conclusion, $review_status, $evidence_type, $reason_code, hash( 'sha256', $reference ) ] )
 		);
-		$current_signature = (string) $order->get_meta( self::META_OUTCOME_SIGNATURE, true );
-		$event_uuid   = (string) $order->get_meta( self::META_OUTCOME_UUID, true );
-		$revision     = max( 0, (int) $order->get_meta( self::META_OUTCOME_REVISION, true ) );
-		$occurred_at  = (string) $order->get_meta( self::META_OUTCOME_AT, true );
-		if ( ! hash_equals( $signature, $current_signature ) || ! wp_is_uuid( $event_uuid, 4 ) || '' === $occurred_at ) {
-			$revision++;
-			$event_uuid  = wp_generate_uuid4();
-			$occurred_at = gmdate( 'c' );
-		}
+		$identity    = self::manual_revision_identity( $order, $ref, $signature );
+		$revision    = (int) $identity['revision'];
+		$event_uuid  = (string) $identity['event_uuid'];
+		$occurred_at = (string) $identity['occurred_at'];
 
 		$order->update_meta_data( self::META_OUTCOME_TYPE, $type );
 		$order->update_meta_data( self::META_OUTCOME_SCHEMA, $use_v2 ? 2 : 1 );
@@ -251,6 +333,7 @@ final class YOGB_BM_Decision_Actions {
 		$order->update_meta_data( self::META_OUTCOME_EVIDENCE, $evidence_type );
 		$order->update_meta_data( self::META_OUTCOME_REASON, $reason_code );
 		$order->update_meta_data( self::META_OUTCOME_SIGNATURE, $signature );
+		$order->update_meta_data( self::META_OUTCOME_DECISION_REF, $ref );
 		$order->update_meta_data( self::META_OUTCOME_REVISION, max( 1, $revision ) );
 		$order->update_meta_data( self::META_OUTCOME_USER_ID, get_current_user_id() );
 		$order->update_meta_data( self::META_OUTCOME_AT, $occurred_at );
@@ -261,6 +344,7 @@ final class YOGB_BM_Decision_Actions {
 		$order->delete_meta_data( self::META_OUTCOME_ATTEMPTS );
 		$order->delete_meta_data( self::META_OUTCOME_NEXT_AT );
 		$order->save();
+		self::store_outcome_delivery_state( $order, $ref, $event_uuid, 'queueing' );
 
 		$outbox_id = $use_v2
 			? YOGB_BM_Outcomes::capture_manual_revision_v2(
@@ -284,6 +368,7 @@ final class YOGB_BM_Decision_Actions {
 			);
 		$order->update_meta_data( self::META_OUTCOME_DELIVERY, $outbox_id > 0 ? 'queued' : 'queue_failed' );
 		$order->save();
+		self::store_outcome_delivery_state( $order, $ref, $event_uuid, $outbox_id > 0 ? 'queued' : 'queue_failed' );
 
 		self::redirect_to_order( $order, $outbox_id > 0 ? 'outcome_saved' : 'outcome_queue_failed' );
 	}
@@ -295,15 +380,37 @@ final class YOGB_BM_Decision_Actions {
 		}
 		$order_id = (int) $order->get_id();
 		check_admin_referer( 'yogb_gbl_retry_outcome_' . $order_id );
-		$event_uuid = (string) $order->get_meta( self::META_OUTCOME_UUID, true );
-		$queued = wp_is_uuid( $event_uuid, 4 )
-			&& class_exists( 'YOGB_BM_Outbox' )
+		$protocol           = self::outcome_protocol();
+		$submitted_protocol = self::posted_key( 'outcome_protocol' );
+		$submitted_ref      = self::posted_text( 'decision_ref' );
+		$submitted_uuid     = self::posted_text( 'event_uuid' );
+		$context            = self::current_decision_context( $order );
+		$current_ref        = (string) ( $context['decision_ref'] ?? '' );
+		$saved_ref          = (string) $order->get_meta( self::META_OUTCOME_DECISION_REF, true );
+		$event_uuid         = (string) $order->get_meta( self::META_OUTCOME_UUID, true );
+		$saved_schema       = max( 0, (int) $order->get_meta( self::META_OUTCOME_SCHEMA, true ) );
+		$expected_schema    = 'v2' === $protocol ? 2 : 1;
+		$binding_valid      = '' !== $protocol
+			&& hash_equals( $protocol, $submitted_protocol )
+			&& preg_match( '/^gbl_dec_[a-f0-9]{32}$/', $submitted_ref )
+			&& '' !== $current_ref
+			&& hash_equals( $current_ref, $submitted_ref )
+			&& hash_equals( $current_ref, $saved_ref )
+			&& $expected_schema === $saved_schema
+			&& wp_is_uuid( $event_uuid, 4 )
+			&& hash_equals( $event_uuid, $submitted_uuid );
+		if ( ! $binding_valid ) {
+			self::redirect_to_order( $order, 'outcome_stale' );
+		}
+
+		$queued = class_exists( 'YOGB_BM_Outbox' )
 			&& YOGB_BM_Outbox::retry_outcome( $event_uuid, $order_id );
 		if ( $queued ) {
 			$order->update_meta_data( self::META_OUTCOME_DELIVERY, 'queued' );
 			$order->delete_meta_data( self::META_OUTCOME_ERROR );
 			$order->delete_meta_data( self::META_OUTCOME_NEXT_AT );
 			$order->save();
+			self::store_outcome_delivery_state( $order, $current_ref, $event_uuid, 'queued' );
 		}
 		self::redirect_to_order( $order, $queued ? 'outcome_retry_queued' : 'outcome_retry_failed' );
 	}
@@ -318,6 +425,44 @@ final class YOGB_BM_Decision_Actions {
 		return 'inconclusive';
 	}
 
+	private static function manual_revision_identity( WC_Order $order, string $ref, string $signature ) : array {
+		$current_signature = (string) $order->get_meta( self::META_OUTCOME_SIGNATURE, true );
+		$current_ref       = (string) $order->get_meta( self::META_OUTCOME_DECISION_REF, true );
+		$event_uuid       = (string) $order->get_meta( self::META_OUTCOME_UUID, true );
+		$revision         = max( 0, (int) $order->get_meta( self::META_OUTCOME_REVISION, true ) );
+		$occurred_at      = (string) $order->get_meta( self::META_OUTCOME_AT, true );
+		$same_ref         = preg_match( '/^gbl_dec_[a-f0-9]{32}$/', $current_ref ) && hash_equals( $ref, $current_ref );
+
+		if ( ! $same_ref ) {
+			return [
+				'revision'    => 1,
+				'event_uuid'  => wp_generate_uuid4(),
+				'occurred_at' => gmdate( 'c' ),
+			];
+		}
+		if ( hash_equals( $signature, $current_signature ) && wp_is_uuid( $event_uuid, 4 ) && '' !== $occurred_at ) {
+			return [
+				'revision'    => max( 1, $revision ),
+				'event_uuid'  => $event_uuid,
+				'occurred_at' => $occurred_at,
+			];
+		}
+
+		return [
+			'revision'    => max( 0, $revision ) + 1,
+			'event_uuid'  => wp_generate_uuid4(),
+			'occurred_at' => gmdate( 'c' ),
+		];
+	}
+
+	private static function outcome_delivery_state_key( string $decision_ref, string $event_uuid ) : string {
+		$event_uuid = strtolower( $event_uuid );
+		if ( ! preg_match( '/^gbl_dec_[a-f0-9]{32}$/', $decision_ref ) || ! wp_is_uuid( $event_uuid, 4 ) ) {
+			return '';
+		}
+		return self::META_OUTCOME_DELIVERY_STATE_PREFIX . str_replace( '-', '', $event_uuid );
+	}
+
 	private static function posted_key( string $name ) : string {
 		if ( ! isset( $_POST[ $name ] ) || ! is_scalar( $_POST[ $name ] ) ) {
 			return '';
@@ -326,10 +471,15 @@ final class YOGB_BM_Decision_Actions {
 	}
 
 	private static function posted_text( string $name ) : string {
-		if ( ! isset( $_POST[ $name ] ) || ! is_scalar( $_POST[ $name ] ) ) {
+		return self::requested_text( $name, 'post' );
+	}
+
+	private static function requested_text( string $name, string $method ) : string {
+		$source = 'get' === $method ? $_GET : $_POST;
+		if ( ! isset( $source[ $name ] ) || ! is_scalar( $source[ $name ] ) ) {
 			return '';
 		}
-		return sanitize_text_field( wp_unslash( (string) $_POST[ $name ] ) );
+		return sanitize_text_field( wp_unslash( (string) $source[ $name ] ) );
 	}
 
 	private static function supports( string $capability ) : bool {

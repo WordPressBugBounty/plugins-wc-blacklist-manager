@@ -33,13 +33,18 @@ class WC_Blacklist_Manager_Settings {
 		}
 
 		$this->handle_post_submission();
+
+		$tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : '';
+		$premium_preview_tabs = array( 'anti_bots', 'automation', 'scoring', 'payments', 'permission', 'integrations', 'tools', 'connection' );
+		if ( ! $this->is_premium_active() && in_array( $tab, $premium_preview_tabs, true ) ) {
+			wp_safe_redirect( admin_url( 'admin.php?page=wc-blacklist-manager-premium' ) );
+			exit;
+		}
 		$settings = $this->get_settings();
 		$premium_active = $this->is_premium_active();
 		$woocommerce_active = class_exists( 'WooCommerce' );
 		$form_active = (class_exists( 'WPCF7' ) || class_exists( 'GFCommon' ) || class_exists( 'WPForms\WPForms' ));
 
-		$unlock_url = 'https://yoohw.com/product/blacklist-manager-premium/';
-		
 		// Include the view file for settings form
 		$template_path = plugin_dir_path(__FILE__) . 'views/settings-form.php';
 		if (file_exists($template_path)) {

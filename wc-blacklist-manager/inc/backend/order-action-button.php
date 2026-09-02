@@ -9,6 +9,7 @@ class WC_Blacklist_Manager_Order_Actions {
 	private $suspect_nonce_key = 'blacklist_ajax_nonce';
 	private $block_nonce_key   = 'block_ajax_nonce';
 	private $remove_nonce_key  = 'remove_ajax_nonce';
+	private $capability_refresh_nonce_key = 'yogb_bm_report_v2_capability_refresh_nonce';
 
 	/**
 	 * Per-request caches.
@@ -16,11 +17,6 @@ class WC_Blacklist_Manager_Order_Actions {
 	 * @var bool|null
 	 */
 	private $premium_active_cache = null;
-
-	/**
-	 * @var bool|null
-	 */
-	private $permission_cache = null;
 
 	/**
 	 * @var WC_Order|null|false
@@ -40,7 +36,22 @@ class WC_Blacklist_Manager_Order_Actions {
 		add_action( 'wp_ajax_add_to_blacklist', array( $this, 'handle_add_to_suspects' ) );
 		add_action( 'wp_ajax_block_customer', array( $this, 'handle_add_to_blocklist' ) );
 		add_action( 'wp_ajax_remove_from_blacklist', array( $this, 'handle_remove_from_blacklist' ) );
+		add_action( 'wp_ajax_yogb_bm_schedule_report_v2_capability_refresh', array( $this, 'handle_report_v2_capability_refresh' ) );
 		add_action( 'woocommerce_admin_order_data_after_payment_info', array( $this, 'display_blacklist_notices' ) );
+	}
+
+	/** Schedule capability negotiation without making modal presentation wait for it. */
+	public function handle_report_v2_capability_refresh() : void {
+		$order_id = isset( $_POST['order_id'] ) ? absint( wp_unslash( $_POST['order_id'] ) ) : 0;
+		check_ajax_referer( $this->capability_refresh_nonce_action( $order_id ), 'nonce' );
+		$order = $order_id > 0 ? wc_get_order( $order_id ) : false;
+		if ( ! $this->current_user_can_moderate_order( $order ) ) {
+			wp_send_json_error( null, 403 );
+		}
+		if ( class_exists( 'YOGB_BM_Report_V2' ) ) {
+			YOGB_BM_Report_V2::schedule_capability_refresh();
+		}
+		wp_send_json_success();
 	}
 
 	/**
@@ -55,19 +66,13 @@ class WC_Blacklist_Manager_Order_Actions {
 		return $this->premium_active_cache;
 	}
 
-	/**
-	 * Cached permission check.
-	 */
-	private function current_user_can_manage_blacklist(): bool {
-		if ( null !== $this->permission_cache ) {
-			return $this->permission_cache;
-		}
+	private function current_user_can_moderate_order( $order ): bool {
+		return function_exists( 'wc_blacklist_manager_user_can_moderate_order' )
+			&& wc_blacklist_manager_user_can_moderate_order( $order );
+	}
 
-		$this->permission_cache = function_exists( 'wc_blacklist_manager_user_can_manage_area' )
-			? wc_blacklist_manager_user_can_manage_area( 'wc_blacklist_dashboard_permission' )
-			: current_user_can( 'manage_options' );
-
-		return $this->permission_cache;
+	private function capability_refresh_nonce_action( int $order_id ): string {
+		return $this->capability_refresh_nonce_key . '_' . $order_id;
 	}
 
 	private function build_order_activity_view( WC_Order $order, array $extra = array() ): array {
@@ -200,6 +205,39 @@ class WC_Blacklist_Manager_Order_Actions {
 		);
 
 		return array_values( array_unique( array_filter( $fields ) ) );
+	}
+
+	/** Queue optional Global work after local Block persistence has completed. */
+	private function queue_global_report_after_block(
+		WC_Order $order,
+		string $contract,
+		bool $v2_selection_authorized,
+		string $reason_code,
+		string $wire_details,
+		string $local_details,
+		string $dev_mode
+	) : string {
+		if ( '0' !== $dev_mode ) {
+			return 'not_queued';
+		}
+		if ( 'v2' === $contract && class_exists( 'YOGB_BM_Report_V2' ) ) {
+			$result = YOGB_BM_Report_V2::queue_intent_from_order(
+				$order,
+				[
+					'contract'             => 'v2',
+					'source_kind'          => 'merchant_manual_block',
+					'selection_authorized' => $v2_selection_authorized,
+					'reason_code'          => $reason_code,
+					'details'              => $wire_details,
+				]
+			);
+			return sanitize_key( (string) ( $result['state'] ?? 'not_queued_invalid' ) );
+		}
+		if ( class_exists( 'YOGB_BM_Report' ) && YOGB_BM_Report::is_ready() ) {
+			YOGB_BM_Report::queue_report_from_order( $order, $reason_code, $local_details );
+			return 'legacy_queued';
+		}
+		return 'not_queued';
 	}
 
 	/**
@@ -906,14 +944,43 @@ class WC_Blacklist_Manager_Order_Actions {
 		return $state;
 	}
 
-	public function enqueue_script() {
-		if ( ! $this->current_user_can_manage_blacklist() ) {
-			return;
-		}
+	/** Preserve the existing v1 Block modal contract as the fail-safe presentation. */
+	private function legacy_block_modal_config() : array {
+		return array(
+			'reasons' => array(
+				'stolen_card'   => __( 'Stolen card', 'wc-blacklist-manager' ),
+				'chargeback'    => __( 'Chargeback', 'wc-blacklist-manager' ),
+				'fraud_network' => __( 'Fraud network', 'wc-blacklist-manager' ),
+				'spam'          => __( 'Spam', 'wc-blacklist-manager' ),
+				'policy_abuse'  => __( 'Policy abuse', 'wc-blacklist-manager' ),
+				'other'         => __( 'Other', 'wc-blacklist-manager' ),
+			),
+			'descriptions' => array(
+				'stolen_card'   => __( 'Payment appears to have been made using a stolen or unauthorized card/payment method.', 'wc-blacklist-manager' ),
+				'chargeback'    => __( 'The transaction was charged back by the bank or payment provider as fraud or cardholder dispute.', 'wc-blacklist-manager' ),
+				'fraud_network' => __( 'Identity is linked to multiple suspicious orders, bots, or coordinated fraud patterns across your store.', 'wc-blacklist-manager' ),
+				'spam'          => __( 'Orders are clearly fake, low-value, or automated (e.g. card testing, dummy data, or bulk spam).', 'wc-blacklist-manager' ),
+				'policy_abuse'  => __( 'Customer repeatedly abuses your store policies (refund abuse, return abuse, reselling, or similar).', 'wc-blacklist-manager' ),
+			),
+			'labels' => array(
+				'modal_title'       => __( 'Block customer', 'wc-blacklist-manager' ),
+				'reason_label'      => __( 'Reason', 'wc-blacklist-manager' ),
+				'select_reason'     => __( 'Select a reason...', 'wc-blacklist-manager' ),
+				'description_label' => __( 'Description / internal note', 'wc-blacklist-manager' ),
+				'required_reason'   => __( 'Please select a reason.', 'wc-blacklist-manager' ),
+				'required_desc'     => __( 'Please enter a description for “Other”.', 'wc-blacklist-manager' ),
+				'cancel'            => __( 'Cancel', 'wc-blacklist-manager' ),
+				'confirm'           => __( 'Confirm block', 'wc-blacklist-manager' ),
+				'processingText'    => __( 'Processing...', 'wc-blacklist-manager' ),
+			),
+			'cta' => $this->get_order_action_modal_cta( 'order_block' ),
+		);
+	}
 
+	public function enqueue_script() {
 		$order = $this->get_current_admin_order();
 
-		if ( ! $order instanceof WC_Order ) {
+		if ( ! $this->current_user_can_moderate_order( $order ) ) {
 			return;
 		}
 
@@ -926,10 +993,23 @@ class WC_Blacklist_Manager_Order_Actions {
 		wp_enqueue_script(
 			'yobm-order-actions',
 			plugins_url( '../../js/blacklist-actions.js', __FILE__ ),
-			array( 'jquery' ),
-			$this->version,
+			array( 'jquery', 'wc-backbone-modal', 'wp-util' ),
+			defined( 'WC_BLACKLIST_MANAGER_VERSION' ) ? WC_BLACKLIST_MANAGER_VERSION : $this->version,
 			true
 		);
+
+		wp_enqueue_style(
+			'yobm-order-actions-modal',
+			plugins_url( '../../css/order-actions-modal.css', __FILE__ ),
+			array( 'woocommerce_admin_styles' ),
+			defined( 'WC_BLACKLIST_MANAGER_VERSION' ) ? WC_BLACKLIST_MANAGER_VERSION : $this->version
+		);
+		$legacy_block_config = $this->legacy_block_modal_config();
+		$v2_block_config     = class_exists( 'YOGB_BM_Report_V2' ) ? YOGB_BM_Report_V2::modal_config( $order ) : null;
+		if ( is_array( $v2_block_config ) ) {
+			$v2_block_config['cta']            = $this->get_order_action_modal_cta( 'order_block' );
+			$v2_block_config['legacyFallback'] = $legacy_block_config;
+		}
 
 		wp_localize_script(
 			'yobm-order-actions',
@@ -937,44 +1017,23 @@ class WC_Blacklist_Manager_Order_Actions {
 			array(
 				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
 				'orderId' => (string) $order->get_id(),
+				'common'  => array(
+					'modal_unavailable' => __( 'WooCommerce modal is unavailable. Reload this page and try again.', 'wc-blacklist-manager' ),
+					'modal_busy'        => __( 'Another modal is already open. Close it before trying again.', 'wc-blacklist-manager' ),
+					'order_missing'     => __( 'Order ID not found.', 'wc-blacklist-manager' ),
+					'request_failed'    => __( 'The request failed. Please try again.', 'wc-blacklist-manager' ),
+				),
 				'nonces'  => array(
 					'suspect' => wp_create_nonce( $this->suspect_nonce_key ),
 					'block'   => wp_create_nonce( $this->block_nonce_key ),
 					'remove'  => wp_create_nonce( $this->remove_nonce_key ),
+					'reportV2CapabilityRefresh' => wp_create_nonce( $this->capability_refresh_nonce_action( (int) $order->get_id() ) ),
 				),
 				'suspect' => array(
 					'confirmMessage' => esc_html__( 'Are you sure you want to add this to the suspects list?', 'wc-blacklist-manager' ),
 					'processingText' => esc_html__( 'Processing...', 'wc-blacklist-manager' ),
 				),
-				'block'   => array(
-					'reasons' => array(
-						'stolen_card'   => __( 'Stolen card', 'wc-blacklist-manager' ),
-						'chargeback'    => __( 'Chargeback', 'wc-blacklist-manager' ),
-						'fraud_network' => __( 'Fraud network', 'wc-blacklist-manager' ),
-						'spam'          => __( 'Spam', 'wc-blacklist-manager' ),
-						'policy_abuse'  => __( 'Policy abuse', 'wc-blacklist-manager' ),
-						'other'         => __( 'Other', 'wc-blacklist-manager' ),
-					),
-					'descriptions' => array(
-						'stolen_card'   => __( 'Payment appears to have been made using a stolen or unauthorized card/payment method.', 'wc-blacklist-manager' ),
-						'chargeback'    => __( 'The transaction was charged back by the bank or payment provider as fraud or cardholder dispute.', 'wc-blacklist-manager' ),
-						'fraud_network' => __( 'Identity is linked to multiple suspicious orders, bots, or coordinated fraud patterns across your store.', 'wc-blacklist-manager' ),
-						'spam'          => __( 'Orders are clearly fake, low-value, or automated (e.g. card testing, dummy data, or bulk spam).', 'wc-blacklist-manager' ),
-						'policy_abuse'  => __( 'Customer repeatedly abuses your store policies (refund abuse, return abuse, reselling, or similar).', 'wc-blacklist-manager' ),
-					),
-					'labels' => array(
-						'modal_title'       => __( 'Block customer', 'wc-blacklist-manager' ),
-						'reason_label'      => __( 'Reason', 'wc-blacklist-manager' ),
-						'select_reason'     => __( 'Select a reason...', 'wc-blacklist-manager' ),
-						'description_label' => __( 'Description / internal note', 'wc-blacklist-manager' ),
-						'required_reason'   => __( 'Please select a reason.', 'wc-blacklist-manager' ),
-						'required_desc'     => __( 'Please enter a description for “Other”.', 'wc-blacklist-manager' ),
-						'cancel'            => __( 'Cancel', 'wc-blacklist-manager' ),
-						'confirm'           => __( 'Confirm block', 'wc-blacklist-manager' ),
-						'processingText'    => __( 'Processing...', 'wc-blacklist-manager' ),
-					),
-					'cta'    => $this->get_order_action_modal_cta( 'order_block' ),
-				),
+				'block'   => is_array( $v2_block_config ) ? $v2_block_config : $legacy_block_config,
 				'remove'  => array(
 					'reasons' => array(
 						'customer_appeal'    => __( 'Customer appeal / cleared', 'wc-blacklist-manager' ),
@@ -1028,7 +1087,7 @@ class WC_Blacklist_Manager_Order_Actions {
 			return;
 		}
 
-		if ( ! $this->current_user_can_manage_blacklist() ) {
+		if ( ! $this->current_user_can_moderate_order( $order ) ) {
 			return;
 		}
 
@@ -1044,16 +1103,17 @@ class WC_Blacklist_Manager_Order_Actions {
 			$days_since     = ( time() - $installed_time ) / DAY_IN_SECONDS;
 
 			if ( $days_since <= 7 && '1' === get_option( 'wc_blacklist_development_mode', '1' ) ) {
-				$enable_url = wp_nonce_url(
-					admin_url( 'admin-post.php?action=wc_blacklist_enable_production_mode' ),
-					'wc_blacklist_enable_production_mode'
-				);
-
 				echo '<div class="notice notice-warning inline" style="margin-top:10px;">';
 				echo '<p>';
 				echo '<strong>' . esc_html__( 'Development Mode Active.', 'wc-blacklist-manager' ) . '</strong> ';
-				echo esc_html__( 'The blacklist system is currently running in development mode.', 'wc-blacklist-manager' ) . ' ';
-				echo '<a href="' . esc_url( $enable_url ) . '">' . esc_html__( 'Switch to Production Mode', 'wc-blacklist-manager' ) . '</a>';
+				echo esc_html__( 'The blacklist system is currently running in development mode.', 'wc-blacklist-manager' );
+				if ( current_user_can( 'manage_options' ) ) {
+					$enable_url = wp_nonce_url(
+						admin_url( 'admin-post.php?action=wc_blacklist_enable_production_mode' ),
+						'wc_blacklist_enable_production_mode'
+					);
+					echo ' <a href="' . esc_url( $enable_url ) . '">' . esc_html__( 'Switch to Production Mode', 'wc-blacklist-manager' ) . '</a>';
+				}
 				echo '</p>';
 				echo '</div>';
 			}
@@ -1062,17 +1122,17 @@ class WC_Blacklist_Manager_Order_Actions {
 		echo '<p>';
 
 		if ( $state['show_suspect_button'] ) {
-			echo '<button id="add_to_blacklist" class="button button-secondary icon-button" title="' . esc_attr__( 'Add to the suspects list', 'wc-blacklist-manager' ) . '"><span class="dashicons dashicons-flag" style="margin-right: 3px;"></span> ' . esc_html__( 'Suspect', 'wc-blacklist-manager' ) . '</button> ';
+			echo '<button type="button" id="add_to_blacklist" class="button button-secondary icon-button" title="' . esc_attr__( 'Add to the suspects list', 'wc-blacklist-manager' ) . '"><span class="dashicons dashicons-flag" style="margin-right: 3px;"></span> ' . esc_html__( 'Suspect', 'wc-blacklist-manager' ) . '</button> ';
 		}
 
 		if ( $state['show_block_button'] ) {
-			echo '<button id="block_customer" class="button red-button" title="' . esc_attr__( 'Add to blocklist', 'wc-blacklist-manager' ) . '"><span class="dashicons dashicons-dismiss" style="margin-right: 3px;"></span> ' . esc_html__( 'Block', 'wc-blacklist-manager' ) . '</button>';
+			echo '<button type="button" id="block_customer" class="button red-button" title="' . esc_attr__( 'Add to blocklist', 'wc-blacklist-manager' ) . '"><span class="dashicons dashicons-dismiss" style="margin-right: 3px;"></span> ' . esc_html__( 'Block', 'wc-blacklist-manager' ) . '</button>';
 		} elseif ( ! $state['show_block_button'] && ! $state['has_blocked_meta'] ) {
 			echo '<span style="color:#b32d2e;">' . esc_html__( 'This customer is already blocked.', 'wc-blacklist-manager' ) . '</span>';
 		}
 
 		if ( $state['has_suspect_meta'] || $state['has_blocked_meta'] ) {
-			echo ' <button id="remove_from_blacklist" class="button button-secondary icon-button" title="' . esc_attr__( 'Remove', 'wc-blacklist-manager' ) . '"><span class="dashicons dashicons-remove" style="margin-right: 3px;"></span> ' . esc_html__( 'Remove', 'wc-blacklist-manager' ) . '</button>';
+			echo ' <button type="button" id="remove_from_blacklist" class="button button-secondary icon-button" title="' . esc_attr__( 'Remove', 'wc-blacklist-manager' ) . '"><span class="dashicons dashicons-remove" style="margin-right: 3px;"></span> ' . esc_html__( 'Remove', 'wc-blacklist-manager' ) . '</button>';
 		}
 
 		echo '</p>';
@@ -1080,50 +1140,87 @@ class WC_Blacklist_Manager_Order_Actions {
 		if ( ! $premium_active && function_exists( 'wc_blacklist_manager_render_action_upsell' ) ) {
 			$rendered_upsell = wc_blacklist_manager_render_action_upsell( 'order', array( 'inline' => true ) );
 
-			if ( ! $rendered_upsell && $state['has_blocked_meta'] && function_exists( 'wc_blacklist_manager_render_static_action_upsell' ) ) {
-				$rendered_upsell = wc_blacklist_manager_render_static_action_upsell( 'order_block', 'order', array( 'inline' => true ) );
-			}
+			if ( ! $rendered_upsell && function_exists( 'wc_blacklist_manager_render_static_action_upsell_candidates' ) ) {
+				$static_events = array();
+				if ( $state['has_blocked_meta'] ) {
+					$static_events[] = 'order_block';
+				}
+				if ( $state['has_suspect_meta'] ) {
+					$static_events[] = 'order_suspect';
+				}
 
-			if ( ! $rendered_upsell && $state['has_suspect_meta'] && function_exists( 'wc_blacklist_manager_render_static_action_upsell' ) ) {
-				wc_blacklist_manager_render_static_action_upsell( 'order_suspect', 'order', array( 'inline' => true ) );
+				wc_blacklist_manager_render_static_action_upsell_candidates( $static_events, 'order', array( 'inline' => true ) );
 			}
 		}
 
 		echo '</div>';
 
-		echo '
-		<div class="bm-modal-backdrop" id="bmModalBackdrop"></div>
-			<div class="bm-modal" id="bmModal" style="display:none;">
-			<header><span id="bmModalTitle"></span></header>
-			<div class="bm-body">
-				<div class="bm-field">
-					<label for="bm_reason" id="bmReasonLabel"></label>
-					<select id="bm_reason"></select>
+		?>
+		<script type="text/html" id="tmpl-yobm-order-action-modal">
+			<div class="wc-backbone-modal yobm-order-action-modal">
+				<div class="wc-backbone-modal-content" role="dialog" aria-modal="true" aria-labelledby="yobm-order-action-modal-title">
+					<section class="wc-backbone-modal-main" role="document">
+						<header class="wc-backbone-modal-header">
+							<h1 id="yobm-order-action-modal-title"></h1>
+							<button type="button" class="modal-close modal-close-link dashicons dashicons-no-alt yobm-order-action-close">
+								<span class="screen-reader-text"><?php echo esc_html__( 'Close', 'wc-blacklist-manager' ); ?></span>
+							</button>
+						</header>
+						<article>
+							<div class="yobm-order-action-field">
+								<label for="yobm-order-action-reason" id="yobm-order-action-reason-label"></label>
+								<select id="yobm-order-action-reason"></select>
+							</div>
+							<div class="yobm-order-action-field yobm-order-action-reason-description" hidden>
+								<p></p>
+							</div>
+							<div class="yobm-order-action-field">
+								<label for="yobm-order-action-description" id="yobm-order-action-description-label"></label>
+								<textarea id="yobm-order-action-description" rows="4"></textarea>
+								<p class="description yobm-order-action-disclosure" hidden></p>
+							</div>
+							<div class="yobm-order-action-field yobm-order-action-cta" hidden>
+								<strong></strong>
+								<p></p>
+								<a href="#" class="button button-secondary" target="_blank" rel="noopener noreferrer"></a>
+							</div>
+							<div class="yobm-order-action-error" role="alert" hidden></div>
+						</article>
+						<footer>
+							<div class="wc-backbone-modal-buttons">
+								<button type="button" class="button modal-close yobm-order-action-cancel"></button>
+								<button type="button" class="button button-primary yobm-order-action-submit"></button>
+							</div>
+						</footer>
+					</section>
 				</div>
-				<div class="bm-field bm-reason-desc" id="bmReasonDescWrap" style="display:none;">
-					<p id="bmReasonDesc"></p>
-				</div>
-				<div class="bm-field">
-					<label for="bm_description" id="bmDescLabel"></label>
-					<textarea id="bm_description" rows="4"></textarea>
-				</div>
-				<div class="bm-field bm-modal-cta" id="bmModalCta" style="display:none;">
-					<strong id="bmModalCtaTitle"></strong>
-					<p id="bmModalCtaMessage"></p>
-					<a href="#" id="bmModalCtaLink" class="button button-secondary" target="_blank" rel="noopener noreferrer"></a>
-				</div>
-				<div class="bm-field bm-error" id="bmError" style="display:none;color:#b32d2e;"></div>
 			</div>
-			<footer>
-				<button type="button" class="button" id="bmCancel"></button>
-				<button type="button" class="button button-primary" id="bmConfirm"></button>
-			</footer>
-		</div>
-		';
+			<div class="wc-backbone-modal-backdrop modal-close yobm-order-action-close"></div>
+		</script>
+		<?php
 	}
 
 	public function handle_add_to_suspects() {
 		check_ajax_referer( $this->suspect_nonce_key, 'nonce' );
+		$order_id = isset( $_POST['order_id'] ) ? absint( wp_unslash( $_POST['order_id'] ) ) : 0;
+		$order    = $order_id > 0 ? wc_get_order( $order_id ) : false;
+
+		if ( ! $order instanceof WC_Order ) {
+			wp_send_json_error(
+				array(
+					'message' => esc_html__( 'Invalid order.', 'wc-blacklist-manager' ),
+				)
+			);
+		}
+
+		if ( ! $this->current_user_can_moderate_order( $order ) ) {
+			wp_send_json_error(
+				array(
+					'message' => esc_html__( 'Permission denied.', 'wc-blacklist-manager' ),
+				),
+				403
+			);
+		}
 
 		global $wpdb;
 		$table_name          = $wpdb->prefix . 'wc_blacklist';
@@ -1131,38 +1228,12 @@ class WC_Blacklist_Manager_Order_Actions {
 		$table_detection_log = $wpdb->prefix . 'wc_blacklist_detection_log';
 		$dev_mode            = get_option( 'wc_blacklist_development_mode', '0' );
 
-		if ( ! $this->current_user_can_manage_blacklist() ) {
-			wp_send_json_error(
-				array(
-					'message' => esc_html__( 'Permission denied.', 'wc-blacklist-manager' ),
-				)
-			);
-		}
-
-		$order_id = isset( $_POST['order_id'] ) ? absint( wp_unslash( $_POST['order_id'] ) ) : 0;
-		if ( $order_id <= 0 ) {
-			wp_send_json_error(
-				array(
-					'message' => esc_html__( 'Invalid order ID.', 'wc-blacklist-manager' ),
-				)
-			);
-		}
-
 		$ip_blacklist_enabled           = get_option( 'wc_blacklist_ip_enabled', 0 );
 		$address_blocking_enabled       = get_option( 'wc_blacklist_enable_customer_address_blocking', 0 );
 		$shipping_blocking_enabled      = get_option( 'wc_blacklist_enable_shipping_address_blocking', 0 );
 		$customer_name_blocking_enabled = get_option( 'wc_blacklist_customer_name_blocking_enabled', 0 );
 		$device_identity_enabled        = get_option( 'wc_blacklist_enable_device_identity', 0 );
 		$premium_active                 = $this->is_premium_active();
-
-		$order = wc_get_order( $order_id );
-		if ( ! $order ) {
-			wp_send_json_error(
-				array(
-					'message' => esc_html__( 'Invalid order.', 'wc-blacklist-manager' ),
-				)
-			);
-		}
 
 		$ctx = $this->get_order_identity_context( $order );
 
@@ -1408,6 +1479,25 @@ class WC_Blacklist_Manager_Order_Actions {
 
 	public function handle_add_to_blocklist() {
 		check_ajax_referer( $this->block_nonce_key, 'nonce' );
+		$order_id = isset( $_POST['order_id'] ) ? absint( wp_unslash( $_POST['order_id'] ) ) : 0;
+		$order    = $order_id > 0 ? wc_get_order( $order_id ) : false;
+
+		if ( ! $order instanceof WC_Order ) {
+			wp_send_json_error(
+				array(
+					'message' => esc_html__( 'Invalid order.', 'wc-blacklist-manager' ),
+				)
+			);
+		}
+
+		if ( ! $this->current_user_can_moderate_order( $order ) ) {
+			wp_send_json_error(
+				array(
+					'message' => esc_html__( 'Permission denied.', 'wc-blacklist-manager' ),
+				),
+				403
+			);
+		}
 
 		global $wpdb;
 		$table_name          = $wpdb->prefix . 'wc_blacklist';
@@ -1416,15 +1506,15 @@ class WC_Blacklist_Manager_Order_Actions {
 		$premium_active      = $this->is_premium_active();
 		$dev_mode            = get_option( 'wc_blacklist_development_mode', '0' );
 
-		if ( ! $this->current_user_can_manage_blacklist() ) {
-			wp_send_json_error(
-				array(
-					'message' => esc_html__( 'Permission denied.', 'wc-blacklist-manager' ),
-				)
-			);
-		}
-
-		$allowed_reasons = array( 'stolen_card', 'chargeback', 'fraud_network', 'spam', 'policy_abuse', 'other' );
+		$report_contract = isset( $_POST['report_contract'] ) ? sanitize_key( wp_unslash( $_POST['report_contract'] ) ) : 'v1';
+		$report_contract = 'v2' === $report_contract ? 'v2' : 'v1';
+		$contract_nonce  = isset( $_POST['report_contract_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['report_contract_nonce'] ) ) : '';
+		$v2_selection_authorized = 'v2' === $report_contract
+			&& class_exists( 'YOGB_BM_Report_V2' )
+			&& YOGB_BM_Report_V2::verify_contract_nonce( $order_id, $contract_nonce );
+		$allowed_reasons = 'v2' === $report_contract && class_exists( 'YOGB_BM_Report_V2' )
+			? YOGB_BM_Report_V2::reasons()
+			: array( 'stolen_card', 'chargeback', 'fraud_network', 'spam', 'policy_abuse', 'other' );
 		$reason_code_raw = isset( $_POST['reason_code'] ) ? wp_unslash( $_POST['reason_code'] ) : '';
 		$reason_code     = sanitize_key( $reason_code_raw );
 
@@ -1436,7 +1526,8 @@ class WC_Blacklist_Manager_Order_Actions {
 			);
 		}
 
-		$description = isset( $_POST['description'] ) ? sanitize_textarea_field( wp_unslash( $_POST['description'] ) ) : '';
+		$description_wire = isset( $_POST['description'] ) ? (string) wp_unslash( $_POST['description'] ) : '';
+		$description      = sanitize_textarea_field( $description_wire );
 
 		$reason_labels = array(
 			'stolen_card'   => __( 'Stolen card', 'wc-blacklist-manager' ),
@@ -1445,6 +1536,17 @@ class WC_Blacklist_Manager_Order_Actions {
 			'spam'          => __( 'Spam', 'wc-blacklist-manager' ),
 			'policy_abuse'  => __( 'Policy abuse', 'wc-blacklist-manager' ),
 			'other'         => __( 'Other', 'wc-blacklist-manager' ),
+			'unauthorized_payment'       => __( 'Suspected unauthorized payment', 'wc-blacklist-manager' ),
+			'payment_dispute_abuse'      => __( 'Payment dispute abuse', 'wc-blacklist-manager' ),
+			'payment_credential_testing' => __( 'Payment credential testing', 'wc-blacklist-manager' ),
+			'fake_payment_proof'         => __( 'Fake payment proof', 'wc-blacklist-manager' ),
+			'fake_order'                 => __( 'Fake / no-intent order', 'wc-blacklist-manager' ),
+			'identity_misrepresentation' => __( 'Identity misrepresentation', 'wc-blacklist-manager' ),
+			'delivery_refusal_abuse'     => __( 'Delivery refusal / no-show abuse', 'wc-blacklist-manager' ),
+			'return_refund_abuse'        => __( 'Return / refund abuse', 'wc-blacklist-manager' ),
+			'coordinated_fraud'          => __( 'Coordinated / linked fraud activity', 'wc-blacklist-manager' ),
+			'store_policy_abuse'         => __( 'Store policy abuse', 'wc-blacklist-manager' ),
+			'unclassified'               => __( 'Other / unclassified', 'wc-blacklist-manager' ),
 		);
 		$reason_label = $reason_labels[ $reason_code ] ?? $reason_code;
 
@@ -1452,24 +1554,6 @@ class WC_Blacklist_Manager_Order_Actions {
 			wp_send_json_error(
 				array(
 					'message' => esc_html__( 'Please provide a description for “Other”.', 'wc-blacklist-manager' ),
-				)
-			);
-		}
-
-		$order_id = isset( $_POST['order_id'] ) ? absint( wp_unslash( $_POST['order_id'] ) ) : 0;
-		if ( $order_id <= 0 ) {
-			wp_send_json_error(
-				array(
-					'message' => esc_html__( 'Invalid order ID.', 'wc-blacklist-manager' ),
-				)
-			);
-		}
-
-		$order = wc_get_order( $order_id );
-		if ( ! $order ) {
-			wp_send_json_error(
-				array(
-					'message' => esc_html__( 'Invalid order.', 'wc-blacklist-manager' ),
 				)
 			);
 		}
@@ -1607,9 +1691,7 @@ class WC_Blacklist_Manager_Order_Actions {
 
 			$order->save();
 
-			if ( YOGB_BM_Report::is_ready() && '0' === $dev_mode ) {
-				YOGB_BM_Report::queue_report_from_order( $order, $reason_code, $description );
-			}
+			$global_delivery_state = $this->queue_global_report_after_block( $order, $report_contract, $v2_selection_authorized, $reason_code, $description_wire, $description, $dev_mode );
 
 			if ( $premium_active ) {
 				$details = 'blocked_added_to_blocklist_by:' . $shop_manager;
@@ -1667,7 +1749,8 @@ class WC_Blacklist_Manager_Order_Actions {
 
 			wp_send_json_success(
 				array(
-					'message' => esc_html__( 'Moved to the blocklist successfully.', 'wc-blacklist-manager' ),
+					'message'               => esc_html__( 'Moved to the blocklist successfully.', 'wc-blacklist-manager' ),
+					'global_delivery_state' => $global_delivery_state,
 				)
 			);
 		}
@@ -1838,9 +1921,7 @@ class WC_Blacklist_Manager_Order_Actions {
 
 			$order->save();
 
-			if ( YOGB_BM_Report::is_ready() && '0' === $dev_mode ) {
-				YOGB_BM_Report::queue_report_from_order( $order, $reason_code, $description );
-			}
+			$global_delivery_state = $this->queue_global_report_after_block( $order, $report_contract, $v2_selection_authorized, $reason_code, $description_wire, $description, $dev_mode );
 
 			if ( $premium_active ) {
 				$details = 'blocked_added_to_blocklist_by:' . $shop_manager;
@@ -1898,7 +1979,8 @@ class WC_Blacklist_Manager_Order_Actions {
 
 			wp_send_json_success(
 				array(
-					'message' => esc_html__( 'Added to blocklist successfully.', 'wc-blacklist-manager' ),
+					'message'               => esc_html__( 'Added to blocklist successfully.', 'wc-blacklist-manager' ),
+					'global_delivery_state' => $global_delivery_state,
 				)
 			);
 		}
@@ -1912,6 +1994,25 @@ class WC_Blacklist_Manager_Order_Actions {
 
 	public function handle_remove_from_blacklist() {
 		check_ajax_referer( $this->remove_nonce_key, 'nonce' );
+		$order_id = isset( $_POST['order_id'] ) ? absint( wp_unslash( $_POST['order_id'] ) ) : 0;
+		$order    = $order_id > 0 ? wc_get_order( $order_id ) : false;
+
+		if ( ! $order instanceof WC_Order ) {
+			wp_send_json_error(
+				array(
+					'message' => esc_html__( 'Order not found.', 'wc-blacklist-manager' ),
+				)
+			);
+		}
+
+		if ( ! $this->current_user_can_moderate_order( $order ) ) {
+			wp_send_json_error(
+				array(
+					'message' => esc_html__( 'Permission denied.', 'wc-blacklist-manager' ),
+				),
+				403
+			);
+		}
 
 		global $wpdb;
 		$table_main          = $wpdb->prefix . 'wc_blacklist';
@@ -1919,24 +2020,7 @@ class WC_Blacklist_Manager_Order_Actions {
 		$table_detection_log = $wpdb->prefix . 'wc_blacklist_detection_log';
 		$dev_mode            = get_option( 'wc_blacklist_development_mode', '0' );
 
-		if ( ! $this->current_user_can_manage_blacklist() ) {
-			wp_send_json_error(
-				array(
-					'message' => esc_html__( 'Permission denied.', 'wc-blacklist-manager' ),
-				)
-			);
-		}
-
 		$premium_active = $this->is_premium_active();
-
-		$order_id = isset( $_POST['order_id'] ) ? absint( wp_unslash( $_POST['order_id'] ) ) : 0;
-		if ( $order_id <= 0 ) {
-			wp_send_json_error(
-				array(
-					'message' => esc_html__( 'Invalid order ID.', 'wc-blacklist-manager' ),
-				)
-			);
-		}
 
 		$revoke_reason = isset( $_POST['revoke_reason'] ) ? sanitize_text_field( wp_unslash( $_POST['revoke_reason'] ) ) : 'rvk_other';
 		$revoke_note   = isset( $_POST['revoke_note'] ) ? wp_strip_all_tags( wp_unslash( $_POST['revoke_note'] ) ) : '';
@@ -1950,15 +2034,6 @@ class WC_Blacklist_Manager_Order_Actions {
 			'rvk_other'          => __( 'Other', 'wc-blacklist-manager' ),
 		);
 		$reason_label = $reason_labels[ $revoke_reason ] ?? $revoke_reason;
-
-		$order = wc_get_order( $order_id );
-		if ( ! $order ) {
-			wp_send_json_error(
-				array(
-					'message' => esc_html__( 'Order not found.', 'wc-blacklist-manager' ),
-				)
-			);
-		}
 
 		$blocked_main_ids    = function_exists( 'yobm_parse_meta_id_list' ) ? yobm_parse_meta_id_list( $order->get_meta( '_blacklist_blocked_ids_main', true ) ) : array();
 		$blocked_address_ids = function_exists( 'yobm_parse_meta_id_list' ) ? yobm_parse_meta_id_list( $order->get_meta( '_blacklist_blocked_ids_address', true ) ) : array();

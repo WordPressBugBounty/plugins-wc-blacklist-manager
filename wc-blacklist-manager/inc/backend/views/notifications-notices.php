@@ -53,9 +53,9 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 											'description' => __( 'Explain why a payment method is unavailable for a suspected customer.', 'wc-blacklist-manager' ),
 										),
 									),
-									array( 'columns' => 2 )
+									array( 'compact' => true )
 								);
-								wc_blacklist_manager_render_premium_inline_cta( $unlock_url, 'notifications' );
+								wc_blacklist_manager_render_premium_inline_cta( $unlock_url, 'notifications', '', 'premium.passive.notifications.notices.checkout' );
 								?>
 							<?php endif; ?>
 						</td>
@@ -83,9 +83,9 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 										'description' => __( 'Customize the notice shown when network-risk rules stop account creation.', 'wc-blacklist-manager' ),
 									),
 								),
-								array( 'columns' => 1 )
+								array( 'compact' => true )
 							);
-							wc_blacklist_manager_render_premium_inline_cta( $unlock_url, 'notifications' );
+							wc_blacklist_manager_render_premium_inline_cta( $unlock_url, 'notifications', '', 'premium.passive.notifications.notices.registration' );
 							?>
 						<?php endif; ?>
 					</td>
@@ -116,9 +116,8 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 									'description' => __( 'Customize the message shown when a blocked account is stopped at login or forced out.', 'wc-blacklist-manager' ),
 								),
 							),
-							array( 'columns' => 1 )
+							array( 'compact' => true )
 						);
-						wc_blacklist_manager_render_premium_inline_cta( $unlock_url, 'notifications' );
 						?>
 					</td>
 				</tr>
@@ -157,9 +156,8 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 											'description' => __( 'Customize the notice shown when network-risk rules stop supported form submissions.', 'wc-blacklist-manager' ),
 										),
 									),
-									array( 'columns' => 1 )
+									array( 'compact' => true )
 								);
-								wc_blacklist_manager_render_premium_inline_cta( $unlock_url, 'notifications' );
 								?>
 							<?php endif; ?>
 						</td>
@@ -208,9 +206,8 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 										'description' => __( 'Show a clear message when phone intelligence blocks a disposable number.', 'wc-blacklist-manager' ),
 									),
 								),
-								array( 'columns' => 2 )
+								array( 'compact' => true )
 							);
-							wc_blacklist_manager_render_premium_inline_cta( $unlock_url, 'notifications' );
 							?>
 						</td>
 					</tr>
@@ -280,9 +277,8 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 						'description' => __( 'Show a clear reason when browser-based access rules prevent entry.', 'wc-blacklist-manager' ),
 					),
 				),
-				array( 'columns' => 3 )
+				array( 'compact' => true )
 			);
-			wc_blacklist_manager_render_premium_inline_cta( $unlock_url, 'notifications' );
 			?>
 		<?php endif; ?>
 

@@ -31,7 +31,7 @@ class WC_Blacklist_Manager_Backend {
 	public function enqueue_assets( $hook_suffix ) {
 		global $wp_version;
 
-		$style_ver  = '1.6.23';
+		$style_ver  = '1.6.26';
 		$script_ver = '1.3';
 
 		// Determine current admin screen context
@@ -150,6 +150,9 @@ class WC_Blacklist_Manager_Backend {
 	private function includes() {
 		include_once plugin_dir_path(__FILE__) . '../backend/helpers/action-upsells.php';
 		include_once plugin_dir_path(__FILE__) . '../backend/helpers/dashboard-insights.php';
+		include_once plugin_dir_path(__FILE__) . '../backend/helpers/dashboard-presentation.php';
+		include_once plugin_dir_path(__FILE__) . '../backend/helpers/outcome-summary.php';
+		include_once plugin_dir_path(__FILE__) . '../backend/helpers/global-value-summary.php';
 		include_once plugin_dir_path(__FILE__) . '../backend/dashboard.php';
 		include_once plugin_dir_path(__FILE__) . '../backend/premium-cta.php';
 		include_once plugin_dir_path(__FILE__) . '../backend/activity.php';
@@ -159,6 +162,7 @@ class WC_Blacklist_Manager_Backend {
 		include_once plugin_dir_path(__FILE__) . '../backend/order-action-button.php';
 		include_once plugin_dir_path(__FILE__) . '../backend/order-risk-score.php';
 		include_once plugin_dir_path(__FILE__) . '../backend/actions/sub/helper.php';
+		include_once plugin_dir_path(__FILE__) . '../backend/dashboard-widget.php';
 		include_once plugin_dir_path(__FILE__) . '../backend/helpers/normalize.php';
 		include_once plugin_dir_path(__FILE__) . '../backend/helpers/gbl-normalize.php';
 		include_once plugin_dir_path(__FILE__) . '../backend/helpers/checkout-phone.php';
@@ -174,6 +178,7 @@ class WC_Blacklist_Manager_Backend {
 			require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-evidence-reference-resolver.php';
 			require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-outcomes.php';
 			require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-reports.php';
+			require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-report-v2.php';
 			require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-decision-actions.php';
 			require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-compact-meta-migration.php';
 		require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-revoke.php';
@@ -182,7 +187,6 @@ class WC_Blacklist_Manager_Backend {
 		require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-tier-sync.php';
 		require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-subscription-activation.php';
 
-		include_once plugin_dir_path(__FILE__) . '/api/sms/sms-quota.php';
 		include_once plugin_dir_path(__FILE__) . '/api/push-subscription.php';
 	}
 }

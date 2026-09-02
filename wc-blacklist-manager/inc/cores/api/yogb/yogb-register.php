@@ -6,10 +6,15 @@ if ( ! defined( 'YOGB_BM_ALLOW_NONPROD' ) ) {
 }
 
 class YOGB_BM_Registrar {
+	private static $active_auth_recovery_lock = null;
+
 	/* Storage keys */
 	const OPT_API_KEY     = 'yogb_bm_api_key';
 	const OPT_API_SECRET  = 'yogb_bm_api_secret';
 	const OPT_REPORTER_ID = 'yogb_bm_reporter_id';
+	const OPT_AUTH_RECOVERY     = 'yogb_bm_auth_recovery_v1';
+	const OPT_PENDING_CHALLENGE = 'yogb_bm_pending_challenge_v1';
+	const OPT_AUTH_RECOVERY_LOCK = 'yogb_bm_auth_recovery_lock_v1';
 
 	/* Server base */
 	const SERVER_BASE = 'https://globalblacklist.org/wp-json/yoohw-gbl';
@@ -17,6 +22,9 @@ class YOGB_BM_Registrar {
 	/* Transient + cron hook */
 	const TRANSIENT_PREFIX = 'yogb_bm_challenge_';
 	const CRON_HOOK        = 'yogb_bm_run_registration';
+	const AUTH_RECOVERY_HOOK = 'yogb_bm_run_auth_recovery';
+	const AUTH_RECOVERY_LOCK_TTL = 300;
+	const MAX_REGISTRATION_BACKOFF = 21600;
 
 	private static function server_base() : string {
 		if ( defined( 'YOGB_BM_SERVER_BASE' ) ) {
@@ -137,6 +145,7 @@ class YOGB_BM_Registrar {
 		add_action( self::CRON_HOOK, function() {
 			YOGB_BM_Registrar::run_registration(true);
 		});
+		add_action( self::AUTH_RECOVERY_HOOK, [ __CLASS__, 'run_auth_recovery' ] );
 		add_action( 'wc_bm_run_registration', [ __CLASS__, 'run_registration' ] ); // back-compat
 
 		// Manual retry from settings page.
@@ -162,6 +171,23 @@ class YOGB_BM_Registrar {
 			return;
 		}
 
+		$recovery = self::auth_recovery_state();
+		if ( ! empty( $recovery['credential_commit'] ) ) {
+			self::schedule_registration();
+			return;
+		}
+		if ( 'recovering' === $recovery['state'] ) {
+			self::schedule_auth_recovery();
+			return;
+		}
+		if ( 're_registering' === $recovery['state'] ) {
+			self::schedule_registration();
+			return;
+		}
+		if ( in_array( $recovery['state'], [ 'suspended', 'manual_intervention' ], true ) ) {
+			return;
+		}
+
 		$api_key     = get_option( self::OPT_API_KEY );
 		$api_secret  = get_option( self::OPT_API_SECRET );
 		$reporter_id = get_option( self::OPT_REPORTER_ID );
@@ -175,7 +201,7 @@ class YOGB_BM_Registrar {
 		}
 
 		// Respect cooldown: if we’re in a backoff window, do not trigger anything now.
-		$cooldown_until = (int) get_option( 'yogb_bm_reg_cooldown_until', 0 );
+		$cooldown_until = (int) self::registration_budget_value( 'yogb_bm_reg_cooldown_until', 0 );
 		if ( time() < $cooldown_until ) {
 			return;
 		}
@@ -188,7 +214,7 @@ class YOGB_BM_Registrar {
 
 	private static function schedule_registration( int $delay = 60 ) {
 		// Don’t schedule if we are in a cooldown window
-		$cooldown_until = (int) get_option( 'yogb_bm_reg_cooldown_until', 0 );
+		$cooldown_until = (int) self::registration_budget_value( 'yogb_bm_reg_cooldown_until', 0 );
 		if ( time() < $cooldown_until ) {
 			return;
 		}
@@ -198,25 +224,391 @@ class YOGB_BM_Registrar {
 		}
 	}
 
-	/** Recover automatically when the server rejects stored credentials. */
-	public static function handle_auth_failure( string $source = '' ) : void {
-		if ( get_transient( 'yogb_bm_auth_recovery_lock' ) ) {
-			return;
+	private static function schedule_auth_recovery( int $delay = 30 ) : void {
+		if ( ! wp_next_scheduled( self::AUTH_RECOVERY_HOOK ) ) {
+			wp_schedule_single_event( time() + max( 10, $delay ), self::AUTH_RECOVERY_HOOK );
 		}
-		set_transient( 'yogb_bm_auth_recovery_lock', 1, 5 * MINUTE_IN_SECONDS );
+	}
+
+	public static function credential_fingerprint( string $api_key = '', string $api_secret = '' ) : string {
+		if ( '' === $api_key ) {
+			$api_key = (string) get_option( self::OPT_API_KEY, '' );
+		}
+		if ( '' === $api_secret ) {
+			$api_secret = (string) get_option( self::OPT_API_SECRET, '' );
+		}
+		return '' === $api_key || '' === $api_secret ? '' : hash( 'sha256', $api_key . "\0" . $api_secret );
+	}
+
+	private static function credential_component_digest( string $component, string $value ) : string {
+		return hash( 'sha256', sanitize_key( $component ) . "\0" . $value );
+	}
+
+	/** @return array<string,string> */
+	private static function registration_budget_options() : array {
+		return [
+			'attempts' => 'yogb_bm_reg_attempts',
+			'backoff'  => 'yogb_bm_reg_backoff',
+			'cooldown' => 'yogb_bm_reg_cooldown_until',
+		];
+	}
+
+	private static function registration_budget_digest( string $option, $value ) : string {
+		return hash( 'sha256', sanitize_key( $option ) . "\0" . maybe_serialize( $value ) );
+	}
+
+	/** @return array<string,string> */
+	private static function normalize_retired_registration_budget( $stored ) : array {
+		$stored     = is_array( $stored ) ? $stored : [];
+		$normalized = [];
+		foreach ( self::registration_budget_options() as $key => $option ) {
+			$digest = (string) ( $stored[ $key ] ?? '' );
+			if ( preg_match( '/^[a-f0-9]{64}$/', $digest ) ) {
+				$normalized[ $key ] = $digest;
+			}
+		}
+		return $normalized;
+	}
+
+	private static function registration_budget_key( string $option ) {
+		$key = array_search( $option, self::registration_budget_options(), true );
+		return false === $key ? false : $key;
+	}
+
+	private static function registration_budget_retirement_is_current( array $state, string $key ) : bool {
+		$retired = self::normalize_retired_registration_budget( $state['retired_registration_budget'] ?? [] );
+		$retired_generation = (string) ( $state['retired_registration_budget_generation'] ?? '' );
+		$current_generation = (string) ( $state['authority_generation'] ?? '' );
+		return ! empty( $retired[ $key ] )
+			&& '' !== $retired_generation
+			&& '' !== $current_generation
+			&& hash_equals( $retired_generation, $current_generation );
+	}
+
+	private static function registration_budget_value( string $option, $default = false ) {
+		$key = self::registration_budget_key( $option );
+		if ( false === $key ) {
+			return $default;
+		}
+		$value   = get_option( $option, $default );
+		$state   = self::auth_recovery_state();
+		$retired = self::normalize_retired_registration_budget( $state['retired_registration_budget'] ?? [] );
+		if ( ! self::registration_budget_retirement_is_current( $state, $key )
+			|| ! hash_equals( $retired[ $key ], self::registration_budget_digest( $option, $value ) ) ) {
+			return $value;
+		}
+		return $default;
+	}
+
+	private static function activate_registration_budget( string $option ) : bool {
+		$key = self::registration_budget_key( $option );
+		if ( false === $key ) {
+			return false;
+		}
+		for ( $attempt = 0; $attempt < 3; $attempt++ ) {
+			$state = self::auth_recovery_state();
+			if ( ! self::registration_budget_retirement_is_current( $state, $key ) ) {
+				return true;
+			}
+			do_action( 'yogb_bm_credential_commit_boundary', $key . '_budget_activation' );
+			unset( $state['retired_registration_budget'][ $key ] );
+			unset( $state['retired_registration_budget_generation'] );
+			if ( empty( $state['retired_registration_budget'] ) ) {
+				unset( $state['retired_registration_budget'] );
+			}
+			if ( self::write_auth_recovery_state( $state ) ) {
+				return true;
+			}
+		}
+		$state = self::auth_recovery_state();
+		return ! self::registration_budget_retirement_is_current( $state, $key );
+	}
+
+	private static function write_registration_budget( string $option, $value ) : bool {
+		if ( false === self::registration_budget_key( $option ) || ! self::activate_registration_budget( $option ) ) {
+			return false;
+		}
+		update_option( $option, $value, false );
+		$stored = get_option( $option, false );
+		return hash_equals( self::registration_budget_digest( $option, $value ), self::registration_budget_digest( $option, $stored ) );
+	}
+
+	private static function normalize_credential_commit( $stored ) : array {
+		if ( ! is_array( $stored ) ) {
+			return [];
+		}
+		$token       = sanitize_text_field( (string) ( $stored['token'] ?? '' ) );
+		$owner_token = sanitize_text_field( (string) ( $stored['owner_token'] ?? '' ) );
+		if ( '' === $token || '' === $owner_token ) {
+			return [];
+		}
+		$marker = [
+			'token'                 => $token,
+			'owner_token'           => $owner_token,
+			'source'                => sanitize_key( (string) ( $stored['source'] ?? '' ) ),
+			'mode'                  => 'recovery' === (string) ( $stored['mode'] ?? '' ) ? 'recovery' : 'initial',
+			'expires_at'            => max( 0, (int) ( $stored['expires_at'] ?? 0 ) ),
+			'candidate_fingerprint' => preg_match( '/^[a-f0-9]{64}$/', (string) ( $stored['candidate_fingerprint'] ?? '' ) ) ? (string) $stored['candidate_fingerprint'] : '',
+			'candidate_reporter_id' => max( 0, (int) ( $stored['candidate_reporter_id'] ?? 0 ) ),
+		];
+		foreach ( [ 'reporter', 'key', 'secret' ] as $component ) {
+			foreach ( [ 'base', 'candidate' ] as $epoch ) {
+				$field = $epoch . '_' . $component . '_digest';
+				$marker[ $field ] = preg_match( '/^[a-f0-9]{64}$/', (string) ( $stored[ $field ] ?? '' ) ) ? (string) $stored[ $field ] : '';
+			}
+		}
+		foreach ( self::registration_budget_options() as $key => $option ) {
+			$field = 'initial_budget_' . $key . '_digest';
+			$marker[ $field ] = preg_match( '/^[a-f0-9]{64}$/', (string) ( $stored[ $field ] ?? '' ) ) ? (string) $stored[ $field ] : '';
+		}
+		return $marker;
+	}
+
+	/** @return array<string,mixed> */
+	private static function normalize_auth_recovery_state( $stored, string $authority_token = '' ) : array {
+		$stored = is_array( $stored ) ? $stored : [];
+		$state  = sanitize_key( (string) ( $stored['state'] ?? 'healthy' ) );
+		if ( ! in_array( $state, [ 'healthy', 'recovering', 're_registering', 'suspended', 'manual_intervention' ], true ) ) {
+			$state = 'manual_intervention';
+		}
+		$normalized = [
+			'state'                  => $state,
+			'credential_fingerprint' => preg_match( '/^[a-f0-9]{64}$/', (string) ( $stored['credential_fingerprint'] ?? '' ) ) ? (string) $stored['credential_fingerprint'] : '',
+			'expected_reporter_id'   => max( 0, (int) ( $stored['expected_reporter_id'] ?? 0 ) ),
+			'failures'               => max( 0, min( 10, (int) ( $stored['failures'] ?? 0 ) ) ),
+			'next_attempt_at'        => max( 0, (int) ( $stored['next_attempt_at'] ?? 0 ) ),
+			'source'                 => sanitize_key( (string) ( $stored['source'] ?? '' ) ),
+			'updated_at'             => max( 0, (int) ( $stored['updated_at'] ?? 0 ) ),
+			'authority_generation'   => sanitize_text_field( (string) ( $stored['authority_generation'] ?? '' ) ),
+			'authority_token'        => $authority_token,
+		];
+		$marker = self::normalize_credential_commit( $stored['credential_commit'] ?? [] );
+		if ( ! empty( $marker ) ) {
+			$normalized['credential_commit'] = $marker;
+		}
+		$retired = self::normalize_retired_registration_budget( $stored['retired_registration_budget'] ?? [] );
+		if ( ! empty( $retired ) ) {
+			$normalized['retired_registration_budget'] = $retired;
+			$normalized['retired_registration_budget_generation'] = sanitize_text_field( (string) ( $stored['retired_registration_budget_generation'] ?? '' ) );
+		}
+		return $normalized;
+	}
+
+	/** @return array{exists:bool,raw:string,state:array<string,mixed>,token:string} */
+	private static function raw_auth_recovery_record() : array {
+		global $wpdb;
+		$raw = $wpdb->get_var(
+			$wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name=%s LIMIT 1", self::OPT_AUTH_RECOVERY )
+		);
+		$exists = is_string( $raw );
+		$raw    = $exists ? $raw : '';
+		$token  = hash( 'sha256', ( $exists ? '1' : '0' ) . "\0" . $raw );
+		$value  = $exists ? maybe_unserialize( $raw ) : [];
+		return [
+			'exists' => $exists,
+			'raw'    => $raw,
+			'state'  => self::normalize_auth_recovery_state( $value, $token ),
+			'token'  => $token,
+		];
+	}
+
+	private static function invalidate_auth_recovery_state_cache() : void {
+		wp_cache_delete( self::OPT_AUTH_RECOVERY, 'options' );
+		wp_cache_delete( 'notoptions', 'options' );
+		wp_cache_delete( 'alloptions', 'options' );
+	}
+
+	private static function auth_state_storage_value( array $state ) : array {
+		$storage = self::normalize_auth_recovery_state( $state );
+		unset( $storage['authority_token'] );
+		$storage['updated_at']           = time();
+		$storage['authority_generation'] = wp_generate_uuid4();
+		if ( ! empty( $storage['retired_registration_budget'] ) && empty( $storage['retired_registration_budget_generation'] ) ) {
+			$storage['retired_registration_budget_generation'] = $storage['authority_generation'];
+		}
+		if ( empty( $storage['credential_commit'] ) ) {
+			unset( $storage['credential_commit'] );
+		}
+		return $storage;
+	}
+
+	private static function cas_auth_recovery_state( string $expected_token, array $state ) : bool {
+		global $wpdb;
+		$current = self::raw_auth_recovery_record();
+		if ( '' === $expected_token || ! hash_equals( $expected_token, (string) $current['token'] ) ) {
+			return false;
+		}
+		$storage = self::auth_state_storage_value( $state );
+		$raw_new = maybe_serialize( $storage );
+		if ( ! empty( $current['exists'] ) ) {
+			$changed = $wpdb->query(
+				$wpdb->prepare(
+					"UPDATE {$wpdb->options} SET option_value=%s,autoload='no' WHERE option_name=%s AND BINARY option_value=BINARY %s",
+					$raw_new,
+					self::OPT_AUTH_RECOVERY,
+					(string) $current['raw']
+				)
+			);
+		} else {
+			$changed = $wpdb->query(
+				$wpdb->prepare(
+					"INSERT IGNORE INTO {$wpdb->options} (option_name,option_value,autoload) VALUES (%s,%s,'no')",
+					self::OPT_AUTH_RECOVERY,
+					$raw_new
+				)
+			);
+		}
+		if ( 1 !== $changed ) {
+			return false;
+		}
+		self::invalidate_auth_recovery_state_cache();
+		do_action( 'yogb_bm_auth_recovery_state', (string) $storage['state'], (string) $storage['source'] );
+		return true;
+	}
+
+	/** @return array<string,mixed> */
+	public static function auth_recovery_state() : array {
+		return self::raw_auth_recovery_record()['state'];
+	}
+
+	private static function write_auth_recovery_state( array $state ) : bool {
+		$expected = (string) ( $state['authority_token'] ?? '' );
+		if ( '' === $expected ) {
+			$current = self::auth_recovery_state();
+			if ( ! empty( $current['credential_commit'] ) && empty( $state['credential_commit'] ) ) {
+				return false;
+			}
+			$expected = (string) $current['authority_token'];
+		}
+		return self::cas_auth_recovery_state( $expected, $state );
+	}
+
+	public static function is_auth_paused() : bool {
+		$state = self::auth_recovery_state();
+		return ! empty( $state['credential_commit'] ) || 'healthy' !== $state['state'];
+	}
+
+	public static function authenticated_requests_allowed() : bool {
+		$snapshot = self::committed_credential_snapshot( false );
+		return ! empty( $snapshot['ok'] );
+	}
+
+	/** @return array<string,mixed> */
+	public static function committed_credential_snapshot( bool $allow_recovery = false ) : array {
+		$before = self::raw_auth_recovery_record();
+		$state  = (array) $before['state'];
+		if ( ! empty( $state['credential_commit'] ) ) {
+			return [ 'ok' => false, 'status' => 'credential_commit_in_progress' ];
+		}
+		if ( $allow_recovery ) {
+			if ( ! in_array( (string) $state['state'], [ 'healthy', 'recovering', 're_registering' ], true ) ) {
+				return [ 'ok' => false, 'status' => 'auth_paused' ];
+			}
+		} elseif ( 'healthy' !== (string) $state['state'] ) {
+			return [ 'ok' => false, 'status' => 'auth_paused' ];
+		}
+
+		$api_key     = (string) get_option( self::OPT_API_KEY, '' );
+		$api_secret  = (string) get_option( self::OPT_API_SECRET, '' );
+		$reporter_id = max( 0, (int) get_option( self::OPT_REPORTER_ID, 0 ) );
+		if ( '' === $api_key || '' === $api_secret || $reporter_id <= 0 ) {
+			return [ 'ok' => false, 'status' => 'not_configured' ];
+		}
+		$fingerprint = self::credential_fingerprint( $api_key, $api_secret );
+		$bound_fp    = (string) $state['credential_fingerprint'];
+		$bound_id    = (int) $state['expected_reporter_id'];
+		if ( ( '' !== $bound_fp && ! hash_equals( $bound_fp, $fingerprint ) ) || ( $bound_id > 0 && $bound_id !== $reporter_id ) ) {
+			return [ 'ok' => false, 'status' => 'credential_epoch_mismatch' ];
+		}
+		if ( 'healthy' !== (string) $state['state'] && ( '' === $bound_fp || $bound_id <= 0 ) ) {
+			return [ 'ok' => false, 'status' => 'unbound_recovery_epoch' ];
+		}
+		$after = self::raw_auth_recovery_record();
+		if ( ! hash_equals( (string) $before['token'], (string) $after['token'] ) || ! empty( $after['state']['credential_commit'] ) ) {
+			return [ 'ok' => false, 'status' => 'credential_epoch_changed' ];
+		}
+		return [
+			'ok'                     => true,
+			'status'                 => 'committed',
+			'api_key'                => $api_key,
+			'api_secret'             => $api_secret,
+			'reporter_id'            => $reporter_id,
+			'credential_fingerprint' => $fingerprint,
+			'authority_token'        => (string) $after['token'],
+			'allow_recovery'         => $allow_recovery,
+		];
+	}
+
+	public static function credential_snapshot_is_current( array $snapshot ) : bool {
+		if ( empty( $snapshot['ok'] ) || empty( $snapshot['authority_token'] ) ) {
+			return false;
+		}
+		$current = self::raw_auth_recovery_record();
+		$state   = (array) $current['state'];
+		if ( ! hash_equals( (string) $snapshot['authority_token'], (string) $current['token'] ) || ! empty( $state['credential_commit'] ) ) {
+			return false;
+		}
+		if ( empty( $snapshot['allow_recovery'] ) ) {
+			return 'healthy' === (string) $state['state'];
+		}
+		return in_array( (string) $state['state'], [ 'healthy', 'recovering', 're_registering' ], true );
+	}
+
+	/** A 401 only hands work to the bounded background recovery worker. */
+	public static function handle_auth_failure( string $source = '', string $observed_fingerprint = '' ) : bool {
+		$current_fingerprint = self::credential_fingerprint();
+		if ( '' === $current_fingerprint || ( '' !== $observed_fingerprint && ! hash_equals( $current_fingerprint, $observed_fingerprint ) ) ) {
+			do_action( 'yogb_bm_auth_recovery', 'stale_401_ignored' );
+			return false;
+		}
+		$state = self::auth_recovery_state();
+		if ( ! empty( $state['credential_commit'] ) ) {
+			return false;
+		}
+		if ( in_array( $state['state'], [ 'suspended', 'manual_intervention' ], true ) ) {
+			return false;
+		}
+		$local_reporter    = max( 0, (int) get_option( self::OPT_REPORTER_ID, 0 ) );
+		$expected_reporter = max( 0, (int) $state['expected_reporter_id'] );
+		if ( $expected_reporter > 0 && $local_reporter > 0 && $expected_reporter !== $local_reporter ) {
+			self::mark_manual_intervention( 'local_reporter_mismatch' );
+			if ( class_exists( 'YOGB_BM_Outbox' ) ) {
+				YOGB_BM_Outbox::pause_for_auth();
+			}
+			return false;
+		}
+		if ( 're_registering' === $state['state'] ) {
+			return false;
+		}
+		if ( 'recovering' === $state['state'] && '' !== $state['credential_fingerprint'] && hash_equals( $state['credential_fingerprint'], $current_fingerprint ) ) {
+			if ( class_exists( 'YOGB_BM_Outbox' ) ) {
+				YOGB_BM_Outbox::pause_for_auth();
+			}
+			self::schedule_auth_recovery( max( 10, (int) $state['next_attempt_at'] - time() ) );
+			return true;
+		}
+		$state['state']                  = 'recovering';
+		$state['credential_fingerprint'] = $current_fingerprint;
+		$state['expected_reporter_id']   = $expected_reporter > 0 ? $expected_reporter : $local_reporter;
+		$state['failures']               = min( 10, (int) $state['failures'] + 1 );
+		$state['next_attempt_at']        = time() + 30;
+		$state['source']                 = sanitize_key( $source );
+		if ( ! self::write_auth_recovery_state( $state ) ) {
+			return false;
+		}
 		self::mark_connection_error( 'unauthorized', $source );
-		delete_option( self::OPT_API_KEY );
-		delete_option( self::OPT_API_SECRET );
-		delete_option( self::OPT_REPORTER_ID );
-		delete_option( 'yogb_bm_reg_attempts' );
-		delete_option( 'yogb_bm_reg_backoff' );
-		delete_option( 'yogb_bm_reg_cooldown_until' );
-		self::schedule_registration( 30 );
+		if ( class_exists( 'YOGB_BM_Outbox' ) ) {
+			YOGB_BM_Outbox::pause_for_auth();
+		}
+		self::schedule_auth_recovery( 30 );
 		do_action( 'yogb_bm_auth_recovery', sanitize_key( $source ) );
+		return true;
 	}
 
 	public static function mark_auth_success() : void {
-		delete_transient( 'yogb_bm_auth_recovery_lock' );
+		if ( self::is_auth_paused() ) {
+			return;
+		}
 		update_option( 'yogb_bm_last_server_success_at', time(), false );
 		delete_option( 'yogb_bm_last_server_error_code' );
 		delete_option( 'yogb_bm_last_server_error_at' );
@@ -227,6 +619,478 @@ class YOGB_BM_Registrar {
 		update_option( 'yogb_bm_last_server_error_code', sanitize_key( $code ), false );
 		update_option( 'yogb_bm_last_server_error_at', time(), false );
 		update_option( 'yogb_bm_last_server_error_source', sanitize_key( $source ), false );
+	}
+
+	public static function validate_control_authority( array $payload, string $observed_fingerprint = '' ) : bool {
+		$state = self::auth_recovery_state();
+		if ( ! empty( $state['credential_commit'] ) ) {
+			return false;
+		}
+		$current_fingerprint = self::credential_fingerprint();
+		if ( '' !== $observed_fingerprint && ( '' === $current_fingerprint || ! hash_equals( $current_fingerprint, $observed_fingerprint ) ) ) {
+			return false;
+		}
+		$incoming_reporter = max( 0, (int) ( $payload['reporter_id'] ?? 0 ) );
+		$expected_reporter = max( 0, (int) $state['expected_reporter_id'] );
+		if ( '' !== (string) $state['credential_fingerprint'] && ( '' === $current_fingerprint || ! hash_equals( (string) $state['credential_fingerprint'], $current_fingerprint ) ) ) {
+			return false;
+		}
+		if ( $expected_reporter > 0 && $incoming_reporter !== $expected_reporter ) {
+			self::mark_manual_intervention( 'reporter_mismatch' );
+			return false;
+		}
+		return $incoming_reporter > 0;
+	}
+
+	public static function handle_verified_control( array $payload, array $result, string $observed_fingerprint = '' ) : void {
+		if ( empty( $result['ok'] ) || 'stale_version_ignored' === (string) ( $result['status'] ?? '' ) ) {
+			return;
+		}
+		if ( ! class_exists( 'YOGB_BM_Tier_Webhook' ) || ! YOGB_BM_Tier_Webhook::verified_auth_control_is_current( $payload, $result ) ) {
+			return;
+		}
+		if ( ! self::validate_control_authority( $payload, $observed_fingerprint ) ) {
+			return;
+		}
+		$status      = sanitize_key( (string) ( $payload['reporter_status'] ?? '' ) );
+		$reporter_id = max( 0, (int) ( $payload['reporter_id'] ?? 0 ) );
+		$current     = self::auth_recovery_state();
+		if ( ! empty( $current['credential_commit'] ) ) {
+			return;
+		}
+		if ( 'healthy' === $current['state'] && 'active' === $status ) {
+			self::mark_auth_success();
+			if ( class_exists( 'YOGB_BM_Outbox' ) ) {
+				YOGB_BM_Outbox::resume_after_auth();
+			}
+			return;
+		}
+		if ( in_array( $status, [ 'suspended', 'deleted' ], true ) ) {
+			$state = $current;
+			$state['state']                = 'suspended';
+			$state['expected_reporter_id'] = $reporter_id;
+			$state['next_attempt_at']      = 0;
+			$state['source']               = 'verified_control';
+			if ( ! self::write_auth_recovery_state( $state ) ) {
+				return;
+			}
+			self::mark_connection_error( 'reporter_inactive', 'tier_pull' );
+			return;
+		}
+		if ( 'active' !== $status ) {
+			self::mark_manual_intervention( 'invalid_reporter_status' );
+			return;
+		}
+		$healthy = [
+			'state'                  => 'healthy',
+			'credential_fingerprint' => self::credential_fingerprint(),
+			'expected_reporter_id'   => $reporter_id,
+			'failures'               => 0,
+			'next_attempt_at'        => 0,
+			'source'                 => 'verified_control',
+			'authority_token'        => (string) $current['authority_token'],
+		];
+		if ( ! self::write_auth_recovery_state( $healthy ) ) {
+			return;
+		}
+		self::mark_auth_success();
+		if ( class_exists( 'YOGB_BM_Outbox' ) ) {
+			YOGB_BM_Outbox::resume_after_auth();
+		}
+	}
+
+	public static function mark_manual_intervention( string $source ) : void {
+		$state                    = self::auth_recovery_state();
+		$state['state']           = 'manual_intervention';
+		$state['next_attempt_at'] = 0;
+		$state['source']          = sanitize_key( $source );
+		if ( ! self::write_auth_recovery_state( $state ) ) {
+			return;
+		}
+		self::mark_connection_error( sanitize_key( $source ), 'auth_recovery' );
+	}
+
+	private static function schedule_recovery_retry( string $source ) : void {
+		$state = self::auth_recovery_state();
+		$state['failures'] = min( 10, (int) $state['failures'] + 1 );
+		if ( $state['failures'] >= 10 ) {
+			self::mark_manual_intervention( 'recovery_attempts_exhausted' );
+			return;
+		}
+		$delay = min( 6 * HOUR_IN_SECONDS, max( 60, (int) pow( 2, min( 8, (int) $state['failures'] ) ) * 30 ) );
+		$state['next_attempt_at'] = time() + $delay;
+		$state['source']          = sanitize_key( $source );
+		if ( ! self::write_auth_recovery_state( $state ) ) {
+			return;
+		}
+		self::schedule_auth_recovery( $delay + wp_rand( 0, 120 ) );
+	}
+
+	private static function invalidate_auth_recovery_lock_cache() : void {
+		wp_cache_delete( self::OPT_AUTH_RECOVERY_LOCK, 'options' );
+		wp_cache_delete( 'notoptions', 'options' );
+		wp_cache_delete( 'alloptions', 'options' );
+	}
+
+	/** @return array{acquired:bool,value:string,token:string,expires_at:int} */
+	private static function acquire_auth_recovery_lock() : array {
+		global $wpdb;
+		$now   = time();
+		$token = wp_generate_uuid4();
+		$value = (string) wp_json_encode( [ 'token' => $token, 'expires_at' => $now + self::AUTH_RECOVERY_LOCK_TTL ] );
+		$lock  = [ 'acquired' => false, 'value' => $value, 'token' => $token, 'expires_at' => $now + self::AUTH_RECOVERY_LOCK_TTL ];
+		$inserted = $wpdb->query(
+			$wpdb->prepare(
+				"INSERT IGNORE INTO {$wpdb->options} (option_name,option_value,autoload) VALUES (%s,%s,'no')",
+				self::OPT_AUTH_RECOVERY_LOCK,
+				$value
+			)
+		);
+		if ( 1 === $inserted ) {
+			self::invalidate_auth_recovery_lock_cache();
+			$lock['acquired'] = true;
+			return $lock;
+		}
+
+		$existing = $wpdb->get_var(
+			$wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name=%s LIMIT 1", self::OPT_AUTH_RECOVERY_LOCK )
+		);
+		if ( ! is_string( $existing ) || '' === $existing ) {
+			return $lock;
+		}
+		$decoded = json_decode( $existing, true );
+		$expires = is_array( $decoded ) ? (int) ( $decoded['expires_at'] ?? 0 ) : 0;
+		if ( $expires > $now ) {
+			return $lock;
+		}
+		$replaced = $wpdb->query(
+			$wpdb->prepare(
+				"UPDATE {$wpdb->options} SET option_value=%s,autoload='no' WHERE option_name=%s AND BINARY option_value=BINARY %s",
+				$value,
+				self::OPT_AUTH_RECOVERY_LOCK,
+				$existing
+			)
+		);
+		if ( 1 === $replaced ) {
+			self::invalidate_auth_recovery_lock_cache();
+			$lock['acquired'] = true;
+		}
+		return $lock;
+	}
+
+	private static function auth_recovery_lock_owned( array $lock ) : bool {
+		global $wpdb;
+		$value = (string) ( $lock['value'] ?? '' );
+		if ( empty( $lock['acquired'] ) || '' === $value || (int) ( $lock['expires_at'] ?? 0 ) <= time() ) {
+			return false;
+		}
+		$stored = $wpdb->get_var(
+			$wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name=%s LIMIT 1", self::OPT_AUTH_RECOVERY_LOCK )
+		);
+		return is_string( $stored ) && hash_equals( $value, $stored );
+	}
+
+	public static function auth_recovery_lock_is_current() : bool {
+		return is_array( self::$active_auth_recovery_lock ) && self::auth_recovery_lock_owned( self::$active_auth_recovery_lock );
+	}
+
+	private static function release_auth_recovery_lock( array $lock ) : void {
+		global $wpdb;
+		$value = (string) ( $lock['value'] ?? '' );
+		if ( '' === $value ) {
+			return;
+		}
+		$wpdb->query(
+			$wpdb->prepare(
+				"DELETE FROM {$wpdb->options} WHERE option_name=%s AND BINARY option_value=BINARY %s",
+				self::OPT_AUTH_RECOVERY_LOCK,
+				$value
+			)
+		);
+		self::invalidate_auth_recovery_lock_cache();
+	}
+
+	/** @return array{key:string,secret:string,reporter:string} */
+	private static function credential_components() : array {
+		return [
+			'key'      => (string) get_option( self::OPT_API_KEY, '' ),
+			'secret'   => (string) get_option( self::OPT_API_SECRET, '' ),
+			'reporter' => (string) max( 0, (int) get_option( self::OPT_REPORTER_ID, 0 ) ),
+		];
+	}
+
+	private static function credential_components_complete( array $components ) : bool {
+		return '' !== (string) ( $components['key'] ?? '' )
+			&& '' !== (string) ( $components['secret'] ?? '' )
+			&& '0' !== (string) ( $components['reporter'] ?? '0' );
+	}
+
+	private static function credential_components_absent( array $components ) : bool {
+		return '' === (string) ( $components['key'] ?? '' )
+			&& '' === (string) ( $components['secret'] ?? '' )
+			&& '0' === (string) ( $components['reporter'] ?? '0' );
+	}
+
+	private static function credential_marker_matches_components( array $marker, array $components ) : bool {
+		foreach ( [ 'reporter', 'key', 'secret' ] as $component ) {
+			$value = (string) ( $components[ $component ] ?? '' );
+			if ( 'reporter' === $component && '0' === $value ) {
+				$value = '';
+			}
+			if ( '' === $value ) {
+				continue;
+			}
+			$digest    = self::credential_component_digest( $component, $value );
+			$base      = (string) ( $marker[ 'base_' . $component . '_digest' ] ?? '' );
+			$candidate = (string) ( $marker[ 'candidate_' . $component . '_digest' ] ?? '' );
+			if ( ( '' === $base || ! hash_equals( $base, $digest ) ) && ( '' === $candidate || ! hash_equals( $candidate, $digest ) ) ) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	private static function credential_commit_is_current( array $state, array $lock ) : bool {
+		if ( ! self::auth_recovery_lock_owned( $lock ) ) {
+			return false;
+		}
+		$expected = self::normalize_credential_commit( $state['credential_commit'] ?? [] );
+		$current  = self::auth_recovery_state();
+		$marker   = self::normalize_credential_commit( $current['credential_commit'] ?? [] );
+		return ! empty( $expected )
+			&& ! empty( $marker )
+			&& hash_equals( (string) $expected['token'], (string) $marker['token'] )
+			&& hash_equals( (string) $lock['token'], (string) $marker['owner_token'] );
+	}
+
+	/** @return array<string,mixed> */
+	private static function claim_credential_commit( array $state, array $lock, bool $recovery_mode ) : array {
+		if ( ! self::auth_recovery_lock_owned( $lock ) ) {
+			return [];
+		}
+		$components = self::credential_components();
+		$marker     = self::normalize_credential_commit( $state['credential_commit'] ?? [] );
+		if ( ! empty( $marker ) ) {
+			if ( (int) $marker['expires_at'] > time() || ! self::credential_marker_matches_components( $marker, $components ) ) {
+				return [];
+			}
+			$marker['owner_token'] = (string) $lock['token'];
+			$marker['expires_at']  = (int) $lock['expires_at'];
+			$marker['source']      = 'stale_takeover';
+			$state['credential_commit'] = $marker;
+			if ( ! self::write_auth_recovery_state( $state ) ) {
+				return [];
+			}
+			$fresh = self::auth_recovery_state();
+			return self::credential_commit_is_current( $fresh, $lock ) ? $fresh : [];
+		}
+
+		$marker = [
+			'token'                 => wp_generate_uuid4(),
+			'owner_token'           => (string) $lock['token'],
+			'source'                => $recovery_mode ? 'recovery_registration' : 'initial_registration',
+			'mode'                  => $recovery_mode ? 'recovery' : 'initial',
+			'expires_at'            => (int) $lock['expires_at'],
+			'candidate_fingerprint' => '',
+			'candidate_reporter_id' => 0,
+		];
+		foreach ( [ 'reporter', 'key', 'secret' ] as $component ) {
+			$value = (string) $components[ $component ];
+			if ( 'reporter' === $component && '0' === $value ) {
+				$value = '';
+			}
+			$marker[ 'base_' . $component . '_digest' ]      = '' === $value ? '' : self::credential_component_digest( $component, $value );
+			$marker[ 'candidate_' . $component . '_digest' ] = '';
+		}
+		foreach ( self::registration_budget_options() as $key => $option ) {
+			$value = get_option( $option, false );
+			$marker[ 'initial_budget_' . $key . '_digest' ] = false === $value ? '' : self::registration_budget_digest( $option, $value );
+		}
+		$state['credential_commit'] = $marker;
+		if ( ! self::write_auth_recovery_state( $state ) ) {
+			return [];
+		}
+		$fresh = self::auth_recovery_state();
+		return self::credential_commit_is_current( $fresh, $lock ) ? $fresh : [];
+	}
+
+	/** @return array<string,mixed> */
+	private static function bind_credential_commit_candidate( array $state, array $lock, string $api_key, string $api_secret, int $reporter_id ) : array {
+		if ( ! self::credential_commit_is_current( $state, $lock ) || $reporter_id <= 0 ) {
+			return [];
+		}
+		$current = self::auth_recovery_state();
+		$marker  = self::normalize_credential_commit( $current['credential_commit'] ?? [] );
+		$next    = [
+			'candidate_fingerprint'     => self::credential_fingerprint( $api_key, $api_secret ),
+			'candidate_reporter_id'     => $reporter_id,
+			'candidate_reporter_digest' => self::credential_component_digest( 'reporter', (string) $reporter_id ),
+			'candidate_key_digest'      => self::credential_component_digest( 'key', $api_key ),
+			'candidate_secret_digest'   => self::credential_component_digest( 'secret', $api_secret ),
+		];
+		foreach ( $next as $field => $value ) {
+			if ( ! empty( $marker[ $field ] ) && ! hash_equals( (string) $marker[ $field ], (string) $value ) ) {
+				return [];
+			}
+			$marker[ $field ] = $value;
+		}
+		$marker['owner_token'] = (string) $lock['token'];
+		$marker['expires_at']  = (int) $lock['expires_at'];
+		$current['credential_commit'] = $marker;
+		if ( ! self::write_auth_recovery_state( $current ) ) {
+			return [];
+		}
+		$fresh = self::auth_recovery_state();
+		return self::credential_commit_is_current( $fresh, $lock ) ? $fresh : [];
+	}
+
+	private static function release_empty_credential_commit( array $state, array $lock ) : bool {
+		if ( ! self::credential_commit_is_current( $state, $lock ) ) {
+			return false;
+		}
+		$current = self::auth_recovery_state();
+		$marker  = self::normalize_credential_commit( $current['credential_commit'] ?? [] );
+		if ( '' !== (string) ( $marker['candidate_fingerprint'] ?? '' ) ) {
+			return false;
+		}
+		unset( $current['credential_commit'] );
+		return self::write_auth_recovery_state( $current );
+	}
+
+	private static function authorize_manual_initial_retry( array $state, array $lock ) : bool {
+		$marker = self::normalize_credential_commit( $state['credential_commit'] ?? [] );
+		if ( 'initial' !== (string) ( $marker['mode'] ?? '' )
+			|| 'initial_registration' !== (string) ( $marker['source'] ?? '' )
+			|| '' !== (string) ( $marker['candidate_fingerprint'] ?? '' )
+			|| (int) ( $lock['expires_at'] ?? 0 ) < time() + 30
+			|| ! self::credential_components_absent( self::credential_components() )
+			|| ! self::credential_commit_is_current( $state, $lock ) ) {
+			return false;
+		}
+		do_action( 'yogb_bm_credential_commit_boundary', 'before_retry_cleanup' );
+		if ( ! self::credential_commit_is_current( $state, $lock ) ) {
+			return false;
+		}
+		// Retry-budget rows are never deleted from a stale owner check. The exact
+		// pre-claim values are retired only by the later auth-state publication
+		// CAS; a successor write activates the budget before changing its value.
+		do_action( 'yogb_bm_credential_commit_boundary', 'retry_cleanup_deferred' );
+		return self::credential_commit_is_current( $state, $lock );
+	}
+
+	private static function stage_credential_component( string $component, $value, array $state, array $lock ) : bool {
+		if ( ! self::credential_commit_is_current( $state, $lock ) ) {
+			return false;
+		}
+		if ( 'reporter' === $component ) {
+			update_option( self::OPT_REPORTER_ID, max( 0, (int) $value ), false );
+			$stored = (string) max( 0, (int) get_option( self::OPT_REPORTER_ID, 0 ) );
+		} elseif ( 'key' === $component ) {
+			update_option( self::OPT_API_KEY, (string) $value, false );
+			$stored = (string) get_option( self::OPT_API_KEY, '' );
+		} else {
+			update_option( self::OPT_API_SECRET, (string) $value, false );
+			$stored = (string) get_option( self::OPT_API_SECRET, '' );
+		}
+		do_action( 'yogb_bm_credential_commit_boundary', $component . '_staged' );
+		return hash_equals( (string) $value, $stored ) && self::credential_commit_is_current( $state, $lock );
+	}
+
+	private static function publish_credential_commit( array $state, array $lock, bool $recovery_mode ) : bool {
+		if ( ! self::credential_commit_is_current( $state, $lock ) ) {
+			return false;
+		}
+		$current    = self::auth_recovery_state();
+		$marker     = self::normalize_credential_commit( $current['credential_commit'] ?? [] );
+		$components = self::credential_components();
+		if ( ! self::credential_components_complete( $components ) || ! self::credential_marker_matches_components( $marker, $components ) ) {
+			return false;
+		}
+		$fingerprint = self::credential_fingerprint( (string) $components['key'], (string) $components['secret'] );
+		$reporter_id = (int) $components['reporter'];
+		if ( ! hash_equals( (string) $marker['candidate_fingerprint'], $fingerprint ) || (int) $marker['candidate_reporter_id'] !== $reporter_id ) {
+			return false;
+		}
+		do_action( 'yogb_bm_credential_commit_boundary', 'before_publish' );
+		if ( ! self::credential_commit_is_current( $current, $lock ) ) {
+			return false;
+		}
+		$current = self::auth_recovery_state();
+		unset( $current['credential_commit'] );
+		$current['state']                  = $recovery_mode ? 'recovering' : 'healthy';
+		$current['credential_fingerprint'] = $fingerprint;
+		$current['expected_reporter_id']   = $reporter_id;
+		$current['failures']               = 0;
+		$current['next_attempt_at']        = $recovery_mode ? time() + 10 : 0;
+		$current['source']                 = 'registration_completed';
+		if ( ! $recovery_mode ) {
+			unset( $current['retired_registration_budget'], $current['retired_registration_budget_generation'] );
+			$retired = [];
+			foreach ( self::registration_budget_options() as $key => $option ) {
+				$digest = (string) ( $marker[ 'initial_budget_' . $key . '_digest' ] ?? '' );
+				$value  = get_option( $option, false );
+				if ( '' !== $digest && false !== $value && hash_equals( $digest, self::registration_budget_digest( $option, $value ) ) ) {
+					$retired[ $key ] = $digest;
+				}
+			}
+			if ( ! empty( $retired ) ) {
+				$current['retired_registration_budget'] = $retired;
+			}
+		}
+		return self::write_auth_recovery_state( $current );
+	}
+
+	public static function run_auth_recovery() : void {
+		$state = self::auth_recovery_state();
+		if ( 'recovering' !== $state['state'] ) {
+			return;
+		}
+		if ( (int) $state['next_attempt_at'] > time() ) {
+			self::schedule_auth_recovery( (int) $state['next_attempt_at'] - time() );
+			return;
+		}
+		$lock = self::acquire_auth_recovery_lock();
+		if ( empty( $lock['acquired'] ) ) {
+			self::schedule_auth_recovery( 30 + wp_rand( 0, 30 ) );
+			return;
+		}
+		try {
+			self::$active_auth_recovery_lock = $lock;
+			$result = class_exists( 'YOGB_BM_Tier_Sync' ) ? YOGB_BM_Tier_Sync::run_recovery() : [ 'ok' => false, 'status' => 'not_configured' ];
+			if ( ! self::auth_recovery_lock_owned( $lock ) ) {
+				self::schedule_auth_recovery( 30 + wp_rand( 0, 30 ) );
+				return;
+			}
+			$state  = self::auth_recovery_state();
+			if ( 'recovering' !== $state['state'] ) {
+				return;
+			}
+			$status = sanitize_key( (string) ( $result['status'] ?? '' ) );
+			if ( 'stale_version_ignored' === $status ) {
+				self::mark_manual_intervention( 'recovery_stale_version' );
+				return;
+			}
+			if ( in_array( $status, [ 'unauthorized', 'not_found' ], true ) ) {
+				$state['state']           = 're_registering';
+				$state['next_attempt_at'] = time() + 30;
+				$state['source']          = 'credential_rejected';
+				if ( ! self::write_auth_recovery_state( $state ) ) {
+					return;
+				}
+				self::schedule_registration( 30 );
+				return;
+			}
+			if ( in_array( $status, [ 'stale_request', 'stale_response', 'missing_response_signature', 'bad_response_signature', 'invalid_json', 'invalid_tier_payload', 'reporter_inactive', 'not_configured', 'http_error' ], true ) ) {
+				self::mark_manual_intervention( 'recovery_' . $status );
+				return;
+			}
+			if ( empty( $result['ok'] ) ) {
+				self::schedule_recovery_retry( $status ?: 'recovery_failed' );
+			}
+		} finally {
+			self::$active_auth_recovery_lock = null;
+			self::release_auth_recovery_lock( $lock );
+		}
 	}
 
 	/** Public REST: echo the token as plain text + no-cache */
@@ -243,61 +1107,147 @@ class YOGB_BM_Registrar {
 		] );
 	}
 
+	private static function site_identity_hash( string $site_url, string $domain ) : string {
+		return hash( 'sha256', untrailingslashit( strtolower( $site_url ) ) . '|' . strtolower( $domain ) . '|blog:' . (int) get_current_blog_id() );
+	}
+
+	/** @return array{challenge_id:string,token:string}|array{} */
+	private static function pending_recovery_challenge( string $site_hash ) : array {
+		$pointer = get_option( self::OPT_PENDING_CHALLENGE, [] );
+		$pointer = is_array( $pointer ) ? $pointer : [];
+		$id      = sanitize_text_field( (string) ( $pointer['challenge_id'] ?? '' ) );
+		$hash    = (string) ( $pointer['site_hash'] ?? '' );
+		$expires = (int) ( $pointer['expires_at'] ?? 0 );
+		$token   = '' !== $id ? (string) get_transient( self::TRANSIENT_PREFIX . $id ) : '';
+		if ( ! preg_match( '/^[a-f0-9\-]{32,36}$/', $id ) || ! hash_equals( $site_hash, $hash ) || $expires <= time() || ! preg_match( '/^[a-f0-9]{64}$/', $token ) ) {
+			self::clear_pending_challenge( $id );
+			return [];
+		}
+		return [ 'challenge_id' => $id, 'token' => $token ];
+	}
+
+	private static function store_pending_challenge( string $challenge_id, string $site_hash ) : void {
+		update_option(
+			self::OPT_PENDING_CHALLENGE,
+			[
+				'challenge_id' => $challenge_id,
+				'site_hash'    => $site_hash,
+				'expires_at'   => time() + 15 * MINUTE_IN_SECONDS,
+			],
+			false
+		);
+	}
+
+	private static function clear_pending_challenge( string $challenge_id = '' ) : void {
+		if ( '' !== $challenge_id ) {
+			delete_transient( self::TRANSIENT_PREFIX . $challenge_id );
+		}
+		delete_option( self::OPT_PENDING_CHALLENGE );
+	}
+
 	/** Main register flow */
-	public static function run_registration( $quiet = false ) {
-		// Single-flight lock (prevents repeated runs within 60s)
-		if ( get_transient('yogb_bm_reg_lock') ) {
-			return;
-		}
-		set_transient('yogb_bm_reg_lock', 1, 60);
+	public static function run_registration( $quiet = false, bool $manual_initial = false ) {
+		$authority     = self::auth_recovery_state();
+		$marker        = self::normalize_credential_commit( $authority['credential_commit'] ?? [] );
+		$recovery_mode = ! empty( $marker ) ? 'recovery' === (string) $marker['mode'] : 're_registering' === (string) $authority['state'];
+		$components    = self::credential_components();
 
-		$unlock = function() { delete_transient('yogb_bm_reg_lock'); };
-
-		// Global cooldown window (e.g. after server 429)
-		$cooldown_until = (int) get_option( 'yogb_bm_reg_cooldown_until', 0 );
-		if ( time() < $cooldown_until ) {
-			$unlock();
-			return;
-		}
-
-		// Hard cap on number of attempts to avoid infinite retries
-		$attempts = (int) get_option( 'yogb_bm_reg_attempts', 0 );
-		if ( $attempts >= 10 ) { // adjust threshold as you like
-			if ( ! $quiet ) {
-				self::admin_notice_once(
-					'yogb_bm_reg_max_attempts',
-					'Blacklist Manager registration has been paused after multiple failed attempts. Please check your site configuration or contact support.'
-				);
-			}
-			$unlock();
-			return;
-		}
-		update_option( 'yogb_bm_reg_attempts', $attempts + 1, false );
-
-		try {
-			// Already registered?
-			$api_key     = get_option( self::OPT_API_KEY );
-			$api_secret  = get_option( self::OPT_API_SECRET );
-			$reporter_id = get_option( self::OPT_REPORTER_ID );
-
-			// Only treat as fully registered if reporter_id is present.
-			if ( $api_key && $api_secret && $reporter_id ) {
-				// Clear backoff & attempts & cooldown on success
-				delete_option( 'yogb_bm_reg_backoff' );
-				delete_option( 'yogb_bm_reg_attempts' );
-				delete_option( 'yogb_bm_reg_cooldown_until' );
-				$unlock();
+		if ( empty( $marker ) && ! $recovery_mode ) {
+			if ( self::credential_components_complete( $components ) ) {
 				return;
+			}
+			if ( ! self::credential_components_absent( $components ) ) {
+				self::mark_manual_intervention( 'partial_initial_credentials' );
+				return;
+			}
+		}
+		if ( $manual_initial && ( $recovery_mode || 'healthy' !== (string) $authority['state'] || ( empty( $marker ) && ! self::credential_components_absent( $components ) ) ) ) {
+			return;
+		}
+
+		$cooldown_until = (int) self::registration_budget_value( 'yogb_bm_reg_cooldown_until', 0 );
+		if ( ! $manual_initial && time() < $cooldown_until ) {
+			return;
+		}
+		$recovery_lock = self::acquire_auth_recovery_lock();
+		if ( empty( $recovery_lock['acquired'] ) ) {
+			if ( $recovery_mode ) {
+				self::schedule_registration( 30 + wp_rand( 0, 30 ) );
+			}
+			return;
+		}
+		self::$active_auth_recovery_lock = $recovery_lock;
+		set_transient( 'yogb_bm_reg_lock', 1, 60 );
+
+		$claimed         = [];
+		$candidate_bound = false;
+		try {
+			$authority = self::auth_recovery_state();
+			$marker    = self::normalize_credential_commit( $authority['credential_commit'] ?? [] );
+			if ( ! empty( $marker ) ) {
+				$recovery_mode = 'recovery' === (string) $marker['mode'];
+			}
+			if ( ( $recovery_mode && 're_registering' !== (string) $authority['state'] ) || ( ! $recovery_mode && 'healthy' !== (string) $authority['state'] ) ) {
+				return;
+			}
+			$components = self::credential_components();
+			if ( empty( $marker ) && ! $recovery_mode && ! self::credential_components_absent( $components ) ) {
+				self::mark_manual_intervention( 'partial_initial_credentials' );
+				return;
+			}
+			$claimed = self::claim_credential_commit( $authority, $recovery_lock, $recovery_mode );
+			if ( empty( $claimed ) ) {
+				if ( ! empty( $marker ) && ! self::credential_marker_matches_components( $marker, $components ) ) {
+					self::mark_manual_intervention( 'ambiguous_staged_credentials' );
+				}
+				return;
+			}
+			$candidate_bound = '' !== (string) ( $claimed['credential_commit']['candidate_fingerprint'] ?? '' );
+			do_action( 'yogb_bm_credential_commit_boundary', 'claimed' );
+			if ( $manual_initial
+				&& ! $candidate_bound
+				&& 'initial_registration' === (string) ( $claimed['credential_commit']['source'] ?? '' )
+				&& ! self::authorize_manual_initial_retry( $claimed, $recovery_lock ) ) {
+				return;
+			}
+
+			$commit_current = static function() use ( &$claimed, $recovery_lock, $recovery_mode ) : bool {
+				if ( ! self::credential_commit_is_current( $claimed, $recovery_lock ) ) {
+					return false;
+				}
+				$current = self::auth_recovery_state();
+				return $recovery_mode ? 're_registering' === (string) $current['state'] : 'healthy' === (string) $current['state'];
+			};
+
+			if ( ! $manual_initial ) {
+				$attempts = (int) self::registration_budget_value( 'yogb_bm_reg_attempts', 0 );
+				if ( $attempts >= 10 ) {
+					if ( $recovery_mode ) {
+						self::mark_manual_intervention( 'registration_attempts_exhausted' );
+					}
+					if ( ! $quiet ) {
+						self::admin_notice_once(
+							'yogb_bm_reg_max_attempts',
+							'Blacklist Manager registration has been paused after multiple failed attempts. Please check your site configuration or contact support.'
+						);
+					}
+					return;
+				}
+				if ( ! $commit_current() ) {
+					return;
+				}
+				if ( ! self::write_registration_budget( 'yogb_bm_reg_attempts', $attempts + 1 ) ) {
+					return;
+				}
 			}
 
 			// Non-prod sites: skip unless explicitly allowed
 			[ $nonprod, $why ] = method_exists( __CLASS__, 'detect_nonprod' ) ? self::detect_nonprod() : [ false, '' ];
 			if ( $nonprod && ! YOGB_BM_ALLOW_NONPROD ) {
-				$unlock();
 				return;
 			}
 
-				$server_pub = trailingslashit( self::server_base() ) . 'public/v1';
+			$server_pub = trailingslashit( self::server_base() ) . 'public/v1';
 			$site_url   = home_url( '/' );
 			$host       = wp_parse_url( $site_url, PHP_URL_HOST );
 			$domain     = is_string( $host ) ? strtolower( $host ) : '';
@@ -310,74 +1260,78 @@ class YOGB_BM_Registrar {
 						'Registration skipped: missing site domain or admin email.'
 					);
 				}
-				$unlock();
 				return;
 			}
 
-			// STEP 1: /register/start
-			$start_url = $server_pub . '/register/start';
-			$start_host = wp_parse_url( $start_url, PHP_URL_HOST );
-			$local_default = YOGB_BM_ALLOW_NONPROD && 'production' !== wp_get_environment_type() && is_string( $start_host ) && (bool) preg_match( '/\.local$/i', $start_host );
-			$allow_unsafe_local = (bool) apply_filters( 'yogb_bm_registration_allow_unsafe_local_url', $local_default, $start_url );
-			$start_args = [
-				'timeout' => 10,
-				'headers' => [
-					'Content-Type' => 'application/json',
-					'User-Agent'   => 'YOGB-BM-Client/registrar',
-					'Connection'   => 'close',
-				],
-				'body'    => wp_json_encode( [
-					'site_domain' => $domain,
-					'site_url'    => $site_url,
-					'owner_email' => $email,
-				] ),
-				'reject_unsafe_urls' => ! $allow_unsafe_local,
-			];
-			$start = $allow_unsafe_local ? wp_remote_post( $start_url, $start_args ) : wp_safe_remote_post( $start_url, $start_args );
+			$site_hash    = self::site_identity_hash( $site_url, $domain );
+			$pending      = $recovery_mode ? self::pending_recovery_challenge( $site_hash ) : [];
+			$challenge_id = (string) ( $pending['challenge_id'] ?? '' );
+			$token        = (string) ( $pending['token'] ?? '' );
 
-			if ( is_wp_error( $start ) ) {
-				self::schedule_registration_with_backoff( $quiet, 'start_err', $start->get_error_message() );
-				$unlock();
-				return;
-			}
-
-			$start_code       = (int) wp_remote_retrieve_response_code( $start );
-			$start_retry_after = (int) wp_remote_retrieve_header( $start, 'retry-after' );
-
-			if ( $start_code !== 201 ) {
-				// If server is rate-limiting us, honor Retry-After and set a cooldown.
-				if ( $start_code === 429 ) {
-					self::schedule_registration_with_backoff(
-						$quiet,
-						'start_429',
-						'rate_limited',
-						$start_retry_after
-					);
-				} else {
-					self::schedule_registration_with_backoff(
-						$quiet,
-						'start_code_' . $start_code,
-						'http_' . $start_code
-					);
+			// STEP 1: /register/start. Only this installation may reuse its own
+			// still-live recovery pointer + proof-token transient.
+			if ( '' === $challenge_id ) {
+				if ( ! $commit_current() ) {
+					return;
 				}
-				$unlock();
-				return;
+				$start_url = $server_pub . '/register/start';
+				$start_host = wp_parse_url( $start_url, PHP_URL_HOST );
+				$local_default = YOGB_BM_ALLOW_NONPROD && 'production' !== wp_get_environment_type() && is_string( $start_host ) && (bool) preg_match( '/\.local$/i', $start_host );
+				$allow_unsafe_local = (bool) apply_filters( 'yogb_bm_registration_allow_unsafe_local_url', $local_default, $start_url );
+				$start_args = [
+					'timeout' => 10,
+					'headers' => [
+						'Content-Type' => 'application/json',
+						'User-Agent'   => 'YOGB-BM-Client/registrar',
+						'Connection'   => 'close',
+					],
+					'body'    => wp_json_encode( [
+						'site_domain' => $domain,
+						'site_url'    => $site_url,
+						'owner_email' => $email,
+					] ),
+					'reject_unsafe_urls' => ! $allow_unsafe_local,
+				];
+				$start = $allow_unsafe_local ? wp_remote_post( $start_url, $start_args ) : wp_safe_remote_post( $start_url, $start_args );
+				if ( ! $commit_current() ) {
+					return;
+				}
+
+				if ( is_wp_error( $start ) ) {
+					self::schedule_registration_with_backoff( $quiet, 'start_err', $start->get_error_message() );
+					return;
+				}
+
+				$start_code        = (int) wp_remote_retrieve_response_code( $start );
+				$start_retry_after = (int) wp_remote_retrieve_header( $start, 'retry-after' );
+				if ( 201 !== $start_code ) {
+					self::schedule_registration_with_backoff( $quiet, 'start_' . ( 429 === $start_code ? '429' : 'code_' . $start_code ), 429 === $start_code ? 'rate_limited' : 'http_' . $start_code, $start_retry_after );
+					return;
+				}
+
+				$data = json_decode( wp_remote_retrieve_body( $start ), true );
+				if ( ! is_array( $data ) || empty( $data['challenge_id'] ) || empty( $data['challenge_token'] ) ) {
+					self::schedule_registration_with_backoff( $quiet, 'start_bad_payload', 'missing challenge' );
+					return;
+				}
+				$challenge_id = sanitize_text_field( (string) $data['challenge_id'] );
+				$token        = sanitize_text_field( (string) $data['challenge_token'] );
+				if ( ! $commit_current() ) {
+					return;
+				}
+				set_transient( self::TRANSIENT_PREFIX . $challenge_id, $token, 15 * MINUTE_IN_SECONDS );
+				if ( $recovery_mode ) {
+					self::store_pending_challenge( $challenge_id, $site_hash );
+				}
 			}
-
-			$data = json_decode( wp_remote_retrieve_body( $start ), true );
-			if ( ! is_array($data) || empty($data['challenge_id']) || empty($data['challenge_token']) ) {
-				self::schedule_registration_with_backoff( $quiet, 'start_bad_payload', 'missing challenge' );
-				$unlock();
-				return;
-			}
-
-			$challenge_id = sanitize_text_field( $data['challenge_id'] );
-			$token        = sanitize_text_field( $data['challenge_token'] );
-
-			// Expose token locally (server will fetch it from the canonical REST route)
-			set_transient( self::TRANSIENT_PREFIX . $challenge_id, $token, 15 * MINUTE_IN_SECONDS );
 
 			// STEP 2: /register/verify  — send ONLY the challenge_id
+			if ( ! $commit_current() ) {
+				if ( $manual_initial && '' !== $challenge_id ) {
+					delete_transient( self::TRANSIENT_PREFIX . $challenge_id );
+				}
+				return;
+			}
 			$verify_url = $server_pub . '/register/verify';
 			$verify_host = wp_parse_url( $verify_url, PHP_URL_HOST );
 			$local_default = YOGB_BM_ALLOW_NONPROD && 'production' !== wp_get_environment_type() && is_string( $verify_host ) && (bool) preg_match( '/\.local$/i', $verify_host );
@@ -395,17 +1349,39 @@ class YOGB_BM_Registrar {
 				'reject_unsafe_urls' => ! $allow_unsafe_local,
 			];
 			$verify = $allow_unsafe_local ? wp_remote_post( $verify_url, $verify_args ) : wp_safe_remote_post( $verify_url, $verify_args );
+			if ( ! $commit_current() ) {
+				if ( $manual_initial && '' !== $challenge_id ) {
+					delete_transient( self::TRANSIENT_PREFIX . $challenge_id );
+				}
+				return;
+			}
 
 			if ( is_wp_error( $verify ) ) {
 				self::schedule_registration_with_backoff( $quiet, 'verify_err', $verify->get_error_message() );
-				$unlock();
 				return;
 			}
 
 			$verify_code        = (int) wp_remote_retrieve_response_code( $verify );
 			$verify_retry_after = (int) wp_remote_retrieve_header( $verify, 'retry-after' );
 
-			if ( $verify_code !== 200 ) {
+			if ( 200 !== $verify_code ) {
+				$verify_body  = json_decode( wp_remote_retrieve_body( $verify ), true );
+				$verify_error = is_array( $verify_body ) ? sanitize_key( (string) ( $verify_body['error'] ?? '' ) ) : '';
+				if ( 'reporter_not_active' === $verify_error ) {
+					self::clear_pending_challenge( $challenge_id );
+					$state                    = self::auth_recovery_state();
+					$state['state']           = 'suspended';
+					$state['next_attempt_at'] = 0;
+					$state['source']          = 'registration_terminal';
+					if ( ! self::write_auth_recovery_state( $state ) ) {
+						return;
+					}
+					self::mark_connection_error( 'reporter_not_active', 'registration' );
+					return;
+				}
+				if ( in_array( $verify_code, [ 404, 410, 422 ], true ) ) {
+					self::clear_pending_challenge( $challenge_id );
+				}
 				if ( $verify_code === 429 ) {
 					self::schedule_registration_with_backoff(
 						$quiet,
@@ -420,32 +1396,58 @@ class YOGB_BM_Registrar {
 						'http_' . $verify_code
 					);
 				}
-				$unlock();
 				return;
 			}
 
 			$res = json_decode( wp_remote_retrieve_body( $verify ), true );
-			if ( ! is_array($res) || empty($res['api_key']) || empty($res['api_secret']) ) {
+			if ( ! is_array($res) || empty($res['api_key']) || empty($res['api_secret']) || empty( $res['reporter_id'] ) ) {
 				self::schedule_registration_with_backoff( $quiet, 'verify_bad_payload', 'missing keys' );
-				$unlock();
 				return;
 			}
 
-			// Success — store keys and clear challenge token
-			update_option( self::OPT_API_KEY,    sanitize_text_field( $res['api_key'] ),   false );
-			update_option( self::OPT_API_SECRET, sanitize_text_field( $res['api_secret'] ), false );
-			if ( ! empty( $res['reporter_id'] ) ) {
-				update_option( self::OPT_REPORTER_ID, (int) $res['reporter_id'], false );
+			$new_key         = sanitize_text_field( (string) $res['api_key'] );
+			$new_secret      = sanitize_text_field( (string) $res['api_secret'] );
+			$new_reporter_id = max( 0, (int) ( $res['reporter_id'] ?? 0 ) );
+			$new_fingerprint = self::credential_fingerprint( $new_key, $new_secret );
+			do_action( 'yogb_bm_credential_commit_boundary', 'post_verify' );
+			if ( ! $commit_current() ) {
+				if ( $manual_initial && '' !== $challenge_id ) {
+					delete_transient( self::TRANSIENT_PREFIX . $challenge_id );
+				}
+				return;
+			}
+			if ( $recovery_mode && ( (int) $claimed['expected_reporter_id'] !== $new_reporter_id || hash_equals( (string) $claimed['credential_fingerprint'], $new_fingerprint ) ) ) {
+				self::clear_pending_challenge( $challenge_id );
+				self::mark_manual_intervention( (int) $claimed['expected_reporter_id'] !== $new_reporter_id ? 'registration_reporter_mismatch' : 'registration_same_credentials' );
+				return;
 			}
 
-			delete_transient( self::TRANSIENT_PREFIX . $challenge_id );
-			delete_option( 'yogb_bm_reg_backoff' );
-			delete_option( 'yogb_bm_reg_cooldown_until' );
-			delete_option( 'yogb_bm_reg_attempts' );
+			$pre_bind = $claimed;
+			$claimed = self::bind_credential_commit_candidate( $claimed, $recovery_lock, $new_key, $new_secret, $new_reporter_id );
+			if ( empty( $claimed ) ) {
+				if ( self::credential_commit_is_current( $pre_bind, $recovery_lock ) ) {
+					self::mark_manual_intervention( 'credential_candidate_mismatch' );
+				}
+				return;
+			}
+			$candidate_bound = true;
+			if ( ! self::stage_credential_component( 'reporter', $new_reporter_id, $claimed, $recovery_lock )
+				|| ! self::stage_credential_component( 'key', $new_key, $claimed, $recovery_lock )
+				|| ! self::stage_credential_component( 'secret', $new_secret, $claimed, $recovery_lock ) ) {
+				return;
+			}
+			if ( ! self::publish_credential_commit( $claimed, $recovery_lock, $recovery_mode ) ) {
+				return;
+			}
+			self::clear_pending_challenge( $challenge_id );
+			do_action( 'yogb_bm_credential_commit_boundary', 'published' );
 
-			// Credentials are ready now, so negotiate tier, plan, and server
-			// capabilities immediately instead of waiting for the first cron pull.
-			do_action( 'yogb_bm_registration_completed' );
+			if ( $recovery_mode ) {
+				self::schedule_auth_recovery( 10 );
+			} else {
+				// Initial registration keeps the established immediate negotiation.
+				do_action( 'yogb_bm_registration_completed' );
+			}
 
 			if ( ! $quiet ) {
 				self::admin_notice_once(
@@ -455,7 +1457,12 @@ class YOGB_BM_Registrar {
 			}
 
 		} finally {
-			$unlock();
+			if ( ! empty( $claimed ) && ! $candidate_bound ) {
+				self::release_empty_credential_commit( $claimed, $recovery_lock );
+			}
+			delete_transient( 'yogb_bm_reg_lock' );
+			self::$active_auth_recovery_lock = null;
+			self::release_auth_recovery_lock( $recovery_lock );
 		}
 	}
 
@@ -473,24 +1480,96 @@ class YOGB_BM_Registrar {
 			);
 		}
 
-		// If server told us exactly when to back off, honor that.
+		// Honor server authority inside the same finite recovery bound.
 		if ( $retry_after > 0 ) {
-			$backoff = max( 60, $retry_after );
+			$backoff = max( 60, min( self::MAX_REGISTRATION_BACKOFF, $retry_after ) );
 		} else {
-			$backoff = (int) get_option( 'yogb_bm_reg_backoff', 60 ); // start at 60s
-			$backoff = max( 60, min( $backoff * 2, 6 * HOUR_IN_SECONDS ) ); // cap at 6h
+			$previous = max( 0, min( self::MAX_REGISTRATION_BACKOFF, (int) self::registration_budget_value( 'yogb_bm_reg_backoff', 60 ) ) );
+			$backoff  = max( 60, min( self::MAX_REGISTRATION_BACKOFF, $previous * 2 ) );
 		}
 
-		update_option( 'yogb_bm_reg_backoff', $backoff, false );
+		if ( ! self::write_registration_budget( 'yogb_bm_reg_backoff', $backoff ) ) {
+			return;
+		}
 
 		// Set a hard cooldown until this time – both cron and admin_init respect it.
-		$cooldown_until = time() + $backoff;
-		update_option( 'yogb_bm_reg_cooldown_until', $cooldown_until, false );
+		$now            = time();
+		$cooldown_until = $backoff > PHP_INT_MAX - $now ? PHP_INT_MAX : $now + $backoff;
+		if ( ! self::write_registration_budget( 'yogb_bm_reg_cooldown_until', $cooldown_until ) ) {
+			return;
+		}
+		$recovery = self::auth_recovery_state();
+		if ( 're_registering' === $recovery['state'] ) {
+			$recovery['failures']        = min( 10, (int) $recovery['failures'] + 1 );
+			$recovery['next_attempt_at'] = $cooldown_until;
+			$recovery['source']          = sanitize_key( $code );
+			self::write_auth_recovery_state( $recovery );
+		}
 
 		$when = $cooldown_until + wp_rand( 0, 120 ); // small jitter
-		if ( ! wp_next_scheduled( self::CRON_HOOK ) ) {
+		$next = wp_next_scheduled( self::CRON_HOOK );
+		if ( false !== $next && (int) $next < $cooldown_until ) {
+			wp_unschedule_event( (int) $next, self::CRON_HOOK );
+			$next = false;
+		}
+		if ( false === $next ) {
 			wp_schedule_single_event( $when, self::CRON_HOOK );
 		}
+	}
+
+	private static function prepare_manual_registration_retry() : bool {
+		$state           = self::auth_recovery_state();
+		$have_full_creds = get_option( self::OPT_API_KEY ) && get_option( self::OPT_API_SECRET ) && get_option( self::OPT_REPORTER_ID );
+		if ( ! empty( $state['credential_commit'] ) || 'healthy' !== $state['state'] || $have_full_creds ) {
+			return false;
+		}
+
+		// Manual first registration may bypass its local throttle without deleting
+		// retry state that could concurrently become recovery authority.
+		delete_transient( 'yogb_bm_reg_lock' );
+		$state = self::auth_recovery_state();
+		return 'healthy' === $state['state']
+			&& ! ( get_option( self::OPT_API_KEY ) && get_option( self::OPT_API_SECRET ) && get_option( self::OPT_REPORTER_ID ) );
+	}
+
+	private static function run_manual_registration_retry() : string {
+		$before           = self::auth_recovery_state();
+		$before_state     = (string) $before['state'];
+		$recovery_context = ! empty( $before['credential_commit'] ) || 'healthy' !== $before_state;
+
+		if ( ! empty( $before['credential_commit'] ) ) {
+			self::run_registration( true );
+		} elseif ( 'recovering' === $before_state ) {
+			self::run_auth_recovery();
+		} elseif ( 're_registering' === $before_state ) {
+			self::run_registration( true );
+		} elseif ( ! $recovery_context && self::prepare_manual_registration_retry() ) {
+			// Preserve the established immediate path for ordinary first registration.
+			self::run_registration( true, true );
+		}
+
+		$after       = self::auth_recovery_state();
+		$after_state = (string) $after['state'];
+		if ( $recovery_context ) {
+			if ( empty( $after['credential_commit'] ) && 'healthy' === $after_state && self::authenticated_requests_allowed() ) {
+				return 'success';
+			}
+			if ( ! empty( $after['credential_commit'] ) || in_array( $after_state, [ 'recovering', 're_registering' ], true ) ) {
+				return 'pending';
+			}
+			return 'error';
+		}
+		if ( in_array( $after_state, [ 'recovering', 're_registering' ], true ) ) {
+			return 'pending';
+		}
+		if ( 'healthy' !== $after_state || ! self::authenticated_requests_allowed() ) {
+			return 'error';
+		}
+
+		$api_key     = get_option( self::OPT_API_KEY );
+		$api_secret  = get_option( self::OPT_API_SECRET );
+		$reporter_id = get_option( self::OPT_REPORTER_ID );
+		return ( $api_key && $api_secret && $reporter_id ) ? 'success' : 'error';
 	}
 
 	public static function handle_manual_retry() {
@@ -508,21 +1587,8 @@ class YOGB_BM_Registrar {
 			wp_die( esc_html__( 'Security check failed.', 'wc-blacklist-manager' ) );
 		}
 
-		// Clear any cooldown / backoff / attempts / lock so manual retry always runs.
-		delete_option( 'yogb_bm_reg_cooldown_until' );
-		delete_option( 'yogb_bm_reg_backoff' );
-		delete_option( 'yogb_bm_reg_attempts' );
-		delete_transient( 'yogb_bm_reg_lock' );
-
-		// Run registration in quiet mode – we’ll show our own notice after redirect.
-		self::run_registration( true );
-
-		// Decide if it was successful: check for full credentials.
-		$api_key     = get_option( self::OPT_API_KEY );
-		$api_secret  = get_option( self::OPT_API_SECRET );
-		$reporter_id = get_option( self::OPT_REPORTER_ID );
-
-		$status = ( $api_key && $api_secret && $reporter_id ) ? 'success' : 'error';
+		// Recovery results come from verified authority state, never retained keys.
+		$status = self::run_manual_registration_retry();
 
 		// Redirect back to the settings screen with a result flag.
 		$redirect = wp_get_referer();
@@ -546,11 +1612,15 @@ class YOGB_BM_Registrar {
 
 		if ( 'success' === $status ) {
 			echo '<div class="notice notice-success is-dismissible"><p>'
-				. esc_html__( 'Global Blacklist registration completed successfully.', 'wc-blacklist-manager' )
+				. esc_html__( 'Global Blacklist connection is active.', 'wc-blacklist-manager' )
+				. '</p></div>';
+		} elseif ( 'pending' === $status ) {
+			echo '<div class="notice notice-warning is-dismissible"><p>'
+				. esc_html__( 'Global Blacklist recovery is still in progress. Authenticated delivery remains paused until signed active control is verified.', 'wc-blacklist-manager' )
 				. '</p></div>';
 		} elseif ( 'error' === $status ) {
 			echo '<div class="notice notice-error is-dismissible"><p>'
-				. esc_html__( 'Global Blacklist registration did not complete. Please check your site domain, HTTPS configuration, and firewall/REST access, or contact support.', 'wc-blacklist-manager' )
+				. esc_html__( 'Global Blacklist connection is not active. Please check the reporter status and site configuration, or contact support.', 'wc-blacklist-manager' )
 				. '</p></div>';
 		}
 	}

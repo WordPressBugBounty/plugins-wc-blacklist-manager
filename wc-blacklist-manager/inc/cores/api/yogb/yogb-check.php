@@ -169,9 +169,10 @@ final class YOGB_BM_Check {
 	public static function get_decision_snapshot( array $resp ) : array {
 		$json     = isset( $resp['json'] ) && is_array( $resp['json'] ) ? $resp['json'] : [];
 		$decision = isset( $json['decision'] ) && is_array( $json['decision'] ) ? $json['decision'] : [];
-		$overall  = sanitize_key( (string) ( $decision['overall'] ?? 'allow' ) );
-		if ( ! in_array( $overall, [ 'allow', 'challenge', 'block' ], true ) ) {
-			$overall = 'allow';
+		$overall  = sanitize_key( (string) ( $decision['overall'] ?? '' ) );
+		$decision_valid = in_array( $overall, [ 'allow', 'challenge', 'block' ], true );
+		if ( ! $decision_valid ) {
+			$overall = 'unknown';
 		}
 
 		$reasons = [];
@@ -222,6 +223,7 @@ final class YOGB_BM_Check {
 		return [
 			'schema'           => $schema,
 			'overall'          => $overall,
+			'decision_valid'   => $decision_valid,
 			'decision_ref'     => $ref,
 			'reason_code'      => sanitize_key( (string) ( $decision['reason_code'] ?? ( $reasons[0] ?? '' ) ) ),
 			'reasons'          => $reasons,

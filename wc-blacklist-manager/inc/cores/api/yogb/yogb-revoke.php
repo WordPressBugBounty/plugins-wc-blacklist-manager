@@ -34,20 +34,20 @@ final class YOGB_BM_Revoke_Report {
 			$report_ids = [ $report_ids ];
 		}
 
-		// Normalize each stored ID to a numeric internal ID (e.g. 123).
-		$numeric_ids = array_filter(
+		// Normalize each stored ID to a canonical public string without native-int conversion.
+		$report_refs = array_filter(
 			array_map(
-				static function( $raw ) : int {
-					return self::extract_numeric_report_id( $raw );
+				static function( $raw ) : string {
+					return self::normalize_report_reference( $raw );
 				},
 				$report_ids
 			),
-			static function( int $v ) : bool {
-				return $v > 0;
+			static function( string $value ) : bool {
+				return '' !== $value;
 			}
 		);
 
-		if ( empty( $numeric_ids ) ) {
+		if ( empty( $report_refs ) ) {
 			return;
 		}
 
@@ -56,8 +56,8 @@ final class YOGB_BM_Revoke_Report {
 			'note'   => mb_substr( (string) $note, 0, 255 ),
 		];
 
-		foreach ( $numeric_ids as $remote_id ) {
-			self::queue_single_revoke( $remote_id, $payload );
+		foreach ( $report_refs as $report_ref ) {
+			self::queue_single_revoke( $report_ref, $payload );
 		}
 	}
 
@@ -68,15 +68,16 @@ final class YOGB_BM_Revoke_Report {
 	 * @param array      $payload   ['reason' => string, 'note' => string]
 	 */
 	public static function queue_single_revoke( $report_id, array $payload ) : void {
-		$numeric_id = self::extract_numeric_report_id( $report_id );
-		if ( $numeric_id <= 0 ) {
+		$public_id = self::normalize_report_reference( $report_id );
+		$digits    = self::report_reference_digits( $public_id );
+		if ( '' === $digits ) {
 			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
 				error_log( '[YOGB][revoke] queue_single_revoke got invalid report_id=' . var_export( $report_id, true ) );
 			}
 			return;
 		}
 
-		$route = YOGB_BM_Report::REST_ROUTE . '/reports/' . $numeric_id . '/revoke';
+		$route = YOGB_BM_Report::REST_ROUTE . '/reports/' . $digits . '/revoke';
 		if ( class_exists( 'YOGB_BM_Outbox' ) && YOGB_BM_Outbox::enqueue_revoke( $route, $payload ) > 0 ) {
 			return;
 		}
@@ -84,7 +85,7 @@ final class YOGB_BM_Revoke_Report {
 		$key = md5(
 			wp_json_encode(
 				[
-					$numeric_id,
+					$public_id,
 					$payload['reason'] ?? '',
 					$payload['note']   ?? '',
 				]
@@ -96,7 +97,7 @@ final class YOGB_BM_Revoke_Report {
 		set_transient(
 			$transient_key,
 			[
-				'report_id' => $numeric_id,
+				'report_id' => $public_id,
 				'payload'   => $payload,
 			],
 			10 * MINUTE_IN_SECONDS
@@ -122,13 +123,12 @@ final class YOGB_BM_Revoke_Report {
 		}
 		delete_transient( $transient_key );
 
-		$numeric_id = isset( $data['report_id'] )
-			? self::extract_numeric_report_id( $data['report_id'] )
-			: 0;
+		$public_id = isset( $data['report_id'] ) ? self::normalize_report_reference( $data['report_id'] ) : '';
+		$digits    = self::report_reference_digits( $public_id );
 
 		$payload = isset( $data['payload'] ) ? (array) $data['payload'] : [];
 
-		if ( $numeric_id <= 0 || empty( $payload ) ) {
+		if ( '' === $digits || empty( $payload ) ) {
 			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
 				error_log( '[YOGB][revoke] cron_revoke_report: invalid report_id or empty payload' );
 			}
@@ -136,7 +136,7 @@ final class YOGB_BM_Revoke_Report {
 		}
 
 		// Path uses numeric ID so it matches /reports/(?P<id>\d+)/revoke on the server.
-		$route = YOGB_BM_Report::REST_ROUTE . '/reports/' . $numeric_id . '/revoke';
+		$route = YOGB_BM_Report::REST_ROUTE . '/reports/' . $digits . '/revoke';
 
 		$res = YOGB_BM_Report::post_json_signed( $route, $payload );
 
@@ -149,8 +149,6 @@ final class YOGB_BM_Revoke_Report {
 		// Optional debug logging
 		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
 			// For logs we show the public form "rpt_<id>" to match the rest of the UI.
-			$public_id = 'rpt_' . $numeric_id;
-
 			error_log(
 				sprintf(
 					'[YOGB] revoke report_id=%s code=%d ok=%s',
@@ -219,48 +217,20 @@ final class YOGB_BM_Revoke_Report {
 	}
 
 	/**
-	 * Extract a numeric report ID from various forms:
+	 * Normalize report references without converting high decimal strings to int.
 	 *  - "rpt_123"
 	 *  - "123"
 	 *  - 123
 	 *
-	 * Returns the integer ID, or 0 if invalid.
-	 *
 	 * @param mixed $id
-	 * @return int
+	 * @return string
 	 */
-	private static function extract_numeric_report_id( $id ) : int {
-		// Int already?
-		if ( is_int( $id ) ) {
-			return $id > 0 ? $id : 0;
-		}
+	private static function normalize_report_reference( $id ) : string {
+		return class_exists( 'YOGB_BM_Report_V2' ) ? YOGB_BM_Report_V2::normalize_report_reference( $id ) : '';
+	}
 
-		if ( ! is_scalar( $id ) ) {
-			return 0;
-		}
-
-		$raw = trim( (string) $id );
-		if ( $raw === '' ) {
-			return 0;
-		}
-
-		// Strip "rpt_" prefix if present.
-		if ( strpos( $raw, 'rpt_' ) === 0 ) {
-			$raw = substr( $raw, 4 );
-		}
-
-		// Trim whitespace + leading zeros.
-		$raw = ltrim( $raw, " \t\n\r\0\x0B0" );
-		if ( $raw === '' ) {
-			return 0;
-		}
-
-		if ( ! ctype_digit( $raw ) ) {
-			return 0;
-		}
-
-		$val = (int) $raw;
-		return $val > 0 ? $val : 0;
+	private static function report_reference_digits( $id ) : string {
+		return class_exists( 'YOGB_BM_Report_V2' ) ? YOGB_BM_Report_V2::report_reference_digits( $id ) : '';
 	}
 }
 

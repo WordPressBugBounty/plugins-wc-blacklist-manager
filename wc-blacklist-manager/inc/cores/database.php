@@ -36,8 +36,9 @@ class WC_Blacklist_Manager_DB {
 	public function activate() {
 		$had_install_state = false !== get_option( 'wc_blacklist_manager_first_install_date', false )
 			|| false !== get_option( 'wc_blacklist_manager_version', false );
+		$fresh_schema = ! $had_install_state && $this->is_genuinely_fresh_schema();
 
-		$this->update_db();
+		$this->update_db( $fresh_schema );
 		$this->set_first_install_date();
 		$this->maybe_set_default_development_mode();
 		$this->install_default_options();
@@ -48,7 +49,8 @@ class WC_Blacklist_Manager_DB {
 		$this->create_address_delete_trigger();
 		$this->create_address_update_trigger();
 
-		update_option( 'wc_blacklist_manager_version', $this->version );
+		$this->maybe_update_plugin_version_marker();
+		WC_Blacklist_Manager_Schema_Readiness::instance()->refresh_readiness();
 		$this->schedule_customer_intelligence_notice( $had_install_state ? 0 : DAY_IN_SECONDS );
 
 		WC_Blacklist_Manager_Push_Subscription::maybe_push_subscription();
@@ -81,11 +83,11 @@ class WC_Blacklist_Manager_DB {
 	public function check_version() {
 		$installed_version = get_option( 'wc_blacklist_manager_version', '' );
 
-		if ( $installed_version != $this->version ) {
+		if ( '' === (string) $installed_version || version_compare( (string) $installed_version, $this->version, '<' ) ) {
 			$had_install_state = false !== get_option( 'wc_blacklist_manager_first_install_date', false )
 				|| '' !== (string) $installed_version;
 
-			$this->update_db();
+			$this->update_db( false );
 			$this->install_default_options();
 			$this->install_count_options();
 			$this->create_trigger();
@@ -94,20 +96,23 @@ class WC_Blacklist_Manager_DB {
 			$this->create_address_delete_trigger();
 			$this->create_address_update_trigger();
 
-			update_option( 'wc_blacklist_manager_version', $this->version );
+			$this->maybe_update_plugin_version_marker();
 			$this->schedule_customer_intelligence_notice( $had_install_state ? 0 : DAY_IN_SECONDS );
 
 			WC_Blacklist_Manager_Push_Subscription::maybe_push_subscription();
 		}
 	}
 
-	public function update_db() {
+	public function update_db( $include_outcome_indexes = false ) {
 		global $wpdb;
 
 		$installed_ver = get_option( 'wc_blacklist_manager_version', '1.0.0' );
 
 		if ( version_compare( $installed_ver, $this->version, '<' ) ) {
 			$charset_collate = $wpdb->get_charset_collate();
+			$blacklist_outcome_index = $include_outcome_indexes ? ",\n\t\t\t\tKEY outcome_date_status (date_added, is_blocked)" : '';
+			$address_outcome_index   = $include_outcome_indexes ? ",\n\t\t\t\tKEY outcome_date_status (date_added, is_blocked)" : '';
+			$detection_outcome_index = $include_outcome_indexes ? ",\n\t\t\t\tKEY outcome_timestamp (`timestamp`)" : '';
 
 			$blacklist_sql = "CREATE TABLE {$this->blacklist_table_name} (
 				id mediumint(9) NOT NULL AUTO_INCREMENT,
@@ -131,7 +136,7 @@ class WC_Blacklist_Manager_DB {
 				KEY device_id (device_id),
 				KEY normalized_phone (normalized_phone),
 				KEY normalized_email (normalized_email),
-				KEY is_blocked (is_blocked)
+				KEY is_blocked (is_blocked){$blacklist_outcome_index}
 			) {$charset_collate};";
 
 			$blacklist_addresses_sql = "CREATE TABLE {$this->blacklist_addresses_table_name} (
@@ -154,7 +159,7 @@ class WC_Blacklist_Manager_DB {
 				date_added datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
 				PRIMARY KEY  (id),
 				KEY blacklist_id (blacklist_id),
-				KEY is_blocked (is_blocked),
+				KEY is_blocked (is_blocked){$address_outcome_index},
 				KEY match_type (match_type),
 				KEY country_code (country_code),
 				KEY state_lookup (is_blocked, match_type, country_code, state_code),
@@ -240,7 +245,7 @@ class WC_Blacklist_Manager_DB {
 				action varchar(255) NOT NULL,
 				details text NOT NULL,
 				view text NOT NULL,
-				PRIMARY KEY (id)
+				PRIMARY KEY (id){$detection_outcome_index}
 				) {$charset_collate};";
 
 				$gbl_outbox_sql = "CREATE TABLE {$this->gbl_outbox_table_name} (
@@ -279,8 +284,21 @@ class WC_Blacklist_Manager_DB {
 			$this->maybe_upgrade_blacklist_normalized_phone();
 			$this->maybe_migrate_legacy_customer_addresses();
 
+			$this->maybe_update_plugin_version_marker();
+		}
+	}
+
+	private function maybe_update_plugin_version_marker() {
+		$installed = get_option( 'wc_blacklist_manager_version', '' );
+		if ( '' === (string) $installed || version_compare( (string) $installed, $this->version, '<=' ) ) {
 			update_option( 'wc_blacklist_manager_version', $this->version );
 		}
+	}
+
+	private function is_genuinely_fresh_schema() {
+		return ! $this->table_exists( $this->blacklist_table_name )
+			&& ! $this->table_exists( $this->blacklist_addresses_table_name )
+			&& ! $this->table_exists( $this->detection_log_table_name );
 	}
 
 	public function install_default_options() {

@@ -9,13 +9,6 @@ if ( ! class_exists( 'WC_Blacklist_Manager_Premium_CTA' ) ) {
 
 		const PAGE_SLUG = 'wc-blacklist-manager-premium';
 
-		private $notice_hooks = array(
-			'admin_notices',
-			'all_admin_notices',
-			'network_admin_notices',
-			'user_admin_notices',
-		);
-
 		public function __construct() {
 			add_action( 'admin_menu', array( $this, 'add_submenu' ), 20 );
 		}
@@ -38,29 +31,15 @@ if ( ! class_exists( 'WC_Blacklist_Manager_Premium_CTA' ) ) {
 				return;
 			}
 
-			$hook_suffix = add_submenu_page(
+			add_submenu_page(
 				'wc-blacklist-manager',
-				__( 'Free vs Premium', 'wc-blacklist-manager' ),
-				__( 'Go Premium', 'wc-blacklist-manager' ),
+				__( 'Advanced Protection', 'wc-blacklist-manager' ),
+				__( 'Advanced Protection', 'wc-blacklist-manager' ),
 				'manage_options',
 				self::PAGE_SLUG,
 				array( $this, 'render_page' )
 			);
 
-			if ( $hook_suffix ) {
-				add_action( 'load-' . $hook_suffix, array( $this, 'suppress_admin_notices' ), 0 );
-			}
-		}
-
-		public function suppress_admin_notices() {
-			foreach ( $this->notice_hooks as $hook ) {
-				remove_all_actions( $hook );
-				add_action( $hook, array( $this, 'clear_admin_notices_hook' ), PHP_INT_MIN );
-			}
-		}
-
-		public function clear_admin_notices_hook() {
-			remove_all_actions( current_filter() );
 		}
 
 		private function render_check() {
@@ -69,6 +48,25 @@ if ( ! class_exists( 'WC_Blacklist_Manager_Premium_CTA' ) ) {
 
 		private function render_dash() {
 			echo '<span class="dashicons dashicons-minus yobm-muted-icon" aria-hidden="true"></span>';
+		}
+
+		/** Resolve the first-section precedence without treating focus as evidence. */
+		private static function resolve_first_section( string $focus, array $evidence ): array {
+			$focus_presentation = class_exists( 'WC_Blacklist_Manager_Alert' )
+				? WC_Blacklist_Manager_Alert::get_security_focus_presentation( $focus )
+				: array();
+
+			if ( ! empty( $focus_presentation ) ) {
+				return array(
+					'mode'         => 'focus',
+					'presentation' => $focus_presentation,
+				);
+			}
+
+			return array(
+				'mode'         => ! empty( $evidence['has_evidence'] ) ? 'evidence' : 'generic',
+				'presentation' => array(),
+			);
 		}
 
 		public function render_page() {
@@ -82,12 +80,25 @@ if ( ! class_exists( 'WC_Blacklist_Manager_Premium_CTA' ) ) {
 			}
 
 			$premium_installed = $this->is_premium_plugin_active();
-			$upgrade_url       = 'https://yoohw.com/product/blacklist-manager-premium/';
-			$docs_url          = 'https://docs.yoohw.com/category/blacklist-manager/';
-			$setup_url         = admin_url( 'admin.php?page=wc-blacklist-manager-setup&step=license' );
+			$premium_action    = WC_Blacklist_Manager_Commercial_Router::premium_action();
+			$docs_url          = WC_Blacklist_Manager_Commercial_Router::docs_url();
 			$icon_url          = plugins_url( 'img/icon-256x256.png', WC_BLACKLIST_MANAGER_PLUGIN_FILE );
-			$primary_url       = $premium_installed ? $setup_url : $upgrade_url;
-			$primary_label     = $premium_installed ? __( 'Activate Premium license', 'wc-blacklist-manager' ) : __( 'View Premium plan', 'wc-blacklist-manager' );
+			$primary_url       = $premium_action['url'];
+			$primary_label     = $premium_action['label'];
+			$focus             = isset( $_GET['focus'] ) && is_string( $_GET['focus'] )
+				? sanitize_key( wp_unslash( $_GET['focus'] ) )
+				: '';
+			$evidence          = class_exists( 'WC_Blacklist_Manager_Outcome_Summary' )
+				? WC_Blacklist_Manager_Outcome_Summary::get_commercial_opportunity_model()
+				: array( 'has_evidence' => false );
+			$first_section     = self::resolve_first_section( $focus, $evidence );
+			$has_evidence      = ! empty( $evidence['has_evidence'] );
+			$has_focus         = 'focus' === $first_section['mode'];
+			$hero_kicker       = __( 'Premium protection layer', 'wc-blacklist-manager' );
+			$hero_title        = __( 'Move from blacklist maintenance to fraud decisioning.', 'wc-blacklist-manager' );
+			$hero_body         = __( 'Free handles core local blocking. Premium adds the risk, identity, automation, and audit layers that help busy stores catch repeat abuse before it becomes manual cleanup.', 'wc-blacklist-manager' );
+			$coverage_copy     = '';
+			$secondary_evidence_copy = '';
 
 			$highlight_cards = array(
 				array(
@@ -106,6 +117,70 @@ if ( ! class_exists( 'WC_Blacklist_Manager_Premium_CTA' ) ) {
 					'body'  => __( 'Keep blacklist changes, verification checks, automation events, and order decisions reviewable.', 'wc-blacklist-manager' ),
 				),
 			);
+
+			if ( $has_evidence ) {
+				$manual_actions  = (int) $evidence['manual_actions'];
+				$list_actions    = (int) $evidence['list_actions'];
+				$order_decisions = (int) $evidence['order_decisions'];
+				$hero_kicker     = __( 'Based on recorded site-local work', 'wc-blacklist-manager' );
+				$hero_title      = sprintf(
+					_n( 'Your store recorded %s manual protection action in the last 30 days.', 'Your store recorded %s manual protection actions in the last 30 days.', $manual_actions, 'wc-blacklist-manager' ),
+					number_format_i18n( $manual_actions )
+				);
+				$hero_body       = sprintf(
+					/* translators: 1: manual list action count, 2: manual order decision count. */
+					__( 'This includes %1$s recorded list actions and %2$s recorded order decisions. Premium may help reduce repeated manual work and add decision context; the counts do not represent attacks or prevented fraud.', 'wc-blacklist-manager' ),
+					number_format_i18n( $list_actions ),
+					number_format_i18n( $order_decisions )
+				);
+				$tracking_date   = wp_date( get_option( 'date_format' ), (int) $evidence['tracking_started_at'], wp_timezone() );
+				$coverage_copy   = ! empty( $evidence['complete_30'] )
+					? sprintf( __( 'Manual actions have been tracked since %s. Records can still be partial after deletion or retention.', 'wc-blacklist-manager' ), $tracking_date )
+					: sprintf( __( 'Tracking started on %s, so this 30-day view has partial coverage. Records can also be partial after deletion or retention.', 'wc-blacklist-manager' ), $tracking_date );
+
+				$recommendation_catalog = array(
+					'manual_work_automation' => array(
+						'icon'  => 'dashicons-controls-repeat',
+						'title' => __( 'Reduce repeated manual work', 'wc-blacklist-manager' ),
+						'body'  => __( 'Premium automation may reduce repetitive list and order actions. Review its settings before enabling automated decisions.', 'wc-blacklist-manager' ),
+					),
+					'order_risk_scoring' => array(
+						'icon'  => 'dashicons-chart-line',
+						'title' => __( 'Add context to order decisions', 'wc-blacklist-manager' ),
+						'body'  => __( 'Recorded manual order decisions indicate a workflow that may benefit from risk scoring and consistent review thresholds.', 'wc-blacklist-manager' ),
+					),
+					'activity_history' => array(
+						'icon'  => 'dashicons-clipboard',
+						'title' => __( 'Keep decisions reviewable', 'wc-blacklist-manager' ),
+						'body'  => __( 'Activity history can add investigation context around recurring manual list work without changing existing Core protection.', 'wc-blacklist-manager' ),
+					),
+				);
+				$highlight_cards = array();
+				foreach ( $evidence['recommendations'] as $recommendation_id ) {
+					if ( isset( $recommendation_catalog[ $recommendation_id ] ) ) {
+						$highlight_cards[] = $recommendation_catalog[ $recommendation_id ];
+					}
+				}
+			}
+
+			$focus_presentation = $first_section['presentation'];
+			if ( $has_focus ) {
+				$hero_kicker = __( 'Security protection focus', 'wc-blacklist-manager' );
+				$hero_title  = $focus_presentation['title'];
+				$hero_body   = $focus_presentation['body'];
+				$highlight_cards = $focus_presentation['cards'];
+
+				if ( $has_evidence ) {
+					$secondary_evidence_copy = sprintf(
+						/* translators: %s: number of recorded manual protection actions. */
+						_n( 'Separately, your store recorded %s manual protection action in the last 30 days.', 'Separately, your store recorded %s manual protection actions in the last 30 days.', (int) $evidence['manual_actions'], 'wc-blacklist-manager' ),
+						number_format_i18n( (int) $evidence['manual_actions'] )
+					);
+					$secondary_evidence_copy .= ' ' . $coverage_copy;
+				}
+
+				$coverage_copy = __( 'This focus is explanatory only. It does not confirm a live attack or show that Premium prevented or would have prevented any observed event.', 'wc-blacklist-manager' );
+			}
 
 			$workflow_steps = array(
 				array(
@@ -221,6 +296,11 @@ if ( ! class_exists( 'WC_Blacklist_Manager_Premium_CTA' ) ) {
 						color: #c9ccd4;
 						font-size: 15px;
 						line-height: 1.65;
+					}
+					.yobm-premium-hero .yobm-premium-evidence-coverage {
+						margin-top: -8px;
+						font-size: 13px;
+						color: #aeb3be;
 					}
 					.yobm-premium-actions {
 						display: flex;
@@ -348,6 +428,9 @@ if ( ! class_exists( 'WC_Blacklist_Manager_Premium_CTA' ) ) {
 						gap: 16px;
 						margin: 18px 0;
 					}
+					.yobm-premium-value-grid.is-evidence {
+						grid-template-columns: repeat(2, minmax(0, 1fr));
+					}
 					.yobm-premium-card {
 						display: flex;
 						gap: 14px;
@@ -365,8 +448,8 @@ if ( ! class_exists( 'WC_Blacklist_Manager_Premium_CTA' ) ) {
 						flex: 0 0 38px;
 						align-items: center;
 						justify-content: center;
-						color: #ef343d;
-						background: #fff0f1;
+						color: var(--wp-admin-theme-color, #2271b1);
+						background: #f6f7f7;
 						border-radius: 8px;
 					}
 					.yobm-premium-icon .dashicons {
@@ -480,10 +563,6 @@ if ( ! class_exists( 'WC_Blacklist_Manager_Premium_CTA' ) ) {
 						color: #8c8f94;
 					}
 					.yobm-premium-footer {
-						display: grid;
-						grid-template-columns: minmax(0, 1fr) auto;
-						gap: 18px;
-						align-items: center;
 						margin-top: 24px;
 						padding: 20px;
 						background: #f8fafc;
@@ -533,15 +612,21 @@ if ( ! class_exists( 'WC_Blacklist_Manager_Premium_CTA' ) ) {
 						<div>
 							<span class="yobm-premium-kicker">
 								<span class="dashicons dashicons-chart-area" aria-hidden="true"></span>
-								<?php esc_html_e( 'Premium protection layer', 'wc-blacklist-manager' ); ?>
+								<?php echo esc_html( $hero_kicker ); ?>
 							</span>
-							<h1><?php esc_html_e( 'Move from blacklist maintenance to fraud decisioning.', 'wc-blacklist-manager' ); ?></h1>
-							<p><?php esc_html_e( 'Free handles core local blocking. Premium adds the risk, identity, automation, and audit layers that help busy stores catch repeat abuse before it becomes manual cleanup.', 'wc-blacklist-manager' ); ?></p>
+							<h1><?php echo esc_html( $hero_title ); ?></h1>
+							<p><?php echo esc_html( $hero_body ); ?></p>
+							<?php if ( $coverage_copy ) : ?>
+								<p class="yobm-premium-evidence-coverage"><?php echo esc_html( $coverage_copy ); ?></p>
+							<?php endif; ?>
+							<?php if ( $secondary_evidence_copy ) : ?>
+								<p class="yobm-premium-secondary-evidence"><?php echo esc_html( $secondary_evidence_copy ); ?></p>
+							<?php endif; ?>
 							<div class="yobm-premium-actions">
 								<a
 									class="button button-primary button-hero"
 									href="<?php echo esc_url( $primary_url ); ?>"
-									<?php echo $premium_installed ? '' : 'target="_blank" rel="noopener noreferrer"'; ?>
+									<?php echo ! empty( $premium_action['external'] ) ? 'target="_blank" rel="noopener noreferrer"' : ''; ?>
 								>
 									<span class="dashicons <?php echo $premium_installed ? 'dashicons-admin-network' : 'dashicons-external'; ?>" aria-hidden="true"></span>
 									<?php echo esc_html( $primary_label ); ?>
@@ -551,6 +636,9 @@ if ( ! class_exists( 'WC_Blacklist_Manager_Premium_CTA' ) ) {
 									<?php esc_html_e( 'Read docs', 'wc-blacklist-manager' ); ?>
 								</a>
 							</div>
+							<?php if ( ! empty( $premium_action['post_purchase'] ) ) : ?>
+								<p><?php echo esc_html( $premium_action['post_purchase'] ); ?></p>
+							<?php endif; ?>
 						</div>
 
 						<aside class="yobm-premium-status" aria-label="<?php esc_attr_e( 'Premium status', 'wc-blacklist-manager' ); ?>">
@@ -573,12 +661,12 @@ if ( ! class_exists( 'WC_Blacklist_Manager_Premium_CTA' ) ) {
 							</div>
 							<div class="yobm-premium-status-row">
 								<span class="yobm-premium-status-label"><?php esc_html_e( 'Best next step', 'wc-blacklist-manager' ); ?></span>
-								<strong><?php echo esc_html( $premium_installed ? __( 'Activate the license', 'wc-blacklist-manager' ) : __( 'Review the plan', 'wc-blacklist-manager' ) ); ?></strong>
+								<strong><?php echo esc_html( $premium_installed ? __( 'Activate the license', 'wc-blacklist-manager' ) : __( 'Explore the Premium add-on', 'wc-blacklist-manager' ) ); ?></strong>
 							</div>
 						</aside>
 					</section>
 
-					<div class="yobm-premium-value-grid">
+					<div class="yobm-premium-value-grid <?php echo ( $has_evidence || $has_focus ) ? 'is-evidence' : ''; ?>">
 						<?php foreach ( $highlight_cards as $card ) : ?>
 							<article class="yobm-premium-card">
 								<span class="yobm-premium-icon">
@@ -654,13 +742,6 @@ if ( ! class_exists( 'WC_Blacklist_Manager_Premium_CTA' ) ) {
 							<h2><?php esc_html_e( 'Use Free for local lists. Use Premium when patterns keep changing.', 'wc-blacklist-manager' ); ?></h2>
 							<p><?php esc_html_e( 'If blocked customers are rotating details, fraud review is taking too long, or you need clear history for decisions, Premium is the better operating mode.', 'wc-blacklist-manager' ); ?></p>
 						</div>
-						<a
-							class="button button-primary button-hero"
-							href="<?php echo esc_url( $primary_url ); ?>"
-							<?php echo $premium_installed ? '' : 'target="_blank" rel="noopener noreferrer"'; ?>
-						>
-							<?php echo esc_html( $primary_label ); ?>
-						</a>
 					</section>
 				</div>
 			</div>

@@ -304,7 +304,8 @@ final class YOGB_BM_Outcomes {
 		string $evidence_reference,
 		string $event_uuid,
 		string $occurred_at,
-		int $revision
+		int $revision,
+		array $provenance = []
 	) : int {
 		if ( ! self::supports_v2() || ! class_exists( 'YOGB_BM_Outbox' ) ) {
 			return 0;

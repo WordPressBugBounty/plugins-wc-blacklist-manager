@@ -5,22 +5,21 @@ if (!defined('ABSPATH')) {
 ?>
 
 <div class="wrap bm_dashboard yobm-admin-page">
-	<?php if (!$premium_active): ?>
-	<p>Please support us by <a href="https://wordpress.org/support/plugin/wc-blacklist-manager/reviews/#new-post" target="_blank">leaving a review</a> <span style="color: #e26f56;">&#9733;&#9733;&#9733;&#9733;&#9733;</span> to keep updating & improving.</p>
-	<?php endif; ?>
-
-	<h1>
-		<?php echo esc_html__('Blacklist management', 'wc-blacklist-manager'); ?>
+	<div class="yobm-page-header">
+		<h1><?php echo esc_html__('Blacklist management', 'wc-blacklist-manager'); ?></h1>
+		<div class="yobm-page-header__actions">
 		<?php if (get_option('yoohw_settings_disable_menu') != 1): ?>
 			<a href="https://docs.yoohw.com/category/blacklist-manager/" target="_blank" class="button button-secondary yoohw-docs-btn" style="display: inline-flex;"><span class="dashicons dashicons-editor-help"></span> <?php echo esc_html__('Docs', 'wc-blacklist-manager'); ?></a> 
 		<?php endif; ?>
-			<?php if (!$premium_active): ?>
+		<?php if (!$premium_active): ?>
 			<a href="https://yoohw.com/contact-us/" target="_blank" class="button button-secondary"><?php echo esc_html__('Support', 'wc-blacklist-manager'); ?></a>
 		<?php endif; ?>
 		<?php if ($premium_active && get_option('yoohw_settings_disable_menu') != 1): ?>
 			<a href="https://yoohw.com/support/" target="_blank" class="button button-secondary"><?php echo esc_html__('Support', 'wc-blacklist-manager'); ?></a>
 		<?php endif; ?>
-	</h1>
+		</div>
+	</div>
+	<hr class="wp-header-end">
 
 	<?php
 	if (!empty($this->message)) {
@@ -30,10 +29,18 @@ if (!defined('ABSPATH')) {
 	if ( function_exists( 'wc_blacklist_manager_render_action_upsell' ) ) {
 		wc_blacklist_manager_render_action_upsell( 'dashboard' );
 	}
+
+	if ( class_exists( 'WC_Blacklist_Manager_Outcome_Summary' ) ) {
+		WC_Blacklist_Manager_Outcome_Summary::render_card();
+	}
+
+	if ( class_exists( 'WC_Blacklist_Manager_Alert' ) ) {
+		WC_Blacklist_Manager_Alert::render_dashboard_security_panel();
+	}
 	?>
 	<div class="wc-blacklist-container">
-		<div class="form-column">
-			<h2><?php echo esc_html__('Add new', 'wc-blacklist-manager'); ?></h2>
+		<section class="form-column yobm-dashboard-card yobm-quick-add" aria-labelledby="yobm-quick-add-title">
+			<h2 id="yobm-quick-add-title"><?php echo esc_html__( 'Quick add', 'wc-blacklist-manager' ); ?></h2>
 			<?php
 			$last_selected_status = isset($_GET['status']) ? sanitize_text_field($_GET['status']) : 'suspect';
 			
@@ -126,325 +133,93 @@ if (!defined('ABSPATH')) {
 					</tbody>
 				</table>
 			</form>
-		</div>
-		<div class="summary-column">
-			<h2><?php echo esc_html__('Stats overview', 'wc-blacklist-manager'); ?></h2>
-
-			<hr>
-
+		</section>
+		<section class="summary-column yobm-dashboard-card yobm-activity-overview" aria-labelledby="yobm-activity-title">
 			<?php
-			if ( ! $premium_active && function_exists( 'wc_blacklist_manager_render_dashboard_locked_insights' ) ) {
-				wc_blacklist_manager_render_dashboard_locked_insights( 30 );
-			}
+			$activity_model = WC_Blacklist_Manager_Dashboard_Presentation::current_activity_model( $premium_active );
+			$activity_labels = array(
+				'name'    => __( 'Customer name', 'wc-blacklist-manager' ),
+				'phone'   => __( 'Phone number', 'wc-blacklist-manager' ),
+				'email'   => __( 'Email address', 'wc-blacklist-manager' ),
+				'device'  => __( 'Device', 'wc-blacklist-manager' ),
+				'ip'      => __( 'IP address', 'wc-blacklist-manager' ),
+				'address' => __( 'Address', 'wc-blacklist-manager' ),
+				'domain'  => __( 'Email domain', 'wc-blacklist-manager' ),
+			);
 			?>
-
-			<div class="summary-child">
-				<div class="entries-column">
-					<label><span class="dashicons dashicons-list-view" style="margin-right: 5px;"></span> <?php echo esc_html__('Blacklist entries', 'wc-blacklist-manager'); ?></label>
-
-					<table>
-						<tbody>
-							<?php if ( $premium_active ): ?>
-								<tr>
-									<th>
-										<?php echo esc_html__( 'Customer name', 'wc-blacklist-manager' ); ?>
-									</th>
-									<?php if ($customer_name_blocking_enabled === '1'): ?>
-										<td><?php echo esc_html( get_option( 'wc_blacklist_sum_name', 0 ) ); ?></td>
-									<?php else : ?>
-										<td><span class="sum-disabled"><?php echo esc_html__( 'Disabled', 'wc-blacklist-manager' ); ?></span></td>
-									<?php endif; ?>
-								</tr>
-							<?php endif; ?>
-							<tr>
-								<th>
-									<?php echo esc_html__( 'Phone number', 'wc-blacklist-manager' ); ?>
-								</th>
-								<td><?php echo esc_html( get_option( 'wc_blacklist_sum_phone', 0 ) ); ?></td>
-							</tr>
-							<tr>
-								<th>
-									<?php echo esc_html__( 'Email address', 'wc-blacklist-manager' ); ?>
-								</th>
-								<td><?php echo esc_html( get_option( 'wc_blacklist_sum_email', 0 ) ); ?></td>
-							</tr>
-							<?php if ( $premium_active ): ?>
-								<tr>
-									<th>
-										<?php echo esc_html__( 'Device', 'wc-blacklist-manager' ); ?>
-									</th>
-									<?php if ($device_blacklist_enabled === '1'): ?>
-										<td><?php echo esc_html( get_option( 'wc_blacklist_sum_device', 0 ) ); ?></td>
-									<?php else : ?>
-										<td><span class="sum-disabled"><?php echo esc_html__( 'Disabled', 'wc-blacklist-manager' ); ?></span></td>
-									<?php endif; ?>
-								</tr>
-							<?php endif; ?>
-							<tr>
-								<th>
-									<?php echo esc_html__( 'IP address', 'wc-blacklist-manager' ); ?>
-								</th>
-								<?php if ($ip_blocking_enabled === '1' || $ip_blocking_enabled === '2'): ?>
-									<td><?php echo esc_html( get_option( 'wc_blacklist_sum_ip', 0 ) ); ?></td>
-								<?php else : ?>
-									<td><span class="sum-disabled"><?php echo esc_html__( 'Disabled', 'wc-blacklist-manager' ); ?></span></td>
-								<?php endif; ?>
-							</tr>
-							<?php if ( $premium_active ): ?>
-								<tr>
-									<th>
-										<?php echo esc_html__( 'Address', 'wc-blacklist-manager' ); ?>
-									</th>
-									<?php if ($address_blocking_enabled === '1'): ?>
-										<td><?php echo esc_html( get_option( 'wc_blacklist_sum_address', 0 ) ); ?></td>
-									<?php else : ?>
-										<td><span class="sum-disabled"><?php echo esc_html__( 'Disabled', 'wc-blacklist-manager' ); ?></span></td>
-									<?php endif; ?>
-								</tr>
-							<?php endif; ?>
-							<tr>
-								<th>
-									<?php echo esc_html__( 'Email domain', 'wc-blacklist-manager' ); ?>
-								</th>
-								<?php if ($domain_blocking_enabled === '1'): ?>
-									<td><?php echo esc_html( get_option( 'wc_blacklist_sum_domain', 0 ) ); ?></td>
-								<?php else : ?>
-									<td><span class="sum-disabled"><?php echo esc_html__( 'Disabled', 'wc-blacklist-manager' ); ?></span></td>
-								<?php endif; ?>
-							</tr>
-							<tr>
-								<th>
-									<strong><?php echo esc_html__( 'Total', 'wc-blacklist-manager' ); ?></strong>
-								</th>
-								<td>
-									<strong><?php echo esc_html( get_option( 'wc_blacklist_sum_total', 0 ) ); ?></strong>
-								</td>
-							</tr>
-						</tbody>
-					</table>
-
-					<hr>
-
-					<?php
-					$is_global_enabled = ( '1' === get_option( 'wc_blacklist_enable_global_blacklist', '0' ) );
-
-					// Build enable URL (admin-post handler with nonce)
-					$enable_url = wp_nonce_url(
-						admin_url( 'admin-post.php?action=enable_global_blacklist' ),
-						'enable_global_blacklist'
-					);
-
-					$api_key     = trim( (string) get_option( 'yogb_bm_api_key', '' ) );
-					$api_secret  = trim( (string) get_option( 'yogb_bm_api_secret', '' ) );
-					$reporter_id = trim( (string) get_option( 'yogb_bm_reporter_id', '' ) );
-
-					$missing_connection = ( '' === $api_key || '' === $api_secret || '' === $reporter_id );
-
-					// Tier (default to "free")
-					$tier          = get_option( 'yogb_bm_tier', 'free' );
-					$allowed_tiers = array( 'free', 'basic', 'pro', 'enterprise' );
-					if ( ! in_array( $tier, $allowed_tiers, true ) ) {
-						$tier = 'free';
-					}
-
-					// Pretty label
-					switch ( $tier ) {
-						case 'basic':
-							$tier_label = __( 'Basic', 'wc-blacklist-manager' );
-							break;
-						case 'pro':
-							$tier_label = __( 'Pro', 'wc-blacklist-manager' );
-							break;
-						case 'enterprise':
-							$tier_label = __( 'Enterprise', 'wc-blacklist-manager' );
-							break;
-						case 'free':
-						default:
-							$tier_label = __( 'Free', 'wc-blacklist-manager' );
-							break;
-					}
-					?>
-
-					<?php if ( ! $is_global_enabled ) : ?>						
-						<span class="bm-notice">
-							<img
-								src="<?php echo esc_url( plugins_url( '../../../img/shield-slash.svg', __FILE__ ) ); ?>"
-								width="16"
-								height="16"
-								alt="<?php esc_attr_e( 'Global Blacklist Decisions disabled', 'wc-blacklist-manager' ); ?>"
-							/>
-							<?php echo esc_html__( 'Global Blacklist Decisions is inactive.', 'wc-blacklist-manager' ); ?>
-							<a href="<?php echo esc_url( $enable_url ); ?>">
-								[<?php echo esc_html__( 'Enable', 'wc-blacklist-manager' ); ?>]
-							</a>
-							<span 
-								class="woocommerce-help-tip" 
-								tabindex="0" 
-								data-tip="<?php esc_attr_e('Global Blacklist works alongside your site’s local blacklist to add extra protection by identifying real customers already flagged on our global blacklist (not bots), helping you block known high-risk users more accurately.', 'wc-blacklist-manager'); ?>">
-							</span>
-						</span>
-					<?php else : ?>
-						<?php if ( $missing_connection ) : ?>
-							<span class="bm-notice">
-								<img
-									src="<?php echo esc_url( plugins_url( '../../../img/shield-security-risk.svg', __FILE__ ) ); ?>"
-									width="16"
-									height="16"
-									alt="<?php esc_attr_e( 'Global Blacklist Decisions disconnected', 'wc-blacklist-manager' ); ?>"
-								/>
-								<?php echo esc_html__( 'Your site is disconnected from Global Blacklist Decisions.', 'wc-blacklist-manager' ); ?>
-								<a href="<?php echo esc_url( admin_url( 'admin.php?page=wc-blacklist-manager-settings#global_blacklist' ) ); ?>">
-									[<?php echo esc_html__('Review', 'wc-blacklist-manager'); ?>]
-								</a>
-								<span 
-									class="woocommerce-help-tip" 
-									tabindex="0" 
-									data-tip="<?php esc_attr_e('Global Blacklist works alongside your site’s local blacklist to add extra protection by identifying real customers already flagged on our global blacklist (not bots), helping you block known high-risk users more accurately.', 'wc-blacklist-manager'); ?>">
-								</span>
-							</span>							
-						<?php else : ?>
-							<span class="bm-notice bm-notice--active">
-								<img
-									src="<?php echo esc_url( plugins_url( '../../../img/globe-shield.svg', __FILE__ ) ); ?>"
-									width="16"
-									height="16"
-									alt="<?php esc_attr_e( 'Global Blacklist Decisions enabled', 'wc-blacklist-manager' ); ?>"
-								/>
-								<?php echo esc_html__( 'Your site is protected by Global Blacklist Decisions.', 'wc-blacklist-manager' ); ?>
-
-								<span 
-									class="woocommerce-help-tip" 
-									tabindex="0" 
-									data-tip="<?php esc_attr_e('Global Blacklist works alongside your site’s local blacklist to add extra protection by identifying real customers already flagged on our global blacklist (not bots), helping you block known high-risk users more accurately.', 'wc-blacklist-manager'); ?>">
-								</span>
-
-								<span class="yogb-tier-badge yogb-tier-<?php echo esc_attr( $tier ); ?>">
-									<span class="yogb-tier-dot"></span>
-									<span class="yogb-tier-text">
-										<?php echo esc_html( $tier_label ); ?>
-									</span>
-								</span>
-							</span>
-						<?php endif; ?>
-					<?php endif; ?>
-
+			<div class="yobm-activity-overview__heading">
+				<div>
+					<p class="yobm-outcome-summary__eyebrow"><?php echo esc_html__( 'Site-local totals', 'wc-blacklist-manager' ); ?></p>
+					<h2 id="yobm-activity-title"><?php echo esc_html__( 'Blacklist activity', 'wc-blacklist-manager' ); ?></h2>
 				</div>
-				<div class="attempts-column">
-					<label><span class="dashicons dashicons-shield-alt" style="margin-right: 5px;"></span> <?php echo esc_html__('Detection attempts', 'wc-blacklist-manager'); ?></label>
+				<a href="#blacklisted" class="yobm-manage-link"><?php echo esc_html__( 'Manage blacklist', 'wc-blacklist-manager' ); ?></a>
+			</div>
 
-					<table>
-						<tbody>
-							<?php if ( $premium_active ): ?>
-								<tr>
-									<th>
-										<?php echo esc_html__( 'Customer name', 'wc-blacklist-manager' ); ?>
-									</th>
-									<?php if ($customer_name_blocking_enabled === '1'): ?>
-										<td><?php echo esc_html( get_option( 'wc_blacklist_sum_block_name', 0 ) ); ?></td>
-									<?php else : ?>
-										<td><span class="sum-disabled"><?php echo esc_html__( 'Disabled', 'wc-blacklist-manager' ); ?></span></td>
-									<?php endif; ?>
-								</tr>
-							<?php endif; ?>
-							<tr>
-								<th>
-									<?php echo esc_html__( 'Phone number', 'wc-blacklist-manager' ); ?>
-								</th>
-								<td><?php echo esc_html( get_option( 'wc_blacklist_sum_block_phone', 0 ) ); ?></td>
-							</tr>
-							<tr>
-								<th>
-									<?php echo esc_html__( 'Email address', 'wc-blacklist-manager' ); ?>
-								</th>
-								<td><?php echo esc_html( get_option( 'wc_blacklist_sum_block_email', 0 ) ); ?></td>
-							</tr>
-							<?php if ( $premium_active ): ?>
-								<tr>
-									<th>
-										<?php echo esc_html__( 'Device', 'wc-blacklist-manager' ); ?>
-									</th>
-									<?php if ($device_blacklist_enabled === '1'): ?>
-										<td><?php echo esc_html( get_option( 'wc_blacklist_sum_block_device', 0 ) ); ?></td>
-									<?php else : ?>
-										<td><span class="sum-disabled"><?php echo esc_html__( 'Disabled', 'wc-blacklist-manager' ); ?></span></td>
-									<?php endif; ?>
-								</tr>
-							<?php endif; ?>
-							<tr>
-								<th>
-									<?php echo esc_html__( 'IP address', 'wc-blacklist-manager' ); ?>
-								</th>
-								<?php if ($ip_blocking_enabled === '1' || $ip_blocking_enabled === '2'): ?>
-									<td><?php echo esc_html( get_option( 'wc_blacklist_sum_block_ip', 0 ) ); ?></td>
-								<?php else : ?>
-									<td><span class="sum-disabled"><?php echo esc_html__( 'Disabled', 'wc-blacklist-manager' ); ?></span></td>
-								<?php endif; ?>
-							</tr>
-							<?php if ( $premium_active ): ?>
-								<tr>
-									<th>
-										<?php echo esc_html__( 'Address', 'wc-blacklist-manager' ); ?>
-									</th>
-									<?php if ($address_blocking_enabled === '1'): ?>
-										<td><?php echo esc_html( get_option( 'wc_blacklist_sum_block_address', 0 ) ); ?></td>
-									<?php else : ?>
-										<td><span class="sum-disabled"><?php echo esc_html__( 'Disabled', 'wc-blacklist-manager' ); ?></span></td>
-									<?php endif; ?>
-								</tr>
-							<?php endif; ?>
-							<tr>
-								<th>
-									<?php echo esc_html__( 'Email domain', 'wc-blacklist-manager' ); ?>
-								</th>
-								<?php if ($domain_blocking_enabled === '1'): ?>
-									<td><?php echo esc_html( get_option( 'wc_blacklist_sum_block_domain', 0 ) ); ?></td>
-								<?php else : ?>
-									<td><span class="sum-disabled"><?php echo esc_html__( 'Disabled', 'wc-blacklist-manager' ); ?></span></td>
-								<?php endif; ?>
-							</tr>
-							<tr>
-								<th>
-									<?php if ($premium_active): ?>
-										• <?php echo esc_html__( 'Other', 'wc-blacklist-manager' ); ?> - 										
-									<?php endif; ?>
-									<strong><?php echo esc_html__( 'Total', 'wc-blacklist-manager' ); ?></strong>
-								</th>
-								<td>
-									<strong><?php echo esc_html( get_option( 'wc_blacklist_sum_block_total', 0 ) ); ?></strong>
-								</td>
-							</tr>
-						</tbody>
-					</table>
-
-					<hr>
-
-					<span class="bm-actions">
-						<?php if ($premium_active): ?>
-							<a href="<?php echo esc_url( admin_url( 'admin.php?page=wc-blacklist-manager-activity-logs' ) ); ?>"><?php echo esc_html__('See activity logs', 'wc-blacklist-manager'); ?></a>
-						<?php else: ?>
-							<a href='<?php echo esc_url( $unlock_url ); ?>' target='_blank' class='premium-label'><?php echo esc_html__( 'Unlock Activity Logs', 'wc-blacklist-manager' ); ?></a>
-						<?php endif; ?>
-					</span>
+			<div class="yobm-activity-overview__totals">
+				<div>
+					<span><?php echo esc_html__( 'Blacklist entries', 'wc-blacklist-manager' ); ?></span>
+					<strong><?php echo esc_html( number_format_i18n( $activity_model['entries_total'] ) ); ?></strong>
+				</div>
+				<div>
+					<span><?php echo esc_html__( 'Detection attempts', 'wc-blacklist-manager' ); ?></span>
+					<strong><?php echo esc_html( number_format_i18n( $activity_model['attempts_total'] ) ); ?></strong>
 				</div>
 			</div>
-		</div>
+
+			<div class="yobm-activity-overview__table-wrap">
+				<table class="yobm-activity-overview__table">
+					<thead>
+						<tr>
+							<th scope="col"><?php echo esc_html__( 'Signal', 'wc-blacklist-manager' ); ?></th>
+							<th scope="col"><?php echo esc_html__( 'Entries', 'wc-blacklist-manager' ); ?></th>
+							<th scope="col"><?php echo esc_html__( 'Attempts', 'wc-blacklist-manager' ); ?></th>
+						</tr>
+					</thead>
+					<tbody>
+						<?php foreach ( $activity_model['rows'] as $activity_row ) : ?>
+							<tr>
+								<th scope="row"><?php echo esc_html( $activity_labels[ $activity_row['key'] ] ); ?></th>
+								<?php if ( $activity_row['enabled'] ) : ?>
+									<td><?php echo esc_html( number_format_i18n( $activity_row['entries'] ) ); ?></td>
+									<td><?php echo esc_html( number_format_i18n( $activity_row['attempts'] ) ); ?></td>
+								<?php else : ?>
+									<td colspan="2"><span class="sum-disabled"><?php echo esc_html__( 'Disabled', 'wc-blacklist-manager' ); ?></span></td>
+								<?php endif; ?>
+							</tr>
+						<?php endforeach; ?>
+					</tbody>
+				</table>
+			</div>
+
+			<p class="yobm-activity-overview__actions">
+				<?php if ( $premium_active ) : ?>
+					<a href="<?php echo esc_url( admin_url( 'admin.php?page=wc-blacklist-manager-activity-logs' ) ); ?>"><?php echo esc_html__( 'See activity logs', 'wc-blacklist-manager' ); ?></a>
+				<?php endif; ?>
+			</p>
+		</section>
 	</div>
 
-	<div class="yobm-dashboard-toolbar">
+	<div id="yobm-manage-workspace" class="yobm-manage-workspace" role="region" aria-labelledby="yobm-manage-title">
+		<div class="yobm-manage-workspace__heading">
+			<p class="yobm-outcome-summary__eyebrow"><?php echo esc_html__( 'Lists and controls', 'wc-blacklist-manager' ); ?></p>
+			<h2 id="yobm-manage-title"><?php echo esc_html__( 'Manage blacklist', 'wc-blacklist-manager' ); ?></h2>
+		</div>
+
+		<div class="yobm-dashboard-toolbar">
 		<nav class="yobm-admin-tabs yobm-dashboard-tabs" aria-label="<?php echo esc_attr__( 'Blacklist manager lists', 'wc-blacklist-manager' ); ?>">
-			<a href="#blacklisted" class="yobm-admin-tab is-active" data-tab="blacklisted"><?php echo esc_html__('Suspects', 'wc-blacklist-manager'); ?></a>
-			<a href="#blocked" class="yobm-admin-tab" data-tab="blocked"><?php echo esc_html__('Blocklist', 'wc-blacklist-manager'); ?></a>
+			<a id="yobm-tab-blacklisted" href="#blacklisted" class="yobm-admin-tab is-active" data-tab="blacklisted" aria-controls="blacklisted" aria-current="page"><?php echo esc_html__('Suspects', 'wc-blacklist-manager'); ?></a>
+			<a id="yobm-tab-blocked" href="#blocked" class="yobm-admin-tab" data-tab="blocked" aria-controls="blocked"><?php echo esc_html__('Blocklist', 'wc-blacklist-manager'); ?></a>
 			<?php if ( $premium_active && get_option( 'wc_blacklist_enable_device_identity', '0' ) === '1' ): ?>
-				<a href="#device" class="yobm-admin-tab" data-tab="device"><?php echo esc_html__('Device', 'wc-blacklist-manager'); ?></a>
+				<a id="yobm-tab-device" href="#device" class="yobm-admin-tab" data-tab="device" aria-controls="device"><?php echo esc_html__('Device', 'wc-blacklist-manager'); ?></a>
 			<?php endif; ?>
 			<?php if ($ip_blacklist_enabled): ?>
-				<a href="#ip-banned" class="yobm-admin-tab" data-tab="ip-banned"><?php echo esc_html__('IP address', 'wc-blacklist-manager'); ?></a>
+				<a id="yobm-tab-ip-banned" href="#ip-banned" class="yobm-admin-tab" data-tab="ip-banned" aria-controls="ip-banned"><?php echo esc_html__('IP address', 'wc-blacklist-manager'); ?></a>
 			<?php endif; ?>
 			<?php if ($premium_active && $customer_address_blocking_enabled && $woocommerce_active): ?>
-				<a href="#customer-address" class="yobm-admin-tab" data-tab="customer-address"><?php echo esc_html__('Address', 'wc-blacklist-manager'); ?></a>
+				<a id="yobm-tab-customer-address" href="#customer-address" class="yobm-admin-tab" data-tab="customer-address" aria-controls="customer-address"><?php echo esc_html__('Address', 'wc-blacklist-manager'); ?></a>
 			<?php endif; ?>
 			<?php if ($domain_blocking_enabled): ?>
-				<a href="#domain-blocking" class="yobm-admin-tab" data-tab="domain-blocking"><?php echo esc_html__('Domain', 'wc-blacklist-manager'); ?></a>
+				<a id="yobm-tab-domain-blocking" href="#domain-blocking" class="yobm-admin-tab" data-tab="domain-blocking" aria-controls="domain-blocking"><?php echo esc_html__('Domain', 'wc-blacklist-manager'); ?></a>
 			<?php endif; ?>
 		</nav>
 
@@ -457,7 +232,7 @@ if (!defined('ABSPATH')) {
 			</button>
 			<input type="hidden" name="page" value="wc-blacklist-manager" />
 		</form>
-	</div>
+		</div>
 
 	<script>
 	document.getElementById('blacklist_search').addEventListener('input', function() {
@@ -468,8 +243,33 @@ if (!defined('ABSPATH')) {
 	});
 	</script>
 
-	<div class="tab-content">
-		<div id="blacklisted" class="tab-pane active">
+	<?php
+	$render_dashboard_top_pagination = static function ( $total_items, $current_page, $total_pages, $page_arg, $extra_args = array() ) {
+		$page_url = static function ( $page ) use ( $page_arg, $extra_args ) {
+			return add_query_arg(
+				array_merge(
+					array( $page_arg => $page ),
+					$extra_args
+				)
+			);
+		};
+		?>
+		<div class="tablenav-pages">
+			<span class="displaying-num"><?php echo esc_html( $total_items . ' items' ); ?></span>
+			<span class="pagination-links">
+				<a class="button" href="<?php echo esc_url( $page_url( 1 ) ); ?>" title="<?php echo esc_attr__( 'Go to the first page', 'wc-blacklist-manager' ); ?>">&laquo;</a>
+				<a class="button" href="<?php echo esc_url( $page_url( max( 1, $current_page - 1 ) ) ); ?>" title="<?php echo esc_attr__( 'Go to the previous page', 'wc-blacklist-manager' ); ?>">&lsaquo;</a>
+				<span class="paging-input"><?php echo esc_html( $current_page . ' of ' . $total_pages ); ?></span>
+				<a class="button" href="<?php echo esc_url( $page_url( min( $total_pages, $current_page + 1 ) ) ); ?>" title="<?php echo esc_attr__( 'Go to the next page', 'wc-blacklist-manager' ); ?>">&rsaquo;</a>
+				<a class="button" href="<?php echo esc_url( $page_url( $total_pages ) ); ?>" title="<?php echo esc_attr__( 'Go to the last page', 'wc-blacklist-manager' ); ?>">&raquo;</a>
+			</span>
+		</div>
+		<?php
+	};
+	?>
+
+		<div class="tab-content">
+		<div id="blacklisted" class="tab-pane active" aria-labelledby="yobm-tab-blacklisted">
 			<h2><?php echo esc_html__('Suspect entries', 'wc-blacklist-manager'); ?></h2>
 			<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" id="bulk-action-form">
 				<?php wp_nonce_field('yobm_nonce_action', 'yobm_nonce_field'); ?>
@@ -482,6 +282,7 @@ if (!defined('ABSPATH')) {
 						</select>
 						<input type="submit" class="button action" value="<?php echo esc_attr__('Apply', 'wc-blacklist-manager'); ?>" onclick="if(document.getElementById('bulk_action').value === 'delete'){ return confirm('<?php echo esc_js( __( 'Are you sure you want to delete the selected entries?', 'wc-blacklist-manager' ) ); ?>'); }">
 					</div>
+					<?php $render_dashboard_top_pagination( $total_items_blacklisted, $current_page_blacklisted, $total_pages_blacklisted, 'paged_blacklisted' ); ?>
 				</div>
 				<table class="wp-list-table widefat fixed striped">
 					<thead>
@@ -567,7 +368,7 @@ if (!defined('ABSPATH')) {
 				</div>
 			</form>
 		</div>
-		<div id="blocked" class="tab-pane" style="display: none;">
+		<div id="blocked" class="tab-pane" aria-labelledby="yobm-tab-blocked" hidden>
 			<h2><?php echo esc_html__('Blocked entries', 'wc-blacklist-manager'); ?></h2>
 			<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" id="bulk-action-form-blocked">
 				<?php wp_nonce_field('yobm_nonce_action', 'yobm_nonce_field'); ?>
@@ -580,6 +381,7 @@ if (!defined('ABSPATH')) {
 						</select>
 						<input type="submit" class="button action" value="<?php echo esc_attr__('Apply', 'wc-blacklist-manager'); ?>" onclick="if(document.getElementById('bulk_action_blocked').value === 'delete'){ return confirm('<?php echo esc_js( __( 'Are you sure you want to delete the selected entries?', 'wc-blacklist-manager' ) ); ?>'); }">
 					</div>
+					<?php $render_dashboard_top_pagination( $total_items_blocked, $current_page_blocked, $total_pages_blocked, 'paged_blocked', array( 'tab' => 'blocked' ) ); ?>
 				</div>
 				<table class="wp-list-table widefat fixed striped">
 					<thead>
@@ -707,7 +509,7 @@ if (!defined('ABSPATH')) {
 			</form>
 		</div>
 		<?php if ( $premium_active && get_option( 'wc_blacklist_enable_device_identity', '0' ) === '1' ): ?>
-			<div id="device" class="tab-pane" style="display: none;">
+			<div id="device" class="tab-pane" aria-labelledby="yobm-tab-device" hidden>
 				<h2><?php echo esc_html__( 'Device entries', 'wc-blacklist-manager' ); ?></h2>
 				<p class="description"><?php echo esc_html__( 'This tab shows tracked device identities and their activity across the site.', 'wc-blacklist-manager' ); ?></p>
 
@@ -715,6 +517,9 @@ if (!defined('ABSPATH')) {
 				$device_details_nonce = wp_create_nonce( 'wc_blacklist_device_details_nonce' );
 				$device_ajax_url      = admin_url( 'admin-ajax.php' );
 				?>
+				<div class="tablenav top">
+					<?php $render_dashboard_top_pagination( $total_items_device, $current_page_device, $total_pages_device, 'paged_device', array( 'tab' => 'device' ) ); ?>
+				</div>
 				<table class="wp-list-table widefat fixed striped">
 					<thead>
 						<tr>
@@ -973,7 +778,7 @@ if (!defined('ABSPATH')) {
 			</script>
 		<?php endif; ?>
 		<?php if ($ip_blacklist_enabled): ?>
-			<div id="ip-banned" class="tab-pane" style="display: none;">
+			<div id="ip-banned" class="tab-pane" aria-labelledby="yobm-tab-ip-banned" hidden>
 				<h2><?php echo esc_html__('IP entries', 'wc-blacklist-manager'); ?></h2>
 
 				<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" id="add-ip-address-form">
@@ -997,6 +802,7 @@ if (!defined('ABSPATH')) {
 							</select>
 							<input type="submit" class="button action" value="<?php echo esc_attr__('Apply', 'wc-blacklist-manager'); ?>" onclick="if(document.getElementById('bulk_action_ip_banned').value === 'delete'){ return confirm('<?php echo esc_js( __( 'Are you sure you want to delete the selected entries?', 'wc-blacklist-manager' ) ); ?>'); }">
 						</div>
+						<?php $render_dashboard_top_pagination( $total_items_ip_banned, $current_page_ip_banned, $total_pages_ip_banned, 'paged_ip_banned' ); ?>
 					</div>
 					<table class="wp-list-table widefat fixed striped">
 						<thead>
@@ -1023,6 +829,9 @@ if (!defined('ABSPATH')) {
 									if ( $show_reason_col && !empty($entry->reason_code) ) {
 										$reason_label = $reason_map[$entry->reason_code] ?? $entry->reason_code;
 									}
+									$state_semantics = function_exists( 'wc_blacklist_manager_legacy_blacklist_state_semantics' )
+										? wc_blacklist_manager_legacy_blacklist_state_semantics( $entry->is_blocked )
+										: array( 'label' => $entry->is_blocked ? __( 'Blocked', 'wc-blacklist-manager' ) : __( 'Suspect', 'wc-blacklist-manager' ) );
 									?>
 									<tr>
 										<th scope="row" class="check-column">
@@ -1073,9 +882,9 @@ if (!defined('ABSPATH')) {
 											}
 											?>
 										</td>
-										<td><?php echo esc_html( $entry->is_blocked ? __('Blocked', 'wc-blacklist-manager') : __('Suspect', 'wc-blacklist-manager') ); ?></td>
+										<td><?php echo esc_html( $state_semantics['label'] ); ?></td>
 										<td>
-											<?php if ( ! $entry->is_blocked ): ?>
+											<?php if ( 1 !== (int) $entry->is_blocked ): ?>
 												<a href="<?php echo esc_url( wp_nonce_url( add_query_arg(['action' => 'block', 'id' => $entry->id]), 'block_action' ) ); ?>"
 												class="button red-button"
 												onclick="return confirm('<?php echo esc_js(__('Are you sure you want to block this entry?', 'wc-blacklist-manager')); ?>')">
@@ -1130,7 +939,7 @@ if (!defined('ABSPATH')) {
 		<?php endif; ?>
 
 		<?php if ($premium_active && $customer_address_blocking_enabled && $woocommerce_active): ?>
-			<div id="customer-address" class="tab-pane" style="display: none;">
+			<div id="customer-address" class="tab-pane" aria-labelledby="yobm-tab-customer-address" hidden>
 				<h2><?php echo esc_html__( 'Address entries', 'wc-blacklist-manager' ); ?></h2>
 
 				<button type="button" id="add-address-btn" class="button button-primary">
@@ -1283,6 +1092,7 @@ if (!defined('ABSPATH')) {
 								onclick="if(document.getElementById('bulk_action_address').value === 'delete'){ return confirm('<?php echo esc_js( __( 'Are you sure you want to delete the selected entries?', 'wc-blacklist-manager' ) ); ?>'); }"
 							>
 						</div>
+						<?php $render_dashboard_top_pagination( $total_items_address_blocking, $current_page_address_blocking, $total_pages_address_blocking, 'paged_address_blocking' ); ?>
 					</div>
 
 					<table class="wp-list-table widefat fixed striped">
@@ -1462,7 +1272,7 @@ if (!defined('ABSPATH')) {
 		<?php endif; ?>
 		
 		<?php if ($domain_blocking_enabled): ?>
-			<div id="domain-blocking" class="tab-pane" style="display: none;">
+			<div id="domain-blocking" class="tab-pane" aria-labelledby="yobm-tab-domain-blocking" hidden>
 				<h2><?php echo esc_html__('Domain entries', 'wc-blacklist-manager'); ?></h2>
 				<p class="description"><?php echo esc_html__('This is the blocklist of email domains.', 'wc-blacklist-manager'); ?></p>
 				
@@ -1497,6 +1307,7 @@ if (!defined('ABSPATH')) {
 								<option value="delete"><?php echo esc_html__('Delete', 'wc-blacklist-manager'); ?></option>
 							</select>
 							<input type="submit" class="button action" value="<?php echo esc_attr__('Apply', 'wc-blacklist-manager'); ?>" onclick="if(document.getElementById('bulk_action_domain').value === 'delete'){ return confirm('<?php echo esc_js( __( 'Are you sure you want to delete the selected entries?', 'wc-blacklist-manager' ) ); ?>'); }">						</div>
+						<?php $render_dashboard_top_pagination( $total_items_domain_blocking, $current_page_domain_blocking, $total_pages_domain_blocking, 'paged_domain_blocking' ); ?>
 						</div>
 					<table class="wp-list-table widefat fixed striped">
 						<thead>
@@ -1550,5 +1361,6 @@ if (!defined('ABSPATH')) {
 				});
 			</script>
 		<?php endif; ?>
+		</div>
 	</div>
 </div>

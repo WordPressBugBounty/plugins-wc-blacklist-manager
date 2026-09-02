@@ -217,6 +217,7 @@ final class YOGB_BM_Check_Orders {
 		$attempts = absint( $order->get_meta( self::META_CHECK_ATTEMPTS, true ) );
 		$attempts++;
 
+		self::invalidate_current_decision_context( $order );
 		$order->update_meta_data( self::META_CHECK_STATUS, 'pending' );
 		$order->update_meta_data( self::META_CHECK_ATTEMPTS, $attempts );
 		$order->update_meta_data( self::META_CHECK_STARTED_AT, time() );
@@ -690,6 +691,7 @@ final class YOGB_BM_Check_Orders {
 					$http_code
 				)
 			);
+			self::invalidate_current_decision_context( $order );
 			$order->update_meta_data( self::META_DECISION, 'skipped_rate_limit' );
 			$order->update_meta_data( self::META_TIER, $tier );
 			$order->update_meta_data( self::META_CHECK_STATUS, 'skipped_rate_limit' );
@@ -715,6 +717,7 @@ final class YOGB_BM_Check_Orders {
 			$retry_delay   = $will_retry ? self::get_retry_delay_seconds( $attempt, $resp ) : 0;
 			$retry_at      = $will_retry ? time() + $retry_delay : 0;
 
+			self::invalidate_current_decision_context( $order );
 			$order->update_meta_data( self::META_DECISION, 'check_failed' );
 			$order->update_meta_data( self::META_TIER, $tier );
 			$order->update_meta_data( self::META_CHECK_STATUS, 'failed' );
@@ -759,6 +762,24 @@ final class YOGB_BM_Check_Orders {
 		$tier      = '' !== (string) $snapshot['tier'] ? (string) $snapshot['tier'] : $tier;
 		$summary   = (string) $snapshot['summary'];
 		$reason    = (string) $snapshot['reason_code'];
+
+		if ( empty( $snapshot['decision_valid'] ) ) {
+			self::invalidate_current_decision_context( $order );
+			$order->update_meta_data( self::META_DECISION, 'unknown' );
+			$order->update_meta_data( self::META_TIER, $tier );
+			$order->update_meta_data( self::META_CHECK_STATUS, 'success' );
+			$order->update_meta_data( self::META_CHECKED, 1 );
+			$order->delete_meta_data( self::META_CHECK_LAST_ERROR );
+			$order->delete_meta_data( self::META_CHECK_LAST_HTTP_CODE );
+			$order->delete_meta_data( self::META_CHECK_NEXT_RETRY_AT );
+			$order->add_order_note(
+				__( 'Global Blacklist Decisions returned a result that could not be interpreted. Order allowed by default.', 'wc-blacklist-manager' )
+			);
+			$order->save();
+
+			do_action( 'yogb_after_gbl_check', $order->get_id(), 'yogb_gbl_run_check_async' );
+			return;
+		}
 
 		$order->update_meta_data( self::META_DECISION, $decision );
 		$order->update_meta_data( self::META_TIER, $tier );
@@ -821,17 +842,20 @@ final class YOGB_BM_Check_Orders {
 			wp_die( esc_html__( 'Invalid order.', 'wc-blacklist-manager' ) );
 		}
 
-		if ( ! current_user_can( 'edit_shop_order', $order_id ) ) {
-			wp_die( esc_html__( 'You do not have permission to recheck this order.', 'wc-blacklist-manager' ) );
-		}
-
-		check_admin_referer( 'yogb_gbl_manual_order_check_' . $order_id );
-
 		$order = wc_get_order( $order_id );
 
 		if ( ! $order instanceof WC_Order ) {
 			wp_die( esc_html__( 'Order not found.', 'wc-blacklist-manager' ) );
 		}
+
+		if (
+			! function_exists( 'wc_blacklist_manager_user_can_moderate_order' )
+			|| ! wc_blacklist_manager_user_can_moderate_order( $order )
+		) {
+			wp_die( esc_html__( 'You do not have permission to recheck this order.', 'wc-blacklist-manager' ) );
+		}
+
+		check_admin_referer( 'yogb_gbl_manual_order_check_' . $order_id );
 
 		self::reset_order_check_state( $order );
 		$order->save();
@@ -853,6 +877,7 @@ final class YOGB_BM_Check_Orders {
 
 	private static function reset_order_check_state( WC_Order $order ) : void {
 		// Allow recheck even if a previous async attempt marked it checked or failed.
+		self::invalidate_current_decision_context( $order );
 		$order->delete_meta_data( self::META_CHECKED );
 		$order->delete_meta_data( self::META_CHECK_STATUS );
 		$order->delete_meta_data( self::META_CHECK_ATTEMPTS );
@@ -864,6 +889,25 @@ final class YOGB_BM_Check_Orders {
 		if ( '' !== $transfer_key ) {
 			delete_transient( $transfer_key );
 		}
+	}
+
+	private static function invalidate_current_decision_context( WC_Order $order ) : void {
+		foreach (
+			[
+				self::META_DECISION,
+				self::META_DECISION_REF,
+				self::META_DECISION_AT,
+				self::META_DECISION_SUMMARY,
+				self::META_DECISION_REASON_CODE,
+				self::META_RESPONSE_SCHEMA,
+				self::META_DETAIL_AVAILABLE,
+				self::META_STORAGE_PROFILE,
+				self::META_MATCH_SUMMARY,
+			] as $meta_key
+		) {
+			$order->delete_meta_data( $meta_key );
+		}
+		self::delete_legacy_verbose_meta( $order );
 	}
 
 	public static function register_bulk_recheck_action( array $actions ) : array {

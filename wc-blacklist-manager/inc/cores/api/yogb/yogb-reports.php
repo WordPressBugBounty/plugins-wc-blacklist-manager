@@ -96,10 +96,12 @@ final class YOGB_BM_Report {
 			$body = json_decode( $res['body'] ?? '', true );
 
 			if ( is_array( $body ) && ! empty( $body['report_id'] ) ) {
-				$report_id = (string) $body['report_id']; // e.g. "rpt_123"
+				$report_id = class_exists( 'YOGB_BM_Report_V2' )
+					? YOGB_BM_Report_V2::normalize_report_reference( $body['report_id'] )
+					: (string) $body['report_id']; // e.g. "rpt_123"
 
 				$order = wc_get_order( $order_id );
-				if ( $order ) {
+				if ( $order && '' !== $report_id ) {
 					$existing = $order->get_meta( '_yogb_gbl_report_ids', true );
 					if ( ! is_array( $existing ) ) {
 						$existing = $existing ? [ (string) $existing ] : [];
@@ -128,6 +130,10 @@ final class YOGB_BM_Report {
 
 	/** True if we have credentials. */
 	public static function is_ready() : bool {
+		if ( class_exists( 'YOGB_BM_Registrar' ) ) {
+			$snapshot = YOGB_BM_Registrar::committed_credential_snapshot( false );
+			return ! empty( $snapshot['ok'] );
+		}
 		return (bool) get_option( self::OPT_KEY ) && (bool) get_option( self::OPT_SECRET );
 	}
 
@@ -743,7 +749,7 @@ final class YOGB_BM_Report {
 
 	/** POST JSON with HMAC headers to the server. */
 	public static function post_json_signed( string $route, array $payload, array $extra_headers = [] ) : array {
-		if ( ! self::is_ready() ) {
+		if ( ! class_exists( 'YOGB_BM_Registrar' ) && ! self::is_ready() ) {
 			return [
 				'ok'   => false,
 				'code' => 0,
@@ -761,14 +767,46 @@ final class YOGB_BM_Report {
 			];
 		}
 
+		return self::post_raw_json_signed( $route, $body, $extra_headers, $payload );
+	}
+
+	/** POST already serialized JSON bytes without rebuilding them. */
+	public static function post_raw_json_signed( string $route, string $body, array $extra_headers = [], array $filter_payload = [], bool $lock_body = false ) : array {
+		$credential_snapshot = [];
+		if ( class_exists( 'YOGB_BM_Registrar' ) ) {
+			$credential_snapshot = YOGB_BM_Registrar::committed_credential_snapshot( false );
+			if ( empty( $credential_snapshot['ok'] ) ) {
+				$status = sanitize_key( (string) ( $credential_snapshot['status'] ?? 'auth_paused' ) );
+				$paused = 'not_configured' !== $status;
+				return [
+					'ok'         => false,
+					'code'       => 0,
+					'err'        => $paused ? 'auth_paused' : 'not_ready',
+					'error_code' => $paused ? 'auth_paused' : 'not_ready',
+				];
+			}
+		} elseif ( ! self::is_ready() ) {
+			return [ 'ok' => false, 'code' => 0, 'err' => 'not_ready' ];
+		}
+		if ( '' === $body || ! is_array( json_decode( $body, true ) ) ) {
+			return [
+				'ok'   => false,
+				'code' => 0,
+				'err'  => 'invalid_json_body',
+			];
+		}
+
 		$url    = trailingslashit( self::server_base() ) . 'wp-json' . $route;
 		$method = 'POST';
 
 		$ts    = (string) time();
 		$nonce = wp_generate_uuid4();
 
-		$api_key = (string) get_option( self::OPT_KEY );
-		$secret  = (string) get_option( self::OPT_SECRET );
+		$api_key = ! empty( $credential_snapshot ) ? (string) $credential_snapshot['api_key'] : (string) get_option( self::OPT_KEY );
+		$secret  = ! empty( $credential_snapshot ) ? (string) $credential_snapshot['api_secret'] : (string) get_option( self::OPT_SECRET );
+		$credential_fingerprint = class_exists( 'YOGB_BM_Registrar' )
+			? (string) $credential_snapshot['credential_fingerprint']
+			: hash( 'sha256', $api_key . "\0" . $secret );
 
 		$canon = implode( "\n", [
 			$method,
@@ -801,7 +839,7 @@ final class YOGB_BM_Report {
 		}
 
 		// Allow override via filter if needed.
-		$timeout = (int) apply_filters( 'yogb_bm_http_timeout', $default_timeout, $route, $payload );
+		$timeout = (int) apply_filters( 'yogb_bm_http_timeout', $default_timeout, $route, $filter_payload );
 
 		$args = [
 			'method'      => 'POST',
@@ -821,9 +859,33 @@ final class YOGB_BM_Report {
 		/**
 		 * Final chance to tweak args (debug proxies, etc).
 		 */
-		$args = apply_filters( 'yogb_bm_http_request_args', $args, $route, $payload );
+		$args = apply_filters( 'yogb_bm_http_request_args', $args, $route, $filter_payload );
+		if ( $lock_body && ( ! isset( $args['body'] ) || ! is_string( $args['body'] ) || ! hash_equals( $body, $args['body'] ) ) ) {
+			return [
+				'ok'         => false,
+				'code'       => 0,
+				'err'        => 'exact_body_filter_conflict',
+				'error_code' => 'exact_body_filter_conflict',
+			];
+		}
+		if ( class_exists( 'YOGB_BM_Registrar' ) && ! YOGB_BM_Registrar::credential_snapshot_is_current( $credential_snapshot ) ) {
+			return [
+				'ok'         => false,
+				'code'       => 0,
+				'err'        => 'auth_paused',
+				'error_code' => 'credential_epoch_changed',
+			];
+		}
 
 		$res = $allow_unsafe_local ? wp_remote_post( $url, $args ) : wp_safe_remote_post( $url, $args );
+		if ( class_exists( 'YOGB_BM_Registrar' ) && ! YOGB_BM_Registrar::credential_snapshot_is_current( $credential_snapshot ) ) {
+			return [
+				'ok'         => false,
+				'code'       => 0,
+				'err'        => 'auth_paused',
+				'error_code' => 'credential_epoch_changed',
+			];
+		}
 
 		if ( is_wp_error( $res ) ) {
 			// Timeout / DNS / SSL / connection issues.
@@ -845,7 +907,7 @@ final class YOGB_BM_Report {
 			: '';
 		$retry_after = max( 0, (int) wp_remote_retrieve_header( $res, 'retry-after' ) );
 		if ( 401 === $code && class_exists( 'YOGB_BM_Registrar' ) ) {
-			YOGB_BM_Registrar::handle_auth_failure( 'signed_post' );
+			YOGB_BM_Registrar::handle_auth_failure( 'signed_post', $credential_fingerprint );
 		} elseif ( $code >= 200 && $code < 300 && class_exists( 'YOGB_BM_Registrar' ) ) {
 			YOGB_BM_Registrar::mark_auth_success();
 		} elseif ( in_array( $error_code, [ 'plan_quota_exceeded', 'rate_limited' ], true ) && class_exists( 'YOGB_BM_Registrar' ) ) {
@@ -863,6 +925,7 @@ final class YOGB_BM_Report {
 			'body' => $rb,
 			'error_code' => $error_code,
 			'retry_after' => $retry_after,
+			'credential_fingerprint' => $credential_fingerprint,
 		];
 	}
 }

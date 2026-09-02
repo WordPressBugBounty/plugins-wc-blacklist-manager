@@ -61,9 +61,8 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 										'description' => __( 'Add branded footer text to blacklist notification emails without editing templates.', 'wc-blacklist-manager' ),
 									),
 								),
-								array( 'columns' => 1 )
+								array( 'compact' => true )
 							);
-							wc_blacklist_manager_render_premium_inline_cta( $unlock_url, 'notifications' );
 							?>
 						</td>
 					</tr>
@@ -106,6 +105,7 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 					'unlock_url'  => $unlock_url,
 					'context'     => 'notifications',
 					'icon'        => 'dashicons-email-alt',
+					'candidate_id' => 'premium.passive.notifications.emails.banner',
 				)
 			);
 
@@ -132,7 +132,7 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 
 			wc_blacklist_manager_render_premium_preview_cards(
 				$notification_preview_cards,
-				array( 'columns' => $form_active ? 3 : 2 )
+				array( 'compact' => true )
 			);
 			?>
 		<?php endif; ?>

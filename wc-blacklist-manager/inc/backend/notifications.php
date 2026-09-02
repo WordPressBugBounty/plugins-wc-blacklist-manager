@@ -77,10 +77,6 @@ class WC_Blacklist_Manager_Notifications {
 		$active_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'emails';
 		?>
 		<div class="wrap yobm-admin-page">
-			<?php if (!$premium_active): ?>
-				<p>Please support us by <a href="https://wordpress.org/support/plugin/wc-blacklist-manager/reviews/#new-post" target="_blank">leaving a review</a> <span style="color: #e26f56;">&#9733;&#9733;&#9733;&#9733;&#9733;</span> to keep updating & improving.</p>
-			<?php endif; ?>
-
 			<h1>
 				<?php echo esc_html__('Notifications', 'wc-blacklist-manager'); ?>
 				<?php if (get_option('yoohw_settings_disable_menu') != 1): ?>
@@ -114,7 +110,7 @@ class WC_Blacklist_Manager_Notifications {
 		$settings_instance = new WC_Blacklist_Manager_Settings();
 		$premium_active = $settings_instance->is_premium_active();
 		$woocommerce_active = class_exists( 'WooCommerce' );
-		$unlock_url = 'https://yoohw.com/product/blacklist-manager-premium/';
+		$unlock_url = WC_Blacklist_Manager_Commercial_Router::premium_destination_url();
 
 		$form_active = (class_exists( 'WPCF7' ) || class_exists( 'GFCommon' ) || class_exists( 'WPForms\WPForms' ));
 		$message = $this->handle_emails_form_submission();
@@ -133,7 +129,7 @@ class WC_Blacklist_Manager_Notifications {
 		$settings_instance = new WC_Blacklist_Manager_Settings();
 		$premium_active = $settings_instance->is_premium_active();
 		$woocommerce_active = class_exists( 'WooCommerce' );
-		$unlock_url = 'https://yoohw.com/product/blacklist-manager-premium/';
+		$unlock_url = WC_Blacklist_Manager_Commercial_Router::premium_destination_url();
 			
 		$form_active = (class_exists( 'WPCF7' ) || class_exists( 'GFCommon' ) || class_exists( 'WPForms\WPForms' ));
 		$message = $this->handle_notices_form_submission();

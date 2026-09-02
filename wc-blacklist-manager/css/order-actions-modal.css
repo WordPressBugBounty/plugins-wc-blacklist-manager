@@ -1,0 +1,60 @@
+.yobm-order-action-modal .wc-backbone-modal-main article {
+	padding: 20px;
+}
+
+.yobm-order-action-modal .yobm-order-action-field {
+	margin-bottom: 16px;
+}
+
+.yobm-order-action-modal .yobm-order-action-field:last-child {
+	margin-bottom: 0;
+}
+
+.yobm-order-action-modal label {
+	display: block;
+	margin-bottom: 6px;
+	font-weight: 600;
+}
+
+.yobm-order-action-modal select,
+.yobm-order-action-modal textarea {
+	box-sizing: border-box;
+	width: 100%;
+}
+
+.yobm-order-action-modal .yobm-order-action-reason-description p {
+	margin: 0;
+	color: #50575e;
+}
+
+.yobm-order-action-modal .yobm-order-action-cta {
+	padding: 12px;
+	border: 1px solid #c3dafe;
+	border-radius: 4px;
+	background: #f0f6ff;
+}
+
+.yobm-order-action-modal .yobm-order-action-cta strong {
+	display: block;
+	margin-bottom: 4px;
+}
+
+.yobm-order-action-modal .yobm-order-action-cta p {
+	margin: 0 0 10px;
+	color: #50575e;
+}
+
+.yobm-order-action-modal .yobm-order-action-error {
+	margin-top: 12px;
+	color: #b32d2e;
+}
+
+.yobm-order-action-modal [aria-disabled="true"] {
+	cursor: wait;
+}
+
+@media screen and (max-width: 782px) {
+	.yobm-order-action-modal .wc-backbone-modal-main article {
+		padding: 16px;
+	}
+}

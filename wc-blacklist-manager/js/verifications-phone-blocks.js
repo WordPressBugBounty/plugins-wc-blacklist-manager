@@ -3,7 +3,6 @@ jQuery(function ($) {
   var namespace = cfg.namespace || 'wc-blacklist-manager-phone-verification';
 
   var resendTimer = null;
-  var smsFailureTimer = null;
   var noticeDebounceTimer = null;
   var noticeObserver = null;
   var resendButtonEnabled = false;
@@ -295,12 +294,10 @@ jQuery(function ($) {
       if (resp.data.required === false) {
         setVerifiedState(phone);
         removeExistingVerificationUi();
-        stopSmsFailurePolling();
         return;
       }
 
       codeSentForPhone = phone;
-      startSmsFailurePolling();
       showMessage(isResend ? cfg.code_resent_message : cfg.code_sent_message, false);
       startCountdown();
     }).fail(function () {
@@ -414,7 +411,6 @@ jQuery(function ($) {
       if (resp.success) {
         setVerifiedState(phone);
         clearResendTimer();
-        stopSmsFailurePolling();
         showMessage(resp.data.message || cfg.verification_success_message, false);
 
         setTimeout(function () {
@@ -458,40 +454,10 @@ jQuery(function ($) {
       activeNoticePhone = phone;
       removeExistingVerificationUi();
       clearResendTimer();
-      stopSmsFailurePolling();
     }
 
     scheduleVerificationNoticeCheck(350);
   });
-
-  function pollSmsFailure() {
-    $.post(cfg.ajax_url, {
-      action: 'check_sms_verification_status',
-      security: cfg.nonce
-    }, function (resp) {
-      if (resp.success && resp.data && resp.data.failed) {
-        alert(cfg.verification_failed_message);
-        location.reload();
-      }
-    });
-  }
-
-  function startSmsFailurePolling() {
-    if (smsFailureTimer) {
-      return;
-    }
-
-    smsFailureTimer = setInterval(pollSmsFailure, 3000);
-  }
-
-  function stopSmsFailurePolling() {
-    if (!smsFailureTimer) {
-      return;
-    }
-
-    clearInterval(smsFailureTimer);
-    smsFailureTimer = null;
-  }
 
   function observeVerificationNotices() {
     if (noticeObserver || typeof MutationObserver === 'undefined') {

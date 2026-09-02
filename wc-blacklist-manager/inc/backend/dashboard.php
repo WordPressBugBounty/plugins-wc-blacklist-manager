@@ -455,7 +455,7 @@ class WC_Blacklist_Manager_Dashboard {
 		$premium_active = $this->is_premium_active();
 
 		$woocommerce_active = class_exists( 'WooCommerce' );
-		$unlock_url         = 'https://yoohw.com/product/blacklist-manager-premium/';
+		$unlock_url         = WC_Blacklist_Manager_Commercial_Router::premium_destination_url();
 
 		$action = isset( $_GET['action'] ) ? sanitize_text_field( wp_unslash( $_GET['action'] ) ) : '';
 		$id     = isset( $_GET['id'] ) ? absint( wp_unslash( $_GET['id'] ) ) : 0;
@@ -488,7 +488,6 @@ class WC_Blacklist_Manager_Dashboard {
 		$this->handle_messages();
 
 		$search_query = $this->handle_search();
-		$entries      = $this->fetch_entries_by_search_words( $search_query );
 		$message      = $this->handle_form_submission();
 
 		$blacklisted_data = $this->handle_pagination(
@@ -604,42 +603,6 @@ class WC_Blacklist_Manager_Dashboard {
 		}
 
 		return $search_query;
-	}
-
-	private function fetch_entries_by_search_words( $search_query ) {
-		$search_words = array_filter( array_map( 'sanitize_text_field', explode( ' ', $search_query ) ) );
-
-		if ( empty( $search_words ) ) {
-			$sql = "SELECT * FROM {$this->table_name}";
-		} else {
-			$like_clauses = array_map(
-				function( $word ) {
-					$like = '%' . $this->wpdb->esc_like( $word ) . '%';
-
-					return $this->wpdb->prepare(
-						"(phone_number LIKE %s
-						OR email_address LIKE %s
-						OR ip_address LIKE %s
-						OR domain LIKE %s
-						OR customer_address LIKE %s
-						OR first_name LIKE %s
-						OR last_name LIKE %s)",
-						$like,
-						$like,
-						$like,
-						$like,
-						$like,
-						$like,
-						$like
-					);
-				},
-				$search_words
-			);
-
-			$sql = "SELECT * FROM {$this->table_name} WHERE " . implode( ' OR ', $like_clauses );
-		}
-
-		return $this->wpdb->get_results( $sql );
 	}
 
 	public function handle_form_submission() {

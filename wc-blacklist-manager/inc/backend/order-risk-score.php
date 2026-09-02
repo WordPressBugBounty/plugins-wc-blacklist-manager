@@ -12,15 +12,10 @@ class WC_Blacklist_Manager_Order_Risk_Score {
 		if ( '1' !== get_option( 'wc_blacklist_enable_global_blacklist', '0' ) ) {
 			return;
 		}
-		add_action( 'add_meta_boxes', [ $this, 'add_order_risk_score_meta_box' ], 1 );
+		add_action( 'add_meta_boxes', [ $this, 'add_order_risk_score_meta_box' ], 1, 2 );
 	}
 
-	public function add_order_risk_score_meta_box() {
-		$settings_instance = new WC_Blacklist_Manager_Settings();
-		if ( $settings_instance->is_premium_active() || ! current_user_can( 'manage_options' ) ) {
-			return;
-		}
-
+	public function add_order_risk_score_meta_box( $post_type = '', $object = null ) {
 		if ( function_exists( 'get_current_screen' ) ) {
 			$current = get_current_screen();
 			if ( $current ) {
@@ -31,6 +26,15 @@ class WC_Blacklist_Manager_Order_Risk_Score {
 					return;
 				}
 			}
+		}
+
+		$order = $this->resolve_admin_order( $object );
+		if ( ! self::current_user_can_moderate_order( $order ) ) {
+			return;
+		}
+
+		if ( self::is_premium_active() && self::current_user_has_dashboard_access() ) {
+			return;
 		}
 
 		$screen = class_exists( '\Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableController' )
@@ -70,14 +74,36 @@ class WC_Blacklist_Manager_Order_Risk_Score {
 		self::render_global_blacklist_panel( $order );
 	}
 
+	private function resolve_admin_order( $object ) {
+		if ( $object instanceof WC_Order ) {
+			return $object;
+		}
+
+		if ( is_a( $object, 'WP_Post' ) ) {
+			return wc_get_order( $object->ID );
+		}
+
+		$order_id = 0;
+		if ( isset( $_GET['post'], $_GET['action'] ) && 'edit' === sanitize_key( wp_unslash( $_GET['action'] ) ) ) {
+			$order_id = absint( $_GET['post'] );
+		} elseif (
+			isset( $_GET['page'], $_GET['id'], $_GET['action'] )
+			&& 'wc-orders' === sanitize_key( wp_unslash( $_GET['page'] ) )
+			&& 'edit' === sanitize_key( wp_unslash( $_GET['action'] ) )
+		) {
+			$order_id = absint( $_GET['id'] );
+		}
+
+		return $order_id > 0 ? wc_get_order( $order_id ) : false;
+	}
+
 	/**
 	 * Shared compact renderer used by both Core and Premium metabox containers.
 	 *
 	 * @param WC_Order|false $order WooCommerce order.
 	 */
 	public static function render_global_blacklist_panel( $order ) {
-		if ( ! $order instanceof WC_Order ) {
-			echo '<p>' . esc_html__( 'Order not found.', 'wc-blacklist-manager' ) . '</p>';
+		if ( ! self::current_user_can_moderate_order( $order ) ) {
 			return;
 		}
 
@@ -113,6 +139,12 @@ class WC_Blacklist_Manager_Order_Risk_Score {
 		$checked_at      = self::site_datetime( $decision_at );
 		$decision_ref    = (string) $order->get_meta( '_yogb_gbl_decision_ref', true );
 		$has_ref         = (bool) preg_match( '/^gbl_dec_[a-f0-9]{32}$/', $decision_ref );
+		$current_context = class_exists( 'YOGB_BM_Decision_Actions' )
+			? YOGB_BM_Decision_Actions::current_decision_context( $order )
+			: [];
+		$outcome_protocol = class_exists( 'YOGB_BM_Decision_Actions' )
+			? YOGB_BM_Decision_Actions::outcome_protocol()
+			: '';
 		$detail_url      = class_exists( 'YOGB_BM_Decision_Actions' )
 			? YOGB_BM_Decision_Actions::detail_url( $order )
 			: '';
@@ -120,9 +152,9 @@ class WC_Blacklist_Manager_Order_Risk_Score {
 		$can_recheck     = in_array( $decision, [ 'skipped_rate_limit', 'check_failed' ], true )
 			&& $order->has_status( [ 'pending', 'processing', 'on-hold', 'failed' ] );
 		$recheck_url     = $can_recheck ? self::recheck_url( $order_id ) : '';
-		$show_outcomes   = $has_ref
+		$show_outcomes   = ! empty( $current_context )
+			&& '' !== $outcome_protocol
 			&& class_exists( 'YOGB_BM_Outcomes' )
-			&& YOGB_BM_Outcomes::supports()
 			&& class_exists( 'YOGB_BM_Decision_Actions' )
 			&& YOGB_BM_Decision_Actions::can_manage_order( $order );
 		$match_rows = json_decode( (string) $order->get_meta( '_yogb_gbl_match_summary_v2', true ), true );
@@ -138,10 +170,13 @@ class WC_Blacklist_Manager_Order_Risk_Score {
 		?>
 		<div class="bm-order-risk-meta bm-gbl-compact-panel">
 			<div class="bm-gbl-source<?php echo $is_demo ? ' bm-gbl-source--demo' : ''; ?>">
-				<span class="bm-gbl-source__badge"><?php esc_html_e( 'Global', 'wc-blacklist-manager' ); ?></span>
+				<span class="bm-gbl-source__icon dashicons dashicons-networking" aria-hidden="true"></span>
 				<div class="bm-gbl-source__content">
-					<strong><?php esc_html_e( 'Blacklist check', 'wc-blacklist-manager' ); ?></strong>
-					<span><?php esc_html_e( 'Shared network risk result', 'wc-blacklist-manager' ); ?></span>
+					<div class="bm-gbl-source__title">
+						<span class="bm-gbl-source__badge"><?php esc_html_e( 'Global', 'wc-blacklist-manager' ); ?></span>
+						<h4><?php esc_html_e( 'Blacklist check', 'wc-blacklist-manager' ); ?></h4>
+					</div>
+					<p><?php esc_html_e( 'Shared network risk result', 'wc-blacklist-manager' ); ?></p>
 				</div>
 			</div>
 			<?php if ( '' !== $demo_notice ) : ?>
@@ -206,12 +241,12 @@ class WC_Blacklist_Manager_Order_Risk_Score {
 				<?php endif; ?>
 			</div>
 
-			<?php if ( '' === $detail_url && $has_ref ) : ?>
+			<?php if ( '' === $detail_url && ! empty( $current_context ) ) : ?>
 				<p class="bm-gbl-compact-hint"><?php esc_html_e( 'Full analysis will be available after the server capability refresh.', 'wc-blacklist-manager' ); ?></p>
 			<?php endif; ?>
 
 			<?php if ( $show_outcomes ) : ?>
-				<?php self::render_feedback_control( $order, $decision ); ?>
+				<?php self::render_feedback_control( $order, $current_context, $outcome_protocol ); ?>
 			<?php elseif ( ! $has_ref && in_array( $decision, [ 'allow', 'challenge', 'block' ], true ) ) : ?>
 				<p class="bm-gbl-compact-hint">
 					<?php esc_html_e( 'This result was recorded by an older client and has no decision reference, so server details and result feedback are unavailable for this order.', 'wc-blacklist-manager' ); ?>
@@ -228,13 +263,44 @@ class WC_Blacklist_Manager_Order_Risk_Score {
 		return '' !== $key && '' !== $secret && '' !== $reporter;
 	}
 
+	private static function current_user_can_moderate_order( $order ) : bool {
+		return function_exists( 'wc_blacklist_manager_user_can_moderate_order' )
+			&& wc_blacklist_manager_user_can_moderate_order( $order );
+	}
+
+	private static function is_premium_active() : bool {
+		if ( ! class_exists( 'WC_Blacklist_Manager_Settings' ) ) {
+			return false;
+		}
+
+		$settings = new WC_Blacklist_Manager_Settings();
+		return $settings->is_premium_active();
+	}
+
+	private static function current_user_has_dashboard_access() : bool {
+		return function_exists( 'wc_blacklist_manager_user_can_manage_area' )
+			? wc_blacklist_manager_user_can_manage_area( 'wc_blacklist_dashboard_permission', true )
+			: current_user_can( 'manage_options' );
+	}
+
+	private static function current_user_can_access_settings() : bool {
+		if ( current_user_can( 'manage_options' ) ) {
+			return true;
+		}
+
+		return self::is_premium_active()
+			&& function_exists( 'wc_blacklist_manager_user_can_manage_area' )
+			&& wc_blacklist_manager_user_can_manage_area( 'wc_blacklist_settings_permission', true );
+	}
+
 	private static function render_disconnected() : void {
-		$url = admin_url( 'admin.php?page=wc-blacklist-manager-settings#global_blacklist' );
 		?>
 		<div class="bm-order-risk-meta bm-gbl-empty-state">
 			<strong><?php esc_html_e( 'Connection required', 'wc-blacklist-manager' ); ?></strong>
 			<p><?php esc_html_e( 'Connect this site before Global Blacklist can check orders.', 'wc-blacklist-manager' ); ?></p>
-			<a class="button button-secondary" href="<?php echo esc_url( $url ); ?>"><?php esc_html_e( 'Open settings', 'wc-blacklist-manager' ); ?></a>
+			<?php if ( self::current_user_can_access_settings() ) : ?>
+				<a class="button button-secondary" href="<?php echo esc_url( admin_url( 'admin.php?page=wc-blacklist-manager-settings#global_blacklist' ) ); ?>"><?php esc_html_e( 'Open settings', 'wc-blacklist-manager' ); ?></a>
+			<?php endif; ?>
 		</div>
 		<?php
 	}
@@ -337,32 +403,62 @@ class WC_Blacklist_Manager_Order_Risk_Score {
 		return $fallback[ $decision ] ?? __( 'No additional result summary is available.', 'wc-blacklist-manager' );
 	}
 
-	private static function render_feedback_control( WC_Order $order, string $decision ) : void {
-		$current_type = (string) $order->get_meta( YOGB_BM_Decision_Actions::META_OUTCOME_TYPE, true );
-		$current_at   = (string) $order->get_meta( YOGB_BM_Decision_Actions::META_OUTCOME_AT, true );
-		$current_conclusion = sanitize_key( (string) $order->get_meta( YOGB_BM_Decision_Actions::META_OUTCOME_CONCLUSION, true ) );
-		$current_evidence = sanitize_key( (string) $order->get_meta( YOGB_BM_Decision_Actions::META_OUTCOME_EVIDENCE, true ) );
-		$delivery = sanitize_key( (string) $order->get_meta( YOGB_BM_Decision_Actions::META_OUTCOME_DELIVERY, true ) );
+	private static function render_feedback_control( WC_Order $order, array $context, string $protocol ) : void {
+		$resolved_context  = YOGB_BM_Decision_Actions::current_decision_context( $order );
+		$resolved_protocol = YOGB_BM_Decision_Actions::outcome_protocol();
+		$resolved_ref      = (string) ( $resolved_context['decision_ref'] ?? '' );
+		$provided_ref      = (string) ( $context['decision_ref'] ?? '' );
+		if ( '' === $resolved_ref
+			|| ! hash_equals( $resolved_ref, $provided_ref )
+			|| '' === $resolved_protocol
+			|| ! hash_equals( $resolved_protocol, $protocol ) ) {
+			return;
+		}
+		$context      = $resolved_context;
+		$decision     = sanitize_key( (string) ( $context['decision'] ?? '' ) );
+		$decision_ref = (string) ( $context['decision_ref'] ?? '' );
+		$use_v2       = 'v2' === $protocol;
+		$saved_ref    = (string) $order->get_meta( YOGB_BM_Decision_Actions::META_OUTCOME_DECISION_REF, true );
+		$saved_uuid   = (string) $order->get_meta( YOGB_BM_Decision_Actions::META_OUTCOME_UUID, true );
+		$saved_schema = max( 0, (int) $order->get_meta( YOGB_BM_Decision_Actions::META_OUTCOME_SCHEMA, true ) );
+		$has_current_saved = preg_match( '/^gbl_dec_[a-f0-9]{32}$/', $decision_ref )
+			&& hash_equals( $decision_ref, $saved_ref )
+			&& ( $use_v2 ? 2 : 1 ) === $saved_schema
+			&& wp_is_uuid( $saved_uuid, 4 );
+		$current_type = $has_current_saved
+			? (string) $order->get_meta( YOGB_BM_Decision_Actions::META_OUTCOME_TYPE, true )
+			: '';
+		$current_at = $has_current_saved
+			? (string) $order->get_meta( YOGB_BM_Decision_Actions::META_OUTCOME_AT, true )
+			: '';
+		$current_conclusion = $has_current_saved
+			? sanitize_key( (string) $order->get_meta( YOGB_BM_Decision_Actions::META_OUTCOME_CONCLUSION, true ) )
+			: '';
+		$current_evidence = $has_current_saved
+			? sanitize_key( (string) $order->get_meta( YOGB_BM_Decision_Actions::META_OUTCOME_EVIDENCE, true ) )
+			: '';
+		$delivery_state = $has_current_saved
+			? YOGB_BM_Decision_Actions::outcome_delivery_state( $order, $decision_ref, $saved_uuid )
+			: [];
+		$delivery = sanitize_key( (string) ( $delivery_state['status'] ?? '' ) );
 		$updated_at   = self::site_datetime( $current_at );
 		$all_labels   = YOGB_BM_Decision_Actions::outcome_labels();
 		$labels       = YOGB_BM_Decision_Actions::feedback_labels();
 		$form_id      = 'yogb-gbl-outcome-form-' . (int) $order->get_id();
 		$retry_form_id = 'yogb-gbl-outcome-retry-' . (int) $order->get_id();
-		$use_v2 = YOGB_BM_Decision_Actions::supports_v2()
-			&& in_array( $decision, [ 'allow', 'challenge', 'block' ], true );
 		$conclusion_labels = $use_v2 ? YOGB_BM_Decision_Actions::actual_outcome_labels( $decision ) : [];
 		$evidence_labels = $use_v2 ? YOGB_BM_Decision_Actions::evidence_labels() : [];
 		$detected_references = $use_v2 && class_exists( 'YOGB_BM_Evidence_Reference_Resolver' )
 			? YOGB_BM_Evidence_Reference_Resolver::for_order( $order )
 			: [];
-		$retry_available = in_array( $delivery, [ 'auth_failed', 'failed' ], true );
-		self::register_outcome_form( $order, $form_id, $retry_form_id, $use_v2 );
+		$retry_available = $has_current_saved && in_array( $delivery, [ 'auth_failed', 'failed' ], true );
+		self::register_outcome_form( $order, $form_id, $retry_form_id, $protocol, $decision_ref, $saved_uuid );
 		?>
 		<details class="bm-gbl-feedback">
 			<summary>
 				<span class="bm-gbl-feedback__summary-label">
 					<span class="dashicons dashicons-flag" aria-hidden="true"></span>
-					<?php $use_v2 ? esc_html_e( 'Record actual outcome', 'wc-blacklist-manager' ) : esc_html_e( 'Report incorrect result', 'wc-blacklist-manager' ); ?>
+					<?php $use_v2 ? esc_html_e( 'Record actual outcome', 'wc-blacklist-manager' ) : esc_html_e( 'Record result feedback', 'wc-blacklist-manager' ); ?>
 				</span>
 				<?php if ( ( $use_v2 && isset( $conclusion_labels[ $current_conclusion ] ) ) || ( ! $use_v2 && isset( $all_labels[ $current_type ] ) ) ) : ?>
 					<span class="bm-gbl-feedback__saved"><?php esc_html_e( 'Recorded', 'wc-blacklist-manager' ); ?></span>
@@ -370,14 +466,10 @@ class WC_Blacklist_Manager_Order_Risk_Score {
 			</summary>
 			<div class="bm-gbl-feedback__body">
 				<?php if ( $use_v2 ) : ?>
-					<p><?php esc_html_e( 'Record what was established after review. The server validates the conclusion and supporting reason before using it as evidence.', 'wc-blacklist-manager' ); ?></p>
+					<p><?php esc_html_e( 'Record what was established after reviewing this Global Blacklist decision. This is feedback about the reviewed result, not a direct blacklist action.', 'wc-blacklist-manager' ); ?></p>
 				<?php else : ?>
-					<p><?php esc_html_e( 'Routine order events are monitored automatically. Use this only when you know the result was wrong or can confirm what happened.', 'wc-blacklist-manager' ); ?></p>
+					<p><?php esc_html_e( 'Record what was established after reviewing this Global Blacklist decision. Feedback may confirm or correct the original result.', 'wc-blacklist-manager' ); ?></p>
 				<?php endif; ?>
-				<p class="bm-gbl-feedback__safety">
-					<span class="dashicons dashicons-lock" aria-hidden="true"></span>
-					<?php esc_html_e( 'Recording an outcome only improves Global Blacklist. It does not change the order, customer, payment, or automation settings.', 'wc-blacklist-manager' ); ?>
-				</p>
 				<?php if ( $use_v2 ) : ?>
 					<fieldset class="bm-gbl-feedback__choices">
 						<legend><?php esc_html_e( 'Actual outcome', 'wc-blacklist-manager' ); ?></legend>
@@ -433,48 +525,56 @@ class WC_Blacklist_Manager_Order_Risk_Score {
 						<?php endforeach; ?>
 					</fieldset>
 				<?php endif; ?>
+				<p class="bm-gbl-feedback__safety">
+					<span class="dashicons dashicons-lock" aria-hidden="true"></span>
+					<?php esc_html_e( 'This feedback does not directly add or remove a customer from Global Blacklist, or change the local order, customer, payment, or automation state.', 'wc-blacklist-manager' ); ?>
+				</p>
 				<div class="bm-gbl-feedback__actions">
 					<button form="<?php echo esc_attr( $form_id ); ?>" type="submit" class="button button-secondary">
-						<?php $use_v2 ? esc_html_e( 'Record outcome', 'wc-blacklist-manager' ) : esc_html_e( 'Send feedback', 'wc-blacklist-manager' ); ?>
+						<?php $use_v2 ? esc_html_e( 'Record outcome', 'wc-blacklist-manager' ) : esc_html_e( 'Record feedback', 'wc-blacklist-manager' ); ?>
 					</button>
 					<?php if ( $retry_available ) : ?>
 						<button form="<?php echo esc_attr( $retry_form_id ); ?>" type="submit" class="button button-secondary"><?php esc_html_e( 'Retry delivery', 'wc-blacklist-manager' ); ?></button>
 					<?php endif; ?>
 				</div>
-				<?php if ( $use_v2 && isset( $conclusion_labels[ $current_conclusion ] ) ) : ?>
-					<small class="bm-gbl-feedback__status">
-						<?php
-						printf(
-							/* translators: %s: saved actual outcome. */
-							esc_html__( 'Current outcome: %s.', 'wc-blacklist-manager' ),
-							esc_html( $conclusion_labels[ $current_conclusion ] )
-						);
-						?>
-					</small>
-				<?php elseif ( ! $use_v2 && isset( $all_labels[ $current_type ] ) ) : ?>
-					<small class="bm-gbl-feedback__status">
-						<?php
-						printf(
-							/* translators: %s: previously reported result feedback. */
-							esc_html__( 'Current feedback: %s.', 'wc-blacklist-manager' ),
-							esc_html( $all_labels[ $current_type ] )
-						);
-						?>
-					</small>
-				<?php endif; ?>
-				<?php self::render_outcome_delivery( $order, $delivery ); ?>
-				<?php if ( '' !== $updated_at['display'] ) : ?>
-					<small>
-						<?php esc_html_e( 'Last updated:', 'wc-blacklist-manager' ); ?>
-						<time datetime="<?php echo esc_attr( $updated_at['datetime'] ); ?>"><?php echo esc_html( $updated_at['display'] ); ?></time>
-					</small>
-				<?php endif; ?>
+				<div class="bm-gbl-feedback__record-summary">
+					<div class="bm-gbl-feedback__record-meta">
+						<?php if ( $use_v2 && isset( $conclusion_labels[ $current_conclusion ] ) ) : ?>
+							<small class="bm-gbl-feedback__status">
+								<?php
+								printf(
+									/* translators: %s: saved actual outcome. */
+									esc_html__( 'Recorded: %s', 'wc-blacklist-manager' ),
+									esc_html( $conclusion_labels[ $current_conclusion ] )
+								);
+								?>
+							</small>
+						<?php elseif ( ! $use_v2 && isset( $all_labels[ $current_type ] ) ) : ?>
+							<small class="bm-gbl-feedback__status">
+								<?php
+								printf(
+									/* translators: %s: previously reported result feedback. */
+									esc_html__( 'Recorded: %s', 'wc-blacklist-manager' ),
+									esc_html( $all_labels[ $current_type ] )
+								);
+								?>
+							</small>
+						<?php endif; ?>
+						<?php if ( '' !== $updated_at['display'] ) : ?>
+							<small class="bm-gbl-feedback__updated">
+								<time datetime="<?php echo esc_attr( $updated_at['datetime'] ); ?>"><?php echo esc_html( $updated_at['display'] ); ?></time>
+							</small>
+						<?php endif; ?>
+					</div>
+					<?php self::render_outcome_delivery( $delivery_state ); ?>
+				</div>
 			</div>
 		</details>
 		<?php
 	}
 
-	private static function render_outcome_delivery( WC_Order $order, string $delivery ) : void {
+	private static function render_outcome_delivery( array $state ) : void {
+		$delivery = sanitize_key( (string) ( $state['status'] ?? '' ) );
 		if ( '' === $delivery ) {
 			return;
 		}
@@ -492,15 +592,18 @@ class WC_Blacklist_Manager_Order_Risk_Score {
 		if ( ! isset( $states[ $delivery ] ) ) {
 			return;
 		}
-		$http_code = max( 0, (int) $order->get_meta( YOGB_BM_Decision_Actions::META_OUTCOME_HTTP_CODE, true ) );
-		$error = sanitize_key( (string) $order->get_meta( YOGB_BM_Decision_Actions::META_OUTCOME_ERROR, true ) );
-		$attempts = max( 0, (int) $order->get_meta( YOGB_BM_Decision_Actions::META_OUTCOME_ATTEMPTS, true ) );
-		$next_at = self::site_datetime( (string) $order->get_meta( YOGB_BM_Decision_Actions::META_OUTCOME_NEXT_AT, true ) );
+		$http_code = max( 0, (int) ( $state['http_code'] ?? 0 ) );
+		$error = sanitize_key( (string) ( $state['error'] ?? '' ) );
+		$attempts = max( 0, (int) ( $state['attempts'] ?? 0 ) );
+		$next_at = self::site_datetime( (string) ( $state['next_at'] ?? '' ) );
+		if ( 'queue_failed' === $delivery && 'payload_decode_failed' === $error ) {
+			$states['queue_failed'][1] = __( 'Delivery data could not be read—record the feedback again.', 'wc-blacklist-manager' );
+		}
 		?>
 		<p class="bm-gbl-feedback__delivery bm-gbl-feedback__delivery--<?php echo esc_attr( $states[ $delivery ][0] ); ?>">
 			<strong><?php esc_html_e( 'Delivery:', 'wc-blacklist-manager' ); ?></strong>
 			<?php echo esc_html( $states[ $delivery ][1] ); ?>.
-			<?php if ( $http_code > 0 ) : ?>
+			<?php if ( 'error' === $states[ $delivery ][0] && $http_code > 0 ) : ?>
 				<?php printf( esc_html__( 'HTTP %d.', 'wc-blacklist-manager' ), $http_code ); ?>
 			<?php endif; ?>
 			<?php if ( '' !== $error ) : ?>
@@ -514,26 +617,32 @@ class WC_Blacklist_Manager_Order_Risk_Score {
 				<time datetime="<?php echo esc_attr( $next_at['datetime'] ); ?>"><?php echo esc_html( $next_at['display'] ); ?></time>.
 			<?php endif; ?>
 		</p>
-		<?php if ( 'auth_failed' === $delivery ) : ?>
+		<?php if ( 'auth_failed' === $delivery && self::current_user_can_access_settings() ) : ?>
 			<p><a href="<?php echo esc_url( admin_url( 'admin.php?page=wc-blacklist-manager-settings#global_blacklist' ) ); ?>"><?php esc_html_e( 'Open connection settings', 'wc-blacklist-manager' ); ?></a></p>
 		<?php endif; ?>
 		<?php
 	}
 
-	private static function register_outcome_form( WC_Order $order, string $form_id, string $retry_form_id, bool $use_v2 ) : void {
+	private static function register_outcome_form( WC_Order $order, string $form_id, string $retry_form_id, string $protocol, string $decision_ref, string $event_uuid ) : void {
 		$order_id = (int) $order->get_id();
+		$use_v2   = 'v2' === $protocol;
 		add_action(
 			'admin_footer',
-			static function() use ( $order_id, $form_id, $retry_form_id, $use_v2 ) {
+			static function() use ( $order_id, $form_id, $retry_form_id, $use_v2, $protocol, $decision_ref, $event_uuid ) {
 				?>
 				<form id="<?php echo esc_attr( $form_id ); ?>" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" hidden>
 					<input type="hidden" name="action" value="yogb_gbl_record_outcome">
 					<input type="hidden" name="order_id" value="<?php echo esc_attr( (string) $order_id ); ?>">
+					<input type="hidden" name="decision_ref" value="<?php echo esc_attr( $decision_ref ); ?>">
+					<input type="hidden" name="outcome_protocol" value="<?php echo esc_attr( $protocol ); ?>">
 					<?php wp_nonce_field( 'yogb_gbl_record_outcome_' . $order_id ); ?>
 				</form>
 				<form id="<?php echo esc_attr( $retry_form_id ); ?>" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" hidden>
 					<input type="hidden" name="action" value="yogb_gbl_retry_outcome">
 					<input type="hidden" name="order_id" value="<?php echo esc_attr( (string) $order_id ); ?>">
+					<input type="hidden" name="decision_ref" value="<?php echo esc_attr( $decision_ref ); ?>">
+					<input type="hidden" name="outcome_protocol" value="<?php echo esc_attr( $protocol ); ?>">
+					<input type="hidden" name="event_uuid" value="<?php echo esc_attr( $event_uuid ); ?>">
 					<?php wp_nonce_field( 'yogb_gbl_retry_outcome_' . $order_id ); ?>
 				</form>
 				<?php if ( $use_v2 ) : ?>
@@ -629,6 +738,7 @@ class WC_Blacklist_Manager_Order_Risk_Score {
 			'outcome_saved'         => [ 'success', __( 'Actual outcome saved and queued securely. No order or customer settings were changed.', 'wc-blacklist-manager' ) ],
 			'outcome_queue_failed'  => [ 'error', __( 'The outcome was saved locally but could not be queued. Submit it again to retry.', 'wc-blacklist-manager' ) ],
 			'outcome_unsupported'   => [ 'error', __( 'The connected server does not support outcome recording yet.', 'wc-blacklist-manager' ) ],
+			'outcome_stale'         => [ 'error', __( 'This decision changed or is no longer current. Review the latest Global Blacklist result before recording or retrying feedback.', 'wc-blacklist-manager' ) ],
 			'outcome_invalid'       => [ 'error', __( 'Select an outcome that is valid for the original decision.', 'wc-blacklist-manager' ) ],
 			'outcome_reason_required' => [ 'error', __( 'Select a documented review reason for a resolved outcome.', 'wc-blacklist-manager' ) ],
 			'outcome_reference_required' => [ 'error', __( 'Enter an evidence or case reference for the selected reason.', 'wc-blacklist-manager' ) ],

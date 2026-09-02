@@ -1,0 +1,275 @@
+.yobm-checkout-verification-root {
+	--yobm-verification-gap: .75rem;
+	--yobm-verification-radius: .375rem;
+	--yobm-verification-surface: Canvas;
+	--yobm-verification-text: currentColor;
+	--yobm-verification-popup-surface: #fff;
+	--yobm-verification-popup-text: #1d2327;
+	--yobm-verification-popup-error: #b32d2e;
+	--yobm-verification-popup-success: #007017;
+	--yobm-verification-muted: color-mix(in srgb, currentColor 68%, transparent);
+	--yobm-verification-border: currentColor;
+	--yobm-verification-error: #b32d2e;
+	--yobm-verification-success: #008a20;
+	--yobm-verification-focus: Highlight;
+	--yobm-verification-control-font-size: 1rem;
+	--yobm-verification-control-line-height: 1.375;
+	--yobm-verification-control-block-size: 3em;
+	box-sizing: border-box;
+	min-inline-size: 0;
+	margin-block: 1rem;
+	color: var(--yobm-verification-text);
+	font: inherit;
+}
+
+.yobm-checkout-verification-root[data-yobm-context="blocks"] {
+	--yobm-verification-radius: .25rem;
+	--yobm-verification-control-font-size: 1rem;
+	--yobm-verification-control-line-height: 1.5625;
+	--yobm-verification-control-block-size: 3.125rem;
+}
+
+.yobm-checkout-verification-root[data-yobm-context="blocks"][data-yobm-profile="floor"] {
+	--yobm-verification-control-font-size: inherit;
+	--yobm-verification-control-line-height: 1.375;
+	--yobm-verification-control-block-size: 3em;
+}
+
+.yobm-checkout-verification-root[hidden] {
+	display: none !important;
+}
+
+.yobm-verification-title {
+	margin-block: 0 var(--yobm-verification-gap);
+	color: inherit;
+	font: inherit;
+	font-size: 1.125em;
+	font-weight: 600;
+}
+
+.yobm-verification-channel {
+	display: grid;
+	gap: var(--yobm-verification-gap);
+	min-inline-size: 0;
+}
+
+.yobm-verification-progress,
+.yobm-verification-destination,
+.yobm-verification-complete,
+.yobm-verification-locked,
+.yobm-verification-resend-status,
+.yobm-verification-live {
+	margin-block: 0;
+	overflow-wrap: anywhere;
+}
+
+.yobm-verification-progress {
+	font-weight: 600;
+}
+
+.yobm-verification-destination,
+.yobm-verification-resend-status {
+	color: var(--yobm-verification-muted);
+}
+
+.yobm-verification-controls {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--yobm-verification-gap);
+	align-items: stretch;
+	min-inline-size: 0;
+}
+
+.yobm-verification-code-label {
+	flex: 0 0 100%;
+	font: inherit;
+	font-weight: 600;
+}
+
+#yobm-checkout-verification-classic-classic.yobm-checkout-verification-root .yobm-verification-controls > .yobm-verification-code,
+#yobm-checkout-verification-classic-classic.yobm-checkout-verification-root .yobm-verification-controls > .yobm-verification-verify,
+#yobm-checkout-verification-classic-classic.yobm-checkout-verification-root .yobm-verification-controls > .yobm-verification-resend,
+.yobm-checkout-verification-root[data-yobm-context] .yobm-verification-controls > .yobm-verification-code,
+.yobm-checkout-verification-root[data-yobm-context] .yobm-verification-controls > .yobm-verification-verify,
+.yobm-checkout-verification-root[data-yobm-context] .yobm-verification-controls > .yobm-verification-resend,
+.yobm-checkout-verification-root[data-yobm-context] .yobm-verification-open {
+	box-sizing: border-box;
+	min-block-size: var(--yobm-verification-control-block-size);
+	max-inline-size: 100%;
+	font: inherit;
+	font-size: var(--yobm-verification-control-font-size);
+	line-height: var(--yobm-verification-control-line-height);
+}
+
+#yobm-checkout-verification-classic-classic.yobm-checkout-verification-root .yobm-verification-controls > .yobm-verification-code,
+.yobm-checkout-verification-root[data-yobm-context] .yobm-verification-controls > .yobm-verification-code {
+	flex: 1 1 10rem;
+	block-size: var(--yobm-verification-control-block-size);
+	inline-size: 100%;
+	min-inline-size: min(8rem, 100%);
+	max-inline-size: min(12rem, 100%);
+	padding-block: .5em;
+	padding-inline: .75em;
+	border: 1px solid var(--yobm-verification-border);
+	border-radius: var(--yobm-verification-radius);
+	background: var(--yobm-verification-surface);
+	color: inherit;
+}
+
+#yobm-checkout-verification-classic-classic.yobm-checkout-verification-root .yobm-verification-controls > .yobm-verification-verify,
+#yobm-checkout-verification-classic-classic.yobm-checkout-verification-root .yobm-verification-controls > .yobm-verification-resend,
+.yobm-checkout-verification-root[data-yobm-context] .yobm-verification-controls > .yobm-verification-verify,
+.yobm-checkout-verification-root[data-yobm-context] .yobm-verification-controls > .yobm-verification-resend {
+	flex: 0 1 auto;
+	white-space: normal;
+	overflow-wrap: anywhere;
+}
+
+#yobm-checkout-verification-classic-classic.yobm-checkout-verification-root .yobm-verification-controls > .yobm-verification-verify,
+#yobm-checkout-verification-classic-classic.yobm-checkout-verification-root .yobm-verification-controls > .yobm-verification-resend,
+.yobm-checkout-verification-root[data-yobm-context] .yobm-verification-controls > .yobm-verification-verify,
+.yobm-checkout-verification-root[data-yobm-context] .yobm-verification-controls > .yobm-verification-resend,
+.yobm-checkout-verification-root[data-yobm-context] .yobm-verification-open {
+	inline-size: auto;
+	padding: .5em 1em;
+	border-width: 1px;
+	border-style: solid;
+	border-radius: var(--yobm-verification-radius);
+	cursor: pointer;
+}
+
+.yobm-checkout-verification-native .yobm-verification-verify,
+.yobm-checkout-verification-native .yobm-verification-resend,
+.yobm-checkout-verification-native .yobm-verification-open,
+.yobm-checkout-verification-root[data-yobm-context="blocks"] .yobm-verification-verify,
+.yobm-checkout-verification-root[data-yobm-context="blocks"] .yobm-verification-resend,
+.yobm-checkout-verification-root[data-yobm-context="blocks"] .yobm-verification-open {
+	border-color: var(--yobm-verification-border);
+	background: transparent;
+	color: inherit;
+}
+
+.yobm-verification-code:disabled,
+.yobm-verification-verify:disabled,
+.yobm-verification-resend:disabled {
+	cursor: not-allowed;
+	opacity: .6;
+}
+
+.yobm-verification-code:focus-visible,
+.yobm-verification-verify:focus-visible,
+.yobm-verification-resend:focus-visible,
+.yobm-verification-open:focus-visible,
+.yobm-verification-close:focus-visible {
+	outline: 2px solid var(--yobm-verification-focus);
+	outline-offset: 2px;
+}
+
+.yobm-verification-live.yobm-is-error {
+	color: var(--yobm-verification-error);
+	font-weight: 600;
+}
+
+.yobm-verification-complete {
+	color: var(--yobm-verification-success);
+	font-weight: 600;
+}
+
+.yobm-verification-panel .yobm-verification-live.yobm-is-error {
+	color: var(--yobm-verification-popup-error);
+}
+
+.yobm-checkout-verification-root[data-yobm-mode="popup_modal"] .yobm-verification-complete {
+	background: var(--yobm-verification-popup-surface);
+	color: var(--yobm-verification-popup-success);
+}
+
+.yobm-verification-dialog[hidden] {
+	display: none;
+}
+
+.yobm-verification-dialog {
+	position: fixed;
+	inset: 0;
+	z-index: 999999;
+	display: grid;
+	place-items: center;
+	padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+}
+
+.yobm-verification-backdrop {
+	position: absolute;
+	inset: 0;
+	background: rgb(0 0 0 / 55%);
+}
+
+.yobm-verification-panel {
+	position: relative;
+	z-index: 1;
+	box-sizing: border-box;
+	inline-size: min(32rem, 100%);
+	max-block-size: calc(100vh - 2rem);
+	max-block-size: calc(100dvh - 2rem);
+	overflow: auto;
+	padding: 1.5rem;
+	border: 1px solid var(--yobm-verification-border);
+	border-radius: var(--yobm-verification-radius);
+	background: var(--yobm-verification-popup-surface);
+	color: var(--yobm-verification-popup-text);
+	box-shadow: 0 1rem 3rem rgb(0 0 0 / 30%);
+}
+
+.yobm-verification-close {
+	position: absolute;
+	inset-block-start: .5rem;
+	inset-inline-end: .5rem;
+	min-inline-size: 2.75rem;
+	min-block-size: 2.75rem;
+	border: 0;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	font-size: 1.75rem;
+	cursor: pointer;
+}
+
+body.yobm-verification-modal-open {
+	overflow: hidden;
+}
+
+@media (prefers-color-scheme: dark) {
+	.yobm-checkout-verification-root {
+		--yobm-verification-popup-surface: #1e1e1e;
+		--yobm-verification-popup-text: #f0f0f0;
+		--yobm-verification-popup-error: #ff8a8a;
+		--yobm-verification-popup-success: #73d98c;
+	}
+}
+
+@media (forced-colors: active) {
+	.yobm-checkout-verification-root {
+		--yobm-verification-surface: Canvas;
+		--yobm-verification-text: CanvasText;
+		--yobm-verification-popup-surface: Canvas;
+		--yobm-verification-popup-text: CanvasText;
+		--yobm-verification-popup-error: MarkText;
+		--yobm-verification-popup-success: CanvasText;
+		--yobm-verification-muted: CanvasText;
+		--yobm-verification-border: ButtonText;
+		--yobm-verification-error: MarkText;
+		--yobm-verification-success: CanvasText;
+		--yobm-verification-focus: Highlight;
+	}
+
+	.yobm-verification-backdrop {
+		background: Canvas;
+		opacity: .75;
+	}
+
+	.yobm-verification-panel,
+	.yobm-verification-verify,
+	.yobm-verification-resend,
+	.yobm-verification-open {
+		forced-color-adjust: auto;
+	}
+}

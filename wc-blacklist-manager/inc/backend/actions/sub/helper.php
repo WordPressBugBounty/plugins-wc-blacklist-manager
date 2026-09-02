@@ -69,6 +69,35 @@ if ( ! function_exists( 'wc_blacklist_manager_user_can_manage_area' ) ) {
 	}
 }
 
+if ( ! function_exists( 'wc_blacklist_manager_user_can_moderate_order' ) ) {
+	/**
+	 * Determine whether the current user may moderate one resolved order.
+	 *
+	 * Administration permissions intentionally do not substitute for the
+	 * non-administrator WooCommerce and exact-order capability pair.
+	 *
+	 * @param mixed $order Already resolved WooCommerce order object.
+	 * @return bool
+	 */
+	function wc_blacklist_manager_user_can_moderate_order( $order ) {
+		if (
+			! class_exists( 'WC_Order' )
+			|| ! $order instanceof WC_Order
+			|| (int) $order->get_id() <= 0
+			|| 'shop_order' !== $order->get_type()
+		) {
+			return false;
+		}
+
+		if ( current_user_can( 'manage_options' ) ) {
+			return true;
+		}
+
+		return current_user_can( 'manage_woocommerce' )
+			&& current_user_can( 'edit_shop_order', (int) $order->get_id() );
+	}
+}
+
 if ( ! function_exists( 'wc_blacklist_manager_debug_log' ) ) {
 	function wc_blacklist_manager_debug_log( $context, $message, $data = array() ) {
 		$enabled = (bool) get_option( 'wc_blacklist_debug_logging', false );

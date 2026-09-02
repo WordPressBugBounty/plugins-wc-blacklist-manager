@@ -57,7 +57,7 @@ class WC_Blacklist_Manager_Activity_Log {
 			.wp-list-table.widefat.fixed tr td { vertical-align: middle; }
 			.wp-list-table.activity_logs.fixed { table-layout:auto; }
 			.wp-list-table.activity_logs .check-column { width:2.5em; }
-			.wp-list-table.activity_logs .column-timestamp { width:150px; white-space:nowrap; }
+			.wp-list-table.activity_logs .column-timestamp { width:150px; white-space:nowrap; vertical-align:middle; }
 			.wp-list-table.activity_logs .column-type { width:48px; text-align:center; }
 			.wp-list-table.activity_logs .column-source { width:170px; }
 			.wp-list-table.activity_logs .column-action { width:112px; white-space:nowrap; }
@@ -89,7 +89,7 @@ class WC_Blacklist_Manager_Activity_Log {
 	        $settings_instance = new WC_Blacklist_Manager_Settings();
 	        $premium_active = $settings_instance->is_premium_active();
         $woocommerce_active = class_exists( 'WooCommerce' );
-		$unlock_url = 'https://yoohw.com/product/blacklist-manager-premium/';
+		$unlock_url = WC_Blacklist_Manager_Commercial_Router::premium_destination_url();
             
         $message = $this->handle_form_submission();
 
@@ -155,6 +155,9 @@ class WC_Blacklist_Manager_Activity_Log {
         $result   = $wpdb->query( $prepared );
 
         if ( false !== $result ) {
+			if ( class_exists( 'WC_Blacklist_Manager_Outcome_Summary' ) ) {
+				WC_Blacklist_Manager_Outcome_Summary::invalidate_cache();
+			}
             echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Selected detection log entries have been deleted.', 'wc-blacklist-manager' ) . '</p></div>';
         } else {
             echo '<div class="notice notice-error"><p>' . esc_html__( 'There was an error deleting the selected entries.', 'wc-blacklist-manager' ) . '</p></div>';

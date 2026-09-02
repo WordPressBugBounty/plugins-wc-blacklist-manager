@@ -2,24 +2,31 @@
 Contributors: yoohw, baonguyen0310
 Tags: woocommerce anti fraud, blacklist, checkout, fraud prevention, form spam
 Requires at least: 6.3
-Tested up to: 7.0
-WC tested up to: 10.9
+Tested up to: 7.1
+WC tested up to: 11.0
 Requires PHP: 7.4
-Stable tag: 2.2.11
+Stable tag: 2.3.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Block risky WooCommerce orders, spam signups, and form submissions with blacklist rules plus checkout email and phone verification.
+Block risky WooCommerce orders, spam signups, and form submissions with blacklist rules plus built-in checkout email verification.
 
 == Description ==
 
 **Blacklist Manager** is a WooCommerce blacklist, anti-fraud, and spam prevention plugin for stores that need to block fake orders, suspicious customers, spam registrations, and unwanted form submissions.
 
-Use blacklist rules for **phone numbers**, **email addresses**, **IP addresses**, and **email domains** at WooCommerce checkout, registration, comments, product reviews, REST API orders, and supported WordPress forms. Built-in checkout email verification and phone verification can also challenge risky customers before an order is accepted.
+The free plugin is a complete local protection toolkit, not a Premium trial. Use blacklist rules for **phone numbers**, **email addresses**, **IP addresses**, and **email domains** at WooCommerce checkout, registration, comments, product reviews, REST API orders, and supported WordPress forms.
 
 The plugin works with WooCommerce Classic Checkout, WooCommerce Checkout Blocks, Contact Form 7, Gravity Forms, and WPForms.
 
-[Premium version](https://yoohw.com/product/blacklist-manager-premium/) | [Global Blacklist](https://yoohw.com/global-blacklist-plan/) | [Documentation](https://yoohw.com/docs/category/woocommerce-blacklist-manager/) | [Support](https://yoohw.com/support/) | [Demo](https://sandbox.yoohw.com/demo/yobm_demo.html)
+= What the free plugin includes =
+
+* Manage local email, phone, IP address, and email-domain entries through Suspects and Blocklist workflows.
+* Stop matching identities at WooCommerce checkout and protect registration, comments, product reviews, supported forms, and WooCommerce REST API orders.
+* Require built-in **checkout email verification** for the policies you configure. Core owns and runs email verification; phone OTP and Twilio/TextMagic SMS transport belong to Blacklist Manager Premium.
+* Configure free customer notices and admin alerts, then review dashboard blacklist and detection statistics.
+
+[Documentation](https://yoohw.com/docs/category/woocommerce-blacklist-manager/) | [Support](https://yoohw.com/support/) | [Demo](https://sandbox.yoohw.com/demo/yobm_demo.html)
 
 == Key Features ==
 
@@ -29,8 +36,7 @@ The plugin works with WooCommerce Classic Checkout, WooCommerce Checkout Blocks,
 * **Registration protection**: Stop signups that match blocked emails, IP addresses, or email domains.
 * **Comment and review blocking**: Prevent comments and product reviews from blacklisted emails.
 * **Form spam protection**: Check Contact Form 7, Gravity Forms, and WPForms submissions against blacklist data.
-* **Checkout email verification**: Require a verification code before allowing checkout to continue.
-* **Checkout phone verification**: Require an SMS verification code for phone-based checkout validation.
+* **Checkout email verification**: Require a Core-owned email verification code before allowing checkout to continue.
 * **WooCommerce REST API protection**: Block blacklisted identities from creating orders through external apps or integrations.
 * **Custom notices and alerts**: Customize customer-facing block messages and admin email alerts.
 * **Dashboard stats**: Review blacklist entries and detection attempts from the admin area.
@@ -41,20 +47,23 @@ Blacklist Manager supports WooCommerce Classic Checkout, [WooCommerce Checkout B
 
 == Global Blacklist Decisions ==
 
-Blacklist Manager can connect your store to **Global Blacklist Decisions**, a fraud-prevention service that checks order identities such as email, phone, IP address, address, and email domain against broader risk data.
+Blacklist Manager can optionally connect your store to **Global Blacklist Decisions**, a separate broader-risk service that checks order identities such as email, phone, IP address, address, and email domain against network data. It is not required for local Core protection and is not a prerequisite for Premium.
 
 [Learn more about Global Blacklist Decisions](https://yoohw.com/global-blacklist-plan/)
 
 == Premium Features ==
 
-Blacklist Manager Premium adds deeper fraud review and automation for stores that need more than manual blacklist rules:
+Consider Blacklist Manager Premium when recurring abuse makes manual blacklist maintenance too time-consuming, when checkout or payment patterns need automatic action, when repeat attackers change individual identity fields, or when your team needs deeper investigation and audit tools.
+
+Premium is the advanced local/store extension. It adds:
 
 * Risk scoring for blacklist, identity, IP, address, payment, device, and order pattern signals.
 * Automation rules to auto-suspect, auto-block, or auto-review orders.
 * Payment intelligence for Stripe, PayPal, Mollie, Braintree, WooPayments, AVS, card country, and payer mismatch signals.
 * Device identity checks to link repeat abuse across emails, phones, IPs, addresses, and accounts.
 * Advanced blocking for customer name, address, device, disposable email, disposable phone, country, VPN, and proxy signals.
-* Activity logs, import/export, cleanup tools, permissions, multi-store sync, CAPTCHA, SMS, IP intelligence, geocoding, and email validation integrations.
+* Activity logs, import/export, cleanup tools, permissions, multi-store sync, CAPTCHA, IP intelligence, geocoding, and email validation integrations.
+* Phone OTP runtime and Twilio/TextMagic SMS transports; Core continues to own checkout email verification.
 
 [Explore Premium](https://yoohw.com/product/blacklist-manager-premium/)
 
@@ -70,14 +79,15 @@ Blacklist Manager Premium adds deeper fraud review and automation for stores tha
 = Premium integrations =
 
 * WooCommerce Stripe Gateway, Payment Plugins for Stripe WooCommerce, WooCommerce PayPal Payments, Payment Plugins for PayPal WooCommerce, Braintree for WooCommerce, Mollie Payments for WooCommerce, and WooPayments.
-* Cloudflare, reCAPTCHA v3/v2, hCaptcha, IP-api, BigDataCloud, ZeroBounce, NumCheckr, Google Maps, Yo Credits, Twilio, and Textmagic.
+* Cloudflare, reCAPTCHA v3/v2, hCaptcha, IP-api, BigDataCloud, ZeroBounce, NumCheckr, Google Maps, Twilio, and TextMagic.
 
 == Use Cases ==
 
 * Block fake WooCommerce orders before payment review.
 * Prevent repeat abuse from known phone numbers, email addresses, IP addresses, and domains.
 * Reduce spam registrations, comments, product reviews, and form submissions.
-* Require email or phone verification during checkout.
+* Require Core email verification during checkout without installing Premium.
+* Add Premium phone OTP when a store also needs SMS-based phone ownership checks.
 * Review suspicious customers before moving them to the blocklist.
 * Use Global Blacklist Decisions as an additional fraud signal.
 
@@ -87,7 +97,7 @@ Blacklist Manager Premium adds deeper fraud review and automation for stores tha
 2. Activate **Blacklist Manager** from the WordPress Plugins screen.
 3. Go to **Blacklist Manager > Settings** and enable the checks that match your workflow.
 4. Add phone numbers, email addresses, IP addresses, or domains to the Suspects or Blocklist lists.
-5. Configure checkout email or phone verification if you want customers to verify their details before checkout continues.
+5. Configure Core checkout email verification when needed. If you separately use Premium phone OTP, configure its Twilio or TextMagic transport in Premium.
 
 == Frequently Asked Questions ==
 
@@ -113,7 +123,11 @@ Blacklist checks run only when needed, such as checkout, registration, comment s
 
 = Are Premium features required? =
 
-No. The free plugin includes blacklist management, checkout protection, form protection, verification, notices, and dashboard stats. Premium adds risk scoring, automation, payment intelligence, device identity, activity logs, multi-store sync, and advanced integrations.
+No. Core includes local blacklist management, checkout protection, Suspects and Blocklist workflows, registration/comment/review/form/REST protection, checkout email verification, notices, and dashboard statistics. Premium is appropriate when you need automated risk actions, payment or device intelligence, phone OTP, detailed activity history, multi-store tooling, or advanced integrations.
+
+= What is the difference between Premium and Global Blacklist Decisions? =
+
+Blacklist Manager Premium extends protection and administration inside your store. Global Blacklist Decisions is a separate optional connected service for broader-risk checks. You can evaluate either offering for its own use case; neither is a required step before the other, and Core's local protection works without both.
 
 = Does Global Blacklist Decisions share data? =
 
@@ -121,22 +135,16 @@ Global Blacklist Decisions is a connected fraud-prevention service. Data exchang
 
 == Changelog ==
 
-= 2.2.11 (Aug 2, 2026) =
-* New: Negotiates identity normalization v3 with compatible Global Blacklist servers while preserving the v2 payload for older servers.
-* Fix: Rechecks Global Blacklist email settings at render time and limits output strictly to the admin New Order email.
-* Fix: Prevents the compact order-meta migration from repeatedly saving historic orders on stores using WooCommerce legacy order storage and safely drains duplicate queued migration actions.
-* Fix: Synchronizes server capabilities immediately after registration and shows a pending state instead of incorrectly reporting that subscription-key activation is unsupported.
-* Improve: Colors interactive subscription activation controls with each user’s WordPress Admin Color Scheme while keeping passive synchronization and legacy messages visually neutral.
-* Improve: Shows outcome choices that are valid for the original allow, challenge, or block decision and requires a reason for resolved reviews.
-* Improve: Clarifies the optional or required case/evidence ID with reason-specific examples and hides the field until a documented reason is selected.
-* Improve: Displays queued, sending, retrying, delivered, rejected, and authentication-failure delivery states with explicit retry when safe.
-* Improve: Sends phone country context and versioned address normalization metadata to improve international phone and address matching.
-* Improve: Normalizes phone extensions without changing legacy canonical phone behavior.
-* Improve: Displays privacy-safe probable-match confidence and corroboration requirements without allowing fuzzy identity evidence to block an order by itself.
-* Improve: Adds a Core-owned Global source header with extension context for safe Premium demo notices.
-* Improve: Replaces the verbose Global Blacklist email with a compact shared summary API that coordinates combined Core and Premium output.
-* Security: Treats HTTP 401 as a credential problem instead of repeatedly retrying, encrypts strong evidence references at rest, and narrows the legacy handler to visible feedback choices.
-* Compatibility: Retains the existing “Report incorrect result” V1 interface when the connected server does not advertise decision outcomes v2.
-* Compatibility: Keeps the existing compact and legacy server response contracts fully supported.
+= 2.3.0 (Aug 31, 2026) =
+* New: Adds one Core-owned checkout verification coordinator for Classic Checkout and Checkout Blocks, with Email before optional Premium Phone and shared Inline or Popup presentation.
+* New: Adds privacy-safe site-local OTP state, bounded schema readiness, and evidence-trust contracts for reliable verification across retries and payment completion.
+* New: Refreshes the Blacklist Manager dashboard, adds a WordPress Dashboard protection widget, and uses native WooCommerce edit-order modals for blacklist actions.
+* Improve: Lets authorized WooCommerce order managers use order-scoped blacklist and Global recheck controls without granting Blacklist Manager settings access.
+* Improve: Makes Global Blacklist control updates generation-aware and collapses scheduled convergence traffic while preserving signed v1 compatibility.
+* Security: Pauses durable Global delivery on credential failures and uses bounded, single-flight background recovery before eligible work resumes.
+* Security: Hardens checkout verification validation, state ownership, retry idempotency, cleanup, and final gates without adding verification transport to the final checkout gate.
+* Fix: Counts only explicit bot, CAPTCHA, challenge, Store API, payment-flow, and risk-engine evidence in abuse notices; routine policy blocks no longer create false alerts.
+* Compatibility: Includes dormant, default-OFF Report Admission v2 and contextual-reporting foundations without enabling live v2 admission, scoring, challenge, or block authority.
+* Compatibility: Establishes the provisional Premium 2.7.0 pair on Core 2.3.0 and schema contract generation 1 while preserving standalone Core operation.
 
 See `changelog.txt` for the complete release history.

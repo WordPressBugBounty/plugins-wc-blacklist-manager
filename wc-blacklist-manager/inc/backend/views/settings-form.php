@@ -7,9 +7,6 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 ?>
 
 <div class="wrap yobm-admin-page">
-	<?php if (!$premium_active): ?>
-		<p>Please support us by <a href="https://wordpress.org/support/plugin/wc-blacklist-manager/reviews/#new-post" target="_blank">leaving a review</a> <span style="color: #e26f56;">&#9733;&#9733;&#9733;&#9733;&#9733;</span> to keep updating & improving.</p>
-	<?php endif; ?>
 	
 	<h1>
 		<?php echo esc_html__('Blacklist manager settings', 'wc-blacklist-manager'); ?> 
@@ -18,21 +15,13 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 			<a href="https://yoohw.com/contact-us/" target="_blank" class="button button-secondary"><?php echo esc_html__('Support', 'wc-blacklist-manager'); ?></a>
 		<?php endif; ?>
 	</h1>
+	<p class="description"><?php esc_html_e( 'Start with your local email and phone blacklist rules, then save the protection choices that fit your store. Global Blacklist is optional and can be configured separately.', 'wc-blacklist-manager' ); ?></p>
 
 	<nav class="yobm-admin-tabs" aria-label="<?php echo esc_attr__( 'Blacklist Manager settings sections', 'wc-blacklist-manager' ); ?>">
 		<a href="#tab-content-general" class="yobm-admin-tab is-active" id="tab-general"><?php echo esc_html__('General', 'wc-blacklist-manager'); ?></a>
-		<?php if ($woocommerce_active): ?>
-			<a href="#tab-content-anti_bots" class="yobm-admin-tab" id="tab-anti_bots"><?php echo esc_html__('Anti-bots', 'wc-blacklist-manager'); ?></a>
-			<a href="#tab-content-automation" class="yobm-admin-tab" id="tab-automation"><?php echo esc_html__('Automation', 'wc-blacklist-manager'); ?></a>
-			<a href="#tab-content-scoring" class="yobm-admin-tab" id="tab-scoring"><?php echo esc_html__('Scoring', 'wc-blacklist-manager'); ?></a>
+		<?php if ( class_exists( 'WC_Blacklist_Manager_Opportunity_Engine' ) && WC_Blacklist_Manager_Opportunity_Engine::is_selected( 'premium.passive.settings.advanced_protection' ) ) : ?>
+			<a href="<?php echo esc_url( admin_url( 'admin.php?page=wc-blacklist-manager-premium' ) ); ?>" class="yobm-admin-tab"><?php echo esc_html__( 'Explore Advanced Protection', 'wc-blacklist-manager' ); ?></a>
 		<?php endif; ?>
-		<?php if ($woocommerce_active): ?>
-			<a href="#tab-content-payments" class="yobm-admin-tab" id="tab-payments"><?php echo esc_html__('Payments', 'wc-blacklist-manager'); ?></a>
-		<?php endif; ?>
-		<a href="#tab-content-permission" class="yobm-admin-tab" id="tab-permission"><?php echo esc_html__('Permission', 'wc-blacklist-manager'); ?></a>
-		<a href="#tab-content-integrations" class="yobm-admin-tab" id="tab-integrations"><?php echo esc_html__('Integrations', 'wc-blacklist-manager'); ?></a>
-		<a href="#tab-content-tools" class="yobm-admin-tab" id="tab-tools"><?php echo esc_html__('Tools', 'wc-blacklist-manager'); ?></a>
-		<a href="#tab-content-connection" class="yobm-admin-tab" id="tab-connection"><?php echo esc_html__('Connection', 'wc-blacklist-manager'); ?></a>
 	</nav>
 
 	<div id="tab-content-general" class="tab-content">
@@ -64,33 +53,6 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 						</td>
 					</tr>
 				<?php endif; ?>
-				<tr>
-					<th scope="row">
-						<span class="dashicons dashicons-shield-alt"></span>
-						<label><?php echo esc_html__( 'Premium identity signals', 'wc-blacklist-manager' ); ?></label>
-					</th>
-					<td>
-						<?php
-						wc_blacklist_manager_render_premium_preview_cards(
-							array(
-								array(
-									'icon'        => 'dashicons-businessperson',
-									'title'       => __( 'Customer name blocking', 'wc-blacklist-manager' ),
-									'description' => __( 'Add first and last names to suspects or blocklist when email and phone alone are not enough.', 'wc-blacklist-manager' ),
-								),
-								array(
-									'icon'        => 'dashicons-admin-site-alt3',
-									'title'       => __( 'Device identity', 'wc-blacklist-manager' ),
-									'description' => __( 'Recognize repeat abuse from the same device even when contact details change.', 'wc-blacklist-manager' ),
-								),
-							),
-							array( 'columns' => 2 )
-						);
-						wc_blacklist_manager_render_premium_inline_cta( $unlock_url, 'premium', __( 'Unlock Premium Protection', 'wc-blacklist-manager' ) );
-						?>
-					</td>
-				</tr>
-
 			</table>
 
 			<h2><?php echo esc_html__('Email address & Phone number', 'wc-blacklist-manager'); ?></h2>
@@ -233,9 +195,8 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 									'description' => __( 'Review IP location and risk details from the order screen when investigating fraud.', 'wc-blacklist-manager' ),
 								),
 							),
-							array( 'columns' => 3 )
+							array( 'compact' => true )
 						);
-						wc_blacklist_manager_render_premium_inline_cta( $unlock_url, 'scoring' );
 						?>
 					</td>
 				</tr>
@@ -263,9 +224,8 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 							'description' => __( 'Prevent risky orders when billing, shipping, state, or postcode matches your blocklist rules.', 'wc-blacklist-manager' ),
 						),
 					),
-					array( 'columns' => 3 )
+					array( 'compact' => true )
 				);
-				wc_blacklist_manager_render_premium_inline_cta( $unlock_url, 'premium', __( 'Unlock Address Protection', 'wc-blacklist-manager' ) );
 				?>
 			<?php endif; ?>
 
@@ -305,9 +265,8 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 									'description' => __( 'Use the same domain rules on supported form plugins for cleaner lead quality.', 'wc-blacklist-manager' ),
 								),
 							),
-							array( 'columns' => 3 )
+							array( 'compact' => true )
 						);
-						wc_blacklist_manager_render_premium_inline_cta( $unlock_url, 'premium', __( 'Unlock Domain Controls', 'wc-blacklist-manager' ) );
 						?>
 					</td>
 				</tr>
@@ -364,9 +323,8 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 							'description' => __( 'Block, unblock, and review WordPress users through dedicated Premium controls.', 'wc-blacklist-manager' ),
 						),
 					),
-					array( 'columns' => 1 )
+					array( 'compact' => true )
 				);
-				wc_blacklist_manager_render_premium_inline_cta( $unlock_url, 'premium', __( 'Unlock User Controls', 'wc-blacklist-manager' ) );
 				?>
 			<?php endif; ?>
 
@@ -380,9 +338,8 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 						'description' => __( 'Prevent access from browser families that do not match your security or compatibility policy.', 'wc-blacklist-manager' ),
 					),
 				),
-				array( 'columns' => 1 )
+				array( 'compact' => true )
 			);
-			wc_blacklist_manager_render_premium_inline_cta( $unlock_url, 'premium', __( 'Unlock Browser Rules', 'wc-blacklist-manager' ) );
 			?>
 
 			<?php
@@ -568,17 +525,11 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 		</form>
 	</div>
 
-	<?php
-	$premium_preview_template = plugin_dir_path( __FILE__ ) . 'premium-settings-preview.php';
-	if ( file_exists( $premium_preview_template ) ) {
-		include $premium_preview_template;
-	}
-	?>
 </div>
 
 <script type="text/javascript">
 	document.addEventListener('DOMContentLoaded', function () {
-		var tabs = document.querySelectorAll('.yobm-admin-tab');
+		var tabs = document.querySelectorAll('.yobm-admin-tab[href^="#"]');
 		var tabContents = document.querySelectorAll('.tab-content');
 
 		function hideAllTabContents() {

@@ -5,7 +5,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 
-$unlock_url         = isset( $unlock_url ) ? $unlock_url : 'https://yoohw.com/product/blacklist-manager-premium/';
+$unlock_url         = isset( $unlock_url ) ? $unlock_url : WC_Blacklist_Manager_Commercial_Router::premium_destination_url();
 $woocommerce_active = ! empty( $woocommerce_active );
 
 if ( $woocommerce_active ) {
@@ -133,7 +133,7 @@ wc_blacklist_manager_render_premium_preview_tab(
 			array(
 				'icon'        => 'dashicons-email-alt2',
 				'title'       => __( 'SMS providers', 'wc-blacklist-manager' ),
-				'description' => __( 'Send phone verification codes through Yo Credits, Twilio, or Textmagic depending on your operation.', 'wc-blacklist-manager' ),
+				'description' => __( 'Send Premium phone verification codes through Twilio or TextMagic.', 'wc-blacklist-manager' ),
 			),
 			array(
 				'icon'        => 'dashicons-location',

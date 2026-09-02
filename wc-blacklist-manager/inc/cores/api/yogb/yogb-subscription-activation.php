@@ -70,9 +70,6 @@ final class YOGB_BM_Subscription_Activation {
 		}
 
 		$tier = sanitize_key( (string) get_option( 'yogb_bm_tier', 'free' ) );
-		if ( ! in_array( $tier, [ 'free', 'basic', 'pro', 'enterprise' ], true ) ) {
-			$tier = 'free';
-		}
 
 		$last_success        = (int) get_option( 'yogb_bm_last_server_success_at', 0 );
 		$last_error_at       = (int) get_option( 'yogb_bm_last_server_error_at', 0 );
@@ -90,16 +87,14 @@ final class YOGB_BM_Subscription_Activation {
 		$notice_key          = 'yogb_activation_notice_' . get_current_user_id();
 		$notice              = get_transient( $notice_key );
 
-		delete_transient( $notice_key );
+		if ( false !== $notice ) {
+			delete_transient( $notice_key );
+		}
 		if ( $subscription && ! in_array( $subscription, $subscriptions, true ) ) {
 			array_unshift( $subscriptions, $subscription );
 		}
-		if ( ! in_array( $plan_status, [ 'active', 'inactive', 'none' ], true ) ) {
-			$plan_status = 'free' === $tier ? 'none' : 'active';
-		}
-		if ( ! in_array( $plan_type, [ 'subscription', 'legacy', 'mixed', 'none' ], true ) ) {
-			$plan_type = $last4 ? 'subscription' : ( 'free' === $tier ? 'none' : 'legacy' );
-		}
+		$commercial_context = WC_Blacklist_Manager_Commercial_Router::global_context( $connected, $tier, $plan_status, $plan_type );
+		$commercial_action  = WC_Blacklist_Manager_Commercial_Router::global_card_action( $commercial_context, $supports_key );
 
 		echo '<tr class="yogb-gbl-overview-row"><th scope="row">' . esc_html__( 'Plan & connection', 'wc-blacklist-manager' ) . '</th><td>';
 		if ( ! $connected ) {
@@ -111,24 +106,26 @@ final class YOGB_BM_Subscription_Activation {
 		}
 
 		$healthy       = 0 === $last_error_at || $last_success >= $last_error_at;
-		$labels        = [ 'free' => 'Free', 'basic' => 'Basic', 'pro' => 'Pro', 'enterprise' => 'Enterprise' ];
+		$labels        = [ 'free' => 'Free', 'basic' => 'Basic', 'pro' => 'Pro', 'enterprise' => 'Enterprise', 'unknown' => __( 'Unknown', 'wc-blacklist-manager' ) ];
 		$type_labels   = [
 			'subscription' => __( 'Subscription key', 'wc-blacklist-manager' ),
 			'legacy'       => __( 'Legacy Site ID', 'wc-blacklist-manager' ),
 			'mixed'        => __( 'Subscription key + legacy', 'wc-blacklist-manager' ),
 			'none'         => __( 'No paid plan', 'wc-blacklist-manager' ),
 		];
-		$status_label  = 'active' === $plan_status ? __( 'Active', 'wc-blacklist-manager' ) : ( 'inactive' === $plan_status ? __( 'Inactive', 'wc-blacklist-manager' ) : __( 'Free', 'wc-blacklist-manager' ) );
-		$limit         = class_exists( 'YOGB_BM_Check' ) ? YOGB_BM_Check::get_monthly_limit_for_tier( $tier ) : 0;
-		$used          = class_exists( 'YOGB_BM_Check' ) ? YOGB_BM_Check::get_monthly_usage( $tier ) : 0;
-		$usage_percent = $limit > 0 ? min( 100, round( ( $used / $limit ) * 100, 2 ) ) : 100;
-		$usage_state   = $limit <= 0 ? 'unlimited' : ( $used >= $limit ? 'error' : ( $usage_percent >= 80 ? 'warning' : 'normal' ) );
-		$manage_label  = 'free' === $tier || 'inactive' === $plan_status ? __( 'View plans', 'wc-blacklist-manager' ) : __( 'Manage plan', 'wc-blacklist-manager' );
-		$premium_active = function_exists( 'wc_blacklist_manager_is_premium_available' )
-			&& wc_blacklist_manager_is_premium_available();
-
+		$status_label  = WC_Blacklist_Manager_Commercial_Router::GLOBAL_PAID === $commercial_context['state']
+			? __( 'Active', 'wc-blacklist-manager' )
+			: ( WC_Blacklist_Manager_Commercial_Router::GLOBAL_INACTIVE === $commercial_context['state']
+				? __( 'Inactive', 'wc-blacklist-manager' )
+				: ( WC_Blacklist_Manager_Commercial_Router::GLOBAL_FREE === $commercial_context['state'] ? __( 'Free', 'wc-blacklist-manager' ) : __( 'Review required', 'wc-blacklist-manager' ) ) );
+		$known_tier    = in_array( $tier, [ 'free', 'basic', 'pro', 'enterprise' ], true );
+		$display_tier  = $known_tier ? $tier : 'unknown';
+		$limit         = $known_tier && class_exists( 'YOGB_BM_Check' ) ? YOGB_BM_Check::get_monthly_limit_for_tier( $tier ) : 0;
+		$used          = $known_tier && class_exists( 'YOGB_BM_Check' ) ? YOGB_BM_Check::get_monthly_usage( $tier ) : 0;
+		$usage_percent = $known_tier && $limit <= 0 ? 100 : ( $limit > 0 ? min( 100, round( ( $used / $limit ) * 100, 2 ) ) : 0 );
+		$usage_state   = ! $known_tier ? 'unavailable' : ( $limit <= 0 ? 'unlimited' : ( $used >= $limit ? 'error' : ( $usage_percent >= 80 ? 'warning' : 'normal' ) ) );
 		echo '<section class="yogb-gbl-card">';
-		echo '<header class="yogb-gbl-card__header"><div class="yogb-gbl-plan-heading"><span class="yogb-tier-badge yogb-tier-' . esc_attr( $tier ) . '"><span class="yogb-tier-dot"></span><span class="yogb-tier-text">' . esc_html( $labels[ $tier ] ) . '</span></span><span class="yogb-gbl-plan-status">' . esc_html( $status_label ) . '</span></div>';
+		echo '<header class="yogb-gbl-card__header"><div class="yogb-gbl-plan-heading"><span class="yogb-tier-badge yogb-tier-' . esc_attr( $display_tier ) . '"><span class="yogb-tier-dot"></span><span class="yogb-tier-text">' . esc_html( $labels[ $display_tier ] ) . '</span></span><span class="yogb-gbl-plan-status">' . esc_html( $status_label ) . '</span></div>';
 		echo '<div class="yogb-gbl-connection"><span class="yogb-gbl-connection__status"><span class="yogb-gbl-connection__dot yogb-gbl-connection__dot--' . esc_attr( $healthy ? 'connected' : 'warning' ) . '" aria-hidden="true"></span>' . esc_html( $healthy ? __( 'Connected', 'wc-blacklist-manager' ) : __( 'Needs attention', 'wc-blacklist-manager' ) ) . '</span>';
 		if ( $last_success > 0 ) {
 			echo '<span class="yogb-gbl-connection__time">' . esc_html( sprintf( __( 'Synced %s ago', 'wc-blacklist-manager' ), human_time_diff( $last_success, time() ) ) ) . '</span>';
@@ -146,21 +143,34 @@ final class YOGB_BM_Subscription_Activation {
 		}
 
 		echo '<div class="yogb-gbl-usage"><div class="yogb-gbl-usage__row"><span>' . esc_html__( 'Monthly checks', 'wc-blacklist-manager' ) . '</span><strong>';
-		echo esc_html( $limit > 0 ? sprintf( __( '%1$d of %2$d', 'wc-blacklist-manager' ), $used, $limit ) : sprintf( __( '%d used · Unlimited', 'wc-blacklist-manager' ), $used ) );
-		echo '</strong></div><div class="yogb-gbl-progress yogb-gbl-progress--' . esc_attr( $usage_state ) . '" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' . esc_attr( (string) $usage_percent ) . '"><span style="width:' . esc_attr( (string) $usage_percent ) . '%"></span></div></div>';
+		if ( ! $known_tier ) {
+			echo esc_html__( 'Review required', 'wc-blacklist-manager' );
+			echo '</strong></div></div>';
+		} else {
+			echo esc_html( $limit > 0 ? sprintf( __( '%1$d of %2$d', 'wc-blacklist-manager' ), $used, $limit ) : sprintf( __( '%d used · Unlimited', 'wc-blacklist-manager' ), $used ) );
+			echo '</strong></div><div class="yogb-gbl-progress yogb-gbl-progress--' . esc_attr( $usage_state ) . '" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' . esc_attr( (string) $usage_percent ) . '"><span style="width:' . esc_attr( (string) $usage_percent ) . '%"></span></div></div>';
+		}
+		if ( class_exists( 'YOGB_BM_Global_Value_Summary' ) ) {
+			YOGB_BM_Global_Value_Summary::render();
+		}
 
-		echo '<div class="yogb-gbl-meta"><span><strong>' . esc_html__( 'Activation', 'wc-blacklist-manager' ) . ':</strong> ' . esc_html( $type_labels[ $plan_type ] ?? $type_labels['none'] ) . ( $last4 ? ' · ' . esc_html( sprintf( __( 'key ••••%s', 'wc-blacklist-manager' ), $last4 ) ) : '' ) . '</span>';
+		echo '<div class="yogb-gbl-meta"><span><strong>' . esc_html__( 'Activation', 'wc-blacklist-manager' ) . ':</strong> ' . esc_html( $type_labels[ $plan_type ] ?? __( 'Review required', 'wc-blacklist-manager' ) ) . ( $last4 ? ' · ' . esc_html( sprintf( __( 'key ••••%s', 'wc-blacklist-manager' ), $last4 ) ) : '' ) . '</span>';
 		if ( $subscriptions ) {
 			$ids = implode( ', ', array_map( static function ( string $id ) : string { return '#' . ltrim( $id, '#' ); }, $subscriptions ) );
 			echo '<span><strong>' . esc_html( _n( 'Subscription', 'Subscriptions', count( $subscriptions ), 'wc-blacklist-manager' ) ) . ':</strong> ' . esc_html( $ids ) . '</span>';
 		}
 		echo '</div>';
 
-		echo '<div class="yogb-gbl-actions"><a class="button button-secondary" href="https://yoohw.com/global-blacklist-plan/" target="_blank" rel="noopener noreferrer">' . esc_html( $manage_label ) . '</a>';
-		if ( $premium_active ) {
-			echo '<p class="yogb-gbl-benefit">' . esc_html__( 'Premium benefit: up to 50% off eligible paid plans.', 'wc-blacklist-manager' ) . '</p>';
-		} else {
-			echo '<p class="yogb-gbl-benefit">' . esc_html__( 'Buy Blacklist Manager Premium together with an eligible Global Blacklist plan to receive up to 50% off the Global Blacklist plan.', 'wc-blacklist-manager' ) . ' <a href="https://yoohw.com/product/blacklist-manager-premium/" target="_blank" rel="noopener noreferrer">' . esc_html__( 'Get Premium', 'wc-blacklist-manager' ) . '</a></p>';
+		echo '<div class="yogb-gbl-actions">';
+		if ( ! empty( $commercial_action ) ) {
+			echo '<a class="button button-secondary" href="' . esc_url( $commercial_action['url'] ) . '"' . ( ! empty( $commercial_action['external'] ) ? ' target="_blank" rel="noopener noreferrer"' : '' ) . '>' . esc_html( $commercial_action['label'] ) . '</a>';
+			if ( ! empty( $commercial_action['post_purchase'] ) ) {
+				echo '<p class="yogb-gbl-benefit">' . esc_html( $commercial_action['post_purchase'] ) . '</p>';
+			}
+		} elseif ( WC_Blacklist_Manager_Commercial_Router::GLOBAL_INACTIVE === $commercial_context['state'] ) {
+			echo '<p class="yogb-gbl-benefit">' . esc_html__( 'This existing Global Blacklist plan needs local review or recovery before any new purchase.', 'wc-blacklist-manager' ) . '</p>';
+		} elseif ( WC_Blacklist_Manager_Commercial_Router::GLOBAL_UNKNOWN === $commercial_context['state'] ) {
+			echo '<p class="yogb-gbl-benefit">' . esc_html__( 'The signed plan state is inconsistent or incomplete. Review the local status before taking a purchase action.', 'wc-blacklist-manager' ) . '</p>';
 		}
 		echo '</div></div>';
 

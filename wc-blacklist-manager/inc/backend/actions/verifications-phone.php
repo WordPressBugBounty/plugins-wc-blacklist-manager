@@ -4,6 +4,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Temporary old-Premium/new-Core compatibility bridge.
+ *
+ * This class is loaded only by WC_Blacklist_Manager_Phone_Verification_Boundary
+ * after the legacy Premium, license, provider, and capability predicates pass.
+ */
 class WC_Blacklist_Manager_Verifications_Verify_Phone {
 
 	private $whitelist_table;
@@ -40,10 +46,18 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 
 		add_action( 'init', array( $this, 'initialize_session' ), 1 );
 
-		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_verification_scripts' ) );
-		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_blocks_verification_scripts' ) );
+		$coordinator_registered = function_exists( 'wc_blacklist_manager_register_checkout_verification_channel' );
+		if ( $coordinator_registered ) {
+			wc_blacklist_manager_register_checkout_verification_channel( $this );
+		}
 
-		add_action( 'woocommerce_checkout_process', array( $this, 'phone_verification' ), 20 );
+		if ( ! $coordinator_registered ) {
+			add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_verification_scripts' ) );
+			add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_blocks_verification_scripts' ) );
+			add_action( 'woocommerce_checkout_process', array( $this, 'phone_verification' ), 20 );
+			add_action( 'woocommerce_checkout_update_order_meta', array( $this, 'add_verified_phone_meta_to_order' ), 10, 1 );
+			add_action( 'woocommerce_store_api_checkout_update_order_meta', array( $this, 'add_verified_phone_meta_to_order' ), 10, 1 );
+		}
 
 		add_action( 'wp_ajax_verify_phone_code', array( $this, 'verify_phone_code' ) );
 		add_action( 'wp_ajax_nopriv_verify_phone_code', array( $this, 'verify_phone_code' ) );
@@ -54,16 +68,12 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 		add_action( 'wp_ajax_send_phone_verification_code_blocks', array( $this, 'send_verification_code_blocks' ) );
 		add_action( 'wp_ajax_nopriv_send_phone_verification_code_blocks', array( $this, 'send_verification_code_blocks' ) );
 
-		add_action( 'wp_ajax_check_sms_verification_status', array( $this, 'yoohw_check_sms_verification_status' ) );
-		add_action( 'wp_ajax_nopriv_check_sms_verification_status', array( $this, 'yoohw_check_sms_verification_status' ) );
-		add_action( 'yoohw_sms_verification_failed', array( $this, 'handle_sms_verification_failed' ) );
-
-		add_action( 'woocommerce_checkout_update_order_meta', array( $this, 'add_verified_phone_meta_to_order' ), 10, 1 );
-		add_action( 'woocommerce_store_api_checkout_update_order_meta', array( $this, 'add_verified_phone_meta_to_order' ), 10, 1 );
 
 		add_action( 'wc_blacklist_manager_cleanup_verification_code', array( $this, 'cleanup_expired_code' ), 10, 2 );
 
-		add_filter( 'rest_authentication_errors', array( $this, 'validate_blocks_checkout_request' ), 20 );
+		if ( ! $coordinator_registered ) {
+			add_filter( 'rest_authentication_errors', array( $this, 'validate_blocks_checkout_request' ), 20 );
+		}
 		$this->debug_log( 'hooks_registered' );
 	}
 
@@ -94,6 +104,350 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 		}
 
 		return '';
+	}
+
+	public function checkout_verification_channel_id() {
+		return 'phone';
+	}
+
+	public function checkout_verification_priority() {
+		return 20;
+	}
+
+	private function context_value( array $context, $key ) {
+		return isset( $context[ $key ] ) && is_scalar( $context[ $key ] ) ? trim( (string) $context[ $key ] ) : '';
+	}
+
+	private function uses_otp_state_contract() {
+		return defined( 'WC_BLACKLIST_MANAGER_OTP_STATE_CONTRACT_VERSION' )
+			&& WC_BLACKLIST_MANAGER_OTP_STATE_CONTRACT_VERSION >= 1
+			&& function_exists( 'wc_blacklist_manager_otp_state' );
+	}
+
+	private function otp_operation_args( array $context ) {
+		return array(
+			'request_id'           => $this->context_value( $context, '_yobm_request_id' ),
+			'expected_revision'     => $this->context_value( $context, '_yobm_expected_revision' ),
+			'expected_generation'   => $this->context_value( $context, '_yobm_expected_generation' ),
+			'expected_challenge_id' => $this->context_value( $context, '_yobm_expected_challenge_id' ),
+		);
+	}
+
+	private function maybe_migrate_legacy_state( $phone ) {
+		$service = wc_blacklist_manager_otp_state();
+		if ( ! $service->is_ready() ) {
+			return;
+		}
+		$legacy = $this->get_verification_state();
+		if ( empty( $legacy ) ) {
+			return;
+		}
+		if ( empty( $legacy['phone'] ) || ! hash_equals( (string) $legacy['phone'], (string) $phone ) ) {
+			$this->clear_verification_state();
+			return;
+		}
+		$result = $service->import_legacy( 'phone', $phone, $legacy );
+		if ( in_array( $service->legacy_import_disposition( $result ), array( 'persisted', 'terminal' ), true ) ) {
+			$this->clear_verification_state();
+		}
+	}
+
+	private function otp_projection( $phone ) {
+		$service = wc_blacklist_manager_otp_state();
+		if ( ! $service->is_ready() ) {
+			$legacy = $this->get_verification_state();
+			$valid  = ! empty( $legacy['verified'] ) && ! empty( $legacy['phone'] )
+				&& hash_equals( (string) $legacy['phone'], (string) $phone ) && ! $this->is_state_expired( $legacy );
+			return array( 'verified' => $valid, 'pending' => false, 'status' => $valid ? 'verified' : 'unavailable', 'revision' => 0, 'generation' => 0, 'challenge_id' => '', 'identity_token' => '', 'resend_available_at' => 0, 'retry_after' => 0, 'proof_id' => '' );
+		}
+		$this->maybe_migrate_legacy_state( $phone );
+		return $service->project( 'phone', $phone );
+	}
+
+	private function transport_outcome( $result ) {
+		if ( true === $result ) {
+			return 'success';
+		}
+		if ( ! is_wp_error( $result ) ) {
+			return 'uncertain';
+		}
+
+		$data = $result->get_error_data();
+		if ( is_array( $data ) && array_key_exists( 'delivery_ambiguous', $data ) ) {
+			return ! empty( $data['delivery_ambiguous'] ) ? 'uncertain' : 'failed';
+		}
+
+		$definitive = array( 'yobmp_sms_inactive_license', 'yobmp_sms_provider_mismatch', 'yobmp_sms_invalid_phone', 'yobmp_sms_missing_credentials', 'yobmp_sms_api_error' );
+		return in_array( $result->get_error_code(), $definitive, true ) ? 'failed' : 'uncertain';
+	}
+
+	private function send_v2_verification_code( $phone, $resend, array $context ) {
+		$provider = (string) get_option( 'yoohw_sms_service', '' );
+		if ( ! WC_Blacklist_Manager_Phone_Verification_Boundary::is_supported_provider( $provider ) ) {
+			return new WP_Error( 'sms_provider_unconfigured', $this->get_sms_send_failed_message() );
+		}
+		$premium_active = function_exists( 'wc_blacklist_manager_is_premium_available' ) && wc_blacklist_manager_is_premium_available();
+		if ( ! $premium_active || ! class_exists( 'WC_Blacklist_Manager_Premium_Verifications_Service' ) ) {
+			return new WP_Error( 'sms_service_unavailable', $this->get_sms_send_failed_message() );
+		}
+		$settings      = get_option( 'wc_blacklist_phone_verification', array( 'code_length' => 6 ) );
+		$resend_limit  = max( 1, min( 10, (int) $this->resend_limit ) );
+		$default_limit = max( 5, $resend_limit + 1 );
+		$args = array_merge(
+			$this->otp_operation_args( $context ),
+			array(
+				'resend'             => (bool) $resend,
+				'code_length'        => isset( $settings['code_length'] ) ? (int) $settings['code_length'] : 6,
+				'cooldown'           => max( 30, min( 3600, (int) $this->resend_cooldown_seconds ) ),
+				'resend_limit'        => $resend_limit,
+				'identity_rate_limit' => max( 1, (int) apply_filters( 'wc_blacklist_phone_verification_send_limit', $default_limit, $phone ) ),
+				'ip_rate_limit'       => 20,
+			)
+		);
+		$service     = wc_blacklist_manager_otp_state();
+		$reservation = $service->reserve_dispatch( 'phone', $phone, $args );
+		if ( is_wp_error( $reservation ) ) {
+			return $reservation;
+		}
+		if ( empty( $reservation['dispatch'] ) ) {
+			if ( ! empty( $reservation['idempotent'] ) && in_array( isset( $reservation['operation_result'] ) ? $reservation['operation_result'] : '', array( 'failed', 'uncertain' ), true ) ) {
+				return new WP_Error( 'yobm_phone_verification_delivery_' . $reservation['operation_result'], $this->get_sms_send_failed_message() );
+			}
+			return true;
+		}
+		$result = 'twilio' === $provider
+			? WC_Blacklist_Manager_Premium_Verifications_Service::send_verification_sms_twilio( $this->format_phone_for_sms( $phone ), $reservation['code'] )
+			: WC_Blacklist_Manager_Premium_Verifications_Service::send_verification_sms_textmagic( $this->format_phone_for_sms( $phone ), $reservation['code'] );
+		$outcome = $this->transport_outcome( $result );
+		$service->finalize_dispatch( $reservation, $outcome );
+		return true === $result ? true : ( is_wp_error( $result ) ? $result : new WP_Error( 'sms_send_failed', $this->get_sms_send_failed_message() ) );
+	}
+
+	private function resolve_phone_components( $billing_phone, $billing_dial_code, $billing_country, $shipping_phone, $shipping_dial_code, $shipping_country ) {
+		return array(
+			'phone'     => '' !== trim( (string) $billing_phone ) ? $billing_phone : $shipping_phone,
+			'dial_code' => '' !== trim( (string) $billing_dial_code ) ? $billing_dial_code : $shipping_dial_code,
+			'country'   => '' !== trim( (string) $billing_country ) ? $billing_country : $shipping_country,
+		);
+	}
+
+	private function canonical_phone_from_context( array $context ) {
+		$components = $this->resolve_phone_components(
+			$this->context_value( $context, 'billing_phone' ),
+			$this->context_value( $context, 'billing_dial_code' ),
+			$this->context_value( $context, 'billing_country' ),
+			$this->context_value( $context, 'shipping_phone' ),
+			$this->context_value( $context, 'shipping_dial_code' ),
+			$this->context_value( $context, 'shipping_country' )
+		);
+
+		return $this->build_canonical_phone( $components['phone'], $components['dial_code'], $components['country'] );
+	}
+
+	private function mask_phone( $phone ) {
+		$digits = preg_replace( '/\D+/', '', (string) $phone );
+		return '' === $digits ? '' : '+' . str_repeat( '*', max( 4, strlen( $digits ) - 4 ) ) . substr( $digits, -4 );
+	}
+
+	public function checkout_verification_state( array $context ) {
+		$phone = $this->canonical_phone_from_context( $context );
+		if ( '' === $phone ) {
+			return array( 'label' => __( 'Phone', 'wc-blacklist-manager' ), 'required' => false, 'verified' => false, 'status' => 'not_required', 'masked_destination' => '', 'message' => '' );
+		}
+
+		$required = $this->requires_phone_verification( $phone );
+		if ( $this->uses_otp_state_contract() ) {
+			$otp      = $this->otp_projection( $phone );
+			$verified = $required && is_array( $otp ) && ! empty( $otp['verified'] );
+			$pending  = $required && is_array( $otp ) && ! empty( $otp['pending'] );
+			return array(
+				'label'               => __( 'Phone', 'wc-blacklist-manager' ),
+				'required'            => $required,
+				'verified'            => $verified,
+				'status'              => $verified ? 'verified' : ( $pending ? ( 'sent' === $otp['status'] ? 'challenge_sent' : $otp['status'] ) : ( $required ? ( isset( $otp['status'] ) ? $otp['status'] : 'required' ) : 'not_required' ) ),
+				'masked_destination'  => $this->mask_phone( $phone ),
+				'resend_available_at' => isset( $otp['resend_available_at'] ) ? absint( $otp['resend_available_at'] ) : 0,
+				'message'             => $required ? $this->get_verification_required_message() : '',
+				'state_revision'      => isset( $otp['revision'] ) ? absint( $otp['revision'] ) : 0,
+				'generation'          => isset( $otp['generation'] ) ? absint( $otp['generation'] ) : 0,
+				'challenge_id'        => isset( $otp['challenge_id'] ) ? $otp['challenge_id'] : '',
+				'identity_token'      => isset( $otp['identity_token'] ) ? $otp['identity_token'] : '',
+				'retry_after'         => isset( $otp['retry_after'] ) ? absint( $otp['retry_after'] ) : 0,
+			);
+		}
+
+		$this->clear_verification_state_if_phone_mismatch( $phone );
+		$verified = $required && $this->is_phone_verified_for_checkout( $phone );
+		$state    = $this->get_verification_state();
+		$pending  = $required && ! $verified && ! empty( $state['code'] ) && ! $this->is_state_expired( $state );
+
+		return array(
+			'label'               => __( 'Phone', 'wc-blacklist-manager' ),
+			'required'            => $required,
+			'verified'            => $verified,
+			'status'              => $verified ? 'verified' : ( $pending ? 'challenge_sent' : ( $required ? 'required' : 'not_required' ) ),
+			'masked_destination'  => $this->mask_phone( $phone ),
+			'resend_available_at' => isset( $state['resend_available_at'] ) ? absint( $state['resend_available_at'] ) : 0,
+			'message'             => $required ? $this->get_verification_required_message() : '',
+		);
+	}
+
+	public function checkout_verification_issue( array $context ) {
+		$phone = $this->canonical_phone_from_context( $context );
+		if ( '' === $phone || ! $this->requires_phone_verification( $phone ) ) {
+			return new WP_Error( 'yobm_phone_verification_not_required', __( 'Phone verification is not required.', 'wc-blacklist-manager' ) );
+		}
+		$result = $this->send_verification_code( $phone, false, $context );
+		return is_wp_error( $result ) ? $result : array( 'message' => __( 'A verification code has been sent to your phone.', 'wc-blacklist-manager' ) );
+	}
+
+	public function checkout_verification_resend( array $context ) {
+		$phone = $this->canonical_phone_from_context( $context );
+		if ( '' === $phone ) {
+			return new WP_Error( 'yobm_phone_verification_missing_phone', __( 'Unable to resend the verification code. Phone number not found.', 'wc-blacklist-manager' ) );
+		}
+		if ( $this->uses_otp_state_contract() ) {
+			$result = $this->send_v2_verification_code( $phone, true, $context );
+			return is_wp_error( $result ) ? $result : array( 'message' => __( 'A new code has been sent to your phone.', 'wc-blacklist-manager' ) );
+		}
+
+		$state = $this->get_verification_state();
+		if ( '' === $phone ) {
+			return new WP_Error( 'yobm_phone_verification_missing_phone', __( 'Unable to resend the verification code. Phone number not found.', 'wc-blacklist-manager' ) );
+		}
+		if ( ! empty( $state['phone'] ) && $state['phone'] !== $phone ) {
+			$this->clear_verification_state();
+			$state = array();
+		}
+
+		$resend_count = ! empty( $state['resend_count'] ) ? absint( $state['resend_count'] ) : 0;
+		if ( $resend_count >= $this->resend_limit ) {
+			return new WP_Error( 'yobm_phone_verification_resend_limited', __( 'You have reached the resend limit. Please contact support.', 'wc-blacklist-manager' ) );
+		}
+		if ( ! empty( $state ) && ! $this->can_resend_code( $state ) ) {
+			$remaining = max( 1, absint( $state['resend_available_at'] ) - time() );
+			return new WP_Error( 'yobm_phone_verification_resend_cooldown', sprintf( __( 'Please wait %d seconds before requesting a new code.', 'wc-blacklist-manager' ), $remaining ) );
+		}
+
+		$result = $this->send_verification_code( $phone, true );
+		if ( is_wp_error( $result ) ) {
+			return new WP_Error( 'yobm_phone_verification_send_failed', $this->get_sms_send_failed_message() );
+		}
+		$updated_state                 = $this->get_verification_state();
+		$updated_state['resend_count'] = $resend_count + 1;
+		$this->set_verification_state( $updated_state );
+		return array( 'message' => __( 'A new code has been sent to your phone.', 'wc-blacklist-manager' ) );
+	}
+
+	public function checkout_verification_verify( array $context, $submitted_code ) {
+		if ( $this->uses_otp_state_contract() ) {
+			$submitted_phone = $this->canonical_phone_from_context( $context );
+			$result = wc_blacklist_manager_otp_state()->verify( 'phone', $submitted_phone, $submitted_code, $this->otp_operation_args( $context ) );
+			if ( is_wp_error( $result ) ) {
+				return $result;
+			}
+			if ( ! empty( $result['transitioned'] ) ) {
+				$this->record_successful_phone_transition( $context, $submitted_phone, $result );
+			}
+			return array( 'message' => __( 'Your phone number has been successfully verified!', 'wc-blacklist-manager' ) );
+		}
+
+		$ip_address      = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : 'unknown';
+		$attempts        = (int) get_transient( 'verify_phone_attempts_' . md5( $ip_address ) );
+		$submitted_code  = sanitize_text_field( (string) $submitted_code );
+		$submitted_phone = $this->canonical_phone_from_context( $context );
+
+		if ( $attempts >= 5 ) {
+			return new WP_Error( 'yobm_phone_verification_attempt_limited', __( 'Too many attempts. Please try again later.', 'wc-blacklist-manager' ) );
+		}
+		set_transient( 'verify_phone_attempts_' . md5( $ip_address ), $attempts + 1, HOUR_IN_SECONDS );
+		if ( '' === $submitted_code || '' === $submitted_phone ) {
+			return new WP_Error( 'yobm_phone_verification_missing_data', __( 'Missing verification data. Please try again.', 'wc-blacklist-manager' ) );
+		}
+		$state = $this->get_verification_state();
+		if ( empty( $state['phone'] ) || empty( $state['code'] ) || empty( $state['sent_at'] ) ) {
+			return new WP_Error( 'yobm_phone_verification_missing_challenge', __( 'No verification code was found. Please request a new one.', 'wc-blacklist-manager' ) );
+		}
+		if ( $state['phone'] !== $submitted_phone ) {
+			$this->clear_verification_state();
+			return new WP_Error( 'yobm_phone_verification_identity_changed', __( 'The phone number has changed. Please request a new verification code.', 'wc-blacklist-manager' ) );
+		}
+		if ( $this->is_state_expired( $state ) ) {
+			$this->clear_verification_state();
+			return new WP_Error( 'yobm_phone_verification_expired', __( 'Code expired. Please request a new one.', 'wc-blacklist-manager' ) );
+		}
+
+		$state_attempts = isset( $state['verify_attempts'] ) ? absint( $state['verify_attempts'] ) : 0;
+		if ( $state_attempts >= $this->max_verification_attempts ) {
+			$this->clear_verification_state();
+			return new WP_Error( 'yobm_phone_verification_attempt_limited', __( 'Too many failed attempts. Please request a new verification code.', 'wc-blacklist-manager' ) );
+		}
+		if ( ! preg_match( '/^\d{6,10}$/', $submitted_code ) || ! hash_equals( (string) $state['code'], $submitted_code ) ) {
+			$state['verify_attempts'] = ++$state_attempts;
+			if ( $state_attempts >= $this->max_verification_attempts ) {
+				$this->clear_verification_state();
+				return new WP_Error( 'yobm_phone_verification_attempt_limited', __( 'Too many failed attempts. Please request a new verification code.', 'wc-blacklist-manager' ) );
+			}
+			$this->set_verification_state( $state );
+			return new WP_Error( 'yobm_phone_verification_invalid_code', __( 'Invalid code. Please try again.', 'wc-blacklist-manager' ) );
+		}
+
+		$billing_details = array(
+			'phone'          => $submitted_phone,
+			'verified_phone' => 1,
+		);
+		$this->add_billing_details_to_whitelist( $billing_details );
+		if ( 'suspect' === get_option( 'wc_blacklist_phone_verification_action' ) ) {
+			$this->mark_phone_as_verified_in_blacklist( $submitted_phone );
+		}
+		$state['verified']        = true;
+		$state['verified_phone']  = $submitted_phone;
+		$state['code']            = '';
+		$state['verify_attempts'] = 0;
+		$this->set_verification_state( $state );
+		return array( 'message' => __( 'Your phone number has been successfully verified!', 'wc-blacklist-manager' ) );
+	}
+
+	private function record_successful_phone_transition( array $context, $submitted_phone, array $result ) {
+		$suspect_resolution = 'suspect' === get_option( 'wc_blacklist_phone_verification_action' )
+			&& $this->mark_phone_as_verified_in_blacklist( $submitted_phone );
+		$proof_id    = isset( $result['proof_id'] ) ? (string) $result['proof_id'] : '';
+		$verified_at = isset( $result['state']['proof_verified_at'] ) ? absint( $result['state']['proof_verified_at'] ) : time();
+		if ( function_exists( 'wc_blacklist_manager_evidence_trust_record_otp' ) ) {
+			wc_blacklist_manager_evidence_trust_record_otp( 'phone', $submitted_phone, $proof_id, $verified_at, $suspect_resolution );
+		}
+		$billing_details = array(
+			'phone'          => $submitted_phone,
+			'verified_phone' => 1,
+		);
+		$this->add_billing_details_to_whitelist( $billing_details );
+		if ( class_exists( 'WC_Blacklist_Manager_Premium_Activity_Logs_Insert' ) ) {
+			global $wpdb;
+			$correlation = function_exists( 'wc_blacklist_manager_evidence_trust' )
+				? wc_blacklist_manager_evidence_trust()->activity_correlation( 'phone', $submitted_phone )
+				: '';
+			$view_json = wp_json_encode(
+				array(
+					'evidence_version' => 1,
+					'category'         => 'verification_audit',
+					'source'           => 'otp_transition',
+					'channel'          => 'phone',
+					'correlation'      => $correlation,
+				)
+			);
+			$wpdb->insert(
+				$wpdb->prefix . 'wc_blacklist_detection_log',
+				array(
+					'timestamp' => current_time( 'mysql' ),
+					'type'      => 'human',
+					'source'    => 'woo_checkout',
+					'action'    => 'verify',
+					'details'   => 'verified_phone_attempt: v1:' . ( '' !== $correlation ? $correlation : 'unavailable' ),
+					'view'      => is_string( $view_json ) ? $view_json : '',
+				),
+				array( '%s', '%s', '%s', '%s', '%s', '%s' )
+			);
+		}
 	}
 
 	public function initialize_session() {
@@ -286,11 +640,20 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 		$verification_action = get_option( 'wc_blacklist_phone_verification_action' );
 
 		if ( 'all' === $verification_action ) {
+			if ( function_exists( 'wc_blacklist_manager_evidence_trust_resolve_policy' ) ) {
+				$policy = wc_blacklist_manager_evidence_trust_resolve_policy( 'phone', $phone, 'repeat_verification' );
+				return empty( $policy['exempt'] );
+			}
 			return ! $this->is_phone_in_whitelist( $phone );
 		}
 
 		if ( 'suspect' === $verification_action ) {
-			return $this->is_phone_in_blacklist( $phone );
+			$active_suspect = $this->is_phone_in_blacklist( $phone );
+			if ( ! $active_suspect || ! function_exists( 'wc_blacklist_manager_evidence_trust_resolve_policy' ) ) {
+				return $active_suspect;
+			}
+			$policy = wc_blacklist_manager_evidence_trust_resolve_policy( 'phone', $phone, 'suspect_resolution' );
+			return empty( $policy['exempt'] );
 		}
 
 		return false;
@@ -305,25 +668,13 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 		$shipping_dial_code = isset( $_POST['shipping_dial_code'] ) ? sanitize_text_field( wp_unslash( $_POST['shipping_dial_code'] ) ) : '';
 		$shipping_country   = isset( $_POST['shipping_country'] ) ? sanitize_text_field( wp_unslash( $_POST['shipping_country'] ) ) : '';
 
-		$phone = $billing_phone;
-		if ( '' === $phone && '' !== $shipping_phone ) {
-			$phone = $shipping_phone;
-		}
-
-		$dial_code = $billing_dial_code;
-		if ( '' === $dial_code && '' !== $shipping_dial_code ) {
-			$dial_code = $shipping_dial_code;
-		}
-
-		$country = $billing_country;
-		if ( '' === $country && '' !== $shipping_country ) {
-			$country = $shipping_country;
-		}
-
-		return array(
-			'phone'     => $phone,
-			'dial_code' => $dial_code,
-			'country'   => $country,
+		return $this->resolve_phone_components(
+			$billing_phone,
+			$billing_dial_code,
+			$billing_country,
+			$shipping_phone,
+			$shipping_dial_code,
+			$shipping_country
 		);
 	}
 
@@ -499,6 +850,11 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 	}
 
 	private function is_phone_verified_for_checkout( $phone ) {
+		if ( $this->uses_otp_state_contract() ) {
+			$projection = $this->otp_projection( $phone );
+			return is_array( $projection ) && ! empty( $projection['verified'] );
+		}
+
 		$state = $this->get_verification_state();
 
 		if ( empty( $state ) || empty( $state['verified'] ) || empty( $state['phone'] ) ) {
@@ -566,7 +922,11 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 		}
 	}
 
-	private function send_verification_code( $phone, $force = false ) {
+	private function send_verification_code( $phone, $force = false, array $context = array() ) {
+		if ( $this->uses_otp_state_contract() ) {
+			return $this->send_v2_verification_code( $phone, $force, $context );
+		}
+
 		$state = $this->get_verification_state();
 
 		if (
@@ -585,8 +945,19 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 			return $rate_limit;
 		}
 
+		$provider = (string) get_option( 'yoohw_sms_service', '' );
+		if ( ! WC_Blacklist_Manager_Phone_Verification_Boundary::is_supported_provider( $provider ) ) {
+			$this->clear_verification_state();
+			return new WP_Error( 'sms_provider_unconfigured', $this->get_sms_send_failed_message() );
+		}
+
 		$premium_active = function_exists( 'wc_blacklist_manager_is_premium_available' )
 			&& wc_blacklist_manager_is_premium_available();
+
+		if ( ! $premium_active || ! class_exists( 'WC_Blacklist_Manager_Premium_Verifications_Service' ) ) {
+			$this->clear_verification_state();
+			return new WP_Error( 'sms_service_unavailable', $this->get_sms_send_failed_message() );
+		}
 
 		$verification_settings = get_option(
 			'wc_blacklist_phone_verification',
@@ -598,8 +969,7 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 		$code_length       = max( 6, min( 10, (int) $verification_settings['code_length'] ) );
 		$verification_code = (string) wp_rand( pow( 10, $code_length - 1 ), pow( 10, $code_length ) - 1 );
 		$timestamp         = time();
-
-		$resend_count = ! empty( $state['resend_count'] ) ? absint( $state['resend_count'] ) : 0;
+		$resend_count      = ! empty( $state['resend_count'] ) ? absint( $state['resend_count'] ) : 0;
 
 		$new_state = array(
 			'phone'               => $phone,
@@ -613,128 +983,38 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 		);
 
 		$this->set_verification_state( $new_state );
-		$this->maybe_schedule_cleanup_event( $timestamp, $phone );
 
-		$service = get_option( 'yoohw_sms_service', 'yo_credits' );
-		$result  = true;
-
-		if ( 'yo_credits' === $service ) {
-			$result = $this->send_verification_sms( $phone, $verification_code );
-		} elseif ( 'twilio' === $service ) {
-			if ( ! $premium_active || ! class_exists( 'WC_Blacklist_Manager_Premium_Verifications_Service' ) ) {
-				$result = new WP_Error( 'sms_service_unavailable', $this->get_sms_send_failed_message() );
-			} else {
-				$result = WC_Blacklist_Manager_Premium_Verifications_Service::send_verification_sms_twilio( $this->format_phone_for_sms( $phone ), $verification_code );
-				if ( is_wp_error( $result ) ) {
-				} elseif ( false === $result || null === $result ) {
-					$result = new WP_Error( 'sms_send_failed', $this->get_sms_send_failed_message() );
-				}
-			}
-		} elseif ( 'textmagic' === $service ) {
-			if ( ! $premium_active || ! class_exists( 'WC_Blacklist_Manager_Premium_Verifications_Service' ) ) {
-				$result = new WP_Error( 'sms_service_unavailable', $this->get_sms_send_failed_message() );
-			} else {
-				$result = WC_Blacklist_Manager_Premium_Verifications_Service::send_verification_sms_textmagic( $this->format_phone_for_sms( $phone ), $verification_code );
-				if ( is_wp_error( $result ) ) {
-				} elseif ( false === $result || null === $result ) {
-					$result = new WP_Error( 'sms_send_failed', $this->get_sms_send_failed_message() );
-				}
-			}
+		if ( 'twilio' === $provider ) {
+			$result = WC_Blacklist_Manager_Premium_Verifications_Service::send_verification_sms_twilio( $this->format_phone_for_sms( $phone ), $verification_code );
+		} elseif ( 'textmagic' === $provider ) {
+			$result = WC_Blacklist_Manager_Premium_Verifications_Service::send_verification_sms_textmagic( $this->format_phone_for_sms( $phone ), $verification_code );
+		} else {
+			$result = false;
 		}
 
-		if ( is_wp_error( $result ) ) {
+		if ( true !== $result ) {
 			$this->clear_verification_state();
-			return $result;
-		}
 
-		return true;
-	}
-
-	private function send_verification_sms( $phone, $verification_code ) {
-		$verification_settings = get_option( 'wc_blacklist_phone_verification', array() );
-		$sms_key               = get_option( 'yoohw_phone_verification_sms_key', '' );
-		$message_template      = isset( $verification_settings['message'] ) ? $verification_settings['message'] : '{site_name}: Your verification code is {code}';
-
-		if ( '' === trim( (string) $sms_key ) ) {
-			return new WP_Error( 'sms_key_missing', __( 'SMS verification is not configured. Please contact support.', 'wc-blacklist-manager' ) );
-		}
-
-		$message = str_replace(
-			array( '{site_name}', '{code}' ),
-			array( get_bloginfo( 'name' ), $verification_code ),
-			$message_template
-		);
-
-		$outbound_phone = $this->format_phone_for_sms( $phone );
-
-		$data = array(
-			'sms_key' => $sms_key,
-			'domain'  => home_url(),
-			'phone'   => $outbound_phone,
-			'message' => $message,
-		);
-
-		$response = wp_safe_remote_post(
-			'https://bmc.yoohw.com/wp-json/sms/v1/send-sms/',
-			array(
-				'body'    => wp_json_encode( $data ),
-				'headers' => array(
-					'Content-Type' => 'application/json',
-				),
-				'timeout' => 15,
-			)
-		);
-
-		if ( is_wp_error( $response ) ) {
-			$this->send_admin_notification_on_sms_failure( $response, $phone, $verification_code );
-			do_action( 'yoohw_sms_verification_failed', $phone, $verification_code );
-
-			return new WP_Error( 'sms_send_failed', $this->get_sms_send_failed_message() );
-		}
-
-		$status_code   = wp_remote_retrieve_response_code( $response );
-		$response_body = wp_remote_retrieve_body( $response );
-		$response_data = json_decode( $response_body, true );
-
-		if ( $status_code < 200 || $status_code >= 300 ) {
-			$this->send_admin_notification_on_sms_failure( $response, $phone, $verification_code );
-			do_action( 'yoohw_sms_verification_failed', $phone, $verification_code );
-
-			$message = $this->get_sms_send_failed_message();
-
-			if ( is_array( $response_data ) && ! empty( $response_data['message'] ) ) {
-				$message = sanitize_text_field( $response_data['message'] );
+			if ( is_wp_error( $result ) ) {
+				return $result;
 			}
 
-			return new WP_Error( 'sms_send_failed', $message );
-		}
-
-		if ( ! is_array( $response_data ) ) {
-			$this->send_admin_notification_on_sms_failure( $response, $phone, $verification_code );
-			do_action( 'yoohw_sms_verification_failed', $phone, $verification_code );
-
 			return new WP_Error( 'sms_send_failed', $this->get_sms_send_failed_message() );
 		}
 
-		if (
-			( isset( $response_data['status'] ) && in_array( strtolower( (string) $response_data['status'] ), array( 'error', 'failed', 'failure' ), true ) ) ||
-			( isset( $response_data['success'] ) && false === $response_data['success'] ) ||
-			( isset( $response_data['ok'] ) && false === $response_data['ok'] ) ||
-			( isset( $response_data['sent'] ) && false === $response_data['sent'] )
-		) {
-			$this->send_admin_notification_on_sms_failure( $response, $phone, $verification_code );
-			do_action( 'yoohw_sms_verification_failed', $phone, $verification_code );
-
-			$message = ! empty( $response_data['message'] ) ? $response_data['message'] : $this->get_sms_send_failed_message();
-
-			return new WP_Error( 'sms_send_failed', $message );
-		}
-
+		$this->maybe_schedule_cleanup_event( $timestamp, $phone );
 		return true;
 	}
 
 	public function verify_phone_code() {
 		check_ajax_referer( 'phone_verification_nonce', 'security' );
+		if ( function_exists( 'wc_blacklist_manager_checkout_verification_coordinator' ) ) {
+			$context = wc_blacklist_manager_checkout_verification_coordinator()->context_from_request();
+			$code    = isset( $_POST['code'] ) ? sanitize_text_field( wp_unslash( $_POST['code'] ) ) : '';
+			$result  = wc_blacklist_manager_checkout_verification_coordinator()->execute_operation( 'verify', 'phone', $context, $code );
+			$this->send_legacy_json_result( $result );
+			return;
+		}
 
 		$ip_address     = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : 'unknown';
 		$attempts       = (int) get_transient( 'verify_phone_attempts_' . md5( $ip_address ) );
@@ -857,28 +1137,7 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 		$state['verify_attempts'] = 0;
 		$this->set_verification_state( $state );
 
-		$premium_active = function_exists( 'wc_blacklist_manager_is_premium_available' )
-			&& wc_blacklist_manager_is_premium_available();
-
-		if ( $premium_active && class_exists( 'WC_Blacklist_Manager_Premium_Activity_Logs_Insert' ) ) {
-			global $wpdb;
-
-			$table_detection_log = $wpdb->prefix . 'wc_blacklist_detection_log';
-			$view_json           = wp_json_encode( $this->build_activity_log_view( $billing_details, 'phone', $submitted_phone ) );
-
-			$wpdb->insert(
-				$table_detection_log,
-				array(
-					'timestamp' => current_time( 'mysql' ),
-					'type'      => 'human',
-					'source'    => 'woo_checkout',
-					'action'    => 'verify',
-					'details'   => 'verified_phone_attempt: ' . $submitted_phone,
-					'view'      => is_string( $view_json ) ? $view_json : '',
-				),
-				array( '%s', '%s', '%s', '%s', '%s', '%s' )
-			);
-		}
+		$this->record_phone_activity( $billing_details, $submitted_phone );
 
 		wp_send_json_success(
 			array(
@@ -891,8 +1150,6 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 		global $wpdb;
 
 		$phone = isset( $billing_details['phone'] ) ? $billing_details['phone'] : '';
-		$email = isset( $billing_details['email'] ) ? $billing_details['email'] : '';
-
 		if ( empty( $phone ) ) {
 			return;
 		}
@@ -905,35 +1162,9 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 			return;
 		}
 
-		$billing_details['phone'] = $normalized_phone;
-
-		if ( ! empty( $email ) && is_email( $email ) ) {
-			$normalized_email = function_exists( 'yobm_normalize_email' )
-				? yobm_normalize_email( $email )
-				: sanitize_email( $email );
-
-			if ( ! empty( $normalized_email ) ) {
-				$billing_details['email'] = $normalized_email;
-			}
-		}
-
-		$existing_email_entry = ! empty( $billing_details['email'] )
-			? $wpdb->get_row(
-				$wpdb->prepare(
-					"SELECT * FROM {$this->whitelist_table} WHERE email = %s",
-					$billing_details['email']
-				)
-			)
-			: null;
-
-		if ( $existing_email_entry ) {
-			unset( $billing_details['email'] );
-			unset( $billing_details['verified_email'] );
-		}
-
-		$existing_phone_entry = $wpdb->get_row(
+		$existing_phone_entry = $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT * FROM {$this->whitelist_table} WHERE phone = %s",
+				"SELECT id FROM {$this->whitelist_table} WHERE phone = %s LIMIT 1",
 				$normalized_phone
 			)
 		);
@@ -941,11 +1172,15 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 		if ( $existing_phone_entry ) {
 			$wpdb->update(
 				$this->whitelist_table,
-				$billing_details,
+				array( 'verified_phone' => 1 ),
 				array( 'phone' => $normalized_phone )
 			);
 		} else {
-			$wpdb->insert( $this->whitelist_table, $billing_details );
+			$wpdb->insert(
+				$this->whitelist_table,
+				array( 'phone' => $normalized_phone, 'verified_phone' => 1 ),
+				array( '%s', '%d' )
+			);
 		}
 	}
 
@@ -953,7 +1188,7 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 		global $wpdb;
 
 		if ( empty( $phone ) ) {
-			return;
+			return false;
 		}
 
 		$normalized_phone = function_exists( 'yobm_normalize_phone' )
@@ -961,7 +1196,7 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 			: preg_replace( '/\D+/', '', (string) $phone );
 
 		if ( empty( $normalized_phone ) ) {
-			return;
+			return false;
 		}
 
 		$updated = $wpdb->update(
@@ -976,20 +1211,45 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 			array( '%d' ),
 			array( '%s', '%d' )
 		);
+
+		return false !== $updated && 0 < $updated;
 	}
 
 	public function add_verified_phone_meta_to_order( $order_or_id ) {
+		$this->persist_verified_phone_meta_to_order( $order_or_id, true );
+	}
+
+	private function order_phone_value( $order, $getter, $meta_key = '' ) {
+		if ( is_callable( array( $order, $getter ) ) ) {
+			$value = $order->{$getter}();
+			if ( '' !== trim( (string) $value ) || '' === $meta_key ) {
+				return $value;
+			}
+		}
+		return '' !== $meta_key && is_callable( array( $order, 'get_meta' ) ) ? $order->get_meta( $meta_key, true ) : '';
+	}
+
+	private function canonical_phone_from_order( $order ) {
+		$components = $this->resolve_phone_components(
+			$this->order_phone_value( $order, 'get_billing_phone' ),
+			$this->order_phone_value( $order, 'get_billing_dial_code', '_billing_dial_code' ),
+			$this->order_phone_value( $order, 'get_billing_country' ),
+			$this->order_phone_value( $order, 'get_shipping_phone', '_shipping_phone' ),
+			$this->order_phone_value( $order, 'get_shipping_dial_code', '_shipping_dial_code' ),
+			$this->order_phone_value( $order, 'get_shipping_country' )
+		);
+
+		return $this->build_canonical_phone( $components['phone'], $components['dial_code'], $components['country'] );
+	}
+
+	private function persist_verified_phone_meta_to_order( $order_or_id, $clear_state ) {
 		$order = is_numeric( $order_or_id ) ? wc_get_order( $order_or_id ) : $order_or_id;
 
 		if ( ! $order || ! is_a( $order, 'WC_Order' ) ) {
 			return;
 		}
 
-		$order_phone = $this->build_canonical_phone(
-			$order->get_billing_phone(),
-			'',
-			$order->get_billing_country()
-		);
+		$order_phone = $this->canonical_phone_from_order( $order );
 
 		if ( empty( $order_phone ) ) {
 			return;
@@ -997,14 +1257,65 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 
 		if ( $this->is_phone_verified_for_checkout( $order_phone ) ) {
 			$order->update_meta_data( '_verified_phone', 1 );
+			if ( $this->uses_otp_state_contract() ) {
+				$projection = $this->otp_projection( $order_phone );
+				if ( is_array( $projection ) && ! empty( $projection['proof_id'] ) ) {
+					$order->update_meta_data( '_wc_blacklist_manager_phone_proof_id', $projection['proof_id'] );
+					if ( function_exists( 'wc_blacklist_manager_evidence_trust_order_companion' ) ) {
+						$companion = wc_blacklist_manager_evidence_trust_order_companion(
+							'phone',
+							$order_phone,
+							$projection['proof_id'],
+							isset( $projection['proof_verified_at'] ) ? $projection['proof_verified_at'] : 0
+						);
+						if ( ! empty( $companion ) ) {
+							$order->update_meta_data( '_wc_blacklist_manager_phone_evidence_v1', $companion );
+						}
+					}
+				}
+			}
 			$order->save();
 
+			if ( $clear_state && ! $this->uses_otp_state_contract() ) {
+				$this->clear_verification_state();
+			}
+		}
+	}
+
+	public function checkout_verification_persist_order_evidence( $order ) {
+		$this->persist_verified_phone_meta_to_order( $order, false );
+	}
+
+	public function checkout_verification_cleanup_order_proof( $order ) {
+		if (
+			! is_object( $order )
+			|| ! is_callable( array( $order, 'get_meta' ) )
+			|| ! $order->get_meta( '_verified_phone', true )
+		) {
+			return;
+		}
+		$order_phone = $this->canonical_phone_from_order( $order );
+		if ( $this->uses_otp_state_contract() ) {
+			$proof_id = (string) $order->get_meta( '_wc_blacklist_manager_phone_proof_id', true );
+			if ( '' !== $order_phone && '' !== $proof_id ) {
+				wc_blacklist_manager_otp_state()->cleanup_proof( 'phone', $order_phone, $proof_id );
+			}
+			return;
+		}
+
+		if ( '' !== $order_phone && $this->is_phone_verified_for_checkout( $order_phone ) ) {
 			$this->clear_verification_state();
 		}
 	}
 
 	public function resend_verification_code() {
 		check_ajax_referer( 'phone_verification_nonce', 'security' );
+		if ( function_exists( 'wc_blacklist_manager_checkout_verification_coordinator' ) ) {
+			$context = wc_blacklist_manager_checkout_verification_coordinator()->context_from_request();
+			$result  = wc_blacklist_manager_checkout_verification_coordinator()->execute_operation( 'resend', 'phone', $context );
+			$this->send_legacy_json_result( $result );
+			return;
+		}
 
 		$submitted_phone = $this->get_canonical_phone_from_request();
 		$state           = $this->get_verification_state();
@@ -1076,6 +1387,12 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 
 	public function send_verification_code_blocks() {
 		check_ajax_referer( 'phone_verification_nonce', 'security' );
+		if ( function_exists( 'wc_blacklist_manager_checkout_verification_coordinator' ) ) {
+			$context = wc_blacklist_manager_checkout_verification_coordinator()->context_from_request();
+			$result  = wc_blacklist_manager_checkout_verification_coordinator()->execute_operation( 'issue', 'phone', $context );
+			$this->send_legacy_json_result( $result );
+			return;
+		}
 
 		$request_phone_data = $this->get_phone_request_data();
 		$phone              = $this->build_canonical_phone(
@@ -1132,6 +1449,19 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 		);
 	}
 
+	private function send_legacy_json_result( $result ) {
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error( array( 'message' => $result->get_error_message() ), 400 );
+		}
+
+		wp_send_json_success(
+			array(
+				'message'  => isset( $result['message'] ) ? $result['message'] : '',
+				'required' => isset( $result['state']['required'] ) ? (bool) $result['state']['required'] : true,
+			)
+		);
+	}
+
 	public function cleanup_expired_code( $user_id, $phone = '' ) {
 		$state = $this->get_verification_state();
 
@@ -1148,70 +1478,6 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 		}
 
 		$this->clear_verification_state();
-	}
-
-	private function send_admin_notification_on_sms_failure( $response, $phone, $verification_code ) {
-		$admin_notification_sms_failure = get_option( 'wc_blacklist_phone_verification_failed_email', '0' );
-
-		if ( '1' !== $admin_notification_sms_failure ) {
-			return;
-		}
-
-		$admin_email              = get_option( 'admin_email' );
-		$additional_emails_option = get_option( 'wc_blacklist_additional_emails', '' );
-		$additional_emails        = ! empty( $additional_emails_option ) ? array_map( 'trim', explode( ',', $additional_emails_option ) ) : array();
-
-		$recipients = array_merge( array( $admin_email ), $additional_emails );
-		$recipients = implode( ',', $recipients );
-
-		$response_body = wp_remote_retrieve_body( $response );
-		$response_data = json_decode( $response_body, true );
-
-		$error_message = isset( $response_data['message'] ) ? $response_data['message'] : 'Unknown error occurred while sending SMS.';
-
-		$template_path = trailingslashit( plugin_dir_path( __FILE__ ) ) . '../emails/templates/sms-failed.html';
-
-		if ( file_exists( $template_path ) ) {
-			$html_template = file_get_contents( $template_path );
-
-			$email_body = str_replace(
-				array( '{{phone_number}}', '{{error_message}}' ),
-				array( esc_html( $phone ), esc_html( $error_message ) ),
-				$html_template
-			);
-		} else {
-			$email_body = sprintf(
-				'An error occurred while sending the verification SMS.<br><br>Phone: %s<br>Error Message: %s',
-				esc_html( $phone ),
-				esc_html( $error_message )
-			);
-		}
-
-		wp_mail(
-			$recipients,
-			'SMS Verification Failed Notification',
-			$email_body,
-			array( 'Content-Type: text/html; charset=UTF-8' )
-		);
-	}
-
-	public function yoohw_check_sms_verification_status() {
-		if ( ! check_ajax_referer( 'phone_verification_nonce', 'security', false ) ) {
-			wp_send_json_error( array( 'message' => 'Security check failed.' ) );
-		}
-
-		$failed_sms = get_transient( 'yoohw_sms_verification_failed' );
-
-		if ( $failed_sms ) {
-			delete_transient( 'yoohw_sms_verification_failed' );
-			wp_send_json_success( array( 'failed' => true ) );
-		} else {
-			wp_send_json_success( array( 'failed' => false ) );
-		}
-	}
-
-	public function handle_sms_verification_failed() {
-		set_transient( 'yoohw_sms_verification_failed', true, 60 );
 	}
 
 	public function validate_blocks_checkout_request( $result ) {
@@ -1340,5 +1606,3 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 		return hash_hmac( 'sha256', $value, wp_salt( 'auth' ) );
 	}
 }
-
-new WC_Blacklist_Manager_Verifications_Verify_Phone();
