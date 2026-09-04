@@ -13,9 +13,14 @@ final class YOGB_BM_Report_V2 {
 	const SNAPSHOT_VERSION           = 2;
 	const ADAPTER_VERSION            = 1;
 	const MAX_REPORT_ID              = '9000000000000000';
+	const SURFACE_OPTION             = 'yogb_bm_report_v2_surface_refresh_v1';
+	const SURFACE_HOOK               = 'yogb_bm_report_v2_surface_refresh';
+	const SURFACE_WINDOW             = 7200;
+	const SURFACE_COOLDOWN           = 900;
 
 	public static function init() : void {
 		add_action( self::CAPABILITY_REFRESH_HOOK, [ __CLASS__, 'refresh_capabilities' ] );
+		add_action( self::SURFACE_HOOK, [ __CLASS__, 'refresh_surface' ] );
 	}
 
 	public static function refresh_capabilities() : void {
@@ -61,6 +66,10 @@ final class YOGB_BM_Report_V2 {
 	public static function capability_state( ?int $now = null ) : array {
 		$now      = null === $now ? time() : $now;
 		$snapshot = get_option( self::CAPABILITY_OPTION, [] );
+		return self::state_from_snapshot( $snapshot, $now );
+	}
+
+	private static function state_from_snapshot( $snapshot, int $now ) : array {
 		if ( ! is_array( $snapshot ) ) {
 			$snapshot = [];
 		}
@@ -77,6 +86,149 @@ final class YOGB_BM_Report_V2 {
 			'verified_at'  => $verified_at,
 			'capabilities' => $capabilities,
 		];
+	}
+
+	/** One uncached snapshot supplies both presentation metadata and modal config. */
+	public static function surface_observation( ?int $now = null ) : array {
+		$now = null === $now ? time() : $now;
+		$raw = self::read_surface_option( self::CAPABILITY_OPTION );
+		$snapshot = null === $raw ? [] : ( is_string( $raw ) && strlen( $raw ) <= 16384 && is_serialized( $raw ) ? unserialize( $raw, [ 'allowed_classes' => false ] ) : false );
+		$valid = null === $raw || ( is_array( $snapshot ) && isset( $snapshot['verified_at'], $snapshot['capabilities'] )
+			&& is_int( $snapshot['verified_at'] ) && $snapshot['verified_at'] >= 0
+			&& is_array( $snapshot['capabilities'] ) && count( $snapshot['capabilities'] ) <= 64 );
+		if ( $valid && null !== $raw ) {
+			foreach ( $snapshot['capabilities'] as $member ) {
+				if ( ! is_string( $member ) || strlen( $member ) > 64 ) $valid = false;
+			}
+		}
+		$capability = self::state_from_snapshot( $valid ? $snapshot : [], $now );
+		$advertised = in_array( self::CAPABILITY, $capability['capabilities'], true );
+		$verified_at = $capability['verified_at'];
+		$identity = untrailingslashit( strtolower( (string) home_url( '/' ) ) ) . '|blog:' . (int) get_current_blog_id();
+		$jitter = (int) ( hexdec( substr( hash( 'sha256', $identity ), 0, 8 ) ) % 301 );
+		$renew_at = $verified_at > 0 ? $verified_at + self::CAPABILITY_FRESH_SECONDS - 1200 - $jitter : 0;
+		$connected = $valid && $verified_at <= $now && class_exists( 'YOGB_BM_Registrar' )
+			&& YOGB_BM_Registrar::authenticated_requests_allowed();
+		return [
+			'capability' => $capability, // Internal only; never serialize the capability list to the order endpoint.
+			'server_now' => $now,
+			'state' => [
+				'snapshot_id' => hash( 'sha256', $verified_at . '|' . (int) $advertised ),
+				'verified_at' => $verified_at,
+				'advertised' => $advertised,
+				'fresh' => $capability['fresh'],
+				'fresh_until' => $verified_at > 0 ? $verified_at + self::CAPABILITY_FRESH_SECONDS : 0,
+			],
+			'renewal' => [
+				'eligible' => $connected && $advertised,
+				'discovery_allowed' => $connected && ! $advertised,
+				'renew_at' => $renew_at,
+				'status' => $connected ? 'observed' : 'unavailable',
+				'retry_at' => 0,
+			],
+		];
+	}
+
+	/** null means absent; false means storage failure. Neither read uses option caches. */
+	private static function read_surface_option( string $name ) {
+		global $wpdb;
+		$raw = $wpdb->get_var( $wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name=%s LIMIT 1", $name ) );
+		return '' !== (string) $wpdb->last_error ? false : $raw;
+	}
+
+	/** Fixed-size, versioned admission state. Bad clocks/records never replenish the budget. */
+	private static function surface_record( $raw, int $now ) : ?array {
+		if ( null === $raw ) return [ 'v' => 1, 'window' => (int) floor( $now / self::SURFACE_WINDOW ), 'count' => 0, 'last' => 0, 'pending' => null ];
+		if ( ! is_string( $raw ) || strlen( $raw ) > 1024 ) return null;
+		$r = json_decode( $raw, true );
+		if ( ! is_array( $r ) || 1 !== ( $r['v'] ?? null ) || ! isset( $r['window'], $r['count'], $r['last'] ) || ! array_key_exists( 'pending', $r ) ) return null;
+		if ( ! is_int( $r['window'] ) || ! is_int( $r['count'] ) || ! is_int( $r['last'] )
+			|| $r['last'] <= 0 || $r['last'] > $now || $r['count'] < 1 || $r['count'] > 2
+			|| $r['window'] !== (int) floor( $r['last'] / self::SURFACE_WINDOW ) ) return null;
+		$t = $r['pending'];
+		if ( null !== $t && ( ! is_array( $t ) || ! isset( $t['token'], $t['not_before'], $t['deadline'], $t['snapshot'], $t['discovery'] )
+			|| ! is_string( $t['token'] ) || ! preg_match( '/^[a-f0-9]{32}$/D', $t['token'] )
+			|| ! is_string( $t['snapshot'] ) || ! preg_match( '/^[a-f0-9]{64}$/D', $t['snapshot'] )
+			|| ! is_bool( $t['discovery'] ) || ! is_int( $t['not_before'] ) || ! is_int( $t['deadline'] )
+			|| $t['not_before'] !== $r['last'] + 5 || $t['deadline'] < $t['not_before']
+			|| $t['deadline'] !== min( $r['last'] + 120, ( $r['window'] + 1 ) * self::SURFACE_WINDOW - 1 ) ) ) return null;
+		return $r;
+	}
+
+	/** One attempt; an insert/CAS loser does not schedule, retry or refund. */
+	private static function cas_surface_record( $raw, array $record ) : bool {
+		global $wpdb;
+		$value = wp_json_encode( $record );
+		if ( ! is_string( $value ) || strlen( $value ) > 1024 ) return false;
+		if ( null === $raw ) {
+			$sql = $wpdb->prepare( "INSERT IGNORE INTO {$wpdb->options} (option_name,option_value,autoload) VALUES (%s,%s,'no')", self::SURFACE_OPTION, $value );
+		} else {
+			$sql = $wpdb->prepare( "UPDATE {$wpdb->options} SET option_value=%s,autoload='no' WHERE option_name=%s AND BINARY option_value=%s", $value, self::SURFACE_OPTION, $raw );
+		}
+		if ( 1 !== $wpdb->query( $sql ) ) return false;
+		wp_cache_delete( self::SURFACE_OPTION, 'options' );
+		wp_cache_delete( 'alloptions', 'options' );
+		wp_cache_delete( 'notoptions', 'options' );
+		return true;
+	}
+
+	/** Admission changes only local scheduling state, never signed capability authority. */
+	public static function request_surface_refresh( array $observation, string $intent ) : array {
+		$renewal = $observation['renewal'];
+		$now = $observation['server_now'];
+		if ( 'observe' === $intent ) return $renewal;
+		$discovery = 'discover' === $intent && ! empty( $renewal['discovery_allowed'] );
+		if ( ! $discovery && ( empty( $renewal['eligible'] ) || $renewal['renew_at'] > $now ) ) return $renewal;
+		$renewal['status'] = 'unavailable';
+		$raw = self::read_surface_option( self::SURFACE_OPTION );
+		$r = self::surface_record( $raw, $now );
+		if ( null === $r ) return $renewal;
+		$window = (int) floor( $now / self::SURFACE_WINDOW );
+		$retry_at = $r['last'] + self::SURFACE_COOLDOWN;
+		if ( $window === $r['window'] && $r['count'] >= 2 ) $retry_at = max( $retry_at, ( $window + 1 ) * self::SURFACE_WINDOW );
+		if ( $retry_at > $now ) {
+			$renewal['status'] = $window === $r['window'] && $r['count'] >= 2 ? 'budget_exhausted' : 'cooldown';
+			$renewal['retry_at'] = $retry_at;
+			return $renewal;
+		}
+		$deadline = min( $now + 120, ( $window + 1 ) * self::SURFACE_WINDOW - 1 );
+		if ( $deadline < $now + 5 ) {
+			$renewal['status'] = 'cooldown';
+			$renewal['retry_at'] = ( $window + 1 ) * self::SURFACE_WINDOW;
+			return $renewal;
+		}
+		$r = [
+			'v' => 1, 'window' => $window, 'count' => ( $window === $r['window'] ? $r['count'] : 0 ) + 1, 'last' => $now,
+			'pending' => [ 'token' => bin2hex( random_bytes( 16 ) ), 'not_before' => $now + 5, 'deadline' => $deadline,
+				'snapshot' => $observation['state']['snapshot_id'], 'discovery' => $discovery ],
+		];
+		$renewal['retry_at'] = $now + self::SURFACE_COOLDOWN;
+		if ( ! self::cas_surface_record( $raw, $r ) ) return $renewal;
+		$scheduled = wp_next_scheduled( self::SURFACE_HOOK ) || wp_schedule_single_event( $now + 5, self::SURFACE_HOOK );
+		$renewal['status'] = $scheduled ? 'scheduled' : 'unavailable';
+		return $renewal;
+	}
+
+	/** A stale cron wakeup can consume only the currently admitted, unexpired ticket. */
+	public static function refresh_surface( ?int $now = null ) : void {
+		$live_clock = null === $now;
+		$now = null === $now ? time() : $now;
+		$raw = self::read_surface_option( self::SURFACE_OPTION );
+		$r = self::surface_record( $raw, $now );
+		if ( null === $r || empty( $r['pending'] ) || $now < $r['pending']['not_before'] ) return;
+		$t = $r['pending'];
+		$r['pending'] = null;
+		if ( ! self::cas_surface_record( $raw, $r ) || $now > $t['deadline'] ) return;
+		$observation = self::surface_observation( $now );
+		$renewal = $observation['renewal'];
+		if ( $t['discovery'] ) {
+			if ( empty( $renewal['discovery_allowed'] ) || $t['snapshot'] !== $observation['state']['snapshot_id'] ) return;
+		} elseif ( empty( $renewal['eligible'] ) || $renewal['renew_at'] > $now ) {
+			return;
+		}
+		// Database/credential reads can be slow; do not dispatch an expired ticket after them.
+		if ( $live_clock && ( time() > $t['deadline'] || time() < $t['not_before'] ) ) return;
+		if ( class_exists( 'YOGB_BM_Tier_Sync' ) ) YOGB_BM_Tier_Sync::run_repair( true );
 	}
 
 	public static function supports_v2( ?int $now = null ) : bool {
@@ -113,10 +265,9 @@ final class YOGB_BM_Report_V2 {
 	}
 
 	/** Build the v2-only modal configuration; callers retain their existing v1 config otherwise. */
-	public static function modal_config( WC_Order $order ) : ?array {
-		$capability = self::capability_state();
+	public static function modal_config( WC_Order $order, ?array $capability = null ) : ?array {
+		$capability = null === $capability ? self::capability_state() : $capability;
 		if ( empty( $capability['supported'] ) ) {
-			self::schedule_capability_refresh();
 			return null;
 		}
 

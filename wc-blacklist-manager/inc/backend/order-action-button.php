@@ -40,18 +40,48 @@ class WC_Blacklist_Manager_Order_Actions {
 		add_action( 'woocommerce_admin_order_data_after_payment_info', array( $this, 'display_blacklist_notices' ) );
 	}
 
-	/** Schedule capability negotiation without making modal presentation wait for it. */
+	/** Read local config and optionally admit bounded background work; never call Global here. */
 	public function handle_report_v2_capability_refresh() : void {
-		$order_id = isset( $_POST['order_id'] ) ? absint( wp_unslash( $_POST['order_id'] ) ) : 0;
+		$raw_order_id = isset( $_POST['order_id'] ) && is_scalar( $_POST['order_id'] ) ? (string) wp_unslash( $_POST['order_id'] ) : '';
+		$order_id = ctype_digit( $raw_order_id ) ? absint( $raw_order_id ) : 0;
 		check_ajax_referer( $this->capability_refresh_nonce_action( $order_id ), 'nonce' );
 		$order = $order_id > 0 ? wc_get_order( $order_id ) : false;
 		if ( ! $this->current_user_can_moderate_order( $order ) ) {
 			wp_send_json_error( null, 403 );
 		}
-		if ( class_exists( 'YOGB_BM_Report_V2' ) ) {
-			YOGB_BM_Report_V2::schedule_capability_refresh();
+		$intent = $_POST['intent'] ?? 'discover';
+		$sequence = $_POST['request_seq'] ?? '0';
+		if ( ! in_array( $intent, array( 'observe', 'renew', 'discover' ), true ) || ! is_scalar( $sequence )
+			|| ! ctype_digit( (string) $sequence ) || (float) $sequence > 2147483647 ) {
+			wp_send_json_error( null, 400 );
 		}
-		wp_send_json_success();
+		if ( ! class_exists( 'YOGB_BM_Report_V2' ) ) wp_send_json_error( null, 503 );
+		$observation = YOGB_BM_Report_V2::surface_observation();
+		$observation['renewal'] = YOGB_BM_Report_V2::request_surface_refresh( $observation, $intent );
+		nocache_headers();
+		if ( ! headers_sent() ) header( 'Cache-Control: private, no-store, max-age=0' );
+		wp_send_json_success( $this->surface_config( $order, $observation, (int) $sequence ) );
+	}
+
+	private function surface_config( WC_Order $order, array $observation, int $sequence = 0 ) : array {
+		$legacy = $this->legacy_block_modal_config();
+		$block = YOGB_BM_Report_V2::modal_config( $order, $observation['capability'] );
+		if ( is_array( $block ) ) {
+			$block['cta'] = $legacy['cta'];
+			$block['legacyFallback'] = $legacy;
+		} else {
+			$block = $legacy;
+		}
+		return array(
+			'version' => 1,
+			'order_id' => (int) $order->get_id(),
+			'request_seq' => $sequence,
+			'server_now' => $observation['server_now'],
+			'state' => $observation['state'],
+			'renewal' => $observation['renewal'],
+			'block' => $block,
+			'block_nonce' => wp_create_nonce( $this->block_nonce_key ),
+		);
 	}
 
 	/**
@@ -1004,12 +1034,7 @@ class WC_Blacklist_Manager_Order_Actions {
 			array( 'woocommerce_admin_styles' ),
 			defined( 'WC_BLACKLIST_MANAGER_VERSION' ) ? WC_BLACKLIST_MANAGER_VERSION : $this->version
 		);
-		$legacy_block_config = $this->legacy_block_modal_config();
-		$v2_block_config     = class_exists( 'YOGB_BM_Report_V2' ) ? YOGB_BM_Report_V2::modal_config( $order ) : null;
-		if ( is_array( $v2_block_config ) ) {
-			$v2_block_config['cta']            = $this->get_order_action_modal_cta( 'order_block' );
-			$v2_block_config['legacyFallback'] = $legacy_block_config;
-		}
+		$surface = class_exists( 'YOGB_BM_Report_V2' ) ? $this->surface_config( $order, YOGB_BM_Report_V2::surface_observation() ) : null;
 
 		wp_localize_script(
 			'yobm-order-actions',
@@ -1033,7 +1058,8 @@ class WC_Blacklist_Manager_Order_Actions {
 					'confirmMessage' => esc_html__( 'Are you sure you want to add this to the suspects list?', 'wc-blacklist-manager' ),
 					'processingText' => esc_html__( 'Processing...', 'wc-blacklist-manager' ),
 				),
-				'block'   => is_array( $v2_block_config ) ? $v2_block_config : $legacy_block_config,
+				'block'   => $surface ? $surface['block'] : $this->legacy_block_modal_config(),
+				'reportV2Surface' => $state['show_block_button'] ? $surface : null,
 				'remove'  => array(
 					'reasons' => array(
 						'customer_appeal'    => __( 'Customer appeal / cleared', 'wc-blacklist-manager' ),

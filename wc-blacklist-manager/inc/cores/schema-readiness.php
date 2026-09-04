@@ -240,9 +240,12 @@ final class WC_Blacklist_Manager_Schema_Readiness {
 
 		$state  = get_option( self::STATE_OPTION, array() );
 		$status = is_array( $state ) ? (string) ( $state['status'] ?? '' ) : '';
-		if ( ! in_array( $status, array( 'pending', 'failed', 'manual_required', 'newer_than_code' ), true ) ) {
+		if ( ! in_array( $status, array( 'pending', 'running', 'failed', 'manual_required', 'newer_than_code' ), true ) ) {
 			return;
 		}
+
+		$repair_scheduled = false !== wp_next_scheduled( self::CRON_HOOK );
+		$repair_active    = 'running' === $status || ( 'pending' === $status && $repair_scheduled );
 
 		$pending = is_array( $state ) ? array_values( array_intersect( array_keys( self::contracts() ), (array) ( $state['pending'] ?? array() ) ) ) : array();
 		$labels  = array();
@@ -250,16 +253,28 @@ final class WC_Blacklist_Manager_Schema_Readiness {
 			$labels[] = self::contracts()[ $contract_id ]['label'];
 		}
 
-		echo '<div class="notice notice-warning"><p><strong>' . esc_html__( 'Blacklist Manager database readiness requires attention.', 'wc-blacklist-manager' ) . '</strong></p>';
+		echo '<div class="notice ' . esc_attr( $repair_active ? 'notice-info' : 'notice-warning' ) . '"><p><strong>';
+		if ( 'running' === $status ) {
+			echo esc_html__( 'Blacklist Manager database readiness repair is in progress.', 'wc-blacklist-manager' );
+		} elseif ( $repair_active ) {
+			echo esc_html__( 'Blacklist Manager database readiness repair is scheduled.', 'wc-blacklist-manager' );
+		} else {
+			echo esc_html__( 'Blacklist Manager database readiness requires attention.', 'wc-blacklist-manager' );
+		}
+		echo '</strong></p>';
 		if ( ! empty( $labels ) ) {
 			echo '<p>' . esc_html( implode( ', ', $labels ) ) . '</p>';
 		}
-		if ( ! empty( $state['error_message'] ) ) {
+		if ( $repair_active ) {
+			echo '<p>' . esc_html__( 'WordPress will process the remaining database readiness work in the background. This notice will update after verification completes.', 'wc-blacklist-manager' ) . '</p>';
+		} elseif ( ! empty( $state['error_message'] ) ) {
 			echo '<p>' . esc_html( (string) $state['error_message'] ) . '</p>';
 		}
-		echo '<p>' . esc_html__( 'Large stores should schedule a maintenance window and verify database capacity before retrying. Core will not silently use blocking index DDL from a web request.', 'wc-blacklist-manager' ) . '</p>';
+		if ( ! $repair_active ) {
+			echo '<p>' . esc_html__( 'Large stores should schedule a maintenance window and verify database capacity before retrying. Core will not silently use blocking index DDL from a web request.', 'wc-blacklist-manager' ) . '</p>';
+		}
 
-		if ( 'newer_than_code' !== $status ) {
+		if ( 'newer_than_code' !== $status && ! $repair_active ) {
 			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
 			echo '<input type="hidden" name="action" value="' . esc_attr( self::ADMIN_ACTION ) . '">';
 			wp_nonce_field( self::ADMIN_ACTION );

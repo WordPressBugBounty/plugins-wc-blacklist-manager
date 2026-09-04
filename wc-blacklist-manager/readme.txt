@@ -5,7 +5,7 @@ Requires at least: 6.3
 Tested up to: 7.1
 WC tested up to: 11.0
 Requires PHP: 7.4
-Stable tag: 2.3.0
+Stable tag: 2.3.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -135,16 +135,8 @@ Global Blacklist Decisions is a connected fraud-prevention service. Data exchang
 
 == Changelog ==
 
-= 2.3.0 (Aug 31, 2026) =
-* New: Adds one Core-owned checkout verification coordinator for Classic Checkout and Checkout Blocks, with Email before optional Premium Phone and shared Inline or Popup presentation.
-* New: Adds privacy-safe site-local OTP state, bounded schema readiness, and evidence-trust contracts for reliable verification across retries and payment completion.
-* New: Refreshes the Blacklist Manager dashboard, adds a WordPress Dashboard protection widget, and uses native WooCommerce edit-order modals for blacklist actions.
-* Improve: Lets authorized WooCommerce order managers use order-scoped blacklist and Global recheck controls without granting Blacklist Manager settings access.
-* Improve: Makes Global Blacklist control updates generation-aware and collapses scheduled convergence traffic while preserving signed v1 compatibility.
-* Security: Pauses durable Global delivery on credential failures and uses bounded, single-flight background recovery before eligible work resumes.
-* Security: Hardens checkout verification validation, state ownership, retry idempotency, cleanup, and final gates without adding verification transport to the final checkout gate.
-* Fix: Counts only explicit bot, CAPTCHA, challenge, Store API, payment-flow, and risk-engine evidence in abuse notices; routine policy blocks no longer create false alerts.
-* Compatibility: Includes dormant, default-OFF Report Admission v2 and contextual-reporting foundations without enabling live v2 admission, scoring, challenge, or block authority.
-* Compatibility: Establishes the provisional Premium 2.7.0 pair on Core 2.3.0 and schema contract generation 1 while preserving standalone Core operation.
+= 2.3.1 (Sep 4, 2026) =
+* Fix: Keeps Report v2 configuration current on long-lived WooCommerce order pages by renewing eligible capability state in the background and applying current local configuration to subsequent modal opens.
+* Improve: Clarifies database readiness notices while background repair is scheduled or running, avoiding redundant retry and maintenance guidance during active repair.
 
 See `changelog.txt` for the complete release history.

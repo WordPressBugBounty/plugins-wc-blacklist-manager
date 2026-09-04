@@ -4,7 +4,7 @@
 	var templateId = 'yobm-order-action-modal';
 	var modalSequence = 0;
 	var activeModal = null;
-	var capabilityRefreshScheduled = false;
+	var surfaceController = null;
 	var requestState = {
 		suspect: false,
 		block: false,
@@ -191,7 +191,7 @@
 	}
 
 	function modalConfig(action) {
-		var section = getConfig()[action] || {};
+		var section = 'block' === action && surfaceController ? surfaceController.block() : (getConfig()[action] || {});
 		var freshUntil = Number(section.capabilityFreshUntil);
 
 		if (
@@ -200,28 +200,173 @@
 			(
 				!isFinite(freshUntil) ||
 				freshUntil <= 0 ||
-				Math.floor(Date.now() / 1000) > freshUntil
+				(surfaceController ? surfaceController.now() : Math.floor(Date.now() / 1000)) > freshUntil
 			)
 		) {
-			scheduleCapabilityRefresh();
 			return section.legacyFallback || {};
 		}
 
 		return section;
 	}
 
-	function scheduleCapabilityRefresh() {
-		if (capabilityRefreshScheduled) {
-			return;
-		}
+	/** One serialized controller owns future config; an open modal owns its own copy. */
+	function createSurfaceController(initial) {
+		var observation = initial;
+		var future = JSON.parse(JSON.stringify(initial.block));
+		var nonce = initial.block_nonce;
+		var clockOffset = initial.server_now - Math.floor(Date.now() / 1000);
+		var budgetWindow = Math.floor(initial.server_now / 7200);
+		var automatic = 0;
+		var interactions = 0;
+		var sequence = 0;
+		var outstanding = null;
+		var timers = [];
+		var round = 0;
+		var episodeStart = 0;
+		var retryAt = 0;
+		var exhausted = false;
+		var stopped = false;
+		var lastInteraction = -1;
 
-		capabilityRefreshScheduled = true;
-		var nonces = getConfig().nonces || {};
-		postJson({
-			action: 'yogb_bm_schedule_report_v2_capability_refresh',
-			order_id: getOrderId(),
-			nonce: nonces.reportV2CapabilityRefresh || ''
+		function now() { return Math.floor(Date.now() / 1000) + clockOffset; }
+		function visible() { return document.visibilityState === 'visible' && !stopped; }
+		function later(callback, seconds) {
+			var id = setTimeout(function () {
+				timers = timers.filter(function (item) { return item !== id; });
+				callback();
+			}, Math.max(0, seconds) * 1000);
+			timers.push(id);
+		}
+		function clearWork() {
+			timers.forEach(function (id) { clearTimeout(id); });
+			timers = [];
+		}
+		function cancelRequest() {
+			var old = outstanding;
+			outstanding = null; // Invalidate before abort: even synchronous/late callbacks cannot apply.
+			if (old) {
+				clearTimeout(old.timeout);
+				if (old.xhr) old.xhr.abort();
+			}
+		}
+		function spend(manual) {
+			var windowId = Math.floor(now() / 7200);
+			if (windowId < budgetWindow) return false;
+			if (windowId > budgetWindow) {
+				budgetWindow = windowId;
+				automatic = 0;
+				interactions = 0;
+			}
+			if (automatic + interactions >= 12 || (manual ? interactions >= 2 : automatic >= 10)) return false;
+			if (manual) interactions++; else automatic++;
+			return true;
+		}
+		function armLease() {
+			clearWork();
+			if (visible() && observation.renewal.eligible && observation.renewal.renew_at > now()) {
+				later(function () { startBurst(1); }, observation.renewal.renew_at - now());
+			}
+		}
+		function accept(data) {
+			// Digest/timestamps are not sortable revisions. Strict request serialization is the ordering fence.
+			observation = data;
+			future = JSON.parse(JSON.stringify(data.block));
+			nonce = data.block_nonce;
+			retryAt = Math.max(retryAt, Number(data.renewal.retry_at) || 0);
+			if (!data.state.advertised || !data.renewal.eligible) {
+				clearWork();
+				exhausted = true;
+				round = 0;
+			} else if (data.state.fresh && data.renewal.renew_at > data.server_now) {
+				exhausted = false;
+				round = 0;
+				retryAt = 0;
+				armLease();
+			} else if (data.renewal.status === 'unavailable' || data.renewal.status === 'budget_exhausted') {
+				exhausted = true;
+			}
+		}
+		function exchange(intent, manual) {
+			if (!visible() || outstanding || !spend(manual)) return false;
+			var request = { sequence: ++sequence, xhr: null, timeout: null };
+			outstanding = request;
+			request.timeout = setTimeout(function () {
+				if (outstanding === request) cancelRequest();
+			}, 10000);
+			request.xhr = $.ajax({
+				url: getConfig().ajaxUrl,
+				type: 'POST', dataType: 'json',
+				data: {
+					action: 'yogb_bm_schedule_report_v2_capability_refresh',
+					order_id: getOrderId(),
+					nonce: (getConfig().nonces || {}).reportV2CapabilityRefresh || '',
+					request_seq: request.sequence, intent: intent
+				}
+			}).done(function (response) {
+				if (outstanding !== request) return;
+				outstanding = null;
+				clearTimeout(request.timeout);
+				var data = response && response.success && response.data;
+				if (!data || data.version !== 1 || String(data.order_id) !== getOrderId() || data.request_seq !== request.sequence ||
+					!isFinite(data.server_now) || !data.state || typeof data.state.snapshot_id !== 'string' ||
+					!data.renewal || !data.block || !data.block.reasons || typeof data.block_nonce !== 'string') return;
+				accept(data);
+			}).fail(function (xhr) {
+				if (outstanding !== request) return;
+				outstanding = null;
+				clearTimeout(request.timeout);
+				if (xhr && (xhr.status === 401 || xhr.status === 403)) {
+					stopped = true;
+					clearWork();
+				}
+			});
+			return true;
+		}
+		function startBurst(nextRound) {
+			if (!visible() || exhausted || !observation.renewal.eligible) return;
+			clearWork();
+			round = nextRound;
+			if (round === 1) { episodeStart = now(); retryAt = 0; }
+			// Fixed offsets are skipped when another request is pending; never catch up in parallel.
+			[0, 5, 15, 30, 60].forEach(function (offset) {
+				later(function () { exchange(offset === 0 ? 'renew' : 'observe', false); }, offset);
+			});
+			later(function () {
+				cancelRequest();
+				if (round === 1 && !exhausted && observation.renewal.eligible) {
+					later(function () { startBurst(2); }, Math.max(episodeStart + 900, retryAt) - now());
+				} else {
+					exhausted = true;
+					clearWork();
+				}
+			}, 70);
+		}
+		function interact(block) {
+			if (!visible() || lastInteraction === now()) return;
+			lastInteraction = now(); // Coalesce focus+visibility from the same activation.
+			var renewal = observation.renewal;
+			var intent = block ? 'observe' : (renewal.discovery_allowed ? 'discover' : (renewal.eligible && renewal.renew_at <= now() ? 'renew' : 'observe'));
+			exchange(intent, true);
+		}
+		function suspend() {
+			clearWork();
+			cancelRequest();
+			if (round) exhausted = true; // Visibility changes do not restart a failed/interrupted burst.
+		}
+		$(document).on('visibilitychange.yobmReportV2', function () {
+			if (!visible()) suspend(); else { interact(false); if (!exhausted) armLease(); }
 		});
+		$(window).on('focus.yobmReportV2', function () { interact(false); });
+		$(window).on('pagehide.yobmReportV2', function () { stopped = true; suspend(); });
+		if (visible()) {
+			if (observation.renewal.eligible) {
+				if (observation.renewal.renew_at > now()) armLease(); else startBurst(1);
+			} else if (observation.renewal.discovery_allowed) {
+				// One demand discovery, with no never-v2 polling loop. A later interaction observes completion.
+				exchange('discover', false);
+			}
+		}
+		return { block: function () { return future; }, nonce: function () { return nonce; }, now: now, interact: interact };
 	}
 
 	function mainButtonSelector(action) {
@@ -247,7 +392,7 @@
 		return '';
 	}
 
-	function requestData(action, orderId, reason, description, section) {
+	function requestData(action, orderId, reason, description, section, blockNonce) {
 		var config = getConfig();
 		var nonces = config.nonces || {};
 
@@ -255,7 +400,7 @@
 			var blockData = {
 				action: 'block_customer',
 				order_id: orderId,
-				nonce: nonces.block || '',
+				nonce: typeof blockNonce === 'string' ? blockNonce : (nonces.block || ''),
 				reason_code: reason,
 				description: description
 			};
@@ -435,7 +580,7 @@
 		setProcessing(modal, true);
 
 		postJson(
-			requestData(modal.action, orderId, reason, description, modal.section),
+			requestData(modal.action, orderId, reason, description, modal.section, modal.blockNonce),
 			function (response) {
 				var message = extractMessage(response, common.request_failed || 'The request failed. Please try again.');
 
@@ -608,11 +753,12 @@
 			return false;
 		}
 
-		var section = modalConfig(action);
+		var section = JSON.parse(JSON.stringify(modalConfig(action)));
 		var modal = {
 			token: ++modalSequence,
 			action: action,
 			section: section,
+			blockNonce: surfaceController ? surfaceController.nonce() : ((getConfig().nonces || {}).block || ''),
 			labels: section.labels || {},
 			descriptions: section.descriptions || {},
 			reasonMeta: section.reasonMeta || {},
@@ -633,6 +779,7 @@
 		finishRequest(action);
 		bindModalLifecycle(modal);
 		populateModal(modal);
+		if ('block' === action && surfaceController) surfaceController.interact(true);
 		return true;
 	}
 
@@ -731,5 +878,9 @@
 		bindSuspectAction();
 		bindModalAction('#block_customer', 'block');
 		bindModalAction('#remove_from_blacklist', 'remove');
+		var surface = getConfig().reportV2Surface;
+		if (surface && surface.version === 1 && $('#block_customer').length) {
+			surfaceController = createSurfaceController(surface);
+		}
 	});
 }(jQuery));

@@ -2,6 +2,10 @@
 
 == Changelog ==
 
+= 2.3.1 (Sep 4, 2026) =
+* Fix: Keeps Report v2 configuration current on long-lived WooCommerce order pages by renewing eligible capability state in the background and applying current local configuration to subsequent modal opens.
+* Improve: Clarifies database readiness notices while background repair is scheduled or running, avoiding redundant retry and maintenance guidance during active repair.
+
 = 2.3.0 (Aug 31, 2026) =
 * New: Adds one Core-owned checkout verification coordinator for Classic Checkout and Checkout Blocks, with Email before optional Premium Phone and shared Inline or Popup presentation.
 * New: Adds privacy-safe site-local OTP state, bounded schema readiness, and evidence-trust contracts for reliable verification across retries and payment completion.

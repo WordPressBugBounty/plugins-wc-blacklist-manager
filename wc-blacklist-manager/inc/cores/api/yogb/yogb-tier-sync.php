@@ -55,7 +55,7 @@ final class YOGB_BM_Tier_Sync {
 	}
 
 	/** Coalesced scheduled/demand repair path. Lock failure degrades to live repair. */
-	public static function run_repair() : void {
+	public static function run_repair( bool $surface = false ) : void {
 		global $wpdb;
 		$lock_name = self::lock_name();
 		$acquired  = $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s,0)', $lock_name ) );
@@ -65,17 +65,17 @@ final class YOGB_BM_Tier_Sync {
 		}
 		if ( '1' !== (string) $acquired ) {
 			do_action( 'yogb_bm_control_sync_event', 'repair_lock_degraded', [ 'source' => 'repair', 'state' => 'unavailable' ] );
-			self::perform_pull( 'repair_uncoalesced' );
+			self::perform_pull( 'repair_uncoalesced', $surface );
 			return;
 		}
 		try {
-			self::perform_pull( 'repair_coalesced' );
+			self::perform_pull( 'repair_coalesced', $surface );
 		} finally {
 			$wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) );
 		}
 	}
 
-	private static function perform_pull( string $source ) : array {
+	private static function perform_pull( string $source, bool $surface = false ) : array {
 		$recovery_source = 'auth_recovery' === $source;
 		if ( $recovery_source && class_exists( 'YOGB_BM_Registrar' ) && ! YOGB_BM_Registrar::auth_recovery_lock_is_current() ) {
 			return [ 'ok' => false, 'status' => 'recovery_lock_lost' ];
@@ -191,7 +191,7 @@ final class YOGB_BM_Tier_Sync {
 		if ( empty( $result['ok'] ) ) {
 			$error = sanitize_key( (string) ( $result['error'] ?? '' ) );
 			if ( in_array( $error, [ 'control_apply_busy', 'control_apply_storage_failed' ], true ) ) {
-				if ( class_exists( 'YOGB_BM_Report_V2' ) ) {
+				if ( ! $surface && class_exists( 'YOGB_BM_Report_V2' ) ) {
 					YOGB_BM_Report_V2::schedule_capability_refresh();
 				}
 				do_action( 'yogb_bm_control_sync_event', 'pull_deferred', [ 'source' => $source, 'state' => $error ] );

@@ -2,7 +2,7 @@
 # This file is distributed under the GPL v2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Blacklist Manager 2.3.0\n"
+"Project-Id-Version: Blacklist Manager 2.3.1\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/wc-blacklist-manager\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -6416,14 +6416,26 @@ msgstr ""
 msgid "You are not allowed to schedule this database repair."
 msgstr ""
 
-#: inc/cores/schema-readiness.php:253
+#: inc/cores/schema-readiness.php:265
+msgid "Blacklist Manager database readiness repair is in progress."
+msgstr ""
+
+#: inc/cores/schema-readiness.php:267
+msgid "Blacklist Manager database readiness repair is scheduled."
+msgstr ""
+
+#: inc/cores/schema-readiness.php:269
 msgid "Blacklist Manager database readiness requires attention."
 msgstr ""
 
-#: inc/cores/schema-readiness.php:260
+#: inc/cores/schema-readiness.php:276
+msgid "WordPress will process the remaining database readiness work in the background. This notice will update after verification completes."
+msgstr ""
+
+#: inc/cores/schema-readiness.php:281
 msgid "Large stores should schedule a maintenance window and verify database capacity before retrying. Core will not silently use blocking index DDL from a web request."
 msgstr ""
 
-#: inc/cores/schema-readiness.php:266
+#: inc/cores/schema-readiness.php:289
 msgid "Schedule database readiness repair"
 msgstr ""
