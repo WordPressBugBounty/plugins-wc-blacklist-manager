@@ -114,18 +114,6 @@ class YOGB_BM_Registrar {
 			exit;
 		} );
 
-		// D) If a security plugin blocks REST, allow ONLY our public route
-		add_filter('rest_authentication_errors', function ($result) {
-			if ( is_wp_error($result) ) {
-				$prefix = '/' . rest_get_url_prefix() . '/blacklist/v1/challenge/';
-				$uri = $_SERVER['REQUEST_URI'] ?? '';
-				if ( strpos($uri, $prefix) !== false ) {
-					return null; // clear the block for our route
-				}
-			}
-			return $result;
-		}, 999);
-
 		// Activation → schedule registration (if prod)
 		register_activation_hook( WC_BLACKLIST_MANAGER_PLUGIN_FILE, [ __CLASS__, 'on_activate' ] );
 
@@ -467,6 +455,39 @@ class YOGB_BM_Registrar {
 	}
 
 	/** @return array<string,mixed> */
+	/** Read-only, bounded notification view. The caller supplies its guarded existing DB scope. */
+	public static function notification_observation( $db, string $table, int $now ) : array {
+		$unknown = [ 'category' => 'unknown', 'generation' => '', 'at' => 0 ];
+		$columns = [];
+		foreach ( [ self::OPT_AUTH_RECOVERY => 32768, self::OPT_API_KEY => 4096, self::OPT_API_SECRET => 4096, self::OPT_REPORTER_ID => 20 ] as $key => $limit ) {
+			$columns[] = "(SELECT IF(OCTET_LENGTH(option_value)<={$limit},option_value,NULL) FROM {$table} WHERE option_name=" . $db::hex( $key ) . ')';
+		}
+		// One statement observes source and credential components in the same database snapshot.
+		$row = $db->row( 'SELECT ' . implode( ',', $columns ) );
+		if ( ! $row || ! is_string( $row[0] ) || strlen( $row[0] ) > 32768 || ! is_string( $row[1] ) || '' === $row[1]
+			|| ! is_string( $row[2] ) || '' === $row[2] || ! is_string( $row[3] ) || ! preg_match( '/^[1-9][0-9]{0,18}$/D', $row[3] ) ) { return $unknown; }
+		// Interpret the same bounded DB snapshot through the canonical at-rest contract.
+		if ( ! class_exists( 'YOGB_BM_Secret_Store' ) ) { return $unknown; }
+		$secret = YOGB_BM_Secret_Store::decrypt_from_storage( $row[2] );
+		if ( '' === $secret ) { return $unknown; }
+		$s = unserialize( $row[0], [ 'allowed_classes' => false, 'max_depth' => 32 ] );
+		if ( ! is_array( $s ) || isset( $s['credential_commit'] )
+			|| ! isset( $s['state'], $s['credential_fingerprint'], $s['expected_reporter_id'], $s['authority_generation'], $s['updated_at'], $s['source'], $s['failures'], $s['next_attempt_at'] )
+			|| ! in_array( $s['state'], [ 'manual_intervention', 'suspended', 'recovering', 're_registering', 'healthy' ], true )
+			|| ! is_string( $s['authority_generation'] ) || ! preg_match( '/^[a-f0-9-]{36}$/D', $s['authority_generation'] )
+			|| ! is_int( $s['updated_at'] ) || $s['updated_at'] <= 0 || $s['updated_at'] > $now
+			|| ! is_int( $s['next_attempt_at'] ) || $s['next_attempt_at'] < 0 || $s['next_attempt_at'] > $now + DAY_IN_SECONDS
+			|| ! is_int( $s['failures'] ) || $s['failures'] < 0 || $s['failures'] > 10
+			|| ! is_int( $s['expected_reporter_id'] ) || (string) $s['expected_reporter_id'] !== $row[3]
+			|| ! is_string( $s['credential_fingerprint'] ) || ! hash_equals( self::credential_fingerprint( $row[1], $secret ), $s['credential_fingerprint'] )
+			|| ! is_string( $s['source'] ) || strlen( $s['source'] ) > 128 ) { return $unknown; }
+		$category = [ 'manual_intervention' => 'authentication_attention', 'suspended' => 'reporter_inactive', 'recovering' => 'transient', 're_registering' => 'transient', 'healthy' => 'healthy' ][$s['state']];
+		if ( 'healthy' === $category && ( 'verified_control' !== $s['source'] || 0 !== $s['failures'] || 0 !== $s['next_attempt_at'] ) ) { return $unknown; }
+		// The opaque suffix binds the reporter across legitimate credential rotation; it exposes no ID.
+		$generation = hash( 'sha256', $row[0] . "\0" . $s['credential_fingerprint'] ) . hash_hmac( 'sha256', 'bm-operational-reporter|' . $row[3], wp_salt( 'nonce' ) );
+		return [ 'category' => $category, 'generation' => $generation, 'at' => $s['updated_at'] ];
+	}
+
 	public static function auth_recovery_state() : array {
 		return self::raw_auth_recovery_record()['state'];
 	}
@@ -1097,7 +1118,7 @@ class YOGB_BM_Registrar {
 	public static function rest_challenge_echo( WP_REST_Request $req ) {
 		$id    = sanitize_text_field( (string) $req->get_param( 'id' ) );
 		$token = get_transient( self::TRANSIENT_PREFIX . $id );
-		if ( ! $token ) {
+		if ( ! $token || ! is_string( $token ) || ! preg_match( '/^[a-f0-9]{64}$/', $token ) ) {
 			return new WP_REST_Response( [ 'error' => 'unknown_challenge' ], 404 );
 		}
 		return new WP_REST_Response( $token, 200, [

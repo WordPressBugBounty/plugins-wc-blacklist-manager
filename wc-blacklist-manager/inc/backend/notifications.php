@@ -5,6 +5,7 @@ if (!defined('ABSPATH')) {
 }
 
 class WC_Blacklist_Manager_Notifications {
+	private $email_notice_error = false;
 	private $default_email_subject;
 	private $default_email_message;
 	private $default_checkout_notice;
@@ -114,8 +115,27 @@ class WC_Blacklist_Manager_Notifications {
 
 		$form_active = (class_exists( 'WPCF7' ) || class_exists( 'GFCommon' ) || class_exists( 'WPForms\WPForms' ));
 		$message = $this->handle_emails_form_submission();
+		$initialized = array();
+		if ( $this->current_user_can_manage_notifications() ) {
+			foreach ( array( 'digest' => 'WC_Blacklist_Notification_Digest', 'audit_digest' => 'WC_Blacklist_Notification_Audit_Digest' ) as $family => $owner ) {
+				$initialized[ $family ] = $owner::initialize();
+			}
+		}
 		$data = $this->get_notification_emails_settings();
+		$data['initialized'] = $initialized;
+		$data['provider_ready'] = WC_Blacklist_Notification_Provider::ready();
 		$data['message'] = $message;
+		$data['message_error'] = $this->email_notice_error;
+		$data['provider_diagnostic'] = WC_Blacklist_Notification_Provider_Samples::diagnostic();
+		$data['blocked_diagnostic'] = WC_Blacklist_Notification_Blocked_Worker::diagnostic();
+		$data['operational_ready'] = WC_Blacklist_Notification_Operational::ready();
+		$data['audit_digest_ready'] = WC_Blacklist_Notification_Audit_Digest::ready();
+		$data['audit_digest_diagnostic'] = WC_Blacklist_Notification_Audit_Digest::diagnostic();
+		$data['digest_ready'] = WC_Blacklist_Notification_Digest::ready();
+		$data['digest_diagnostic'] = WC_Blacklist_Notification_Digest::diagnostic();
+		$data['usage_ready'] = WC_Blacklist_Notification_Usage::ready();
+		$data['usage_diagnostic'] = WC_Blacklist_Notification_Usage::diagnostic();
+		$data['operational_diagnostic'] = WC_Blacklist_Notification_Operational::diagnostic();
 		$template_path = plugin_dir_path(__FILE__) . 'views/notifications-emails.php';
 		
 		if (file_exists($template_path)) {
@@ -145,15 +165,21 @@ class WC_Blacklist_Manager_Notifications {
 	}
 
 	private function handle_emails_form_submission() {
-		if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['wc_blacklist_email_settings_nonce']) && wp_verify_nonce($_POST['wc_blacklist_email_settings_nonce'], 'wc_blacklist_email_settings_action')) {
-			if ( ! $this->current_user_can_manage_notifications() ) {
-				return __( 'You do not have permission to update these settings.', 'wc-blacklist-manager' );
-			}
-
-			$this->save_emails_settings();
-			return __('Changes saved.', 'wc-blacklist-manager');
+		if ( 'POST' !== ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) { return ''; }
+		$this->email_notice_error = true;
+		if ( isset( $_POST['wc_blacklist_test_email_nonce'] ) ) {
+			$result = wc_blacklist_manager_notifications()->send_test();
+			if ( 'accepted' === $result['status'] ) { $this->email_notice_error = false; return __( 'Test email accepted by your mail service. Check the saved recipients’ inboxes.', 'wc-blacklist-manager' ); }
+			return __( 'Test email was not sent. Check your permission, reload this page, and verify the saved delivery settings.', 'wc-blacklist-manager' );
 		}
-		return '';
+		$nonce = $_POST['wc_blacklist_email_settings_nonce'] ?? null;
+		if ( ! $this->current_user_can_manage_notifications() || ! is_string( $nonce ) || ! wp_verify_nonce( wp_unslash( $nonce ), 'wc_blacklist_email_settings_action' ) ) {
+			return __( 'Settings were not saved. Check your permission and reload this page.', 'wc-blacklist-manager' );
+		}
+		$this->email_notice_error = ! $this->save_emails_settings();
+		return ! $this->email_notice_error
+			? __( 'Changes saved.', 'wc-blacklist-manager' )
+			: __( 'Settings were not saved. Enter a valid sender and complete recipient list, and check the submitted fields.', 'wc-blacklist-manager' );
 	}
 
 	private function handle_notices_form_submission() {
@@ -184,42 +210,59 @@ class WC_Blacklist_Manager_Notifications {
 			'email_comment_block' => get_option('wc_blacklist_email_comment_block', 'no'),
 			'email_form_suspect' => get_option('wc_blacklist_email_form_suspect', 'no'),
 			'email_form_block' => get_option('wc_blacklist_email_form_block', 'no'),
+			'email_weekly_manual_blacklist_digest' => get_option( WC_Blacklist_Notification_Audit_Digest::TOGGLE, 'no' ),
+			'email_weekly_security_digest' => get_option( 'wc_blacklist_email_weekly_security_digest', 'no' ),
+			'email_global_usage' => get_option( 'wc_blacklist_email_global_usage', 'no' ),
+			'email_global_connection' => get_option( 'wc_blacklist_email_global_connection', 'no' ),
 			'email_global_blacklist_details' => get_option('wc_blacklist_email_global_blacklist_details', 'yes'),
 		];
 	}
 
 	private function save_emails_settings() {
-		$sender_name = isset($_POST['wc_blacklist_sender_name']) ? sanitize_text_field($_POST['wc_blacklist_sender_name']) : '';
-		$sender_address = isset($_POST['wc_blacklist_sender_address']) ? sanitize_text_field($_POST['wc_blacklist_sender_address']) : '';
-		$email_recipient = isset($_POST['wc_blacklist_email_recipient']) ? sanitize_text_field($_POST['wc_blacklist_email_recipient']) : '';
-		$email_footer_text = isset($_POST['wc_blacklist_email_footer_text']) ? wp_kses_post($_POST['wc_blacklist_email_footer_text']) : 'This is an automated message. Please do not reply.<br>Blacklist Manager by <a href="https://yoohw.com">YoOhw Studio</a>';
-		$email_notif_enabled = isset($_POST['wc_blacklist_email_notification']) ? 'yes' : 'no';
-		$email_subject = isset($_POST['wc_blacklist_email_subject']) ? sanitize_text_field($_POST['wc_blacklist_email_subject']) : '';
-		$email_message = isset($_POST['wc_blacklist_email_message']) ? wp_kses_post($_POST['wc_blacklist_email_message']) : '';
-		$email_blocking_notif_enabled = isset($_POST['wc_blacklist_email_blocking_notification']) ? 'yes' : 'no';
-		$email_register_suspect = isset($_POST['wc_blacklist_email_register_suspect']) ? 'yes' : 'no';
-		$email_register_block = isset($_POST['wc_blacklist_email_register_block']) ? 'yes' : 'no';
-		$email_comment_suspect = isset($_POST['wc_blacklist_email_comment_suspect']) ? 'yes' : 'no';
-		$email_comment_block = isset($_POST['wc_blacklist_email_comment_block']) ? 'yes' : 'no';
-		$email_form_suspect = isset($_POST['wc_blacklist_email_form_suspect']) ? 'yes' : 'no';
-		$email_form_block = isset($_POST['wc_blacklist_email_form_block']) ? 'yes' : 'no';
-		$email_global_blacklist_details = isset($_POST['wc_blacklist_email_global_blacklist_details']) ? 'yes' : 'no';
-		
-		update_option('wc_blacklist_sender_name', $sender_name);
-		update_option('wc_blacklist_sender_address', $sender_address);
-		update_option('wc_blacklist_email_recipient', $email_recipient);
-		update_option('wc_blacklist_email_footer_text', $email_footer_text);
-		update_option('wc_blacklist_email_notification', $email_notif_enabled);
-		update_option('wc_blacklist_email_subject', $email_subject);
-		update_option('wc_blacklist_email_message', $email_message);
-		update_option('wc_blacklist_email_blocking_notification', $email_blocking_notif_enabled);
-		update_option('wc_blacklist_email_register_suspect', $email_register_suspect);
-		update_option('wc_blacklist_email_register_block', $email_register_block);
-		update_option('wc_blacklist_email_comment_suspect', $email_comment_suspect);
-		update_option('wc_blacklist_email_comment_block', $email_comment_block);
-		update_option('wc_blacklist_email_form_suspect', $email_form_suspect);
-		update_option('wc_blacklist_email_form_block', $email_form_block);
-		update_option('wc_blacklist_email_global_blacklist_details', $email_global_blacklist_details);
+		// Match the controls this server is allowed to present, never client entitlement.
+		$premium = ( new WC_Blacklist_Manager_Settings() )->is_premium_active();
+		$text = array( 'wc_blacklist_sender_name', 'wc_blacklist_sender_address', 'wc_blacklist_email_recipient' );
+		$delivery_keys = $text;
+		if ( $premium ) { $text[] = 'wc_blacklist_email_footer_text'; }
+		$checks = array();
+		if ( class_exists( 'WooCommerce' ) ) {
+			$checks = array( 'wc_blacklist_email_notification', 'wc_blacklist_email_blocking_notification', 'wc_blacklist_email_global_blacklist_details' );
+		}
+		if ( $premium && WC_Blacklist_Notification_Provider::ready() ) {
+			$checks = array_merge( $checks, array( 'wc_blacklist_email_register_suspect', 'wc_blacklist_email_register_block', 'wc_blacklist_email_comment_suspect', 'wc_blacklist_email_comment_block' ) );
+			if ( class_exists( 'WPCF7' ) || class_exists( 'GFCommon' ) || class_exists( 'WPForms\WPForms' ) ) {
+				$checks = array_merge( $checks, array( 'wc_blacklist_email_form_suspect', 'wc_blacklist_email_form_block' ) );
+			}
+		}
+		if ( WC_Blacklist_Notification_Operational::ready() ) { $checks[] = 'wc_blacklist_email_global_connection'; }
+		if ( WC_Blacklist_Notification_Usage::ready() ) { $checks[] = 'wc_blacklist_email_global_usage'; }
+		if ( $premium && WC_Blacklist_Notification_Audit_Digest::ready() ) { $checks[] = WC_Blacklist_Notification_Audit_Digest::TOGGLE; }
+		if ( $premium && WC_Blacklist_Notification_Digest::ready() ) { $checks[] = WC_Blacklist_Notification_Digest::TOGGLE; }
+		$patch = array();
+		foreach ( $text as $key ) {
+			if ( ! array_key_exists( $key, $_POST ) ) { continue; }
+			if ( ! is_string( $_POST[ $key ] ) ) { return false; }
+			$value = wp_unslash( $_POST[ $key ] );
+			$patch[ $key ] = 'wc_blacklist_email_footer_text' === $key ? wp_kses_post( $value ) : trim( $value );
+		}
+		if ( array_intersect( $delivery_keys, array_keys( $patch ) ) && false === WC_Blacklist_Notification_Recipients::resolve( $patch ) ) { return false; }
+		if ( isset( $patch['wc_blacklist_sender_name'] ) ) { $patch['wc_blacklist_sender_name'] = sanitize_text_field( $patch['wc_blacklist_sender_name'] ); }
+		$present = $_POST['wc_blacklist_email_present'] ?? array();
+		if ( ! is_array( $present ) ) { return false; }
+		foreach ( $checks as $key ) {
+			if ( ! array_key_exists( $key, $present ) ) { continue; }
+			if ( '1' !== $present[ $key ] || ( isset( $_POST[ $key ] ) && 'yes' !== $_POST[ $key ] ) ) { return false; }
+			$patch[ $key ] = isset( $_POST[ $key ] ) ? 'yes' : 'no';
+		}
+		// Validate the entire authorized patch before the first write. Dormant
+		// subject/message and absent/hidden values are deliberately never patched.
+		foreach ( $patch as $key => $value ) {
+			if ( get_option( $key, null ) !== $value ) {
+					$saved = update_option( $key, $value );
+					if ( in_array( $key, array( WC_Blacklist_Notification_Usage::TOGGLE, WC_Blacklist_Notification_Digest::TOGGLE, WC_Blacklist_Notification_Audit_Digest::TOGGLE ), true ) && ! $saved ) { return false; }
+				}
+		}
+		return true;
 	}
 
 	private function get_notification_notices_settings() {

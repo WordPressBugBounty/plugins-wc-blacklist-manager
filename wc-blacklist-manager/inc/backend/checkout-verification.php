@@ -370,16 +370,27 @@ final class WC_Blacklist_Manager_Checkout_Verification_Coordinator {
 			'billing_city'        => sanitize_text_field( $this->order_value( $order, 'get_billing_city' ) ),
 			'billing_state'       => sanitize_text_field( $this->order_value( $order, 'get_billing_state' ) ),
 			'billing_postcode'    => sanitize_text_field( $this->order_value( $order, 'get_billing_postcode' ) ),
-			'shipping_phone'      => sanitize_text_field( $this->order_value( $order, 'get_shipping_phone', '_shipping_phone' ) ),
+			'shipping_phone'      => sanitize_text_field( $this->order_value( $order, 'get_shipping_phone' ) ),
 			'shipping_dial_code'  => sanitize_text_field( $this->order_value( $order, 'get_shipping_dial_code', '_shipping_dial_code' ) ),
 			'shipping_country'    => sanitize_text_field( $this->order_value( $order, 'get_shipping_country' ) ),
 		);
 	}
 
+	/** Format an existing projection without evaluating or changing proof state. */
+	private function required_message( array $state ) {
+		if ( 'email' === ( $state['active_channel'] ?? '' ) ) {
+			return __( 'Verify your email address before placing the order.', 'wc-blacklist-manager' );
+		}
+		if ( 'phone' === ( $state['active_channel'] ?? '' ) ) {
+			return __( 'Verify your phone number before placing the order.', 'wc-blacklist-manager' );
+		}
+		return __( 'Complete checkout verification before placing the order.', 'wc-blacklist-manager' );
+	}
+
 	public function validate_classic_checkout() {
 		$state = $this->project_state( $this->context_from_request() );
 		if ( ! $state['ready'] ) {
-			wc_add_notice( __( 'Complete checkout verification before placing the order.', 'wc-blacklist-manager' ), 'error' );
+			wc_add_notice( $this->required_message( $state ), 'error' );
 		}
 	}
 
@@ -404,7 +415,7 @@ final class WC_Blacklist_Manager_Checkout_Verification_Coordinator {
 			return;
 		}
 
-		$message = __( 'Complete checkout verification before placing the order.', 'wc-blacklist-manager' );
+		$message = $this->required_message( $state );
 		if ( class_exists( '\\Automattic\\WooCommerce\\StoreApi\\Exceptions\\RouteException' ) ) {
 			throw new \Automattic\WooCommerce\StoreApi\Exceptions\RouteException( 'yobm_checkout_verification_required', $message, 403 );
 		}
@@ -529,6 +540,25 @@ final class WC_Blacklist_Manager_Checkout_Verification_Coordinator {
 				'namespace'  => self::BLOCKS_NAMESPACE,
 				'mode'       => self::get_interface(),
 				'labels'     => array(
+					'required'    => __( 'Complete checkout verification before placing the order.', 'wc-blacklist-manager' ),
+					'channels'    => array(
+						'email' => array(
+							'title' => __( 'Verify your email address', 'wc-blacklist-manager' ),
+							'open' => __( 'Verify your email address', 'wc-blacklist-manager' ),
+							'verify' => __( 'Verify email code', 'wc-blacklist-manager' ),
+							'codeLabel' => __( 'Enter your email verification code', 'wc-blacklist-manager' ),
+							'resend' => __( 'Resend email code', 'wc-blacklist-manager' ),
+							'required' => __( 'Verify your email address before placing the order.', 'wc-blacklist-manager' ),
+						),
+						'phone' => array(
+							'title' => __( 'Verify your phone number', 'wc-blacklist-manager' ),
+							'open' => __( 'Verify your phone number', 'wc-blacklist-manager' ),
+							'verify' => __( 'Verify phone code', 'wc-blacklist-manager' ),
+							'codeLabel' => __( 'Enter your phone verification code', 'wc-blacklist-manager' ),
+							'resend' => __( 'Resend phone code', 'wc-blacklist-manager' ),
+							'required' => __( 'Verify your phone number before placing the order.', 'wc-blacklist-manager' ),
+						),
+					),
 					'title'       => __( 'Checkout verification', 'wc-blacklist-manager' ),
 					'open'        => __( 'Verify checkout details', 'wc-blacklist-manager' ),
 					'close'       => __( 'Close verification dialog', 'wc-blacklist-manager' ),

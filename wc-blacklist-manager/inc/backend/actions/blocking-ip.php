@@ -303,7 +303,7 @@ class WC_Blacklist_Manager_IP_Prevention {
 	 */
 
 	public function prevent_wc_rest_api_orders( $dispatch_result, $request, $route, $handler ) {
-		if ( (int) get_option( 'wc_blacklist_enable_woo_rest_api', 0 ) !== 1 ) {
+		if ( ! WC_Blacklist_Manager_REST_Protection_Migration::order_enabled() ) {
 			return $dispatch_result;
 		}
 

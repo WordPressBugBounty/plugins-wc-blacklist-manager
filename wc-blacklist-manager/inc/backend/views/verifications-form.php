@@ -13,6 +13,14 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 
 		<?php if ( $woocommerce_active ) : ?>
 			<h2><?php echo esc_html__( 'Checkout verification', 'wc-blacklist-manager' ); ?></h2>
+			<div class="yobm-verification-overview">
+				<p><?php echo esc_html__( 'Choose which customers must verify, enable the channels you need, then choose how the steps appear at checkout.', 'wc-blacklist-manager' ); ?></p>
+				<ul>
+					<li><?php echo esc_html__( 'Email: enable verification and choose All applicable customers or Suspected customers only below.', 'wc-blacklist-manager' ); ?></li>
+					<li><?php echo esc_html__( 'Phone: Premium Phone OTP needs a selected Twilio or TextMagic provider and working credentials in Integrations.', 'wc-blacklist-manager' ); ?></li>
+					<li><?php echo esc_html__( 'When both channels are required, customers verify email first, then phone. Address and format validation do not create OTP proof.', 'wc-blacklist-manager' ); ?></li>
+				</ul>
+			</div>
 			<table class="form-table">
 				<tr>
 					<th scope="row">
@@ -68,17 +76,17 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 						<th scope="row">
 							<label for="email_verification_email_settings" class="label_child"><?php echo esc_html__('Verification email', 'wc-blacklist-manager'); ?></label>
 						</th>
-						<td>
-							<p><?php echo esc_html__('Resend delay', 'wc-blacklist-manager'); ?></p>
+						<td><details class="yobm-verification-details"><summary><?php echo esc_html__( 'Email message and resend options', 'wc-blacklist-manager' ); ?></summary>
+							<p><label for="email_verification_resend"><?php echo esc_html__('Resend delay', 'wc-blacklist-manager'); ?></label></p>
 							<input type="number" id="email_verification_resend" name="email_verification_resend" value="<?php echo esc_attr($data['email_verification_resend'] ?? 180); ?>" min="30" max="3600"> <?php echo esc_html__('seconds.', 'wc-blacklist-manager'); ?>
-							<p><?php echo esc_html__('Email subject', 'wc-blacklist-manager'); ?></p>
+							<p><label for="email_verification_subject"><?php echo esc_html__('Email subject', 'wc-blacklist-manager'); ?></label></p>
 							<input type="text" id="email_verification_subject" name="email_verification_subject" class="regular-text" value="<?php echo esc_attr( $data['email_verification_subject'] ?? $this->default_email_subject ); ?>">
-							<p><?php echo esc_html__('Email heading', 'wc-blacklist-manager'); ?></p>
+							<p><label for="email_verification_heading"><?php echo esc_html__('Email heading', 'wc-blacklist-manager'); ?></label></p>
 							<input type="text" id="email_verification_heading" name="email_verification_heading" class="regular-text" value="<?php echo esc_attr( $data['email_verification_heading'] ?? $this->default_email_heading ); ?>">
-							<p><?php echo esc_html__('Email message', 'wc-blacklist-manager'); ?></p>
+							<p><label for="email_verification_message"><?php echo esc_html__('Email message', 'wc-blacklist-manager'); ?></label></p>
 							<textarea id="email_verification_message" name="email_verification_message" rows="6" class="regular-text"><?php echo esc_textarea(!empty($data['email_verification_message']) ? $data['email_verification_message'] : $this->default_email_message); ?></textarea>
 							<p class="description"><?php echo esc_html__('Add {first_name}, {last_name}, {site_name}, and {code} where you want them to appear. HTML allowed.', 'wc-blacklist-manager'); ?></p>
-						</td>
+						</details></td>
 					<?php endif; ?>
 					<?php if (!$premium_active): ?>
 						<th scope="row">
@@ -113,7 +121,7 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 			<?php endif; ?>
 		</table>
 
-		<h2><?php echo esc_html__( 'Email validation', 'wc-blacklist-manager' ); ?></h2>
+		<details class="yobm-verification-details"><summary><?php echo esc_html__( 'Email validation', 'wc-blacklist-manager' ); ?></summary>
 
 		<table class="form-table">
 			<?php if ($premium_active): ?>
@@ -131,6 +139,9 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 						<?php endif; ?>
 
 						<p class="description"><?php echo esc_html__('Check submitted email addresses using the configured validation service on supported flows. This validates the address; it does not prove ownership or create email OTP proof.', 'wc-blacklist-manager'); ?></p>
+						<?php $zerobounce_state = (string) ( $data['integration_capabilities']['capabilities']['zerobounce_email']['state'] ?? '' ); $zerobounce_effective = ! empty( $data['integration_capabilities']['capabilities']['zerobounce_email']['effective'] ); if ( ! empty( $data['email_verification_real_time_validate'] ) && in_array( $zerobounce_state, array( 'MISCONFIGURED', 'UNAVAILABLE', 'UNKNOWN' ), true ) ) : ?>
+							<p class="description"><a href="<?php echo esc_url( admin_url( 'admin.php?page=wc-blacklist-manager-settings&tab=integrations' ) ); ?>"><?php echo esc_html( $zerobounce_effective ? __( 'ZeroBounce protection is saved and currently active while its existing integration status is being refreshed.', 'wc-blacklist-manager' ) : __( 'ZeroBounce protection is saved but suspended until Integrations confirms the service is available. Review the integration to recover it.', 'wc-blacklist-manager' ) ); ?></a></p>
+						<?php endif; ?>
 					</td>
 				</tr>
 			<?php endif; ?>
@@ -147,6 +158,9 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 							<p class="description"><?php echo esc_html__('Detect and block email addresses confirmed as disposable on checkout, registration, comment, and review flows where this protection applies.', 'wc-blacklist-manager'); ?></p>
 						<?php else: ?>
 							<p class="description"><?php echo esc_html__('Detect and block email addresses confirmed as disposable on registration and comment flows where this protection applies.', 'wc-blacklist-manager'); ?></p>
+						<?php endif; ?>
+						<?php $bigdatacloud_state = (string) ( $data['integration_capabilities']['capabilities']['bigdatacloud_email']['state'] ?? '' ); $bigdatacloud_effective = ! empty( $data['integration_capabilities']['capabilities']['bigdatacloud_email']['effective'] ); if ( ! empty( $data['email_verification_disposable'] ) && in_array( $bigdatacloud_state, array( 'MISCONFIGURED', 'UNAVAILABLE', 'UNKNOWN' ), true ) ) : ?>
+							<p class="description"><a href="<?php echo esc_url( admin_url( 'admin.php?page=wc-blacklist-manager-settings&tab=integrations' ) ); ?>"><?php echo esc_html( $bigdatacloud_effective ? __( 'BigDataCloud protection is saved and currently active while its existing integration status is being refreshed.', 'wc-blacklist-manager' ) : __( 'BigDataCloud protection is saved but suspended until Integrations confirms the service is available. Review the integration to recover it.', 'wc-blacklist-manager' ) ); ?></a></p>
 						<?php endif; ?>
 					</td>
 				</tr>
@@ -180,6 +194,7 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 				</tr>
 			<?php endif; ?>
 		</table>
+		</details>
 
 		<?php if ($woocommerce_active): ?>
 			<?php if ( $premium_active && has_action( 'wc_blacklist_manager_render_phone_verification_settings' ) ) : ?>
@@ -223,14 +238,14 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 					</tr>
 					<tr id="phone_verification_sms_settings_row" style="<?php echo ! empty( $data['phone_verification_enabled'] ) ? '' : 'display: none;'; ?>">
 						<th scope="row"><label for="message"><?php echo esc_html__( 'Verification SMS', 'wc-blacklist-manager' ); ?></label></th>
-						<td>
+						<td><details class="yobm-verification-details"><summary><?php echo esc_html__( 'SMS message and resend options', 'wc-blacklist-manager' ); ?></summary>
 							<p><label><?php echo esc_html__( 'Code length', 'wc-blacklist-manager' ); ?> <input type="number" id="code_length" name="code_length" value="<?php echo esc_attr( $phone_code_length ); ?>" min="6" max="10"></label></p>
 							<p><label><?php echo esc_html__( 'Resend delay', 'wc-blacklist-manager' ); ?> <input type="number" id="resend" name="resend" value="<?php echo esc_attr( $phone_resend ); ?>" min="30" max="3600"> <?php echo esc_html__( 'seconds', 'wc-blacklist-manager' ); ?></label></p>
 							<p><label><?php echo esc_html__( 'Resend limit', 'wc-blacklist-manager' ); ?> <input type="number" id="limit" name="limit" value="<?php echo esc_attr( $phone_limit ); ?>" min="1" max="10"></label></p>
 							<p><label for="message"><?php echo esc_html__( 'SMS message', 'wc-blacklist-manager' ); ?></label></p>
 							<textarea id="message" name="message" rows="2" class="regular-text"><?php echo esc_textarea( ! empty( $data['phone_verification_message'] ) ? $data['phone_verification_message'] : $this->default_sms_message ); ?></textarea>
 							<p class="description"><?php echo esc_html__( 'The message must contain {code}.', 'wc-blacklist-manager' ); ?></p>
-						</td>
+						</details></td>
 					</tr>
 				</table>
 			<?php else : ?>
@@ -263,7 +278,7 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 		</table>
 		<?php endif; ?>
 
-			<h2><?php echo esc_html__( 'Phone validation', 'wc-blacklist-manager' ); ?></h2>
+			<details class="yobm-verification-details"><summary><?php echo esc_html__( 'Phone validation', 'wc-blacklist-manager' ); ?></summary>
 
 			<table class="form-table">
 				<?php if ($premium_active): ?>
@@ -299,6 +314,9 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 							<input type="checkbox" id="phone_verification_disposable" name="phone_verification_disposable" value="1" <?php checked(!empty($data['phone_verification_disposable'])); ?>>
 						<label for="phone_verification_disposable"><?php echo esc_html__('Detect and block disposable phone numbers', 'wc-blacklist-manager'); ?></label>
 						<p class="description"><?php echo esc_html__('Detect and block phone numbers confirmed as disposable on supported protected flows.', 'wc-blacklist-manager'); ?></p>
+						<?php $numcheckr_state = (string) ( $data['integration_capabilities']['capabilities']['numcheckr_phone']['state'] ?? '' ); $numcheckr_effective = ! empty( $data['integration_capabilities']['capabilities']['numcheckr_phone']['effective'] ); if ( ! empty( $data['phone_verification_disposable'] ) && in_array( $numcheckr_state, array( 'MISCONFIGURED', 'UNAVAILABLE', 'UNKNOWN' ), true ) ) : ?>
+							<p class="description"><a href="<?php echo esc_url( admin_url( 'admin.php?page=wc-blacklist-manager-settings&tab=integrations' ) ); ?>"><?php echo esc_html( $numcheckr_effective ? __( 'NumCheckr protection is saved and currently active while its existing integration status is being refreshed.', 'wc-blacklist-manager' ) : __( 'NumCheckr protection is saved but suspended until Integrations confirms the service is available. Review the integration to recover it.', 'wc-blacklist-manager' ) ); ?></a></p>
+						<?php endif; ?>
 						</td>
 					</tr>
 				<?php endif; ?>
@@ -330,8 +348,9 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 					</tr>
 				<?php endif; ?>
 		</table>
+		</details>
 
-		<h2><?php echo esc_html__('Name validation', 'wc-blacklist-manager'); ?></h2>
+		<details class="yobm-verification-details"><summary><?php echo esc_html__('Name validation', 'wc-blacklist-manager'); ?></summary>
 
 			<table class="form-table">
 				<?php if ($premium_active): ?>
@@ -396,6 +415,7 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 					</tr>
 				<?php endif; ?>
 			</table>
+		</details>
 
 		<h2><?php echo esc_html__('Related account tools', 'wc-blacklist-manager'); ?></h2>
 
@@ -441,6 +461,14 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 
 		<script type="text/javascript">
 			document.addEventListener('DOMContentLoaded', function () {
+				// Reveal invalid tuning fields without changing their values or constraints.
+				document.addEventListener('invalid', function (event) {
+					var disclosure = event.target.closest('.yobm-verification-details');
+					while (disclosure) {
+						disclosure.open = true;
+						disclosure = disclosure.parentElement.closest('.yobm-verification-details');
+					}
+				}, true);
 				var emailVerificationCheckbox = document.getElementById('email_verification_enabled');
 				var phoneVerificationCheckbox = document.getElementById('phone_verification_enabled');
 				var phoneVerificationRealtimeValidateCheckbox = document.getElementById('phone_verification_real_time_validate');

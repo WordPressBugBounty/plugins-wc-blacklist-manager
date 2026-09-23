@@ -89,7 +89,7 @@ class WC_Blacklist_Manager_Verifications {
 		$premium_active = $settings_instance->is_premium_active();
 		$active_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'verify';
 		?>
-		<div class="wrap yobm-admin-page">
+		<div class="wrap yobm-admin-page yobm-settings-surface">
 			<h1>
 				<?php echo esc_html__('Verifications', 'wc-blacklist-manager'); ?>
 				<?php if (get_option('yoohw_settings_disable_menu') != 1): ?>
@@ -211,6 +211,7 @@ class WC_Blacklist_Manager_Verifications {
 			'message' => $this->default_sms_message,
 		]);
 
+		$integration_capabilities = apply_filters( 'wc_blacklist_manager_integration_capabilities_v1', null );
 		return [
 			'checkout_verification_interface' => WC_Blacklist_Manager_Checkout_Verification_Coordinator::get_interface(),
 			'email_verification_enabled' => get_option('wc_blacklist_email_verification_enabled', '0'),
@@ -233,6 +234,7 @@ class WC_Blacklist_Manager_Verifications {
 			'name_verification_auto_capitalization' => get_option('wc_blacklist_name_verification_auto_capitalization', '0'),
 			'name_verification_real_time_validate' => get_option('wc_blacklist_name_verification_real_time_validate', '0'),
 			'phone_verification_country_code_disabled' => get_option('wc_blacklist_phone_verification_country_code_disabled', '0'),
+			'integration_capabilities' => is_array( $integration_capabilities ) ? $integration_capabilities : null,
 		];
 	}
 
@@ -300,6 +302,28 @@ class WC_Blacklist_Manager_Verifications {
 			$name_verification_auto_capitalization    = '0';
 			$name_verification_real_time_validate     = '0';
 			$phone_verification_country_code_disabled = '0';
+		}
+
+		// BM-0191: a compatible Premium may publish its private capability
+		// projection.  Its absence deliberately preserves the supported legacy
+		// Core/Premium pairing instead of treating an old Premium as broken.
+		$projection = apply_filters( 'wc_blacklist_manager_integration_capabilities_v1', null );
+		if ( is_array( $projection ) && 1 === (int) ( $projection['version'] ?? 0 ) && is_array( $projection['capabilities'] ?? null ) ) {
+			$required = array(
+				'zerobounce_email' => array( 'value' => &$email_verification_real_time_validate, 'option' => 'wc_blacklist_email_verification_real_time_validate', 'label' => __( 'Email address validation requires a working ZeroBounce integration.', 'wc-blacklist-manager' ) ),
+				'bigdatacloud_email' => array( 'value' => &$email_verification_disposable, 'option' => 'wc_blacklist_email_verification_disposable', 'label' => __( 'Disposable email blocking requires a working BigDataCloud integration.', 'wc-blacklist-manager' ) ),
+				'numcheckr_phone' => array( 'value' => &$phone_verification_disposable, 'option' => 'wc_blacklist_manager_premium_enable_numcheckr', 'label' => __( 'Disposable phone blocking requires a working NumCheckr integration.', 'wc-blacklist-manager' ) ),
+			);
+			foreach ( $required as $capability => &$dependency ) {
+				$state = (string) ( $projection['capabilities'][ $capability ]['state'] ?? 'UNKNOWN' );
+				if ( '1' === $dependency['value'] && 'MISCONFIGURED' === $state ) {
+					// Reject a new enable while retaining an already saved intent. The
+					// effective capability gate suspends existing intent at runtime.
+					$dependency['value'] = '1' === get_option( $dependency['option'], '0' ) ? '1' : '0';
+					add_settings_error( 'wc_blacklist_verifications_settings', 'integration_' . $capability, $dependency['label'] . ' ' . __( 'Configure it in Integrations, then save again.', 'wc-blacklist-manager' ), 'error' );
+				}
+			}
+			unset( $dependency );
 		}
 
 		update_option( 'wc_blacklist_email_verification_enabled', $email_verification_enabled );

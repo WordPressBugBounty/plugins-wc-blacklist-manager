@@ -702,7 +702,7 @@ class WC_Blacklist_Manager_Blocklist_Prevention {
 	 */
 
 	public function prevent_wc_rest_api_orders( $dispatch_result, $request, $route, $handler ) {
-		$rest_enabled = (int) get_option( 'wc_blacklist_enable_woo_rest_api', 0 );
+		$rest_enabled = WC_Blacklist_Manager_REST_Protection_Migration::order_enabled() ? 1 : 0;
 
 		if ( 1 !== $rest_enabled ) {
 			return $dispatch_result;

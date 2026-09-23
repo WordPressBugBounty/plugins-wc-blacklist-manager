@@ -480,7 +480,7 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 			'verifications-email',
 			plugins_url( '/../../../js/verifications-email.js', __FILE__ ),
 			array( 'jquery' ),
-			'2.2.0',
+			WC_BLACKLIST_MANAGER_VERSION,
 			true
 		);
 
@@ -516,7 +516,7 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 			'verifications-email-blocks',
 			plugins_url( '/../../../js/verifications-email-blocks.js', __FILE__ ),
 			array( 'jquery', 'wp-data' ),
-			'2.2.2',
+			WC_BLACKLIST_MANAGER_VERSION,
 			true
 		);
 

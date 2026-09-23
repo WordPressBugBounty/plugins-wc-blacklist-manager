@@ -60,7 +60,7 @@ class WC_Blacklist_Manager_Settings {
 
 		return [
 			'development_mode' => get_option('wc_blacklist_development_mode', 0),
-			'woo_rest_api' => get_option('wc_blacklist_enable_woo_rest_api', 0),
+			'woo_rest_api' => WC_Blacklist_Manager_REST_Protection_Migration::order_enabled(),
 			'blacklist_action' => get_option('wc_blacklist_action', 'none'),
 			'block_user_registration' => get_option('wc_blacklist_block_user_registration', 0),
 			'order_delay' => max(0, get_option('wc_blacklist_order_delay', 0)),
@@ -119,11 +119,13 @@ class WC_Blacklist_Manager_Settings {
 	}
 
 	private function includes() {
+		include_once plugin_dir_path(__FILE__) . '../cores/rest-protection-migration.php';
 		include_once plugin_dir_path(__FILE__) . 'actions/suspects.php';
 		include_once plugin_dir_path(__FILE__) . 'actions/blocklist.php';
 		include_once plugin_dir_path(__FILE__) . 'actions/blocking-ip.php';
 		include_once plugin_dir_path(__FILE__) . 'actions/blocking-domain.php';
 		include_once plugin_dir_path(__FILE__) . 'actions/blocking-user.php';
+		include_once plugin_dir_path(__FILE__) . 'actions/rest-product-review-local-identity.php';
 		include_once plugin_dir_path(__FILE__) . 'actions/form/contact-form-7.php';
 		include_once plugin_dir_path(__FILE__) . 'actions/form/gravity-forms.php';
 		include_once plugin_dir_path(__FILE__) . 'actions/form/wp-forms.php';

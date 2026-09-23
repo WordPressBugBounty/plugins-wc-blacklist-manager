@@ -5,7 +5,7 @@ Requires at least: 6.3
 Tested up to: 7.1
 WC tested up to: 11.0
 Requires PHP: 7.4
-Stable tag: 2.3.1
+Stable tag: 2.3.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -135,8 +135,10 @@ Global Blacklist Decisions is a connected fraud-prevention service. Data exchang
 
 == Changelog ==
 
-= 2.3.1 (Sep 4, 2026) =
-* Fix: Keeps Report v2 configuration current on long-lived WooCommerce order pages by renewing eligible capability state in the background and applying current local configuration to subsequent modal opens.
-* Improve: Clarifies database readiness notices while background repair is scheduled or running, avoiding redundant retry and maintenance guidance during active repair.
-
-See `changelog.txt` for the complete release history.
+= 2.3.2 (Sep 23, 2026) =
+* New: Adds configurable security and operational email notifications for blocked or suspicious activity and Global Blacklist usage.
+* Security: Strengthens blocked-user authentication, WooCommerce REST order protection, and comment and product-review blocking, including safer handling of existing review settings.
+* Fix: Restores Dashboard lists after upgrades, refreshes first-party asset cache versions, and clarifies database-readiness recovery guidance.
+* Fix: Defers notification translation setup to supported WordPress timing, preventing WordPress 6.7+ notices and related header warnings; improves notification branding and site-local dates.
+* Improve: Refines Dashboard navigation, checkout and settings presentation, and Global decision status and evidence while local protection remains available when the remote service is unavailable.
+* Compatibility: After Global notification state v2 has materialized, rollback requires matching prior Core/Premium code and a complete pre-upgrade database snapshot; code-only downgrade is unsupported.

@@ -3,7 +3,7 @@
  * Plugin Name: Blacklist Manager
  * Plugin URI: https://wordpress.org/plugins/wc-blacklist-manager
  * Description: An anti-fraud and spam prevention plugin for WooCommerce and WordPress forms.
- * Version: 2.3.1
+ * Version: 2.3.2
  * Author: YoOhw.com
  * Author URI: https://yoohw.com
  * License: GPL v2 or later
@@ -30,6 +30,7 @@ class WC_Blacklist_Manager {
 		define('WC_BLACKLIST_MANAGER_OTP_STATE_CONTRACT_VERSION', 1);
 		define('WC_BLACKLIST_MANAGER_EVIDENCE_TRUST_CONTRACT_VERSION', 1);
 		define('WC_BLACKLIST_MANAGER_CHECKOUT_VALIDATION_CONTEXT_CONTRACT_VERSION', 1);
+		define('WC_BLACKLIST_MANAGER_BLOCKED_AUTH_OBSERVABILITY_CONTRACT_VERSION', 1);
 		define('WC_BLACKLIST_MANAGER_PLUGIN_FILE', __FILE__);
 		define('WC_BLACKLIST_MANAGER_PLUGIN_DIR', plugin_dir_path(__FILE__));
 		define('WC_BLACKLIST_MANAGER_PLUGIN_BASENAME', plugin_basename(__FILE__));
@@ -43,6 +44,7 @@ class WC_Blacklist_Manager {
 		include_once plugin_dir_path(__FILE__) . 'inc/cores/api/yogb/yogb-secret-store.php';
 		include_once plugin_dir_path(__FILE__) . 'inc/cores/helper/yoohw-diagnostic-log.php';
 		include_once plugin_dir_path(__FILE__) . 'inc/cores/premium-gate.php';
+		include_once plugin_dir_path(__FILE__) . 'inc/cores/notifications.php';
 		include_once plugin_dir_path(__FILE__) . 'inc/backend/helpers/commercial-router.php';
 		include_once plugin_dir_path(__FILE__) . 'inc/backend/helpers/opportunity-engine.php';
 		include_once plugin_dir_path(__FILE__) . 'inc/cores/otp-state.php';

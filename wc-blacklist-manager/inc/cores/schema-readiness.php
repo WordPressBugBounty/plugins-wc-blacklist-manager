@@ -117,6 +117,35 @@ final class WC_Blacklist_Manager_Schema_Readiness {
 		return ! empty( $inspection['ready'] );
 	}
 
+	/** Internal read-only presentation contract. Never refreshes, schedules or repairs state. */
+	public static function get_status() {
+		$stored = (int) get_option( self::VERSION_OPTION, 0 );
+		$state  = get_option( self::STATE_OPTION, array() );
+		$status = is_array( $state ) ? (string) ( $state['status'] ?? '' ) : '';
+		$ready  = self::is_ready();
+		if ( $stored > self::CONTRACT_VERSION ) {
+			$status = 'newer_than_code';
+		} elseif ( $ready ) {
+			$status = 'ready';
+		} elseif ( ! in_array( $status, array( 'pending', 'running', 'failed', 'manual_required' ), true ) ) {
+			$status = 'pending';
+		}
+
+		$messages = array(
+			'ready'           => __( 'Reporting indexes are verified and ready.', 'wc-blacklist-manager' ),
+			'pending'         => __( 'Reporting indexes are pending. Open Blacklist management to check or schedule the background readiness repair.', 'wc-blacklist-manager' ),
+			'running'         => __( 'Reporting index repair is in progress. Check Blacklist management again after the worker completes.', 'wc-blacklist-manager' ),
+			'failed'          => __( 'Reporting index repair failed. Review the database readiness notice in Blacklist management before retrying.', 'wc-blacklist-manager' ),
+			'manual_required' => __( 'Reporting indexes require a maintenance window. Ask your administrator to review wp blacklist-manager schema status and use wp blacklist-manager schema repair --allow-blocking only during approved CLI maintenance.', 'wc-blacklist-manager' ),
+			'newer_than_code' => __( 'The stored reporting schema is newer than this Core version. Restore a compatible Core version before attempting repair.', 'wc-blacklist-manager' ),
+		);
+		return array(
+			'ready'   => $ready,
+			'status'  => $status,
+			'message' => $messages[ $status ],
+		);
+	}
+
 	/** Exact ordered-column validator shared by bounded P2/P3 readers. */
 	public static function index_matches( $contract_id ) {
 		$contracts = self::contracts();
@@ -262,6 +291,9 @@ final class WC_Blacklist_Manager_Schema_Readiness {
 			echo esc_html__( 'Blacklist Manager database readiness requires attention.', 'wc-blacklist-manager' );
 		}
 		echo '</strong></p>';
+		$presentation = self::get_status();
+		echo '<p>' . esc_html( $presentation['message'] ) . '</p>';
+		echo '<p>' . esc_html__( 'Reporting index readiness is separate from stored blacklist data. Pending reporting indexes do not remove existing records or disable local protection; lists and exports remain available.', 'wc-blacklist-manager' ) . '</p>';
 		if ( ! empty( $labels ) ) {
 			echo '<p>' . esc_html( implode( ', ', $labels ) ) . '</p>';
 		}

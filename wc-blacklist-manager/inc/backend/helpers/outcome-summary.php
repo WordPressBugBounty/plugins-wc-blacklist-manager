@@ -156,7 +156,7 @@ final class WC_Blacklist_Manager_Outcome_Summary {
 		echo '<a class="button ' . ( 30 === $window ? 'button-primary' : 'button-secondary' ) . '" href="' . esc_url( $url_30 ) . '">' . esc_html__( '30 days', 'wc-blacklist-manager' ) . '</a></nav></div>';
 
 		if ( empty( $core['available'] ) ) {
-			echo '<p class="notice inline notice-warning"><span>' . esc_html__( 'Retained list counts are temporarily unavailable until the required database indexes are installed.', 'wc-blacklist-manager' ) . '</span></p>';
+			echo '<p class="notice inline notice-warning"><span>' . esc_html__( 'Retained list counts are temporarily unavailable until the required reporting indexes are installed. Existing blacklist records, list management and exports remain available. Review the database readiness notice for repair guidance.', 'wc-blacklist-manager' ) . '</span></p>';
 		}
 		echo '<div class="yobm-outcome-summary__overview">';
 		echo '<section class="yobm-outcome-summary__column"><h3>' . esc_html__( 'Current state', 'wc-blacklist-manager' ) . '</h3><div class="yobm-outcome-summary__groups">';
@@ -230,6 +230,7 @@ final class WC_Blacklist_Manager_Outcome_Summary {
 		$tier        = $model['tier'];
 		$action_url  = '';
 		$action_text = '';
+		$message_after_decisions = false;
 
 		if ( WC_Blacklist_Manager_Dashboard_Presentation::GLOBAL_INACTIVE === $state ) {
 			$message     = __( 'Global Blacklist Decisions is inactive.', 'wc-blacklist-manager' );
@@ -250,6 +251,7 @@ final class WC_Blacklist_Manager_Outcome_Summary {
 			$status_text = __( 'Protected', 'wc-blacklist-manager' );
 			$icon        = 'globe-shield.svg';
 			$icon_alt    = __( 'Global Blacklist Decisions enabled', 'wc-blacklist-manager' );
+			$message_after_decisions = true;
 		}
 
 		$tier_labels = array(
@@ -264,11 +266,49 @@ final class WC_Blacklist_Manager_Outcome_Summary {
 			echo '<span class="yogb-tier-badge yogb-tier-' . esc_attr( $tier ) . '"><span class="yogb-tier-dot" aria-hidden="true"></span><span class="yogb-tier-text">' . esc_html( $tier_labels[ $tier ] ) . '</span></span>';
 		}
 		echo '</div></div>';
-		echo '<p><img src="' . esc_url( plugins_url( 'img/' . $icon, WC_BLACKLIST_MANAGER_PLUGIN_FILE ) ) . '" width="16" height="16" alt="' . esc_attr( $icon_alt ) . '"> <span>' . esc_html( $message ) . '</span></p>';
-		if ( '' !== $action_url ) {
-			echo '<p class="yobm-outcome-summary__global-action"><a href="' . esc_url( $action_url ) . '">' . esc_html( $action_text ) . '</a></p>';
+		if ( ! $message_after_decisions ) {
+			self::render_global_message( $message, $icon, $icon_alt, $action_url, $action_text );
+		}
+		self::render_global_decision_evidence( self::current_outcome_window() );
+		if ( $message_after_decisions ) {
+			self::render_global_message( $message, $icon, $icon_alt );
 		}
 		echo '</section>';
+	}
+
+	private static function render_global_message( $message, $icon, $icon_alt, $action_url = '', $action_text = '' ) {
+		echo '<p><img src="' . esc_url( plugins_url( 'img/' . $icon, WC_BLACKLIST_MANAGER_PLUGIN_FILE ) ) . '" width="16" height="16" alt="' . esc_attr( $icon_alt ) . '"> <span>' . esc_html( $message ) . '</span>';
+		if ( '' !== $action_url ) {
+			echo '<a class="yobm-outcome-summary__global-action" href="' . esc_url( $action_url ) . '">' . esc_html( $action_text ) . '</a>';
+		}
+		echo '</p>';
+	}
+
+	/** Render retained Global decision references without changing connection state semantics. */
+	private static function render_global_decision_evidence( $window ) {
+		$window  = 30 === (int) $window ? 30 : 7;
+		$summary = class_exists( 'YOGB_BM_Global_Value_Summary' )
+			? YOGB_BM_Global_Value_Summary::get_summary()
+			: array( 'available' => false, 'capped' => false );
+
+		echo '<dl class="yobm-outcome-summary__global-decisions">';
+		foreach ( array( 'block' => __( 'Block decisions', 'wc-blacklist-manager' ), 'challenge' => __( 'Challenge decisions', 'wc-blacklist-manager' ) ) as $decision => $label ) {
+			echo '<div><dt>' . esc_html( $label ) . '</dt><dd>';
+			if ( empty( $summary['available'] ) ) {
+				echo esc_html__( 'Unavailable', 'wc-blacklist-manager' );
+			} elseif ( ! empty( $summary['capped'] ) ) {
+				/* translators: %s: guaranteed lower-bound retained decision count. */
+				echo esc_html( sprintf( __( 'Partial — at least %s', 'wc-blacklist-manager' ), number_format_i18n( self::clamp_count( $summary[ $decision ][ $window ] ?? 0 ) ) ) );
+			} else {
+				echo esc_html( number_format_i18n( self::clamp_count( $summary[ $decision ][ $window ] ?? 0 ) ) );
+			}
+			echo '</dd></div>';
+		}
+		echo '</dl>';
+	}
+
+	private static function current_outcome_window() {
+		return isset( $_GET['bm_outcome_window'] ) && 30 === absint( wp_unslash( $_GET['bm_outcome_window'] ) ) ? 30 : 7;
 	}
 
 	private static function render_first_value_acknowledgement( array $first_value ) {

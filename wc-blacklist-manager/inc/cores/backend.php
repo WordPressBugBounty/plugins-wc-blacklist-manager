@@ -31,9 +31,6 @@ class WC_Blacklist_Manager_Backend {
 	public function enqueue_assets( $hook_suffix ) {
 		global $wp_version;
 
-		$style_ver  = '1.6.26';
-		$script_ver = '1.3';
-
 		// Determine current admin screen context
 		$screen     = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
 		$screen_id  = $screen ? $screen->id : '';
@@ -64,7 +61,7 @@ class WC_Blacklist_Manager_Backend {
 				'wc-blacklist-style',
 				plugin_dir_url( __FILE__ ) . '../../css/style.css',
 				array(),
-				$style_ver
+				WC_BLACKLIST_MANAGER_VERSION
 			);
 
 			// WordPress < 7.0 compatibility CSS
@@ -92,7 +89,7 @@ class WC_Blacklist_Manager_Backend {
 				'wc-blacklist-script',
 				plugin_dir_url( __FILE__ ) . '../../js/dashboard.js',
 				array( 'jquery' ),
-				$script_ver,
+				WC_BLACKLIST_MANAGER_VERSION,
 				true
 			);
 
@@ -116,7 +113,7 @@ class WC_Blacklist_Manager_Backend {
 			return;
 		}
 
-		wp_enqueue_script( 'yobm-dashboard-form', plugin_dir_url( __FILE__ ) . '../../js/dashboard-phone-dial-code.js', array(), '1.0.1', true );
+		wp_enqueue_script( 'yobm-dashboard-form', plugin_dir_url( __FILE__ ) . '../../js/dashboard-phone-dial-code.js', array(), WC_BLACKLIST_MANAGER_VERSION, true );
 
 		$country_code = 'us';
 
@@ -184,6 +181,7 @@ class WC_Blacklist_Manager_Backend {
 		require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-revoke.php';
 		require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-check.php';
 		require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-tier.php';
+		require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-usage.php';
 		require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-tier-sync.php';
 		require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-subscription-activation.php';
 

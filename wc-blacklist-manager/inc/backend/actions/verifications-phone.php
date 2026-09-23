@@ -489,7 +489,7 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 			'verifications-phone',
 			plugins_url( '/../../../js/verifications-phone.js', __FILE__ ),
 			array( 'jquery' ),
-			'2.2.1',
+			WC_BLACKLIST_MANAGER_VERSION,
 			true
 		);
 
@@ -528,7 +528,7 @@ class WC_Blacklist_Manager_Verifications_Verify_Phone {
 			'verifications-phone-blocks',
 			plugins_url( '/../../../js/verifications-phone-blocks.js', __FILE__ ),
 			array( 'jquery', 'wp-data' ),
-			'2.2.2',
+			WC_BLACKLIST_MANAGER_VERSION,
 			true
 		);
 

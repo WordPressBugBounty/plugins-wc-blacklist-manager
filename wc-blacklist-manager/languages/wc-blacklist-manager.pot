@@ -2,20 +2,21 @@
 # This file is distributed under the GPL v2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Blacklist Manager 2.3.1\n"
+"Project-Id-Version: Blacklist Manager 2.3.2\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/wc-blacklist-manager\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-08-29T12:23:16+00:00\n"
+"POT-Creation-Date: 2026-09-09T03:15:57+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.9.0\n"
 "X-Domain: wc-blacklist-manager\n"
 
 #. Plugin Name of the plugin
-#: inc/backend/dashboard-widget.php:31
+#: wc-blacklist-manager.php
+#: inc/backend/dashboard-widget.php:33
 #: inc/backend/dashboard.php:431
 #: inc/backend/premium-cta.php:646
 msgid "Blacklist Manager"
@@ -427,6 +428,8 @@ msgstr ""
 #: inc/backend/actions/verifications-email.php:440
 #: inc/backend/actions/verifications-email.php:933
 #: inc/backend/actions/verifications-email.php:934
+#: inc/backend/checkout-verification.php:546
+#: inc/backend/checkout-verification.php:547
 #: inc/backend/verifications.php:58
 msgid "Verify your email address"
 msgstr ""
@@ -447,7 +450,7 @@ msgstr ""
 #: inc/backend/actions/verifications-email.php:532
 #: inc/backend/actions/verifications-phone.php:505
 #: inc/backend/actions/verifications-phone.php:545
-#: inc/backend/checkout-verification.php:535
+#: inc/backend/checkout-verification.php:565
 #: inc/backend/verifications.php:107
 #: inc/backend/views/table/activity-log.php:147
 msgid "Verify"
@@ -464,7 +467,7 @@ msgstr ""
 #: inc/backend/actions/verifications-email.php:535
 #: inc/backend/actions/verifications-phone.php:507
 #: inc/backend/actions/verifications-phone.php:548
-#: inc/backend/views/verifications-form.php:228
+#: inc/backend/views/verifications-form.php:237
 msgid "seconds"
 msgstr ""
 
@@ -472,7 +475,7 @@ msgstr ""
 #: inc/backend/actions/verifications-email.php:533
 #: inc/backend/actions/verifications-phone.php:508
 #: inc/backend/actions/verifications-phone.php:546
-#: inc/backend/checkout-verification.php:536
+#: inc/backend/checkout-verification.php:566
 msgid "Resend code"
 msgstr ""
 
@@ -845,169 +848,163 @@ msgstr ""
 msgid "Complete the active verification step first."
 msgstr ""
 
-#: inc/backend/checkout-verification.php:382
-#: inc/backend/checkout-verification.php:407
+#: inc/backend/checkout-verification.php:387
+#: inc/backend/checkout-verification.php:543
 msgid "Complete checkout verification before placing the order."
 msgstr ""
 
-#: inc/backend/checkout-verification.php:532
+#: inc/backend/checkout-verification.php:562
 #: inc/backend/views/verifications-form.php:15
 msgid "Checkout verification"
 msgstr ""
 
-#: inc/backend/checkout-verification.php:533
+#: inc/backend/checkout-verification.php:563
 msgid "Verify checkout details"
 msgstr ""
 
-#: inc/backend/checkout-verification.php:534
+#: inc/backend/checkout-verification.php:564
 msgid "Close verification dialog"
 msgstr ""
 
-#: inc/backend/checkout-verification.php:537
+#: inc/backend/checkout-verification.php:567
+#, php-format
 msgid "Resend available in %d seconds."
 msgstr ""
 
-#: inc/backend/checkout-verification.php:538
+#: inc/backend/checkout-verification.php:568
 msgid "Enter verification code"
 msgstr ""
 
-#: inc/backend/checkout-verification.php:539
+#: inc/backend/checkout-verification.php:569
 msgid "Verification code"
 msgstr ""
 
-#: inc/backend/checkout-verification.php:540
+#: inc/backend/checkout-verification.php:570
+#, php-format
 msgid "Step %1$d of %2$d"
 msgstr ""
 
-#: inc/backend/checkout-verification.php:541
+#: inc/backend/checkout-verification.php:571
 msgid "Verification complete."
 msgstr ""
 
-#: inc/backend/checkout-verification.php:542
+#: inc/backend/checkout-verification.php:572
 msgid "Complete the previous verification step first."
 msgstr ""
 
-#: inc/backend/checkout-verification.php:543
+#: inc/backend/checkout-verification.php:573
 msgid "Please wait…"
 msgstr ""
 
-#: inc/backend/dashboard-widget.php:65
+#: inc/backend/dashboard-widget.php:129
 msgid "Protection status"
 msgstr ""
 
-#: inc/backend/dashboard-widget.php:70
+#: inc/backend/dashboard-widget.php:134
 msgid "Last 7 days"
 msgstr ""
 
-#: inc/backend/dashboard-widget.php:79
+#: inc/backend/dashboard-widget.php:143
 msgid "Premium evidence"
 msgstr ""
 
-#: inc/backend/dashboard-widget.php:97
-msgid "No action required."
-msgstr ""
-
-#: inc/backend/dashboard-widget.php:126
+#: inc/backend/dashboard-widget.php:235
 msgid "Protection reporting is limited"
 msgstr ""
 
-#: inc/backend/dashboard-widget.php:127
+#: inc/backend/dashboard-widget.php:236
 msgid "Recent site-local evidence is not fully available. This reporting state does not mean protection is disabled."
 msgstr ""
 
-#: inc/backend/dashboard-widget.php:128
+#: inc/backend/dashboard-widget.php:237
 msgid "Review status"
 msgstr ""
 
-#: inc/backend/dashboard-widget.php:137
+#: inc/backend/dashboard-widget.php:192
 msgid "Suspicious activity needs review"
 msgstr ""
 
-#: inc/backend/dashboard-widget.php:138
+#: inc/backend/dashboard-widget.php:193
 msgid "Premium recorded a current security incident that needs administrator review."
 msgstr ""
 
-#: inc/backend/dashboard-widget.php:139
+#: inc/backend/dashboard-widget.php:194
 msgid "Review activity"
 msgstr ""
 
-#: inc/backend/dashboard-widget.php:147
+#: inc/backend/dashboard-widget.php:202
 msgid "Premium license needs review"
 msgstr ""
 
-#: inc/backend/dashboard-widget.php:148
+#: inc/backend/dashboard-widget.php:203
 msgid "The active Premium add-on is unavailable until its license condition is resolved."
 msgstr ""
 
-#: inc/backend/dashboard-widget.php:149
+#: inc/backend/dashboard-widget.php:204
 msgid "Review license"
 msgstr ""
 
-#: inc/backend/dashboard-widget.php:158
+#: inc/backend/dashboard-widget.php:213
 msgid "Global decisions need connection review"
 msgstr ""
 
-#: inc/backend/dashboard-widget.php:160
+#: inc/backend/dashboard-widget.php:215
 msgid "Global Blacklist Decisions is enabled but its connection is incomplete."
 msgstr ""
 
-#: inc/backend/dashboard-widget.php:161
+#: inc/backend/dashboard-widget.php:216
 msgid "Global Blacklist Decisions is enabled but needs administrator review."
 msgstr ""
 
-#: inc/backend/dashboard-widget.php:162
+#: inc/backend/dashboard-widget.php:217
+#: inc/cores/notifications/renderer.php:64
 msgid "Review connection"
 msgstr ""
 
-#: inc/backend/dashboard-widget.php:170
+#: inc/backend/dashboard-widget.php:225
 msgid "Premium setup is incomplete"
 msgstr ""
 
-#: inc/backend/dashboard-widget.php:171
+#: inc/backend/dashboard-widget.php:226
 msgid "Complete the Premium setup workflow to finish configuring the installed add-on."
 msgstr ""
 
-#: inc/backend/dashboard-widget.php:172
+#: inc/backend/dashboard-widget.php:227
 msgid "Review setup"
 msgstr ""
 
-#: inc/backend/dashboard-widget.php:183
 #: inc/backend/helpers/outcome-summary.php:250
 msgid "Protected"
 msgstr ""
 
-#: inc/backend/dashboard-widget.php:184
+#: inc/backend/dashboard-widget.php:249
 #: inc/backend/helpers/outcome-summary.php:243
 #: inc/cores/api/yogb/yogb-subscription-activation.php:129
 msgid "Needs attention"
 msgstr ""
 
-#: inc/backend/dashboard-widget.php:185
+#: inc/backend/dashboard-widget.php:250
 msgid "Reporting limited"
 msgstr ""
 
-#: inc/backend/dashboard-widget.php:188
-msgid "No supported Blacklist Manager condition currently needs review."
-msgstr ""
-
-#: inc/backend/dashboard-widget.php:189
+#: inc/backend/dashboard-widget.php:254
 msgid "One supported condition needs administrator review."
 msgstr ""
 
-#: inc/backend/dashboard-widget.php:190
+#: inc/backend/dashboard-widget.php:255
 msgid "Recent evidence is incomplete; this does not indicate that enforcement is disabled."
 msgstr ""
 
-#: inc/backend/dashboard-widget.php:195
+#: inc/backend/dashboard-widget.php:260
 msgid "Protection actions"
 msgstr ""
 
-#: inc/backend/dashboard-widget.php:196
+#: inc/backend/dashboard-widget.php:261
 #: inc/backend/views/dashboard-form.php:210
 msgid "Suspects"
 msgstr ""
 
-#: inc/backend/dashboard-widget.php:197
+#: inc/backend/dashboard-widget.php:262
 #: inc/backend/views/dashboard-form.php:121
 #: inc/backend/views/dashboard-form.php:583
 #: inc/backend/views/dashboard-form.php:678
@@ -1018,33 +1015,33 @@ msgstr ""
 msgid "Blocked"
 msgstr ""
 
-#: inc/backend/dashboard-widget.php:206
+#: inc/backend/dashboard-widget.php:271
 #: inc/backend/helpers/outcome-summary.php:187
 msgid "Automated protection"
 msgstr ""
 
-#: inc/backend/dashboard-widget.php:207
+#: inc/backend/dashboard-widget.php:272
 msgid "Verified"
 msgstr ""
 
-#: inc/backend/dashboard-widget.php:212
+#: inc/backend/dashboard-widget.php:277
 msgid "View Blacklist Manager"
 msgstr ""
 
-#: inc/backend/dashboard-widget.php:215
+#: inc/backend/dashboard-widget.php:280
 msgid "Activity Logs"
 msgstr ""
 
-#: inc/backend/dashboard-widget.php:232
-#: inc/cores/api/yogb/yogb-report-v2.php:164
+#: inc/backend/dashboard-widget.php:297
+#: inc/cores/api/yogb/yogb-report-v2.php:315
 msgid "Unavailable"
 msgstr ""
 
-#: inc/backend/dashboard-widget.php:234
+#: inc/backend/dashboard-widget.php:299
 msgid "At least"
 msgstr ""
 
-#: inc/backend/dashboard-widget.php:236
+#: inc/backend/dashboard-widget.php:301
 msgid "Partial"
 msgstr ""
 
@@ -3503,35 +3500,44 @@ msgid "Email options"
 msgstr ""
 
 #: inc/backend/views/notifications-emails.php:24
+#: inc/backend/views/notifications-emails.php:27
 msgid "Sender name"
 msgstr ""
 
 #: inc/backend/views/notifications-emails.php:30
+#: inc/backend/views/notifications-emails.php:33
 msgid "Sender address"
 msgstr ""
 
 #: inc/backend/views/notifications-emails.php:36
+#: inc/backend/views/notifications-emails.php:39
 msgid "Recipient(s)"
 msgstr ""
 
 #: inc/backend/views/notifications-emails.php:39
+#: inc/backend/views/notifications-emails.php:42
 msgid "Enter email address, separated by commas."
 msgstr ""
 
 #: inc/backend/views/notifications-emails.php:44
 #: inc/backend/views/notifications-emails.php:53
+#: inc/backend/views/notifications-emails.php:47
+#: inc/backend/views/notifications-emails.php:56
 msgid "Footer text"
 msgstr ""
 
 #: inc/backend/views/notifications-emails.php:47
+#: inc/backend/views/notifications-emails.php:50
 msgid "Display on the footer of the email template."
 msgstr ""
 
 #: inc/backend/views/notifications-emails.php:60
+#: inc/backend/views/notifications-emails.php:63
 msgid "Custom email footer"
 msgstr ""
 
 #: inc/backend/views/notifications-emails.php:61
+#: inc/backend/views/notifications-emails.php:64
 msgid "Add branded footer text to blacklist notification emails without editing templates."
 msgstr ""
 
@@ -3549,6 +3555,7 @@ msgid "Suspect email"
 msgstr ""
 
 #: inc/backend/views/notifications-emails.php:83
+#: inc/backend/views/notifications-emails.php:93
 msgid "Send email notification when an order is placed by a suspected customer"
 msgstr ""
 
@@ -3564,10 +3571,12 @@ msgid "Send email notification when blocked customer try to place an order"
 msgstr ""
 
 #: inc/backend/views/notifications-emails.php:103
+#: inc/backend/views/notifications-emails.php:162
 msgid "Premium notification coverage"
 msgstr ""
 
 #: inc/backend/views/notifications-emails.php:104
+#: inc/backend/views/notifications-emails.php:163
 msgid "Add alerts for account, comment, review, and form abuse without changing the checkout email alerts available in the free plugin."
 msgstr ""
 
@@ -3600,10 +3609,12 @@ msgid "Register"
 msgstr ""
 
 #: inc/backend/views/notifications-emails.php:151
+#: inc/backend/views/notifications-emails.php:188
 msgid "Send email notification when suspected visitor register an account"
 msgstr ""
 
 #: inc/backend/views/notifications-emails.php:160
+#: inc/backend/views/notifications-emails.php:198
 msgid "Send email notification when blocked visitor try to register an account"
 msgstr ""
 
@@ -3612,10 +3623,12 @@ msgid "Comment"
 msgstr ""
 
 #: inc/backend/views/notifications-emails.php:178
+#: inc/backend/views/notifications-emails.php:221
 msgid "Send email notification when suspected user submit a comment or review"
 msgstr ""
 
 #: inc/backend/views/notifications-emails.php:187
+#: inc/backend/views/notifications-emails.php:231
 msgid "Send email notification when blocked user try to submit a comment or review"
 msgstr ""
 
@@ -3625,28 +3638,24 @@ msgid "Form"
 msgstr ""
 
 #: inc/backend/views/notifications-emails.php:205
+#: inc/backend/views/notifications-emails.php:254
 msgid "Send email notification when suspected visitor submit a form"
 msgstr ""
 
 #: inc/backend/views/notifications-emails.php:214
+#: inc/backend/views/notifications-emails.php:264
 msgid "Send email notification when blocked visitor try to submit a form"
 msgstr ""
 
 #: inc/backend/views/notifications-emails.php:222
 #: inc/backend/views/settings-form.php:356
+#: inc/backend/views/notifications-emails.php:112
 msgid "Global Blacklist"
-msgstr ""
-
-#: inc/backend/views/notifications-emails.php:227
-msgid "Decision details"
-msgstr ""
-
-#: inc/backend/views/notifications-emails.php:231
-msgid "Include Global Blacklist decision details in new order notification emails sent to admins"
 msgstr ""
 
 #: inc/backend/views/notifications-emails.php:239
 #: inc/backend/views/notifications-notices.php:286
+#: inc/backend/views/notifications-emails.php:312
 msgid "Save Changes"
 msgstr ""
 
@@ -4529,7 +4538,7 @@ msgid "Select a fit mode for your site."
 msgstr ""
 
 #: inc/backend/views/settings-form.php:523
-#: inc/backend/views/verifications-form.php:579
+#: inc/backend/views/verifications-form.php:598
 msgid "Save Settings"
 msgstr ""
 
@@ -5050,386 +5059,388 @@ msgstr ""
 msgid "Completed-order phone identities keep their existing dial code when present. Otherwise, the existing phone-normalization rules use the order billing country when processing a leading zero or adding the applicable dial code."
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:19
+#: inc/backend/views/verifications-form.php:27
 msgid "Verification interface"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:23
+#: inc/backend/views/verifications-form.php:31
 msgid "Inline"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:24
+#: inc/backend/views/verifications-form.php:32
 msgid "Popup modal"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:26
+#: inc/backend/views/verifications-form.php:34
 msgid "Choose how enabled email and phone verification steps appear during checkout. This setting changes presentation only; it does not change who must verify. When both channels are enabled, email verification is completed before phone verification."
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:33
+#: inc/backend/views/verifications-form.php:41
 msgid "Email verification"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:41
+#: inc/backend/views/verifications-form.php:49
 msgid "Email verification at checkout"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:45
+#: inc/backend/views/verifications-form.php:53
 msgid "Enable email verification at checkout"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:47
+#: inc/backend/views/verifications-form.php:55
 msgid "When required by the policy below, customers must prove control of the submitted email address with a one-time code."
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:49
+#: inc/backend/views/verifications-form.php:57
 msgid "Verification codes use WooCommerce email delivery. For more reliable delivery, consider configuring a trusted SMTP service instead of the hosting provider's default mail function."
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:56
-#: inc/backend/views/verifications-form.php:215
+#: inc/backend/views/verifications-form.php:64
+#: inc/backend/views/verifications-form.php:224
 msgid "When verification is required"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:60
-#: inc/backend/views/verifications-form.php:218
+#: inc/backend/views/verifications-form.php:68
+#: inc/backend/views/verifications-form.php:227
 msgid "All applicable customers"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:61
-#: inc/backend/views/verifications-form.php:219
+#: inc/backend/views/verifications-form.php:69
+#: inc/backend/views/verifications-form.php:228
 msgid "Suspected customers only"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:63
+#: inc/backend/views/verifications-form.php:71
 msgid "<b>All applicable customers:</b> Require verification unless this exact email address is already allowed to skip repeat verification.<br><b>Suspected customers only:</b> Require verification only while this exact email address is currently flagged as suspect and has not already been resolved."
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:69
-#: inc/backend/views/verifications-form.php:85
+#: inc/backend/views/verifications-form.php:77
+#: inc/backend/views/verifications-form.php:93
 msgid "Verification email"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:72
-#: inc/backend/views/verifications-form.php:228
+#: inc/backend/views/verifications-form.php:80
+#: inc/backend/views/verifications-form.php:237
 msgid "Resend delay"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:73
+#: inc/backend/views/verifications-form.php:81
 msgid "seconds."
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:74
+#: inc/backend/views/verifications-form.php:82
 msgid "Email subject"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:76
+#: inc/backend/views/verifications-form.php:84
 msgid "Email heading"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:78
+#: inc/backend/views/verifications-form.php:86
 msgid "Email message"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:80
+#: inc/backend/views/verifications-form.php:88
 msgid "Add {first_name}, {last_name}, {site_name}, and {code} where you want them to appear. HTML allowed."
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:93
+#: inc/backend/views/verifications-form.php:101
 msgid "Custom email template"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:94
+#: inc/backend/views/verifications-form.php:102
 msgid "Edit the verification subject, heading, and message to match your store voice."
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:98
+#: inc/backend/views/verifications-form.php:106
 msgid "Resend timing"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:99
+#: inc/backend/views/verifications-form.php:107
 msgid "Tune resend delays so customers can recover quickly without encouraging code spam."
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:103
+#: inc/backend/views/verifications-form.php:111
 msgid "Personal placeholders"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:104
+#: inc/backend/views/verifications-form.php:112
 msgid "Use first name, last name, site name, and code placeholders in the message."
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:116
+#: inc/backend/views/verifications-form.php:124
 msgid "Email validation"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:123
-#: inc/backend/views/verifications-form.php:166
+#: inc/backend/views/verifications-form.php:131
+#: inc/backend/views/verifications-form.php:174
 msgid "Email address validation"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:128
+#: inc/backend/views/verifications-form.php:136
 msgid "Enable email address validation on the registration and checkout pages"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:130
+#: inc/backend/views/verifications-form.php:138
 msgid "Enable email address validation on the registration page"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:133
+#: inc/backend/views/verifications-form.php:141
 msgid "Check submitted email addresses using the configured validation service on supported flows. This validates the address; it does not prove ownership or create email OTP proof."
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:141
-#: inc/backend/views/verifications-form.php:171
+#: inc/backend/views/verifications-form.php:149
+#: inc/backend/views/verifications-form.php:179
 msgid "Disposable email blocking"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:145
+#: inc/backend/views/verifications-form.php:153
 msgid "Detect and block disposable email addresses"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:147
+#: inc/backend/views/verifications-form.php:155
 msgid "Detect and block email addresses confirmed as disposable on checkout, registration, comment, and review flows where this protection applies."
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:149
+#: inc/backend/views/verifications-form.php:157
 msgid "Detect and block email addresses confirmed as disposable on registration and comment flows where this protection applies."
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:158
+#: inc/backend/views/verifications-form.php:166
 msgid "Email intelligence"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:167
+#: inc/backend/views/verifications-form.php:175
 msgid "Check address quality before supported checkout or registration flows continue. Validation does not prove ownership or create email OTP proof."
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:172
+#: inc/backend/views/verifications-form.php:180
 msgid "Reduce abuse from temporary inboxes across checkout, registration, comments, and reviews."
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:193
+#: inc/backend/views/verifications-form.php:202
 msgid "Phone verification (legacy Premium compatibility)"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:196
+#: inc/backend/views/verifications-form.php:205
 msgid "SMS provider"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:199
+#: inc/backend/views/verifications-form.php:208
 msgid "Not configured"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:203
+#: inc/backend/views/verifications-form.php:212
 msgid "Select the service used to send phone verification codes. Provider credentials are configured in Integrations. Update Premium to use the current Premium-owned phone settings controller."
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:207
+#: inc/backend/views/verifications-form.php:216
 msgid "Phone verification at checkout"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:210
+#: inc/backend/views/verifications-form.php:219
 msgid "Enable phone verification at checkout through the active legacy Premium integration"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:211
+#: inc/backend/views/verifications-form.php:220
 msgid "When required by the policy below, customers must prove control of the submitted phone number with a one-time SMS code."
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:221
+#: inc/backend/views/verifications-form.php:230
 msgid "<b>All applicable customers:</b> Require verification unless this exact phone identity is already allowed to skip repeat verification.<br><b>Suspected customers only:</b> Require verification only while this exact phone identity is currently flagged as suspect and has not already been resolved."
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:225
+#: inc/backend/views/verifications-form.php:234
 msgid "Verification SMS"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:227
+#: inc/backend/views/verifications-form.php:236
 msgid "Code length"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:229
+#: inc/backend/views/verifications-form.php:238
 msgid "Resend limit"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:230
+#: inc/backend/views/verifications-form.php:239
 msgid "SMS message"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:232
+#: inc/backend/views/verifications-form.php:241
 msgid "The message must contain {code}."
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:237
+#: inc/backend/views/verifications-form.php:246
 msgid "Phone verification"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:240
+#: inc/backend/views/verifications-form.php:249
 msgid "Premium phone OTP"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:242
+#: inc/backend/views/verifications-form.php:251
 msgid "Phone OTP verification and its SMS providers are available through Blacklist Manager Premium. Core continues to provide email OTP verification."
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:249
+#: inc/backend/views/verifications-form.php:258
 msgid "Phone number handling"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:255
+#: inc/backend/views/verifications-form.php:264
 msgid "Country code selector"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:259
+#: inc/backend/views/verifications-form.php:268
 msgid "Disable the country code selector at checkout"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:260
+#: inc/backend/views/verifications-form.php:269
 msgid "When disabled, phone identities are stored and compared without a country dial-code prefix where the existing phone-number handling rules apply."
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:266
+#: inc/backend/views/verifications-form.php:275
 msgid "Phone validation"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:273
-#: inc/backend/views/verifications-form.php:317
+#: inc/backend/views/verifications-form.php:282
+#: inc/backend/views/verifications-form.php:326
 msgid "Phone number format validation"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:277
+#: inc/backend/views/verifications-form.php:286
 msgid "Enable phone number format validation at checkout"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:278
+#: inc/backend/views/verifications-form.php:287
 msgid "Validate supported billing and shipping phone-number fields using the configured format rules. This validates format; it does not prove control of the phone number."
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:283
+#: inc/backend/views/verifications-form.php:292
 msgid "Phone format rules"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:287
+#: inc/backend/views/verifications-form.php:296
 msgid "Set number format"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:296
-#: inc/backend/views/verifications-form.php:322
+#: inc/backend/views/verifications-form.php:305
+#: inc/backend/views/verifications-form.php:331
 msgid "Disposable phone blocking"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:300
+#: inc/backend/views/verifications-form.php:309
 msgid "Detect and block disposable phone numbers"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:301
+#: inc/backend/views/verifications-form.php:310
 msgid "Detect and block phone numbers confirmed as disposable on supported protected flows."
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:309
+#: inc/backend/views/verifications-form.php:318
 msgid "Phone intelligence"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:318
+#: inc/backend/views/verifications-form.php:327
 msgid "Validate supported checkout phone-number formats. Format validation does not prove control of a phone number."
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:323
+#: inc/backend/views/verifications-form.php:332
 msgid "Detect and block disposable phone numbers on supported protected flows."
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:334
+#: inc/backend/views/verifications-form.php:344
 msgid "Name validation"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:341
-#: inc/backend/views/verifications-form.php:383
+#: inc/backend/views/verifications-form.php:351
+#: inc/backend/views/verifications-form.php:393
 msgid "Name capitalization"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:345
+#: inc/backend/views/verifications-form.php:355
 msgid "Capitalize customer first and last names on supported forms"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:346
+#: inc/backend/views/verifications-form.php:356
 msgid "Capitalize the first character of each space-separated name word on supported checkout and account fields without lowercasing or otherwise changing the remaining characters."
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:352
-#: inc/backend/views/verifications-form.php:388
+#: inc/backend/views/verifications-form.php:362
+#: inc/backend/views/verifications-form.php:398
 msgid "Name format validation"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:356
+#: inc/backend/views/verifications-form.php:366
 msgid "Enable customer name format validation at checkout"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:357
+#: inc/backend/views/verifications-form.php:367
 msgid "Validate supported billing and shipping first/last-name fields using the configured name rules. This validates format; it does not verify customer identity."
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:362
+#: inc/backend/views/verifications-form.php:372
 msgid "Name rules"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:366
+#: inc/backend/views/verifications-form.php:376
 msgid "Set name format"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:375
+#: inc/backend/views/verifications-form.php:385
 msgid "Premium name cleanup"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:384
+#: inc/backend/views/verifications-form.php:394
 msgid "Capitalize the first character of each space-separated name word while preserving the remaining characters."
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:389
+#: inc/backend/views/verifications-form.php:399
 msgid "Reduce meaningless or spammy names before they enter order and customer data."
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:400
+#: inc/backend/views/verifications-form.php:411
 msgid "Related account tools"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:406
+#: inc/backend/views/verifications-form.php:417
 msgid "Advanced Accounts integration"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:420
+#: inc/backend/views/verifications-form.php:431
+#, php-format
 msgid "Enhance your WooCommerce account system with our %s plugin."
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:421
+#: inc/backend/views/verifications-form.php:432
 msgid "WooCommerce Advanced Accounts"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:421
+#: inc/backend/views/verifications-form.php:432
 msgid "Advanced Accounts"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:423
+#: inc/backend/views/verifications-form.php:434
 msgid "Install now"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:426
+#: inc/backend/views/verifications-form.php:437
+#, php-format
 msgid "WooCommerce Advanced Accounts is already active. %s"
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:430
+#: inc/backend/views/verifications-form.php:441
 msgid "Go to settings page."
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:548
+#: inc/backend/views/verifications-form.php:567
 msgid "Please set the ZeroBounce API key to allow this option to work."
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:558
+#: inc/backend/views/verifications-form.php:577
 msgid "Please set the BigDataCloud API key to allow this option to work."
 msgstr ""
 
-#: inc/backend/views/verifications-form.php:568
+#: inc/backend/views/verifications-form.php:587
 msgid "Please set the NumCheckr API token to allow this option to work."
 msgstr ""
 
@@ -6438,4 +6449,333 @@ msgstr ""
 
 #: inc/cores/schema-readiness.php:289
 msgid "Schedule database readiness repair"
+msgstr ""
+
+#: inc/backend/views/notifications-emails.php:22
+msgid "Delivery & test"
+msgstr ""
+
+#: inc/backend/views/notifications-emails.php:77
+msgid "Send Test Email"
+msgstr ""
+
+#: inc/backend/views/notifications-emails.php:78
+msgid "Uses your saved delivery settings. Save changes before testing."
+msgstr ""
+
+#: inc/backend/views/notifications-emails.php:82
+msgid "Orders & checkout"
+msgstr ""
+
+#: inc/backend/views/notifications-emails.php:88
+#: inc/backend/views/notifications-emails.php:183
+#: inc/backend/views/notifications-emails.php:216
+#: inc/backend/views/notifications-emails.php:249
+msgid "Suspicious activity"
+msgstr ""
+
+#: inc/backend/views/notifications-emails.php:98
+#: inc/backend/views/notifications-emails.php:193
+#: inc/backend/views/notifications-emails.php:226
+#: inc/backend/views/notifications-emails.php:259
+msgid "Blocked activity"
+msgstr ""
+
+#: inc/backend/views/notifications-emails.php:103
+msgid "Send sampled notifications about blocked checkout activity"
+msgstr ""
+
+#: inc/backend/views/notifications-emails.php:104
+msgid "At most one new sample every 15 minutes, delivered in the background. Samples may be delayed or missed; this is not a complete activity log."
+msgstr ""
+
+#: inc/backend/views/notifications-emails.php:110
+msgid "Order alerts are available when WooCommerce is active."
+msgstr ""
+
+#: inc/backend/views/notifications-emails.php:121
+msgid "Email when the authenticated connection needs attention and when it is restored after a notified episode."
+msgstr ""
+
+#: inc/backend/views/notifications-emails.php:122
+msgid "Requires an enabled, configured Global Blacklist connection. Checked in the background, with at most one attention email and one restoration email per day. Short episodes may be missed."
+msgstr ""
+
+#: inc/backend/views/notifications-emails.php:133
+msgid "Email at 75%, 90%, the usage limit, and a new cycle after a notified threshold."
+msgstr ""
+
+#: inc/backend/views/notifications-emails.php:134
+msgid "Uses verified Global Blacklist usage observed in the background. When enabled, thresholds already reached are skipped; later higher thresholds remain eligible. Notifications may be delayed or missed."
+msgstr ""
+
+#: inc/backend/views/notifications-emails.php:157
+msgid "Accounts"
+msgstr ""
+
+#: inc/backend/views/notifications-emails.php:173
+msgid "Accounts — Premium"
+msgstr ""
+
+#: inc/backend/views/notifications-emails.php:173
+msgid "Registration alerts require Premium."
+msgstr ""
+
+#: inc/backend/views/notifications-emails.php:174
+#: inc/backend/views/notifications-emails.php:208
+#: inc/backend/views/notifications-emails.php:241
+msgid "These alerts need a compatible Premium notification provider."
+msgstr ""
+
+#: inc/backend/views/notifications-emails.php:205
+msgid "Comments & reviews"
+msgstr ""
+
+#: inc/backend/views/notifications-emails.php:207
+msgid "Comments & reviews — Premium"
+msgstr ""
+
+#: inc/backend/views/notifications-emails.php:207
+msgid "Comment and review alerts require Premium."
+msgstr ""
+
+#: inc/backend/views/notifications-emails.php:238
+msgid "Forms"
+msgstr ""
+
+#: inc/backend/views/notifications-emails.php:240
+msgid "Forms — Premium"
+msgstr ""
+
+#: inc/backend/views/notifications-emails.php:240
+msgid "Form alerts require Premium and a supported form integration."
+msgstr ""
+
+#: inc/backend/views/notifications-emails.php:271
+msgid "Form alerts are available with Contact Form 7, Gravity Forms or WPForms."
+msgstr ""
+
+#: inc/backend/views/notifications-emails.php:273
+msgid "Reports & digests"
+msgstr ""
+
+#: inc/backend/views/notifications-emails.php:276
+#: inc/backend/views/notifications-emails.php:303
+msgid "Weekly Security Digest"
+msgstr ""
+
+#: inc/backend/views/notifications-emails.php:276
+msgid "Summaries of retained protection and suspicious-activity records."
+msgstr ""
+
+#: inc/backend/views/notifications-emails.php:277
+#: inc/backend/views/notifications-emails.php:303
+msgid "Weekly Manual Blacklist Activity Digest"
+msgstr ""
+
+#: inc/backend/views/notifications-emails.php:277
+msgid "Summaries of retained manual block, suspect and removal records."
+msgstr ""
+
+#: inc/backend/views/notifications-emails.php:278
+msgid "Weekly security digest"
+msgstr ""
+
+#: inc/backend/views/notifications-emails.php:285
+msgid "Email a weekly summary of retained protection and suspicious-activity records."
+msgstr ""
+
+#: inc/backend/views/notifications-emails.php:286
+msgid "Starts with the next full Monday-to-Monday site-calendar week. Counts may be incomplete and are not unique incidents. Empty or overly large weeks are skipped. Delivery may be delayed or missed."
+msgstr ""
+
+#: inc/backend/views/notifications-emails.php:288
+msgid "Weekly manual blacklist activity digest"
+msgstr ""
+
+#: inc/backend/views/notifications-emails.php:296
+msgid "Email retained manual block, suspect and removal record totals from Dashboard and Edit Order."
+msgstr ""
+
+#: inc/backend/views/notifications-emails.php:297
+msgid "Starts with the next full Monday-to-Monday site-calendar week. Other screens are excluded; records may be missing and do not prove successful changes or unique actions. Empty or overly large weeks are skipped. Delivery may be delayed or missed."
+msgstr ""
+
+#: inc/backend/views/notifications-emails.php:306
+msgid "This summary needs a compatible Premium notification provider."
+msgstr ""
+
+#: inc/backend/views/notifications-emails.php:306
+msgid "This preference could not be initialized safely. Existing choices are preserved. Check local storage and reload this page."
+msgstr ""
+
+#: inc/cores/notifications/global-events.php:8
+msgid "Global Blacklist connection restored"
+msgstr ""
+
+#: inc/cores/notifications/global-events.php:8
+msgid "Global Blacklist connection needs attention"
+msgstr ""
+
+#: inc/cores/notifications/global-events.php:13
+msgid "The authenticated Global Blacklist connection was restored after an attention episode."
+msgstr ""
+
+#: inc/cores/notifications/global-events.php:14
+msgid "Global Blacklist authentication requires administrator attention. Review the connection settings and diagnostics."
+msgstr ""
+
+#: inc/cores/notifications/global-events.php:15
+msgid "The authenticated Global Blacklist reporter is inactive. Review the connection settings for the next action."
+msgstr ""
+
+#: inc/cores/notifications/global-events.php:21
+msgid "Global Blacklist usage reached 75%"
+msgstr ""
+
+#: inc/cores/notifications/global-events.php:21
+msgid "Global Blacklist usage reached 90%"
+msgstr ""
+
+#: inc/cores/notifications/global-events.php:21
+msgid "Global Blacklist usage limit reached"
+msgstr ""
+
+#: inc/cores/notifications/global-events.php:21
+msgid "Global Blacklist usage cycle reset"
+msgstr ""
+
+#: inc/cores/notifications/global-events.php:22
+msgid "Usage has reached the heads-up threshold for this cycle."
+msgstr ""
+
+#: inc/cores/notifications/global-events.php:22
+msgid "Review current Global Blacklist usage for this cycle."
+msgstr ""
+
+#: inc/cores/notifications/global-events.php:22
+msgid "The observed finite Global Blacklist check allowance has been reached. Review usage for the next action."
+msgstr ""
+
+#: inc/cores/notifications/global-events.php:22
+msgid "A new Global Blacklist usage cycle has started after a previously notified threshold."
+msgstr ""
+
+#: inc/cores/notifications/operational.php:235
+msgid "Connection alerts are saved, but Global Blacklist is disabled."
+msgstr ""
+
+#: inc/cores/notifications/operational.php:237
+msgid "Connection alerts need configured Global Blacklist credentials and available notification storage."
+msgstr ""
+
+#: inc/cores/notifications/operational.php:239
+msgid "Connection notifications are unavailable with the current database adapter or notification state. Protection continues independently."
+msgstr ""
+
+#: inc/cores/notifications/operational.php:242
+msgid "Connection notifications need a running WordPress cron worker. Check your server cron setup; short connection episodes may be missed."
+msgstr ""
+
+#: inc/cores/notifications/usage.php:258
+msgid "Usage alerts are saved, but Global Blacklist is disabled."
+msgstr ""
+
+#: inc/cores/notifications/usage.php:261
+msgid "Usage notifications need a current verified usage snapshot and available notification storage. Local protection continues independently."
+msgstr ""
+
+#: inc/cores/notifications/usage.php:263
+msgid "Usage notifications need a running WordPress cron worker. Observations may be delayed or missed."
+msgstr ""
+
+#: inc/backend/views/notifications-emails.php:116
+msgid "Connection alerts"
+msgstr ""
+
+#: inc/backend/views/notifications-emails.php:128
+msgid "Usage alerts"
+msgstr ""
+
+#: inc/backend/views/notifications-emails.php:142
+msgid "New order decision details"
+msgstr ""
+
+#: inc/backend/views/notifications-emails.php:147
+msgid "Include Global Blacklist decision details in WooCommerce New Order emails sent to admins"
+msgstr ""
+
+#: inc/backend/checkout-verification.php:382
+#: inc/backend/checkout-verification.php:551
+msgid "Verify your email address before placing the order."
+msgstr ""
+
+#: inc/backend/checkout-verification.php:385
+#: inc/backend/checkout-verification.php:559
+msgid "Verify your phone number before placing the order."
+msgstr ""
+
+#: inc/backend/checkout-verification.php:548
+msgid "Verify email code"
+msgstr ""
+
+#: inc/backend/checkout-verification.php:549
+msgid "Enter your email verification code"
+msgstr ""
+
+#: inc/backend/checkout-verification.php:550
+msgid "Resend email code"
+msgstr ""
+
+#: inc/backend/checkout-verification.php:554
+#: inc/backend/checkout-verification.php:555
+msgid "Verify your phone number"
+msgstr ""
+
+#: inc/backend/checkout-verification.php:556
+msgid "Verify phone code"
+msgstr ""
+
+#: inc/backend/checkout-verification.php:557
+msgid "Enter your phone verification code"
+msgstr ""
+
+#: inc/backend/checkout-verification.php:558
+msgid "Resend phone code"
+msgstr ""
+
+#: inc/backend/dashboard-widget.php:161
+msgid "Review the checks shown here as part of your regular store monitoring."
+msgstr ""
+
+#: inc/backend/dashboard-widget.php:248
+msgid "No attention items detected"
+msgstr ""
+
+#: inc/backend/dashboard-widget.php:253
+msgid "None of the conditions evaluated by this widget currently needs review."
+msgstr ""
+
+#: inc/backend/views/verifications-form.php:17
+msgid "Choose which customers must verify, enable the channels you need, then choose how the steps appear at checkout."
+msgstr ""
+
+#: inc/backend/views/verifications-form.php:19
+msgid "Email: enable verification and choose All applicable customers or Suspected customers only below."
+msgstr ""
+
+#: inc/backend/views/verifications-form.php:20
+msgid "Phone: Premium Phone OTP needs a selected Twilio or TextMagic provider and working credentials in Integrations."
+msgstr ""
+
+#: inc/backend/views/verifications-form.php:21
+msgid "When both channels are required, customers verify email first, then phone. Address and format validation do not create OTP proof."
+msgstr ""
+
+#: inc/backend/views/verifications-form.php:79
+msgid "Email message and resend options"
+msgstr ""
+
+#: inc/backend/views/verifications-form.php:235
+msgid "SMS message and resend options"
 msgstr ""

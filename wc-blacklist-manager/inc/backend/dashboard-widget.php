@@ -158,7 +158,7 @@ final class WC_Blacklist_Manager_Dashboard_Widget {
 			}
 			echo '</section>';
 		} else {
-			echo '<p class="yobm-dashboard-widget__no-action">' . esc_html__( 'No action required.', 'wc-blacklist-manager' ) . '</p>';
+			echo '<p class="yobm-dashboard-widget__no-action">' . esc_html__( 'Review the checks shown here as part of your regular store monitoring.', 'wc-blacklist-manager' ) . '</p>';
 		}
 
 		echo '<p class="yobm-dashboard-widget__footer">';
@@ -184,15 +184,6 @@ final class WC_Blacklist_Manager_Dashboard_Widget {
 		$dashboard_url    = isset( $context['dashboard_url'] ) ? (string) $context['dashboard_url'] : '';
 		$attention        = null;
 
-		if ( ! $core_available || ! $premium_available ) {
-			$attention = array(
-				'id'     => 'reporting_unavailable',
-				'title'  => __( 'Protection reporting is limited', 'wc-blacklist-manager' ),
-				'copy'   => __( 'Recent site-local evidence is not fully available. This reporting state does not mean protection is disabled.', 'wc-blacklist-manager' ),
-				'action' => __( 'Review status', 'wc-blacklist-manager' ),
-				'url'    => $dashboard_url,
-			);
-		}
 
 		$incidents = isset( $premium['incidents'] ) && is_array( $premium['incidents'] ) ? $premium['incidents'] : array();
 		if ( null === $attention && $premium_active && ! empty( $context['can_admin'] ) && in_array( 'premium_security_incident', $incidents, true ) ) {
@@ -238,18 +229,28 @@ final class WC_Blacklist_Manager_Dashboard_Widget {
 			);
 		}
 
+		if ( null === $attention && ( ! $core_available || ! $premium_available ) ) {
+			$attention = array(
+				'id'     => 'reporting_unavailable',
+				'title'  => __( 'Protection reporting is limited', 'wc-blacklist-manager' ),
+				'copy'   => __( 'Recent site-local evidence is not fully available. This reporting state does not mean protection is disabled.', 'wc-blacklist-manager' ),
+				'action' => __( 'Review status', 'wc-blacklist-manager' ),
+				'url'    => $dashboard_url,
+			);
+		}
+
 		$status = null !== $attention ? self::STATUS_ATTENTION : self::STATUS_PROTECTED;
 		if ( is_array( $attention ) && 'reporting_unavailable' === $attention['id'] ) {
 			$status = self::STATUS_LIMITED;
 		}
 
 		$status_labels = array(
-			self::STATUS_PROTECTED => __( 'Protected', 'wc-blacklist-manager' ),
+			self::STATUS_PROTECTED => __( 'No attention items detected', 'wc-blacklist-manager' ),
 			self::STATUS_ATTENTION => __( 'Needs attention', 'wc-blacklist-manager' ),
 			self::STATUS_LIMITED   => __( 'Reporting limited', 'wc-blacklist-manager' ),
 		);
 		$status_copies = array(
-			self::STATUS_PROTECTED => __( 'No supported Blacklist Manager condition currently needs review.', 'wc-blacklist-manager' ),
+			self::STATUS_PROTECTED => __( 'None of the conditions evaluated by this widget currently needs review.', 'wc-blacklist-manager' ),
 			self::STATUS_ATTENTION => __( 'One supported condition needs administrator review.', 'wc-blacklist-manager' ),
 			self::STATUS_LIMITED   => __( 'Recent evidence is incomplete; this does not indicate that enforcement is disabled.', 'wc-blacklist-manager' ),
 		);

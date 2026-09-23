@@ -201,6 +201,10 @@ final class YOGB_BM_Tier_Sync {
 			do_action( 'yogb_bm_control_sync_event', 'pull_failed', [ 'source' => $source, 'state' => 'payload' ] );
 			return $result;
 		}
+		// Optional notification authority cannot change control/authentication outcomes.
+		if ( class_exists( 'YOGB_BM_Usage' ) && 'stale_version_ignored' !== ( $result['status'] ?? '' ) ) {
+			try { YOGB_BM_Usage::ingest( $body_raw, (int) $resp_ts, $resp_sig ); } catch ( Throwable $error ) { /* Notifications fail closed. */ }
+		}
 		do_action( 'yogb_bm_control_sync_event', 'pull_applied', [ 'source' => $source, 'state' => sanitize_key( (string) ( $result['status'] ?? 'ok' ) ) ] );
 		return $result;
 	}

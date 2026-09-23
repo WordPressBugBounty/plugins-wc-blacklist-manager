@@ -228,7 +228,7 @@
 			dispatcher.clearValidationError( validationId );
 		} else if ( ! state.ready && typeof dispatcher.setValidationErrors === 'function' ) {
 			var errors = {};
-			errors[ validationId ] = { message: 'Complete checkout verification before placing the order.', hidden: false };
+			errors[ validationId ] = view.validationError( state, config.labels || {} );
 			dispatcher.setValidationErrors( errors );
 		}
 	}

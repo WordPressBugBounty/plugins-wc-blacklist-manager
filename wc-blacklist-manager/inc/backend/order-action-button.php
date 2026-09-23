@@ -1024,7 +1024,7 @@ class WC_Blacklist_Manager_Order_Actions {
 			'yobm-order-actions',
 			plugins_url( '../../js/blacklist-actions.js', __FILE__ ),
 			array( 'jquery', 'wc-backbone-modal', 'wp-util' ),
-			defined( 'WC_BLACKLIST_MANAGER_VERSION' ) ? WC_BLACKLIST_MANAGER_VERSION : $this->version,
+			WC_BLACKLIST_MANAGER_VERSION,
 			true
 		);
 
@@ -1032,7 +1032,7 @@ class WC_Blacklist_Manager_Order_Actions {
 			'yobm-order-actions-modal',
 			plugins_url( '../../css/order-actions-modal.css', __FILE__ ),
 			array( 'woocommerce_admin_styles' ),
-			defined( 'WC_BLACKLIST_MANAGER_VERSION' ) ? WC_BLACKLIST_MANAGER_VERSION : $this->version
+			WC_BLACKLIST_MANAGER_VERSION
 		);
 		$surface = class_exists( 'YOGB_BM_Report_V2' ) ? $this->surface_config( $order, YOGB_BM_Report_V2::surface_observation() ) : null;
 

@@ -164,7 +164,7 @@ trait YOBM_Bot_Signal_Analyzer {
 		$date_column_sql = '`' . esc_sql( $date_column ) . '`';
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT * FROM {$table} WHERE {$date_column_sql} >= %s ORDER BY {$date_column_sql} DESC LIMIT 300",
+				"SELECT * FROM {$table} WHERE {$date_column_sql} >= %s AND NOT (BINARY `type` = 'security' AND BINARY `source` = 'authentication') ORDER BY {$date_column_sql} DESC LIMIT 300",
 				$window_start_sql
 			),
 			ARRAY_A
@@ -1109,12 +1109,12 @@ trait YOBM_Bot_Signal_Analyzer {
 		if ( $indexed ) {
 			$cutoff_sql = date( 'Y-m-d H:i:s', current_time( 'timestamp' ) - ( 48 * HOUR_IN_SECONDS ) );
 			$rows = $wpdb->get_results(
-				$wpdb->prepare( "SELECT * FROM {$table} WHERE `timestamp` >= %s ORDER BY `timestamp` DESC LIMIT 300", $cutoff_sql ),
+				$wpdb->prepare( "SELECT * FROM {$table} WHERE `timestamp` >= %s AND NOT (BINARY `type` = 'security' AND BINARY `source` = 'authentication') ORDER BY `timestamp` DESC LIMIT 300", $cutoff_sql ),
 				ARRAY_A
 			);
 			$metrics['log_path'] = 'timestamp_index';
 		} else {
-			$rows = $wpdb->get_results( "SELECT * FROM {$table} ORDER BY `id` DESC LIMIT 300", ARRAY_A );
+			$rows = $wpdb->get_results( "SELECT * FROM {$table} WHERE NOT (BINARY `type` = 'security' AND BINARY `source` = 'authentication') ORDER BY `id` DESC LIMIT 300", ARRAY_A );
 			$metrics['log_path'] = 'primary_key_fallback';
 		}
 		$metrics['logs_read'] = is_array( $rows ) ? count( $rows ) : 0;

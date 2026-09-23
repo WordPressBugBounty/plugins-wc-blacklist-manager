@@ -183,13 +183,12 @@ class WC_Blacklist_Manager_Device_Identity {
 		}
 
 		$script_url  = plugin_dir_url( $this->plugin_file ) . 'js/device-identity.js';
-		$script_path = plugin_dir_path( $this->plugin_file ) . 'js/device-identity.js';
 
 		wp_enqueue_script(
 			'wc-blacklist-device-identity',
 			$script_url,
 			array( 'jquery' ),
-			file_exists( $script_path ) ? filemtime( $script_path ) : $this->version,
+			WC_BLACKLIST_MANAGER_VERSION,
 			true
 		);
 

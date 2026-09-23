@@ -35,7 +35,8 @@ class WC_Blacklist_Manager_Suspicious_Actions {
 		}
 
 		// Prevent duplicate queueing for the same order.
-		if ( 'yes' === (string) $order->get_meta( '_wc_blacklist_suspect_check_scheduled', true ) ) {
+		if ( 'yes' === (string) $order->get_meta( '_wc_blacklist_suspect_check_scheduled', true )
+			&& function_exists( 'as_has_scheduled_action' ) && as_has_scheduled_action( 'wc_blacklist_check_and_notify', array( 'order_id' => $order_id ) ) ) {
 			return;
 		}
 
@@ -48,9 +49,16 @@ class WC_Blacklist_Manager_Suspicious_Actions {
 			}
 		}
 
-		if ( function_exists( 'as_enqueue_async_action' ) ) {
-			as_enqueue_async_action( 'wc_blacklist_check_and_notify', array( 'order_id' => $order_id ) );
-		} else {
+		$queued = false;
+		try {
+			if ( function_exists( 'as_enqueue_async_action' ) ) {
+				$queued = (bool) as_enqueue_async_action( 'wc_blacklist_check_and_notify', array( 'order_id' => $order_id ), '', true );
+				if ( ! $queued && function_exists( 'as_has_scheduled_action' ) ) { $queued = (bool) as_has_scheduled_action( 'wc_blacklist_check_and_notify', array( 'order_id' => $order_id ) ); }
+			}
+		} catch ( Throwable $error ) { /* Degraded detection below must never send inline mail. */ }
+		if ( ! $queued ) {
+			$order->delete_meta_data( '_wc_blacklist_suspect_check_scheduled' );
+			$order->save_meta_data();
 			$this->check_order_and_notify( $order_id );
 		}
 	}

@@ -6,7 +6,7 @@ if (!defined('ABSPATH')) {
 require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 ?>
 
-<div class="wrap yobm-admin-page">
+<div class="wrap yobm-admin-page yobm-settings-surface">
 	
 	<h1>
 		<?php echo esc_html__('Blacklist manager settings', 'wc-blacklist-manager'); ?> 
@@ -44,12 +44,12 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 					<tr>
 						<th scope="row">
 							<span class="dashicons dashicons-rest-api"></span>
-							<label for="woo_rest_api"><?php echo esc_html__( 'WooCommerce REST API', 'wc-blacklist-manager' ); ?></label>
+							<label for="woo_rest_api"><?php echo esc_html__( 'WooCommerce REST protection', 'wc-blacklist-manager' ); ?></label>
 						</th>
 						<td>
 							<input type="checkbox" id="woo_rest_api" name="woo_rest_api" value="1" <?php checked( $settings['woo_rest_api'] ); ?>>
-							<label for="woo_rest_api"><?php echo esc_html__( 'Enable blacklist protection for WooCommerce REST API requests', 'wc-blacklist-manager' ); ?></label>
-							<p class="description"><?php echo esc_html__( 'If enabled, the plugin will check and block blacklisted customers when orders are created via the WooCommerce REST API, instead of only through the normal checkout flow.', 'wc-blacklist-manager' ); ?></p>
+							<label for="woo_rest_api"><?php echo esc_html__( 'Protect WooCommerce REST orders and product reviews', 'wc-blacklist-manager' ); ?></label>
+							<p class="description"><?php echo esc_html__( 'This Core setting protects REST orders and reviews. With an eligible Premium installation, it also permits disposable-email review checks; Premium is never required for Core protection.', 'wc-blacklist-manager' ); ?></p>
 						</td>
 					</tr>
 				<?php endif; ?>

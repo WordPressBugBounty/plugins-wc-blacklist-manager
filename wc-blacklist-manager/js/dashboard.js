@@ -47,7 +47,7 @@
 
             $tabs.removeClass('is-active').removeAttr('aria-current');
             $tabs.filter('[data-tab="' + resolved + '"]').addClass('is-active').attr('aria-current', 'page');
-            $('.tab-content .tab-pane').prop('hidden', true).removeClass('active');
+            $('#yobm-manage-workspace .yobm-list-pane').prop('hidden', true).removeClass('active');
             $('#' + resolved).prop('hidden', false).addClass('active');
 
             if (shouldRemember) {
@@ -56,8 +56,8 @@
         }
 
         $tabs.on('click', function(event) {
-            event.preventDefault();
             openTab(String($(this).data('tab')), true);
+            event.preventDefault();
         });
 
         $('.yobm-manage-link').on('click', function(event) {

@@ -269,7 +269,7 @@ if (!defined('ABSPATH')) {
 	?>
 
 		<div class="tab-content">
-		<div id="blacklisted" class="tab-pane active" aria-labelledby="yobm-tab-blacklisted">
+		<div id="blacklisted" class="yobm-list-pane active" aria-labelledby="yobm-tab-blacklisted">
 			<h2><?php echo esc_html__('Suspect entries', 'wc-blacklist-manager'); ?></h2>
 			<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" id="bulk-action-form">
 				<?php wp_nonce_field('yobm_nonce_action', 'yobm_nonce_field'); ?>
@@ -368,7 +368,7 @@ if (!defined('ABSPATH')) {
 				</div>
 			</form>
 		</div>
-		<div id="blocked" class="tab-pane" aria-labelledby="yobm-tab-blocked" hidden>
+		<div id="blocked" class="yobm-list-pane" aria-labelledby="yobm-tab-blocked">
 			<h2><?php echo esc_html__('Blocked entries', 'wc-blacklist-manager'); ?></h2>
 			<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" id="bulk-action-form-blocked">
 				<?php wp_nonce_field('yobm_nonce_action', 'yobm_nonce_field'); ?>
@@ -509,7 +509,7 @@ if (!defined('ABSPATH')) {
 			</form>
 		</div>
 		<?php if ( $premium_active && get_option( 'wc_blacklist_enable_device_identity', '0' ) === '1' ): ?>
-			<div id="device" class="tab-pane" aria-labelledby="yobm-tab-device" hidden>
+			<div id="device" class="yobm-list-pane" aria-labelledby="yobm-tab-device">
 				<h2><?php echo esc_html__( 'Device entries', 'wc-blacklist-manager' ); ?></h2>
 				<p class="description"><?php echo esc_html__( 'This tab shows tracked device identities and their activity across the site.', 'wc-blacklist-manager' ); ?></p>
 
@@ -778,7 +778,7 @@ if (!defined('ABSPATH')) {
 			</script>
 		<?php endif; ?>
 		<?php if ($ip_blacklist_enabled): ?>
-			<div id="ip-banned" class="tab-pane" aria-labelledby="yobm-tab-ip-banned" hidden>
+			<div id="ip-banned" class="yobm-list-pane" aria-labelledby="yobm-tab-ip-banned">
 				<h2><?php echo esc_html__('IP entries', 'wc-blacklist-manager'); ?></h2>
 
 				<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" id="add-ip-address-form">
@@ -939,7 +939,7 @@ if (!defined('ABSPATH')) {
 		<?php endif; ?>
 
 		<?php if ($premium_active && $customer_address_blocking_enabled && $woocommerce_active): ?>
-			<div id="customer-address" class="tab-pane" aria-labelledby="yobm-tab-customer-address" hidden>
+			<div id="customer-address" class="yobm-list-pane" aria-labelledby="yobm-tab-customer-address">
 				<h2><?php echo esc_html__( 'Address entries', 'wc-blacklist-manager' ); ?></h2>
 
 				<button type="button" id="add-address-btn" class="button button-primary">
@@ -1272,7 +1272,7 @@ if (!defined('ABSPATH')) {
 		<?php endif; ?>
 		
 		<?php if ($domain_blocking_enabled): ?>
-			<div id="domain-blocking" class="tab-pane" aria-labelledby="yobm-tab-domain-blocking" hidden>
+			<div id="domain-blocking" class="yobm-list-pane" aria-labelledby="yobm-tab-domain-blocking">
 				<h2><?php echo esc_html__('Domain entries', 'wc-blacklist-manager'); ?></h2>
 				<p class="description"><?php echo esc_html__('This is the blocklist of email domains.', 'wc-blacklist-manager'); ?></p>
 				

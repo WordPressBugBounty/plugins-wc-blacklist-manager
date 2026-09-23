@@ -5,6 +5,8 @@ if (!defined('ABSPATH')) {
 }
 
 class WC_Blacklist_Manager_User_Blocking {
+	private $authentication_denial_recorded = false;
+
 	private function is_premium_active() {
 		return function_exists( 'wc_blacklist_manager_is_premium_available' )
 			&& wc_blacklist_manager_is_premium_available();
@@ -66,7 +68,8 @@ class WC_Blacklist_Manager_User_Blocking {
 			return;
 		}
 
-		add_action('wp_login', [$this, 'force_logout_blocked_user'], 10, 2);
+		add_filter( 'authenticate', array( $this, 'deny_blocked_user_authentication' ), 100, 1 );
+		add_action( 'wp_authenticate_application_password_errors', array( $this, 'deny_blocked_user_application_password' ), 100, 2 );
 		add_action('init', [$this, 'check_and_force_logout_blocked_user']);
 		add_action('wp_enqueue_scripts', [$this, 'enqueue_blocked_user_script']);
 		add_action('edit_user_profile', [$this, 'show_user_blocked_status']);
@@ -75,47 +78,164 @@ class WC_Blacklist_Manager_User_Blocking {
 		add_action('wp_ajax_check_user_blocked_status', [$this, 'check_user_blocked_status']);
 	}
 
-	public function force_logout_blocked_user($user_login, $user) {
-		$premium_active = $this->is_premium_active();
+	private function is_blocked_user( $user ) {
+		return $user instanceof WP_User
+			&& '1' === (string) get_user_meta( $user->ID, 'user_blocked', true );
+	}
+
+	private function blocked_user_error() {
+		$message = get_option( 'wc_blacklist_blocked_user_notice', __( 'Your account has been blocked. Think it is a mistake? Contact the administrator.', 'wc-blacklist-manager' ) );
+
+		return new WP_Error(
+			'wc_blacklist_user_blocked',
+			(string) $message,
+			array( 'status' => 403 )
+		);
+	}
+
+	private function record_authentication_denial( $user_id, $channel ) {
+		if ( $this->authentication_denial_recorded ) {
+			return;
+		}
+
+		$this->authentication_denial_recorded = true;
+		$sum_block_total                      = get_option( 'wc_blacklist_sum_block_total', 0 );
+		update_option( 'wc_blacklist_sum_block_total', $sum_block_total + 1 );
+
+		$channels = array(
+			'browser_password',
+			'xmlrpc_password',
+			'xmlrpc_application_password',
+			'rest_application_password',
+		);
+		$channel  = is_string( $channel ) ? sanitize_key( $channel ) : '';
+
+		if ( ! in_array( $channel, $channels, true ) ) {
+			return;
+		}
+
+		$premium_consumer_active = defined( 'WC_BLACKLIST_MANAGER_PREMIUM_BLOCKED_AUTH_OBSERVABILITY_CONTRACT_VERSION' )
+			&& 1 === (int) WC_BLACKLIST_MANAGER_PREMIUM_BLOCKED_AUTH_OBSERVABILITY_CONTRACT_VERSION;
+
+		do_action(
+			'wc_blacklist_manager_blocked_authentication_denied_v1',
+			array(
+				'user_id' => (int) $user_id,
+				'channel' => $channel,
+			)
+		);
+
+		if ( 'browser_password' !== $channel || $premium_consumer_active || ! $this->is_premium_active() ) {
+			return;
+		}
 
 		global $wpdb;
 		$table_detection_log = $wpdb->prefix . 'wc_blacklist_detection_log';
-		
-		$is_blocked = get_user_meta($user->ID, 'user_blocked', true);
+		$view_json          = wp_json_encode( $this->build_user_activity_view( $user_id, 'blocked_login' ) );
 
-		if ($is_blocked == '1') {
-			wp_logout();
-			$this->set_blocked_user_cookie();
-			$this->set_user_blocked_notice();
-			wp_redirect(wc_get_page_permalink('myaccount'));
+		$wpdb->insert(
+			$table_detection_log,
+			array(
+				'timestamp' => current_time( 'mysql' ),
+				'type'      => 'bot',
+				'source'    => 'login',
+				'action'    => 'block',
+				'details'   => 'blocked_user_attempt: ' . $user_id,
+				'view'      => is_string( $view_json ) ? $view_json : '',
+			),
+			array( '%s', '%s', '%s', '%s', '%s', '%s' )
+		);
+	}
 
-			$sum_block_total = get_option('wc_blacklist_sum_block_total', 0);
-			update_option('wc_blacklist_sum_block_total', $sum_block_total + 1);
-
-			if ($premium_active) {
-				$timestamp = current_time('mysql');
-				$type      = 'bot';
-				$source    = 'login';
-				$action    = 'block';
-				$details   = 'blocked_user_attempt: ' . $user->ID;
-				$view_json = wp_json_encode( $this->build_user_activity_view( $user->ID, 'blocked_login' ) );
-				
-				$wpdb->insert(
-					$table_detection_log,
-					array(
-						'timestamp' => $timestamp,
-						'type'      => $type,
-						'source'    => $source,
-						'action'    => $action,
-						'details'   => $details,
-						'view'      => is_string( $view_json ) ? $view_json : '',
-					),
-					array( '%s', '%s', '%s', '%s', '%s', '%s' )
-				);
-			}
-			
-			exit();
+	private function resolved_user_authentication_channel() {
+		if ( defined( 'XMLRPC_REQUEST' ) && XMLRPC_REQUEST ) {
+			return 'xmlrpc_password';
 		}
+
+		if ( $this->is_machine_request() || 'POST' !== strtoupper( (string) ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) ) {
+			return '';
+		}
+
+		$script_name = isset( $_SERVER['SCRIPT_NAME'] ) ? (string) wp_unslash( $_SERVER['SCRIPT_NAME'] ) : '';
+		if ( isset( $_POST['log'], $_POST['pwd'] ) && 'wp-login.php' === basename( $script_name ) ) {
+			return 'browser_password';
+		}
+
+		$woocommerce_nonce = isset( $_POST['woocommerce-login-nonce'] )
+			? sanitize_text_field( wp_unslash( $_POST['woocommerce-login-nonce'] ) )
+			: '';
+		if (
+			isset( $_POST['username'], $_POST['password'], $_POST['login'] )
+			&& '' !== $woocommerce_nonce
+			&& function_exists( 'wp_verify_nonce' )
+			&& wp_verify_nonce( $woocommerce_nonce, 'woocommerce-login' )
+		) {
+			return 'browser_password';
+		}
+
+		return '';
+	}
+
+	private function application_password_authentication_channel() {
+		if ( defined( 'XMLRPC_REQUEST' ) && XMLRPC_REQUEST ) {
+			return 'xmlrpc_application_password';
+		}
+
+		if ( $this->is_rest_request() ) {
+			return 'rest_application_password';
+		}
+
+		return '';
+	}
+
+	public function deny_blocked_user_authentication( $user ) {
+		if ( ! $this->is_blocked_user( $user ) ) {
+			return $user;
+		}
+
+		$this->record_authentication_denial( $user->ID, $this->resolved_user_authentication_channel() );
+
+		return $this->blocked_user_error();
+	}
+
+	public function deny_blocked_user_application_password( $error, $user ) {
+		if ( ! $error instanceof WP_Error || ! $this->is_blocked_user( $user ) ) {
+			return;
+		}
+
+		$this->record_authentication_denial( $user->ID, $this->application_password_authentication_channel() );
+		$blocked_error = $this->blocked_user_error();
+		$error->add(
+			$blocked_error->get_error_code(),
+			$blocked_error->get_error_message(),
+			$blocked_error->get_error_data()
+		);
+	}
+
+	private function is_rest_request() {
+		if ( defined( 'REST_REQUEST' ) && REST_REQUEST ) {
+			return true;
+		}
+
+		if ( isset( $_GET['rest_route'] ) ) {
+			return true;
+		}
+
+		$request_uri = isset( $_SERVER['REQUEST_URI'] ) ? (string) wp_unslash( $_SERVER['REQUEST_URI'] ) : '';
+		$request_path = wp_parse_url( $request_uri, PHP_URL_PATH );
+		$rest_prefix  = function_exists( 'rest_get_url_prefix' ) ? trim( rest_get_url_prefix(), '/' ) : 'wp-json';
+
+		return is_string( $request_path )
+			&& '' !== $rest_prefix
+			&& false !== strpos( trailingslashit( $request_path ), '/' . $rest_prefix . '/' );
+	}
+
+	private function is_machine_request() {
+		if ( defined( 'XMLRPC_REQUEST' ) && XMLRPC_REQUEST ) {
+			return true;
+		}
+
+		return $this->is_rest_request();
 	}
 
 	public function check_and_force_logout_blocked_user() {
@@ -125,6 +245,11 @@ class WC_Blacklist_Manager_User_Blocking {
 
 			if ($is_blocked == '1') {
 				wp_logout();
+
+				if ( $this->is_machine_request() ) {
+					return;
+				}
+
 				$this->set_blocked_user_cookie();
 				$this->set_user_blocked_notice();
 				wp_redirect(wc_get_page_permalink('myaccount'));

@@ -38,6 +38,24 @@
 			.replace( '%2$d', Number( state.total_steps || 1 ) );
 	}
 
+	// Project copy only; the server's active channel remains authoritative.
+	function presentationLabels( state, labels ) {
+		var result = Object.assign( {}, labels );
+		var channel = activeChannel( state );
+		var specific = channel && labels.channels && Object.prototype.hasOwnProperty.call( labels.channels, channel.id ) ? labels.channels[ channel.id ] : null;
+		if ( specific && ! state.ready ) {
+			[ 'title', 'open', 'verify', 'codeLabel', 'resend', 'required' ].forEach( function ( key ) {
+				if ( typeof specific[ key ] === 'string' && specific[ key ] ) {
+					result[ key ] = specific[ key ];
+				}
+			} );
+		}
+		if ( state.ready && labels.complete ) {
+			result.title = labels.complete;
+		}
+		return result;
+	}
+
 	function channelMarkup( state, labels, busy, now, surface, idPrefix ) {
 		var channel = activeChannel( state );
 		if ( ! state.required ) {
@@ -86,6 +104,7 @@
 	}
 
 	function render( state, mode, labels, busy, message, isError, now, surface, host ) {
+		labels = presentationLabels( state, labels );
 		var resolvedSurface = surface || 'classic';
 		var idPrefix = 'yobm-verification-' + ( host || resolvedSurface );
 		var content = channelMarkup( state, labels, busy, now, resolvedSurface, idPrefix );
@@ -106,12 +125,14 @@
 		return candidate === previousKey ? '' : candidate;
 	}
 
-	function validationError( state ) {
-		return state.ready ? null : { message: 'Complete checkout verification before placing the order.', hidden: false };
+	function validationError( state, labels ) {
+		var copy = presentationLabels( state, labels || {} );
+		return state.ready ? null : { message: copy.required || 'Complete checkout verification before placing the order.', hidden: false };
 	}
 
 	return {
 		activeChannel: activeChannel,
+		presentationLabels: presentationLabels,
 		resendRemaining: resendRemaining,
 		formatStep: formatStep,
 		channelMarkup: channelMarkup,
