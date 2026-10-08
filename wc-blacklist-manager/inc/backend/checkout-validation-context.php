@@ -22,6 +22,14 @@ final class WC_Blacklist_Manager_Checkout_Validation_Context {
 
 		$billing  = self::phone_projection( $billing );
 		$shipping = self::phone_projection( $shipping );
+		$shipping_used = self::truthy( self::value( $input, 'ship_to_different_address' ) );
+		if ( ! $shipping_used && isset( $input['shipping_address'] ) && is_array( $input['shipping_address'] ) ) {
+			// Store API sends this address only when the cart needs shipping.
+			$shipping_used = true;
+		}
+		if ( ! $shipping_used ) {
+			$shipping = self::phone_projection( array( 'phone' => '', 'dial_code' => '', 'country' => '', 'first_name' => '', 'last_name' => '' ) );
+		}
 
 		$effective = array(
 			'phone'     => '' !== $billing['phone'] ? $billing['phone'] : $shipping['phone'],
@@ -29,10 +37,6 @@ final class WC_Blacklist_Manager_Checkout_Validation_Context {
 			'country'   => '' !== $billing['country'] ? $billing['country'] : $shipping['country'],
 		);
 		$effective = self::phone_projection( $effective );
-		$shipping_used = self::truthy( self::value( $input, 'ship_to_different_address' ) );
-		if ( ! $shipping_used && isset( $input['shipping_address'] ) && is_array( $input['shipping_address'] ) ) {
-			$shipping_used = '' !== $shipping['first_name'] || '' !== $shipping['last_name'] || '' !== $shipping['phone'];
-		}
 
 		return array(
 			'contract_version' => self::CONTRACT_VERSION,
@@ -80,6 +84,9 @@ final class WC_Blacklist_Manager_Checkout_Validation_Context {
 			$request_values = $request;
 		}
 
+		// The Store API request, rather than a saved order/customer address, owns
+		// whether shipping is active. Its absence means a billing-only cart.
+		$request_values['ship_to_different_address'] = isset( $request_values['shipping_address'] ) && is_array( $request_values['shipping_address'] ) ? '1' : '0';
 		return self::from_array( self::merge_present( $order_values, $request_values ) );
 	}
 

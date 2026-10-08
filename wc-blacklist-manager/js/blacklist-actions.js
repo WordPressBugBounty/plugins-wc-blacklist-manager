@@ -5,6 +5,9 @@
 	var modalSequence = 0;
 	var activeModal = null;
 	var surfaceController = null;
+	var blockPreparation = null;
+	var preparationSequence = 0;
+	var pageLeaving = false;
 	var requestState = {
 		suspect: false,
 		block: false,
@@ -200,7 +203,7 @@
 			(
 				!isFinite(freshUntil) ||
 				freshUntil <= 0 ||
-				(surfaceController ? surfaceController.now() : Math.floor(Date.now() / 1000)) > freshUntil
+				(surfaceController ? surfaceController.now() : Math.floor(Date.now() / 1000)) >= freshUntil
 			)
 		) {
 			return section.legacyFallback || {};
@@ -241,12 +244,17 @@
 			timers.forEach(function (id) { clearTimeout(id); });
 			timers = [];
 		}
+		function settle(request, valid) {
+			request.listeners.forEach(function (listener) { listener(valid); });
+			request.listeners = [];
+		}
 		function cancelRequest() {
 			var old = outstanding;
 			outstanding = null; // Invalidate before abort: even synchronous/late callbacks cannot apply.
 			if (old) {
 				clearTimeout(old.timeout);
 				if (old.xhr) old.xhr.abort();
+				settle(old, false);
 			}
 		}
 		function spend(manual) {
@@ -288,7 +296,7 @@
 		}
 		function exchange(intent, manual) {
 			if (!visible() || outstanding || !spend(manual)) return false;
-			var request = { sequence: ++sequence, xhr: null, timeout: null };
+			var request = { sequence: ++sequence, xhr: null, timeout: null, listeners: [] };
 			outstanding = request;
 			request.timeout = setTimeout(function () {
 				if (outstanding === request) cancelRequest();
@@ -309,8 +317,12 @@
 				var data = response && response.success && response.data;
 				if (!data || data.version !== 1 || String(data.order_id) !== getOrderId() || data.request_seq !== request.sequence ||
 					!isFinite(data.server_now) || !data.state || typeof data.state.snapshot_id !== 'string' ||
-					!data.renewal || !data.block || !data.block.reasons || typeof data.block_nonce !== 'string') return;
+					!data.renewal || !data.block || !data.block.reasons || typeof data.block_nonce !== 'string') {
+					settle(request, false);
+					return;
+				}
 				accept(data);
+				settle(request, true);
 			}).fail(function (xhr) {
 				if (outstanding !== request) return;
 				outstanding = null;
@@ -319,6 +331,7 @@
 					stopped = true;
 					clearWork();
 				}
+				settle(request, false);
 			});
 			return true;
 		}
@@ -341,12 +354,20 @@
 				}
 			}, 70);
 		}
-		function interact(block) {
+		function interact() {
 			if (!visible() || lastInteraction === now()) return;
 			lastInteraction = now(); // Coalesce focus+visibility from the same activation.
 			var renewal = observation.renewal;
-			var intent = block ? 'observe' : (renewal.discovery_allowed ? 'discover' : (renewal.eligible && renewal.renew_at <= now() ? 'renew' : 'observe'));
+			var intent = renewal.discovery_allowed ? 'discover' : (renewal.eligible && renewal.renew_at <= now() ? 'renew' : 'observe');
 			exchange(intent, true);
+		}
+		function prepareBlock(callback) {
+			if (!visible()) return false;
+			if (!outstanding) {
+				if (!exchange('observe', true)) return false;
+			}
+			outstanding.listeners.push(callback);
+			return true;
 		}
 		function suspend() {
 			clearWork();
@@ -354,9 +375,9 @@
 			if (round) exhausted = true; // Visibility changes do not restart a failed/interrupted burst.
 		}
 		$(document).on('visibilitychange.yobmReportV2', function () {
-			if (!visible()) suspend(); else { interact(false); if (!exhausted) armLease(); }
+			if (!visible()) suspend(); else { interact(); if (!exhausted) armLease(); }
 		});
-		$(window).on('focus.yobmReportV2', function () { interact(false); });
+		$(window).on('focus.yobmReportV2', function () { interact(); });
 		$(window).on('pagehide.yobmReportV2', function () { stopped = true; suspend(); });
 		if (visible()) {
 			if (observation.renewal.eligible) {
@@ -366,7 +387,7 @@
 				exchange('discover', false);
 			}
 		}
-		return { block: function () { return future; }, nonce: function () { return nonce; }, now: now, interact: interact };
+		return { block: function () { return future; }, nonce: function () { return nonce; }, now: now, prepareBlock: prepareBlock };
 	}
 
 	function mainButtonSelector(action) {
@@ -718,7 +739,7 @@
 		modal.$reason.trigger('focus');
 	}
 
-	function openActionModal(action, $trigger) {
+	function openActionModal(action, $trigger, legacyOnly) {
 		var common = getCommonLabels();
 
 		if (activeModal) {
@@ -740,6 +761,14 @@
 			return false;
 		}
 
+		// Resolve the contract before WCBackboneModal creates an immutable interaction.
+		var selected = modalConfig(action);
+		if (legacyOnly && 'v2' === selected.contractMode) {
+			selected = selected.legacyFallback || {};
+		}
+		var section = JSON.parse(JSON.stringify(selected));
+		var blockNonce = surfaceController ? surfaceController.nonce() : ((getConfig().nonces || {}).block || '');
+
 		$(document.body).WCBackboneModal({
 			template: templateId,
 			variable: {}
@@ -753,12 +782,11 @@
 			return false;
 		}
 
-		var section = JSON.parse(JSON.stringify(modalConfig(action)));
 		var modal = {
 			token: ++modalSequence,
 			action: action,
 			section: section,
-			blockNonce: surfaceController ? surfaceController.nonce() : ((getConfig().nonces || {}).block || ''),
+			blockNonce: blockNonce,
 			labels: section.labels || {},
 			descriptions: section.descriptions || {},
 			reasonMeta: section.reasonMeta || {},
@@ -779,8 +807,47 @@
 		finishRequest(action);
 		bindModalLifecycle(modal);
 		populateModal(modal);
-		if ('block' === action && surfaceController) surfaceController.interact(true);
 		return true;
+	}
+
+	function cancelBlockPreparation() {
+		if (!blockPreparation) return;
+		var pending = blockPreparation;
+		blockPreparation = null;
+		clearTimeout(pending.deadline);
+		pending.$indicator.remove();
+		pending.$trigger.prop('disabled', pending.disabled);
+		if (typeof pending.classes === 'undefined') pending.$trigger.removeAttr('class');
+		else pending.$trigger.attr('class', pending.classes);
+		if (typeof pending.ariaBusy === 'undefined') pending.$trigger.removeAttr('aria-busy');
+		else pending.$trigger.attr('aria-busy', pending.ariaBusy);
+	}
+
+	function prepareBlockModal($trigger) {
+		if (blockPreparation || pageLeaving || document.visibilityState !== 'visible') return;
+		if (!surfaceController || 'v2' === modalConfig('block').contractMode) {
+			openActionModal('block', $trigger);
+			return;
+		}
+
+		var pending = {
+			generation: ++preparationSequence,
+			$trigger: $trigger,
+			$indicator: $('<span class="yobm-block-preparing"></span>').text('…'),
+			disabled: !!$trigger.prop('disabled'),
+			classes: $trigger.attr('class'),
+			ariaBusy: $trigger.attr('aria-busy'),
+			deadline: null
+		};
+		blockPreparation = pending;
+		function finish(valid) {
+			if (!blockPreparation || blockPreparation.generation !== pending.generation) return;
+			cancelBlockPreparation();
+			if (!pageLeaving && document.visibilityState === 'visible') openActionModal('block', $trigger, !valid);
+		}
+		$trigger.append(pending.$indicator).attr('aria-busy', 'true').prop('disabled', true).addClass('disabled');
+		pending.deadline = setTimeout(function () { finish(false); }, 5000);
+		if (!surfaceController.prepareBlock(finish)) finish(false);
 	}
 
 	function bindSuspectAction() {
@@ -853,7 +920,8 @@
 					return;
 				}
 
-				openActionModal(action, $(this));
+				if ('block' === action) prepareBlockModal($(this));
+				else openActionModal(action, $(this));
 			});
 	}
 
@@ -875,6 +943,13 @@
 	}
 
 	$(function () {
+		$(document).on('visibilitychange.yobmBlockPreparation', function () {
+			if (document.visibilityState !== 'visible') cancelBlockPreparation();
+		});
+		$(window).on('pagehide.yobmBlockPreparation', function () {
+			pageLeaving = true;
+			cancelBlockPreparation();
+		});
 		bindSuspectAction();
 		bindModalAction('#block_customer', 'block');
 		bindModalAction('#remove_from_blacklist', 'remove');

@@ -26,7 +26,7 @@ $html_footer = preg_replace( '/<a\b/i', '<a style="color:#a4a7af;text-decoration
 <tr><td class="ds-content" valign="top" style="padding:40px 36px 36px;overflow-wrap:anywhere;word-break:break-word">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="table-layout:fixed"><tr>
 <td class="ds-logo-cell" width="70" valign="middle" style="width:70px;padding-right:22px">
-<img class="ds-logo" src="cid:wc-blacklist-dark-sentinel-logo" width="70" height="70" alt="Blacklist Manager logo" style="display:block;width:70px;height:70px;border:0;color:#f6f7f9;font-size:12px">
+<img class="ds-logo" src="<?php echo esc_url( plugins_url( 'inc/backend/emails/assets/dark-sentinel-logo.png', WC_BLACKLIST_MANAGER_PLUGIN_FILE ) ); ?>" width="70" height="70" alt="Blacklist Manager logo" style="display:block;width:70px;height:70px;border:0;color:#f6f7f9;font-size:12px">
 </td><td valign="top" style="padding-top:1px">
 <p class="ds-brand" style="margin:0;font-size:20px;line-height:26px;font-weight:700">BLACKLIST MANAGER</p>
 <p class="ds-subtitle" style="margin:4px 0 0;color:#a4a7af;font-size:15px;line-height:22px"><?php echo esc_html__( 'Security notification', 'wc-blacklist-manager' ); ?></p>

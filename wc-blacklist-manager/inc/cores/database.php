@@ -52,8 +52,7 @@ class WC_Blacklist_Manager_DB {
 		$this->maybe_update_plugin_version_marker();
 		WC_Blacklist_Manager_Schema_Readiness::instance()->refresh_readiness();
 		$this->schedule_customer_intelligence_notice( $had_install_state ? 0 : DAY_IN_SECONDS );
-
-		WC_Blacklist_Manager_Push_Subscription::maybe_push_subscription();
+		$this->delete_legacy_push_subscription_option();
 	}
 
 	private function maybe_set_default_development_mode() {
@@ -98,8 +97,14 @@ class WC_Blacklist_Manager_DB {
 
 			$this->maybe_update_plugin_version_marker();
 			$this->schedule_customer_intelligence_notice( $had_install_state ? 0 : DAY_IN_SECONDS );
+			$this->delete_legacy_push_subscription_option();
+		}
+	}
 
-			WC_Blacklist_Manager_Push_Subscription::maybe_push_subscription();
+	private function delete_legacy_push_subscription_option() {
+		$option = 'wc_blacklist_manager_last_push_subscription';
+		if ( false !== get_option( $option, false ) ) {
+			delete_option( $option );
 		}
 	}
 

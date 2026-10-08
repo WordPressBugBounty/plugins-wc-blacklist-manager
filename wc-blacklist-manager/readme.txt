@@ -5,7 +5,7 @@ Requires at least: 6.3
 Tested up to: 7.1
 WC tested up to: 11.0
 Requires PHP: 7.4
-Stable tag: 2.3.2
+Stable tag: 2.3.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -135,10 +135,11 @@ Global Blacklist Decisions is a connected fraud-prevention service. Data exchang
 
 == Changelog ==
 
-= 2.3.2 (Sep 23, 2026) =
-* New: Adds configurable security and operational email notifications for blocked or suspicious activity and Global Blacklist usage.
-* Security: Strengthens blocked-user authentication, WooCommerce REST order protection, and comment and product-review blocking, including safer handling of existing review settings.
-* Fix: Restores Dashboard lists after upgrades, refreshes first-party asset cache versions, and clarifies database-readiness recovery guidance.
-* Fix: Defers notification translation setup to supported WordPress timing, preventing WordPress 6.7+ notices and related header warnings; improves notification branding and site-local dates.
-* Improve: Refines Dashboard navigation, checkout and settings presentation, and Global decision status and evidence while local protection remains available when the remote service is unavailable.
-* Compatibility: After Global notification state v2 has materialized, rollback requires matching prior Core/Premium code and a complete pre-upgrade database snapshot; code-only downgrade is unsupported.
+= 2.3.3 (Oct 8, 2026) =
+* Fix: Keeps checkout validation reliable when shipping context changes or external integrations cannot provide trusted results.
+* Fix: Reads order customer IP addresses through WooCommerce's order API for compatible order storage.
+* Fix: Restores the Dark Sentinel logo in delivered notification emails.
+* Fix: Refreshes eligible Block action configuration before opening the order modal, avoiding stale settings and nonce errors.
+* Improve: Handles Global decision detail failures and rate limits more clearly while preserving safe return to the order.
+* Improve: Clarifies recovery for unavailable or misconfigured verification providers and reconciles affected options when settings are saved.
+* Security: Removes the retired automatic YoExpress marketing-email subscription request.

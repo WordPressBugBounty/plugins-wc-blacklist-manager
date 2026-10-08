@@ -645,14 +645,7 @@ class WC_Blacklist_Manager_Order_Actions {
 		$full_name  = trim( $first_name . ' ' . $last_name );
 		$device_id  = $this->get_order_device_id( $order );
 
-		if ( $this->is_premium_active() ) {
-			$ip = get_post_meta( $order->get_id(), '_customer_ip_address', true );
-			if ( empty( $ip ) ) {
-				$ip = sanitize_text_field( $order->get_customer_ip_address() );
-			}
-		} else {
-			$ip = sanitize_text_field( $order->get_customer_ip_address() );
-		}
+		$ip = sanitize_text_field( $order->get_customer_ip_address() );
 
 		$billing_country   = sanitize_text_field( $order->get_billing_country() );
 		$billing_dial_code = yobm_get_country_dial_code( $billing_country );

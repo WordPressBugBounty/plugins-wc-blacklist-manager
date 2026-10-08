@@ -2,6 +2,15 @@
 
 == Changelog ==
 
+= 2.3.3 (Oct 8, 2026) =
+* Fix: Keeps checkout validation reliable when shipping context changes or external integrations cannot provide trusted results.
+* Fix: Reads order customer IP addresses through WooCommerce's order API for compatible order storage.
+* Fix: Restores the Dark Sentinel logo in delivered notification emails.
+* Fix: Refreshes eligible Block action configuration before opening the order modal, avoiding stale settings and nonce errors.
+* Improve: Handles Global decision detail failures and rate limits more clearly while preserving safe return to the order.
+* Improve: Clarifies recovery for unavailable or misconfigured verification providers and reconciles affected options when settings are saved.
+* Security: Removes the retired automatic YoExpress marketing-email subscription request.
+
 = 2.3.2 (Sep 23, 2026) =
 * New: Adds configurable security and operational email notifications for blocked or suspicious activity and Global Blacklist usage.
 * Security: Strengthens blocked-user authentication, WooCommerce REST order protection, and comment and product-review blocking, including safer handling of existing review settings.

@@ -131,7 +131,7 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 						<label for="email_verification_real_time_validate"><?php echo esc_html__('Email address validation', 'wc-blacklist-manager'); ?></label>
 					</th>
 					<td>
-						<input type="checkbox" id="email_verification_real_time_validate" name="email_verification_real_time_validate" value="1" <?php checked(!empty($data['email_verification_real_time_validate'])); ?>>
+						<input type="checkbox" id="email_verification_real_time_validate" name="email_verification_real_time_validate" value="1" <?php checked(!empty($data['email_verification_real_time_validate']) && 'MISCONFIGURED' !== (string) ( $data['integration_capabilities']['capabilities']['zerobounce_email']['state'] ?? '' )); ?>>
 						<?php if ($woocommerce_active): ?>
 							<label for="email_verification_real_time_validate"><?php echo esc_html__('Enable email address validation on the registration and checkout pages', 'wc-blacklist-manager'); ?></label>
 						<?php else: ?>
@@ -140,7 +140,7 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 
 						<p class="description"><?php echo esc_html__('Check submitted email addresses using the configured validation service on supported flows. This validates the address; it does not prove ownership or create email OTP proof.', 'wc-blacklist-manager'); ?></p>
 						<?php $zerobounce_state = (string) ( $data['integration_capabilities']['capabilities']['zerobounce_email']['state'] ?? '' ); $zerobounce_effective = ! empty( $data['integration_capabilities']['capabilities']['zerobounce_email']['effective'] ); if ( ! empty( $data['email_verification_real_time_validate'] ) && in_array( $zerobounce_state, array( 'MISCONFIGURED', 'UNAVAILABLE', 'UNKNOWN' ), true ) ) : ?>
-							<p class="description"><a href="<?php echo esc_url( admin_url( 'admin.php?page=wc-blacklist-manager-settings&tab=integrations' ) ); ?>"><?php echo esc_html( $zerobounce_effective ? __( 'ZeroBounce protection is saved and currently active while its existing integration status is being refreshed.', 'wc-blacklist-manager' ) : __( 'ZeroBounce protection is saved but suspended until Integrations confirms the service is available. Review the integration to recover it.', 'wc-blacklist-manager' ) ); ?></a></p>
+							<p class="description"><a href="<?php echo esc_url( admin_url( 'admin.php?page=wc-blacklist-manager-settings&tab=integrations' ) ); ?>"><?php echo esc_html( 'MISCONFIGURED' === $zerobounce_state ? __( 'ZeroBounce protection is inactive because its credential is missing or rejected. Saving Verifications turns this option off.', 'wc-blacklist-manager' ) : ( $zerobounce_effective ? __( 'ZeroBounce protection is saved and currently active while its existing integration status is being refreshed.', 'wc-blacklist-manager' ) : __( 'ZeroBounce protection is saved but temporarily suspended. Review the integration to recover it.', 'wc-blacklist-manager' ) ) ); ?></a></p>
 						<?php endif; ?>
 					</td>
 				</tr>
@@ -152,7 +152,7 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 						<label for="email_verification_disposable"><?php echo esc_html__('Disposable email blocking', 'wc-blacklist-manager'); ?></label>
 					</th>
 					<td>
-						<input type="checkbox" id="email_verification_disposable" name="email_verification_disposable" value="1" <?php checked(!empty($data['email_verification_disposable'])); ?>>
+						<input type="checkbox" id="email_verification_disposable" name="email_verification_disposable" value="1" <?php checked(!empty($data['email_verification_disposable']) && 'MISCONFIGURED' !== (string) ( $data['integration_capabilities']['capabilities']['bigdatacloud_email']['state'] ?? '' )); ?>>
 						<label for="email_verification_disposable"><?php echo esc_html__('Detect and block disposable email addresses', 'wc-blacklist-manager'); ?></label>
 						<?php if ($woocommerce_active): ?>
 							<p class="description"><?php echo esc_html__('Detect and block email addresses confirmed as disposable on checkout, registration, comment, and review flows where this protection applies.', 'wc-blacklist-manager'); ?></p>
@@ -160,7 +160,7 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 							<p class="description"><?php echo esc_html__('Detect and block email addresses confirmed as disposable on registration and comment flows where this protection applies.', 'wc-blacklist-manager'); ?></p>
 						<?php endif; ?>
 						<?php $bigdatacloud_state = (string) ( $data['integration_capabilities']['capabilities']['bigdatacloud_email']['state'] ?? '' ); $bigdatacloud_effective = ! empty( $data['integration_capabilities']['capabilities']['bigdatacloud_email']['effective'] ); if ( ! empty( $data['email_verification_disposable'] ) && in_array( $bigdatacloud_state, array( 'MISCONFIGURED', 'UNAVAILABLE', 'UNKNOWN' ), true ) ) : ?>
-							<p class="description"><a href="<?php echo esc_url( admin_url( 'admin.php?page=wc-blacklist-manager-settings&tab=integrations' ) ); ?>"><?php echo esc_html( $bigdatacloud_effective ? __( 'BigDataCloud protection is saved and currently active while its existing integration status is being refreshed.', 'wc-blacklist-manager' ) : __( 'BigDataCloud protection is saved but suspended until Integrations confirms the service is available. Review the integration to recover it.', 'wc-blacklist-manager' ) ); ?></a></p>
+							<p class="description"><a href="<?php echo esc_url( admin_url( 'admin.php?page=wc-blacklist-manager-settings&tab=integrations' ) ); ?>"><?php echo esc_html( 'MISCONFIGURED' === $bigdatacloud_state ? __( 'BigDataCloud protection is inactive because its credential is missing or rejected. Saving Verifications turns this option off.', 'wc-blacklist-manager' ) : ( $bigdatacloud_effective ? __( 'BigDataCloud protection is saved and currently active while its existing integration status is being refreshed.', 'wc-blacklist-manager' ) : __( 'BigDataCloud protection is saved but temporarily suspended. Review the integration to recover it.', 'wc-blacklist-manager' ) ) ); ?></a></p>
 						<?php endif; ?>
 					</td>
 				</tr>
@@ -311,11 +311,11 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 						<label for="phone_verification_disposable"><?php echo esc_html__('Disposable phone blocking', 'wc-blacklist-manager'); ?></label>
 						</th>
 						<td>
-							<input type="checkbox" id="phone_verification_disposable" name="phone_verification_disposable" value="1" <?php checked(!empty($data['phone_verification_disposable'])); ?>>
+							<input type="checkbox" id="phone_verification_disposable" name="phone_verification_disposable" value="1" <?php checked(!empty($data['phone_verification_disposable']) && 'MISCONFIGURED' !== (string) ( $data['integration_capabilities']['capabilities']['numcheckr_phone']['state'] ?? '' )); ?>>
 						<label for="phone_verification_disposable"><?php echo esc_html__('Detect and block disposable phone numbers', 'wc-blacklist-manager'); ?></label>
 						<p class="description"><?php echo esc_html__('Detect and block phone numbers confirmed as disposable on supported protected flows.', 'wc-blacklist-manager'); ?></p>
 						<?php $numcheckr_state = (string) ( $data['integration_capabilities']['capabilities']['numcheckr_phone']['state'] ?? '' ); $numcheckr_effective = ! empty( $data['integration_capabilities']['capabilities']['numcheckr_phone']['effective'] ); if ( ! empty( $data['phone_verification_disposable'] ) && in_array( $numcheckr_state, array( 'MISCONFIGURED', 'UNAVAILABLE', 'UNKNOWN' ), true ) ) : ?>
-							<p class="description"><a href="<?php echo esc_url( admin_url( 'admin.php?page=wc-blacklist-manager-settings&tab=integrations' ) ); ?>"><?php echo esc_html( $numcheckr_effective ? __( 'NumCheckr protection is saved and currently active while its existing integration status is being refreshed.', 'wc-blacklist-manager' ) : __( 'NumCheckr protection is saved but suspended until Integrations confirms the service is available. Review the integration to recover it.', 'wc-blacklist-manager' ) ); ?></a></p>
+							<p class="description"><a href="<?php echo esc_url( admin_url( 'admin.php?page=wc-blacklist-manager-settings&tab=integrations' ) ); ?>"><?php echo esc_html( 'MISCONFIGURED' === $numcheckr_state ? __( 'NumCheckr protection is inactive because its credential is missing or rejected. Saving Verifications turns this option off.', 'wc-blacklist-manager' ) : ( $numcheckr_effective ? __( 'NumCheckr protection is saved and currently active while its existing integration status is being refreshed.', 'wc-blacklist-manager' ) : __( 'NumCheckr protection is saved but temporarily suspended. Review the integration to recover it.', 'wc-blacklist-manager' ) ) ); ?></a></p>
 						<?php endif; ?>
 						</td>
 					</tr>
@@ -571,30 +571,27 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 					realtimeValidateCheckbox.addEventListener('click', function (event) {
 						var zeroBounceApiKey = <?php echo json_encode(!empty(get_option('wc_blacklist_manager_premium_zerobounce_api_key'))); ?>;
 
-						if (!zeroBounceApiKey) {
+						if (!zeroBounceApiKey && !realtimeValidateCheckbox.checked) {
 							event.preventDefault();
 							alert("<?php echo esc_html__('Please set the ZeroBounce API key to allow this option to work.', 'wc-blacklist-manager'); ?>");
-							window.location.href = 'admin.php?page=wc-blacklist-manager-settings&tab=integrations';
 						}
 					});
 
 					disposableEmailCheckbox.addEventListener('click', function (event) {
 						var bigDataCloudApiKey = <?php echo json_encode(!empty(get_option('wc_blacklist_manager_premium_bigdatacloud_api_key'))); ?>;
 
-						if (!bigDataCloudApiKey) {
+						if (!bigDataCloudApiKey && !disposableEmailCheckbox.checked) {
 							event.preventDefault();
 							alert("<?php echo esc_html__('Please set the BigDataCloud API key to allow this option to work.', 'wc-blacklist-manager'); ?>");
-							window.location.href = 'admin.php?page=wc-blacklist-manager-settings&tab=integrations';
 						}
 					});
 
 					disposablePhoneCheckbox.addEventListener('click', function (event) {
 						var numCheckRApiKey = <?php echo json_encode(!empty(get_option('wc_blacklist_manager_premium_numcheckr_api_key'))); ?>;
 
-						if (!numCheckRApiKey) {
+						if (!numCheckRApiKey && !disposablePhoneCheckbox.checked) {
 							event.preventDefault();
 							alert("<?php echo esc_html__('Please set the NumCheckr API token to allow this option to work.', 'wc-blacklist-manager'); ?>");
-							window.location.href = 'admin.php?page=wc-blacklist-manager-settings&tab=integrations';
 						}
 					});
 				}

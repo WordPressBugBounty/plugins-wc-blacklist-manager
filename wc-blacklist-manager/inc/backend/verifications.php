@@ -317,9 +317,8 @@ class WC_Blacklist_Manager_Verifications {
 			foreach ( $required as $capability => &$dependency ) {
 				$state = (string) ( $projection['capabilities'][ $capability ]['state'] ?? 'UNKNOWN' );
 				if ( '1' === $dependency['value'] && 'MISCONFIGURED' === $state ) {
-					// Reject a new enable while retaining an already saved intent. The
-					// effective capability gate suspends existing intent at runtime.
-					$dependency['value'] = '1' === get_option( $dependency['option'], '0' ) ? '1' : '0';
+					// A relevant administrator save durably reconciles hard failure.
+					$dependency['value'] = '0';
 					add_settings_error( 'wc_blacklist_verifications_settings', 'integration_' . $capability, $dependency['label'] . ' ' . __( 'Configure it in Integrations, then save again.', 'wc-blacklist-manager' ), 'error' );
 				}
 			}

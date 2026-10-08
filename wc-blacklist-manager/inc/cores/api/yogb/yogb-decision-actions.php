@@ -25,6 +25,7 @@ final class YOGB_BM_Decision_Actions {
 	const META_OUTCOME_NEXT_AT  = '_yogb_gbl_outcome_next_at';
 	const META_OUTCOME_DECISION_REF = '_yogb_gbl_outcome_decision_ref';
 	const META_OUTCOME_DELIVERY_STATE_PREFIX = '_yogb_gbl_outcome_delivery_state_';
+	const DETAIL_FAILURE_OPTION = 'yogb_bm_latest_decision_view_failure';
 
 	public static function init() : void {
 		add_action( 'admin_post_yogb_gbl_view_decision', [ __CLASS__, 'handle_view_decision' ] );
@@ -241,11 +242,14 @@ final class YOGB_BM_Decision_Actions {
 			[ 'decision_ref' => $ref ]
 		);
 		$payload  = json_decode( (string) ( $response['body'] ?? '' ), true );
-		$view_url = is_array( $payload ) ? (string) ( $payload['view_url'] ?? '' ) : '';
-		if ( empty( $response['ok'] ) || ! self::is_trusted_server_url( $view_url ) ) {
+		$view_url = is_array( $payload ) && isset( $payload['view_url'] ) && is_string( $payload['view_url'] ) ? $payload['view_url'] : '';
+		$failure = self::view_failure_class( $response, $payload, $view_url );
+		if ( '' !== $failure ) {
+			self::record_view_failure( $failure, (int) ( $response['code'] ?? 0 ) );
 			self::redirect_to_order( $order, 'detail_error' );
 		}
 
+		delete_option( self::DETAIL_FAILURE_OPTION );
 		wp_redirect( esc_url_raw( $view_url ), 302, 'Blacklist Manager' );
 		exit;
 	}
@@ -520,6 +524,62 @@ final class YOGB_BM_Decision_Actions {
 			&& ( $is_https || $is_local )
 			&& empty( $view['user'] )
 			&& empty( $view['pass'] );
+	}
+
+	/** Classify only fixed, machine-safe values; never retain the remote response. */
+	private static function view_failure_class( array $response, $payload, string $view_url ) : string {
+		$code  = (int) ( $response['code'] ?? 0 );
+		$error = (string) ( $response['error_code'] ?? '' );
+		if ( 'credential_epoch_changed' === $error ) {
+			return 'credential_epoch_changed';
+		}
+		if ( 'auth_paused' === $error || 'auth_paused' === (string) ( $response['err'] ?? '' ) ) {
+			return 'auth_paused';
+		}
+		if ( 'transport_error' === $error || 'transport_error' === (string) ( $response['err'] ?? '' ) ) {
+			return 'transport_error';
+		}
+		if ( 401 === $code ) {
+			return 'unauthorized';
+		}
+		if ( 404 === $code && 'decision_not_found' === $error ) {
+			return 'decision_not_found';
+		}
+		if ( 422 === $code && 'invalid_decision_ref' === $error ) {
+			return 'invalid_decision_ref';
+		}
+		if ( 429 === $code || 'rate_limited' === $error ) {
+			return 'rate_limited';
+		}
+		if ( $code >= 500 && 'grant_generation_failed' === $error ) {
+			return 'grant_generation_failed';
+		}
+		if ( $code >= 500 && 'grant_store_failed' === $error ) {
+			return 'grant_store_failed';
+		}
+		if ( $code >= 500 ) {
+			return 'server_error';
+		}
+		if ( empty( $response['ok'] ) ) {
+			return 'http_error';
+		}
+		if ( ! is_array( $payload ) || '' === $view_url ) {
+			return 'invalid_response';
+		}
+		return self::is_trusted_server_url( $view_url ) ? '' : 'untrusted_view_url';
+	}
+
+	private static function record_view_failure( string $failure, int $code ) : void {
+		$record = [
+			'version'     => 1,
+			'class'       => $failure,
+			'http_status' => max( 0, min( 599, $code ) ),
+			'utc_time'   => gmdate( 'Y-m-d\TH:i:s\Z' ),
+		];
+		if ( ! add_option( self::DETAIL_FAILURE_OPTION, $record, '', false ) ) {
+			update_option( self::DETAIL_FAILURE_OPTION, $record, false );
+		}
+		do_action( 'yogb_bm_metric', 'decision.view_failure', [ 'class' => $failure, 'http_status' => $record['http_status'] ] );
 	}
 
 	private static function redirect_to_order( WC_Order $order, string $notice ) : void {

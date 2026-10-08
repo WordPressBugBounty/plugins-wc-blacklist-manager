@@ -185,7 +185,6 @@ class WC_Blacklist_Manager_Backend {
 		require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-tier-sync.php';
 		require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-subscription-activation.php';
 
-		include_once plugin_dir_path(__FILE__) . '/api/push-subscription.php';
 	}
 }
 

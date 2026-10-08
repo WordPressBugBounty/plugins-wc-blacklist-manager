@@ -830,12 +830,15 @@ final class YOGB_BM_Report {
 
 		/**
 		 * Decide timeout based on context:
-		 * - Frontend/checkout/admin: keep this small (e.g. 3s)
+		 * - Frontend/checkout/admin: keep this small (3s), except the
+		 *   administrator's one-shot decision view grant (8s)
 		 * - Cron/background: can afford a bit longer (e.g. 12s)
 		 */
 		$default_timeout = 3;
 		if ( function_exists( 'wp_doing_cron' ) && wp_doing_cron() ) {
 			$default_timeout = 12;
+		} elseif ( self::REST_ROUTE . '/decision/view-grants' === $route ) {
+			$default_timeout = 8;
 		}
 
 		// Allow override via filter if needed.
@@ -910,9 +913,15 @@ final class YOGB_BM_Report {
 			YOGB_BM_Registrar::handle_auth_failure( 'signed_post', $credential_fingerprint );
 		} elseif ( $code >= 200 && $code < 300 && class_exists( 'YOGB_BM_Registrar' ) ) {
 			YOGB_BM_Registrar::mark_auth_success();
-		} elseif ( in_array( $error_code, [ 'plan_quota_exceeded', 'rate_limited' ], true ) && class_exists( 'YOGB_BM_Registrar' ) ) {
-			// The signed server answered successfully. Quota exhaustion and burst
-			// throttling are operational states, not connection failures.
+		} elseif ( ( in_array( $error_code, [ 'plan_quota_exceeded', 'rate_limited' ], true )
+			|| ( self::REST_ROUTE . '/decision/view-grants' === $route
+				&& ( 429 === $code
+					|| ( 404 === $code && 'decision_not_found' === $error_code )
+					|| ( 422 === $code && 'invalid_decision_ref' === $error_code )
+					|| ( $code >= 500 && in_array( $error_code, [ 'grant_generation_failed', 'grant_store_failed' ], true ) ) ) ) )
+			&& class_exists( 'YOGB_BM_Registrar' ) ) {
+			// These authenticated application responses are endpoint-local, not
+			// evidence that the Global connection failed.
 			YOGB_BM_Registrar::mark_auth_success();
 		} elseif ( class_exists( 'YOGB_BM_Registrar' ) ) {
 			YOGB_BM_Registrar::mark_connection_error( $error_code ?: 'http_' . $code, 'signed_post' );
