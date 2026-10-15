@@ -25,8 +25,9 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 	</nav>
 
 	<div id="tab-content-general" class="tab-content">
-		<form method="post" action="">
-			<?php wp_nonce_field('wc_blacklist_settings_action', 'wc_blacklist_settings_nonce'); ?>
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin.php?page=wc-blacklist-manager-settings' ) ); ?>">
+			<input type="hidden" name="wc_blacklist_core_settings_form" value="core-general-v1">
+			<?php wp_nonce_field('wc_blacklist_core_settings_action', 'wc_blacklist_core_settings_nonce'); ?>
 
 			<h2><?php echo esc_html__('General options', 'wc-blacklist-manager'); ?></h2>
 			<table class="form-table">

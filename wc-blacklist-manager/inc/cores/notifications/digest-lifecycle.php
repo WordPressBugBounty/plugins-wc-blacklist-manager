@@ -80,7 +80,7 @@ trait WC_Blacklist_Notification_Digest_Lifecycle {
 		$r = $db->row( "SELECT IF(OCTET_LENGTH(option_value)<={$cap},option_value,NULL) FROM {$table} WHERE option_name=" . $db::hex( $key ) );
 		return $r ? $r[0] : null;
 	}
-	private static function authority( $db, $table ) {
+	private static function authority( $db, $table, $prior = null ) {
 		$zone = wp_timezone(); $name = $zone->getName();
 		if ( strlen( $name ) > 64 || ! preg_match( '/^[A-Za-z0-9_+:.\/-]{1,64}$/D', $name ) ) { throw new RuntimeException(); }
 		// A stale WordPress options cache is never calendar authority.
@@ -92,14 +92,51 @@ trait WC_Blacklist_Notification_Digest_Lifecycle {
 			$raw = sprintf( '%s%02d:%02d', (float) $offset < 0 ? '-' : '+', intdiv( $minutes, 60 ), $minutes % 60 );
 		}
 		if ( $name !== $raw ) { throw new RuntimeException(); }
-		$parts = array();
-		foreach ( array( 'wc_blacklist_manager_premium_validation_generation' => 10, 'wc_blacklist_manager_premium_license_status' => 32, 'wc_blacklist_manager_premium_license_state' => 32768 ) as $key => $cap ) { $parts[] = self::option( $db, $table, $key, $cap ); }
-		$fence = '';
-		if ( is_string( $parts[0] ) && preg_match( '/^[1-9][0-9]{0,9}$/D', $parts[0] ) && (float) $parts[0] <= 2147483647 && is_string( $parts[1] ) && preg_match( '/^[a-z_]{1,32}$/D', $parts[1] ) && is_string( $parts[2] ) && '' !== $parts[2] ) {
-			$state = unserialize( $parts[2], array( 'allowed_classes' => false, 'max_depth' => 32 ) );
-			if ( is_array( $state ) && is_string( $state['status'] ?? null ) && preg_match( '/^[a-z_]{1,32}$/D', $state['status'] ) ) { $fence = hash( 'sha256', json_encode( $parts ) ); }
+		// Tagged fences remember v6 admission even when its provider later disappears.
+		$v6_tag = 'b0232a06';
+		$was_v6 = $prior && 0 === strpos( $prior['fence'], $v6_tag );
+		$fence = $was_v6 ? $prior['fence'] : ''; $admitted = false;
+		$projection = null;
+		try { $projection = apply_filters( 'wc_blacklist_manager_premium_digest_authority_v1', null ); }
+		catch ( Throwable $error ) { $projection = false; }
+		$keys = is_array( $projection ) ? array_keys( $projection ) : array(); sort( $keys );
+		$valid = $keys === array( 'generation', 'runtime', 'status', 'v' ) && 1 === $projection['v'] && is_bool( $projection['runtime'] )
+			&& is_string( $projection['generation'] ) && strlen( json_encode( $projection ) ) <= 256
+			&& in_array( $projection['status'], array( 'legacy', 'v6', 'unavailable' ), true )
+			&& ( 'v6' === $projection['status']
+				? ( preg_match( '/^[a-f0-9]{64}$/D', $projection['generation'] ) || ( ! $projection['runtime'] && '' === $projection['generation'] ) )
+				: false === $projection['runtime'] && '' === $projection['generation'] );
+		if ( $valid && 'v6' === $projection['status'] ) {
+			// Preserve the mode even when schema/history/authority cannot admit runtime.
+			$fence = $v6_tag . substr( hash( 'sha256', 'bm-digest-v6/v1|' . $projection['generation'] ), 0, 56 );
+			if ( '' === $projection['generation'] && $was_v6 ) { $fence = $prior['fence']; }
+			$admitted = $projection['runtime'];
+		} elseif ( ( null === $projection || ( $valid && 'legacy' === $projection['status'] ) )
+			&& class_exists( 'YOBM_License_Runtime', false )
+			&& ! method_exists( 'YOBM_License_Runtime', 'v6_projection' ) && ! method_exists( 'YOBM_License_Runtime', 'v6_suppresses_legacy' )
+			&& is_callable( array( 'YOBM_License_Runtime', 'is_active' ) ) && is_callable( array( 'YOBM_License_Runtime', 'verify_entitlement' ) )
+			&& is_callable( array( 'YOBM_License_Runtime', 'normalize_domain' ) ) ) {
+			// A v6-capable is_active() may ignore these v5 bindings. Never use it as v5 proof.
+			$args = array( 'license_key_option' => 'wc_blacklist_manager_premium_license_key', 'status_option' => 'wc_blacklist_manager_premium_license_status',
+				'state_option' => 'wc_blacklist_manager_premium_license_state', 'entitlement_option' => 'wc_blacklist_manager_premium_entitlement',
+				'product_id' => '44', 'check_domain' => true, 'current_domain' => YOBM_License_Runtime::normalize_domain( home_url() ) );
+			$parts = array(); $current = true;
+			foreach ( array( $args['license_key_option'] => 4096, $args['status_option'] => 32, $args['state_option'] => 32768, $args['entitlement_option'] => 16384 ) as $key => $cap ) {
+				$raw = self::option( $db, $table, $key, $cap ); $cached = get_option( $key, null );
+				$current = $current && is_string( $raw ) && '' !== $raw && $raw === ( is_array( $cached ) ? serialize( $cached ) : $cached );
+				$parts[] = $raw;
+			}
+			$bytes = json_encode( $parts );
+			if ( $current && is_string( $bytes ) && '' !== $args['current_domain'] ) {
+				try {
+					// Runtime grace alone also accepts missing/unbound tokens. Require its signed binding API too.
+					$proof = YOBM_License_Runtime::verify_entitlement( $parts[3], array( 'license_key' => $parts[0], 'product_id' => '44', 'domain' => $args['current_domain'] ) );
+					$admitted = is_array( $proof ) && true === YOBM_License_Runtime::is_active( $args );
+				} catch ( Throwable $error ) { $admitted = false; }
+				if ( $admitted ) { $fence = 'b0237a05' . substr( hash( 'sha256', 'bm-digest-v5/v1|' . $args['current_domain'] . '|' . $bytes ), 0, 56 ); }
+			}
 		}
-		$enabled = self::ready() && WC_Blacklist_Notification_Policy::premium() && '' !== $fence;
+		$enabled = self::ready() && $admitted && WC_Blacklist_Notification_Policy::premium() && '' !== $fence;
 		return array( 'timezone' => $name, 'fence' => $fence, 'eligible' => $enabled, 'enabled' => 'yes' === self::option( $db, $table, self::TOGGLE, 3 ) );
 	}
 	private static function baseline( $a, $week, $old = null ) {
@@ -108,7 +145,9 @@ trait WC_Blacklist_Notification_Digest_Lifecycle {
 	private static function consume( $s ) { $s['consumed'] = max( $s['consumed'], $s['end'] ); $s['phase'] = 'spent'; return $s; }
 	private static function due( $s, $now, $week ) { return $s['eligible'] && $week['start'] >= $s['not_before'] && $week['end'] > $s['consumed'] && $now >= $week['end'] && $now < $week['end'] + 86400; }
 	/** Only semantic observations can change calendar admission. */
-	private static function changed( $s, $a ) { return ! $s || $s['timezone'] !== $a['timezone'] || $s['eligible'] !== $a['eligible']; }
+	private static function changed( $s, $a ) { return ! $s || $s['timezone'] !== $a['timezone'] || $s['eligible'] !== $a['eligible']
+		|| ( substr( $s['fence'], 0, 8 ) !== substr( $a['fence'], 0, 8 ) )
+		|| ( 0 === strpos( $a['fence'], 'b0232a06' ) && $s['fence'] !== $a['fence'] ); }
 	private static function invalidate( $db, $table, $row, $s, $a, $now ) {
 		$n = self::changed( $s, $a ) ? self::baseline( $a, self::calendar( $now, new DateTimeZone( $a['timezone'] ) ), $s ) : $s;
 		if ( $n === $s && in_array( $s['phase'], array( 'collecting', 'prepared' ), true ) ) { $n = self::consume( $s ); }
@@ -126,8 +165,8 @@ trait WC_Blacklist_Notification_Digest_Lifecycle {
 				$db->confirm(); return array( 'status' => 'ready' );
 			}
 			$now = (int) $db->row( 'SELECT UNIX_TIMESTAMP()' )[0];
-			$a = self::authority( $db, $table ); $week = self::calendar( $now, new DateTimeZone( $a['timezone'] ) );
 			$row = self::read( $db, $table ); $s = self::decode( $row );
+			$a = self::authority( $db, $table, $s ); $week = self::calendar( $now, new DateTimeZone( $a['timezone'] ) );
 			if ( 'read' === $op ) { return array( 'status' => $s ? 'ready' : 'state_unavailable' ); }
 			$changed = self::changed( $s, $a );
 			$n = $changed || in_array( $op, array( 'rearm', 'initialize' ), true ) ? self::baseline( $a, $week, $s ) : $s;
@@ -139,7 +178,7 @@ trait WC_Blacklist_Notification_Digest_Lifecycle {
 					return self::invalidate( $db, $table, $row, $s, $a, $now );
 				}
 				$allowed = null === WC_Blacklist_Notification_Policy::check( self::$descriptor );
-				$current = self::authority( $db, $table );
+				$current = self::authority( $db, $table, $s );
 				if ( self::read( $db, $table ) !== $row ) { throw new RuntimeException(); }
 				if ( ! $allowed || $current !== $a ) { return self::invalidate( $db, $table, $row, $s, $current, $now ); }
 				if ( 'confirm' === $op ) {
@@ -160,7 +199,7 @@ trait WC_Blacklist_Notification_Digest_Lifecycle {
 						$n['not_before'] = $s['not_before']; $n['phase'] = 'collecting'; $n['token'] = bin2hex( random_bytes( 32 ) );
 					}
 					$allowed = null === WC_Blacklist_Notification_Policy::check( self::$descriptor );
-					$current = self::authority( $db, $table );
+					$current = self::authority( $db, $table, $s );
 					if ( self::read( $db, $table ) !== $row ) { throw new RuntimeException(); }
 					if ( $current !== $a ) { return self::invalidate( $db, $table, $row, $n, $current, $now ); }
 					if ( ! self::due( $n, $now, $week ) || ! $allowed ) { $n = self::consume( $n ); }
@@ -174,7 +213,7 @@ trait WC_Blacklist_Notification_Digest_Lifecycle {
 							self::$collecting = array( $db, $window );
 							try { $batch = call_user_func( self::$provider, $db, $window ); } catch ( Throwable $e ) { $batch = null; }
 							finally { self::$collecting = null; }
-							$db->checkpoint(); $current = self::authority( $db, $table );
+							$db->checkpoint(); $current = self::authority( $db, $table, $s );
 							if ( self::read( $db, $table ) !== $row ) { throw new RuntimeException(); }
 							if ( $current !== $a ) { return self::invalidate( $db, $table, $row, $s, $current, $now ); }
 							$batch = self::batch( $batch ); $n['source'] = $batch['status'];
@@ -191,7 +230,7 @@ trait WC_Blacklist_Notification_Digest_Lifecycle {
 			if ( $n !== $s ) { self::put( $db, $table, $row, $n ); }
 			$db->confirm();
 			if ( 'initialize' === $op ) {
-				if ( self::decode( self::read( $db, $table ) ) !== $n || self::authority( $db, $table ) !== $a ) { throw new RuntimeException(); }
+				if ( self::decode( self::read( $db, $table ) ) !== $n || self::authority( $db, $table, $n ) !== $a ) { throw new RuntimeException(); }
 				$key = $db::hex( self::TOGGLE );
 				$db->confirm();
 				$db->query( "INSERT IGNORE INTO {$table}(option_name,option_value,autoload) VALUES({$key},'yes','no')" );

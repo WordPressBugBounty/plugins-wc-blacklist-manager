@@ -63,7 +63,7 @@ class WC_Blacklist_Manager_Notices {
 
         if ( is_plugin_active( $plugin_path ) ) {
 
-            $required_version = '2.3.4';
+            $required_version = '2.7.6';
 
             // get the plugin’s header data
             $data = get_plugin_data( WP_PLUGIN_DIR . '/' . $plugin_path );

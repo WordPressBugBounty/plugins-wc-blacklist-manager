@@ -264,6 +264,7 @@ class WC_Blacklist_Manager_DB {
 					attempts int(10) unsigned NOT NULL DEFAULT 0,
 					max_attempts int(10) unsigned NOT NULL DEFAULT 8,
 					status varchar(20) NOT NULL DEFAULT 'pending',
+			claim_token char(36) NOT NULL DEFAULT '',
 					next_attempt_at datetime DEFAULT NULL,
 					last_http_code int(11) NOT NULL DEFAULT 0,
 					last_error varchar(255) NOT NULL DEFAULT '',

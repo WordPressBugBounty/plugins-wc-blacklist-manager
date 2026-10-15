@@ -78,9 +78,10 @@ final class YOGB_BM_Revoke_Report {
 		}
 
 		$route = YOGB_BM_Report::REST_ROUTE . '/reports/' . $digits . '/revoke';
-		if ( class_exists( 'YOGB_BM_Outbox' ) && YOGB_BM_Outbox::enqueue_revoke( $route, $payload ) > 0 ) {
-			return;
-		}
+		if ( class_exists( 'YOGB_BM_Outbox' ) ) {
+   if ( YOGB_BM_Outbox::enqueue_revoke( $route, $payload ) > 0 ) { return; }
+   if ( ! YOGB_BM_Outbox::legacy_revoke_fallback_allowed( $route, $payload ) ) { return; }
+  }
 
 		$key = md5(
 			wp_json_encode(
@@ -115,13 +116,17 @@ final class YOGB_BM_Revoke_Report {
 	 * @param string $key Transient key suffix (hash)
 	 */
 	public static function cron_revoke_report( string $key ) : void {
-		$transient_key = 'yogb_bm_revoke_' . $key;
-		$data          = get_transient( $transient_key );
-
-		if ( ! is_array( $data ) ) {
-			return;
-		}
-		delete_transient( $transient_key );
+		$job = YOGB_BM_Reconnect_Guard::run( null, static function() use ( $key ) {
+   if ( YOGB_BM_Recovery_Store::active() ) { return null; }
+   $transient_key = 'yogb_bm_revoke_' . $key; $data = get_transient( $transient_key );
+   if ( ! is_array( $data ) ) { return null; }
+   $snapshot = YOGB_BM_Registrar::committed_credential_snapshot();
+   if ( empty( $snapshot['ok'] ) ) { return null; }
+   delete_transient( $transient_key );
+   return [ 'data' => $data, 'snapshot' => $snapshot ];
+  } );
+  if ( ! is_array( $job ) || ! isset( $job['data'], $job['snapshot'] ) ) { return; }
+  $data = $job['data'];
 
 		$public_id = isset( $data['report_id'] ) ? self::normalize_report_reference( $data['report_id'] ) : '';
 		$digits    = self::report_reference_digits( $public_id );
@@ -138,12 +143,14 @@ final class YOGB_BM_Revoke_Report {
 		// Path uses numeric ID so it matches /reports/(?P<id>\d+)/revoke on the server.
 		$route = YOGB_BM_Report::REST_ROUTE . '/reports/' . $digits . '/revoke';
 
-		$res = YOGB_BM_Report::post_json_signed( $route, $payload );
+		$res = YOGB_BM_Report::post_json_signed( $route, $payload, [], $job['snapshot'] );
 
 		// Move failed legacy transient jobs into the durable outbox. Code zero
 		// covers DNS, TLS, timeout and connection failures.
 		if ( empty( $res['ok'] ) && class_exists( 'YOGB_BM_Outbox' ) ) {
-			YOGB_BM_Outbox::enqueue_revoke( $route, $payload );
+			YOGB_BM_Reconnect_Guard::run( (array) ( $res['authority_context'] ?? [] ), static function() use ( $route, $payload ) {
+				YOGB_BM_Outbox::enqueue_revoke( $route, $payload );
+			} );
 		}
 
 		// Optional debug logging

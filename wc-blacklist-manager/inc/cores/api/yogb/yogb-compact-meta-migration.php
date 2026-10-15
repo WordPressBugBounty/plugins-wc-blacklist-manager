@@ -86,6 +86,8 @@ final class YOGB_BM_Compact_Meta_Migration {
 			YOGB_BM_Report::REST_ROUTE . '/decision/details/availability',
 			[ 'decision_refs' => array_keys( $by_ref ) ]
 		);
+  YOGB_BM_Reconnect_Guard::run( $response['authority_context'] ?? [], static function() use ( $response, $by_ref ) {
+
 		$payload  = json_decode( (string) ( $response['body'] ?? '' ), true );
 		if ( empty( $response['ok'] ) || ! is_array( $payload ) || 'yogb_decision_availability_v1' !== (string) ( $payload['schema'] ?? '' ) ) {
 			self::record_state( 0, 0, 'server_unavailable' );
@@ -125,6 +127,8 @@ final class YOGB_BM_Compact_Meta_Migration {
 		}
 		self::record_state( $cleaned, $retained, 'batch_complete' );
 		self::schedule( 30 );
+  } );
+
 	}
 
 	private static function get_eligible_orders() : array {

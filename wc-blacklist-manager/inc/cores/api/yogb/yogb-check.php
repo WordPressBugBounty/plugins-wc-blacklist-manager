@@ -31,13 +31,20 @@ final class YOGB_BM_Check {
 	 *   'err'  => string machine-readable error code/message,
 	 * ]
 	 */
-	public static function check_order( WC_Order $order ) : array {
+	public static function check_order( WC_Order $order, string $expected_authority_token = '' ) : array {
+  $preflight = YOGB_BM_Reconnect_Guard::run( null, static function() use ( $order, $expected_authority_token ) {
+   $local_token = (string) ( YOGB_BM_Registrar::auth_recovery_state()['authority_token'] ?? '' );
+   if ( '' !== $expected_authority_token && ! hash_equals( $expected_authority_token, $local_token ) ) {
+    return [ 'ok' => false, 'code' => 0, 'error' => 'credential_epoch_changed', 'local_authority_token' => $expected_authority_token ];
+   }
+
 		if ( ! YOGB_BM_Report::is_ready() ) {
 			return [
 				'ok'   => false,
 				'code' => 0,
 				'body' => '',
 				'json' => null,
+    'local_authority_token' => $local_token,
 				'tier' => self::get_tier(),
 				'err'  => 'not_ready',
 			];
@@ -54,6 +61,7 @@ final class YOGB_BM_Check {
 				'code' => 429,
 				'body' => '',
 				'json' => null,
+    'local_authority_token' => $local_token,
 				'tier' => $tier,
 				'err'         => 'plan_quota_exceeded',
 				'retry_after' => self::seconds_until_month_reset(),
@@ -69,6 +77,7 @@ final class YOGB_BM_Check {
 				'code' => 0,
 				'body' => '',
 				'json' => null,
+    'local_authority_token' => $local_token,
 				'tier' => $tier,
 				'err'  => 'empty_identities',
 			];
@@ -83,10 +92,16 @@ final class YOGB_BM_Check {
 				'code' => 0,
 				'body' => '',
 				'json' => null,
+    'local_authority_token' => $local_token,
 				'tier' => $tier,
 				'err'  => 'empty_identities_after_tier_filter',
 			];
 		}
+
+   return [ 'request_payload' => $payload, 'tier' => $tier, 'credential_snapshot' => YOGB_BM_Registrar::committed_credential_snapshot() ];
+  } );
+  if ( ! isset( $preflight['request_payload'] ) ) { return $preflight; }
+  $payload = $preflight['request_payload']; $tier = $preflight['tier'];
 
 		// Compact responses are opt-in so Core can still work unchanged with an
 		// older server during a rolling upgrade.
@@ -96,7 +111,7 @@ final class YOGB_BM_Check {
 
 		$res = YOGB_BM_Report::post_json_signed(
 			YOGB_BM_Report::REST_ROUTE . '/check',
-			$payload
+			$payload, [], $preflight['credential_snapshot']
 		);
 
 		$json = null;
@@ -106,6 +121,8 @@ final class YOGB_BM_Check {
 				$json = $decoded;
 			}
 		}
+
+  return YOGB_BM_Reconnect_Guard::run( $res['authority_context'] ?? [], static function() use ( $res, $json, $tier ) {
 
 		$ok = ! empty( $res['ok'] ) && is_array( $json );
 		if ( $ok ) {
@@ -121,9 +138,12 @@ final class YOGB_BM_Check {
 			'json' => $json,
 			'tier' => $tier,
 			'err'  => $res['error_code'] ?? ( $res['err'] ?? ( ! $ok && ! empty( $res['ok'] ) ? 'invalid_json' : '' ) ),
+			'authority_context' => $res['authority_context'] ?? [],
 			'retry_after' => isset( $res['retry_after'] ) ? max( 0, (int) $res['retry_after'] ) : 0,
 		];
-	}
+
+  } );
+}
 
 	/**
 	 * Convenience helper: extract overall decision from a /check response.

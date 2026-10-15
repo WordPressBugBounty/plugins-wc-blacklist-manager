@@ -20,6 +20,7 @@ final class YOGB_BM_Tier_Webhook {
 	const APPLY_MUTEX_RENEW_WINDOW    = 5;
 
 	private static $active_apply_mutex = null;
+ private static $active_apply_snapshot = null;
 	private static $apply_guard_filter = null;
 	private static $apply_guard_action = null;
 	private static $apply_guard_query  = null;
@@ -123,6 +124,67 @@ final class YOGB_BM_Tier_Webhook {
 
 	/** Validate every present component before any semantic write, then apply in generation order. */
 	public static function apply_tier_payload( array $payload, array $context = [] ) : array {
+  $decision = self::pre_write_decision( $payload, $context );
+  if ( null !== $decision ) { return $decision; }
+  $snapshot = isset( $context['credential_snapshot'] ) ? $context['credential_snapshot'] : YOGB_BM_Registrar::committed_credential_snapshot( true );
+  $context['credential_snapshot'] = $snapshot;
+  $result = YOGB_BM_Reconnect_Guard::run( $snapshot, static function() use ( $payload, $context ) {
+   return self::apply_tier_payload_guarded( $payload, $context );
+  } );
+  if ( in_array( $result['error'] ?? '', [ 'reconnect_busy', 'reconnect_storage_unavailable' ], true ) ) {
+   return self::apply_mutex_error( sanitize_key( $context['source'] ?? 'unknown' ), 'reconnect_busy' === $result['error'] ? 'busy' : 'storage_failed' );
+  }
+  if ( 'credential_epoch_changed' === ( $result['error'] ?? '' ) ) { $result['code'] = 409; $result['repair_required'] = false; }
+  return $result;
+ }
+
+ private static function pre_write_decision( array $payload, array $context ) : ?array {
+		$source = sanitize_key( (string) ( $context['source'] ?? 'unknown' ) );
+		$source = in_array( $source, [ 'pull', 'webhook' ], true ) ? $source : 'unknown';
+		$bind_verified_auth_control = ! empty( $context['bind_verified_auth_control'] ) && class_exists( 'YOGB_BM_Registrar' );
+		$credential_snapshot = isset( $context['credential_snapshot'] ) && is_array( $context['credential_snapshot'] )
+			? $context['credential_snapshot']
+			: [];
+		if ( $bind_verified_auth_control && empty( $credential_snapshot ) ) {
+			$credential_snapshot = YOGB_BM_Registrar::committed_credential_snapshot( true );
+		}
+		if ( $bind_verified_auth_control && ( empty( $credential_snapshot['ok'] ) || ! YOGB_BM_Registrar::credential_snapshot_is_current( $credential_snapshot ) ) ) {
+			return [ 'ok' => false, 'error' => 'credential_epoch_changed', 'code' => 409, 'repair_required' => false ];
+		}
+		$normalized = self::normalize_payload( $payload, $context );
+		if ( empty( $normalized['ok'] ) ) {
+			$incoming_version = isset( $payload['tier_version'] ) && is_numeric( $payload['tier_version'] ) ? (int) $payload['tier_version'] : 0;
+			$normalized['repair_required'] = $incoming_version > (int) get_option( self::OPTION_TIER_VERSION, 0 );
+			return $normalized;
+		}
+
+		$their_domain = self::normalize_host( (string) ( $payload['site_domain'] ?? '' ) );
+		$local_host   = self::normalize_host( (string) wp_parse_url( home_url(), PHP_URL_HOST ) );
+		if ( '' !== $their_domain && '' !== $local_host && $their_domain !== $local_host ) {
+			return [
+				'ok' => false, 'error' => 'domain_mismatch', 'their_domain' => $their_domain,
+				'local_domain' => $local_host, 'code' => 409, 'repair_required' => false,
+			];
+		}
+
+		$event_id       = (string) $normalized['event_id'];
+		$tier           = (string) $normalized['tier'];
+		$tier_version   = (int) $normalized['tier_version'];
+		$components     = (array) $normalized['components'];
+		$complete       = (bool) $normalized['complete'];
+		$verified_at    = time();
+		$state          = self::read_apply_state( true );
+		$decision       = self::no_write_decision( $source, $event_id, $tier, $tier_version, $components, $complete, $state, $verified_at );
+		if ( null !== $decision && ! $bind_verified_auth_control ) {
+			return $decision;
+		}
+
+  return null;
+ }
+
+ private static function apply_tier_payload_guarded( array $payload, array $context ) : array {
+
+
 		$source = sanitize_key( (string) ( $context['source'] ?? 'unknown' ) );
 		$source = in_array( $source, [ 'pull', 'webhook' ], true ) ? $source : 'unknown';
 		$bind_verified_auth_control = ! empty( $context['bind_verified_auth_control'] ) && class_exists( 'YOGB_BM_Registrar' );
@@ -182,9 +244,10 @@ final class YOGB_BM_Tier_Webhook {
 					if ( ! YOGB_BM_Registrar::credential_snapshot_is_current( $credential_snapshot ) ) {
 						return [ 'ok' => false, 'error' => 'credential_epoch_changed', 'code' => 409, 'repair_required' => false ];
 					}
-					self::start_apply_mutex_guard( $mutex );
+					self::start_apply_mutex_guard( $mutex, $credential_snapshot );
 					$guard_started = true;
 					self::require_active_apply_mutex();
+					self::$active_apply_snapshot = null; // This owner now publishes its verified auth transition.
 					YOGB_BM_Registrar::handle_verified_control(
 						$payload,
 						$decision,
@@ -194,7 +257,7 @@ final class YOGB_BM_Tier_Webhook {
 				return $decision;
 			}
 
-			self::start_apply_mutex_guard( $mutex );
+			self::start_apply_mutex_guard( $mutex, $credential_snapshot );
 			$guard_started = true;
 			self::require_active_apply_mutex();
 			if ( $bind_verified_auth_control && ! YOGB_BM_Registrar::credential_snapshot_is_current( $credential_snapshot ) ) {
@@ -205,7 +268,7 @@ final class YOGB_BM_Tier_Webhook {
 			$local_tier    = (string) $state['tier'];
 			$changes       = self::apply_components( $tier, $components, $local_tier, $payload, $verified_at );
 			if ( $tier_version > $local_version ) {
-				update_option( self::OPTION_TIER_VERSION, $tier_version, false );
+				YOGB_BM_Recovery_Store::update_option( self::OPTION_TIER_VERSION, $tier_version, false );
 				self::update_option_if_changed( self::OPTION_TIER_LAST_SOURCE, $source );
 				if ( '' !== $event_id ) {
 					self::update_option_if_changed( self::OPTION_TIER_LAST_EVENT, $event_id );
@@ -233,7 +296,8 @@ final class YOGB_BM_Tier_Webhook {
 				if ( ! YOGB_BM_Registrar::credential_snapshot_is_current( $credential_snapshot ) ) {
 					return [ 'ok' => false, 'error' => 'credential_epoch_changed', 'code' => 409, 'repair_required' => false ];
 				}
-				YOGB_BM_Registrar::handle_verified_control(
+				self::$active_apply_snapshot = null; // This owner now publishes its verified auth transition.
+					YOGB_BM_Registrar::handle_verified_control(
 					$payload,
 					$result,
 					(string) ( $context['credential_fingerprint'] ?? '' )
@@ -289,9 +353,10 @@ final class YOGB_BM_Tier_Webhook {
 		if ( $authoritative ) {
 			global $wpdb;
 			$placeholders = implode( ',', array_fill( 0, count( $names ), '%s' ) );
-			$rows = $wpdb->get_results( $wpdb->prepare( "SELECT option_name,option_value FROM {$wpdb->options} WHERE option_name IN ({$placeholders})", $names ), ARRAY_A );
+			$targets = array_combine( array_map( [ 'YOGB_BM_Recovery_Store', 'option_name' ], $names ), $names );
+			$rows = $wpdb->get_results( $wpdb->prepare( "SELECT option_name,option_value FROM {$wpdb->options} WHERE option_name IN ({$placeholders})", array_keys( $targets ) ), ARRAY_A );
 			foreach ( is_array( $rows ) ? $rows : [] as $row ) {
-				$values[ (string) $row['option_name'] ] = maybe_unserialize( $row['option_value'] );
+				$values[ $targets[ (string) $row['option_name'] ] ] = maybe_unserialize( $row['option_value'] );
 			}
 		} else {
 			foreach ( $names as $name ) {
@@ -444,8 +509,9 @@ final class YOGB_BM_Tier_Webhook {
 		return [ 'ok' => false, 'state' => 'busy' ];
 	}
 
-	private static function start_apply_mutex_guard( array $mutex ) : void {
+	private static function start_apply_mutex_guard( array $mutex, array $snapshot = [] ) : void {
 		self::$active_apply_mutex = $mutex;
+  self::$active_apply_snapshot = $snapshot ? YOGB_BM_Reconnect_Guard::context( $snapshot ) : null;
 		self::$apply_guard_filter = static function( $value ) {
 			self::require_active_apply_mutex();
 			return $value;
@@ -480,6 +546,7 @@ final class YOGB_BM_Tier_Webhook {
 		}
 		$mutex = is_array( self::$active_apply_mutex ) ? self::$active_apply_mutex : $fallback;
 		self::$active_apply_mutex = null;
+  self::$active_apply_snapshot = null;
 		self::$apply_guard_filter = null;
 		self::$apply_guard_action = null;
 		self::$apply_guard_query  = null;
@@ -488,6 +555,7 @@ final class YOGB_BM_Tier_Webhook {
 
 	private static function require_active_apply_mutex() : void {
 		global $wpdb;
+  if ( null !== self::$active_apply_snapshot && ! YOGB_BM_Reconnect_Guard::current( self::$active_apply_snapshot ) ) { throw new RuntimeException( 'credential_epoch_changed' ); }
 		$mutex = self::$active_apply_mutex;
 		if ( ! is_array( $mutex ) || empty( $mutex['value'] ) || empty( $mutex['token'] ) || ! isset( $mutex['expires_at'] ) ) {
 			throw new RuntimeException( 'yogb_control_apply_mutex_storage_failed' );
@@ -690,9 +758,9 @@ final class YOGB_BM_Tier_Webhook {
 	private static function apply_components( string $tier, array $components, string $local_tier, array $payload, int $verified_at ) : array {
 		$changes = [];
 		if ( $tier !== $local_tier ) {
-			update_option( self::OPTION_TIER, $tier, false );
-			update_option( self::OPTION_TIER_UPDATED_AT, current_time( 'mysql' ), false );
-			if ( 'free' !== $tier ) update_option( 'wc_blacklist_enable_global_blacklist', '1', false );
+			YOGB_BM_Recovery_Store::update_option( self::OPTION_TIER, $tier, false );
+			YOGB_BM_Recovery_Store::update_option( self::OPTION_TIER_UPDATED_AT, current_time( 'mysql' ), false );
+			if ( 'free' !== $tier ) YOGB_BM_Recovery_Store::update_option( 'wc_blacklist_enable_global_blacklist', '1', false );
 			YOGB_BM_Check::migrate_monthly_counter_on_tier_change( $local_tier, $tier, isset( $payload['ts'] ) ? (int) $payload['ts'] : null );
 			$changes[] = 'tier';
 		}
@@ -718,7 +786,7 @@ final class YOGB_BM_Tier_Webhook {
 		if ( $current === $plan ) return false;
 		$stored = $plan;
 		$stored['updated_at'] = time();
-		update_option( self::OPTION_PLAN_SUMMARY, $stored, false );
+		YOGB_BM_Recovery_Store::update_option( self::OPTION_PLAN_SUMMARY, $stored, false );
 		$has_key = '' !== (string) get_option( 'yogb_bm_subscription_key_last4', '' );
 		if ( in_array( $plan['type'], [ 'subscription', 'mixed' ], true ) || $has_key ) {
 			self::update_option_if_changed( 'yogb_bm_subscription_activation_status', $plan['active_subscriptions'] > 0 ? 'active' : 'inactive' );
@@ -742,7 +810,7 @@ final class YOGB_BM_Tier_Webhook {
 
 	private static function update_option_if_changed( string $name, $value ) : bool {
 		if ( get_option( $name, null ) === $value ) return false;
-		update_option( $name, $value, false );
+		YOGB_BM_Recovery_Store::update_option( $name, $value, false );
 		return true;
 	}
 
@@ -757,7 +825,7 @@ final class YOGB_BM_Tier_Webhook {
 		$cache = is_array( $cache ) ? $cache : [];
 		$cache[ $event_id ] = time();
 		arsort( $cache, SORT_NUMERIC );
-		update_option( self::OPTION_EVENT_CACHE, array_slice( $cache, 0, 50, true ), false );
+		YOGB_BM_Recovery_Store::update_option( self::OPTION_EVENT_CACHE, array_slice( $cache, 0, 50, true ), false );
 	}
 }
 

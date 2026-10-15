@@ -5,7 +5,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /** Durable client-side delivery queue for Global Blacklist writes. */
 final class YOGB_BM_Outbox {
-	const ACTION_HOOK = 'yogb_bm_process_outbox_item';
+	const ACTION_HOOK = 'yogb_bm_process_outbox_item_v2';
 	const SWEEP_HOOK  = 'yogb_bm_process_outbox_due';
 	const AUTH_RESUME_HOOK = 'yogb_bm_resume_auth_paused_outbox';
 	const AUTH_RESUME_BATCH = 20;
@@ -16,6 +16,7 @@ final class YOGB_BM_Outbox {
 	public static function init() : void {
 		add_filter( 'cron_schedules', [ __CLASS__, 'add_schedule' ] );
 		add_action( 'init', [ __CLASS__, 'schedule_sweep' ] );
+		add_action( 'admin_init', [ __CLASS__, 'upgrade_reconnect_schema' ] );
 		add_action( self::ACTION_HOOK, [ __CLASS__, 'process_action' ], 10, 1 );
 		add_action( self::SWEEP_HOOK, [ __CLASS__, 'process_due' ] );
 		add_action( self::AUTH_RESUME_HOOK, [ __CLASS__, 'resume_after_auth' ] );
@@ -54,6 +55,10 @@ final class YOGB_BM_Outbox {
 
 	/** Persist one immutable v2 request body without changing its bytes on replay. */
 	public static function enqueue_report_v2( string $body, string $idempotency, int $order_id, string $candidate_id, string $payload_hash, int $captured_at ) : int {
+  $result = YOGB_BM_Reconnect_Guard::run( null, static function() use ( $body, $idempotency, $order_id, $candidate_id, $payload_hash, $captured_at ) { return self::enqueue_report_v2_guarded( $body, $idempotency, $order_id, $candidate_id, $payload_hash, $captured_at ); } );
+  return is_int( $result ) ? $result : 0;
+ }
+ private static function enqueue_report_v2_guarded( string $body, string $idempotency, int $order_id, string $candidate_id, string $payload_hash, int $captured_at ) : int {
 		global $wpdb;
 		if ( ! self::ensure_table() || '' === $body || hash( 'sha256', $body ) !== $payload_hash || $captured_at <= 0 ) {
 			return 0;
@@ -72,8 +77,9 @@ final class YOGB_BM_Outbox {
 				'captured_at'  => $captured_at,
 			],
 		];
-		$existing = $wpdb->get_row( $wpdb->prepare( "SELECT id,status,payload_json FROM {$table} WHERE event_key=%s LIMIT 1", $event_key ), ARRAY_A );
+		$existing = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE event_key=%s LIMIT 1", $event_key ), ARRAY_A );
 		if ( $existing ) {
+   if ( self::quarantine_unreadable( $existing ) || 'quarantined' === $existing['status'] ) { return 0; }
 			$existing_body = self::decode_raw_payload( (string) $existing['payload_json'] );
 			if ( ! is_string( $existing_body ) || ! hash_equals( hash( 'sha256', $existing_body ), $payload_hash ) || ! hash_equals( $existing_body, $body ) ) {
 				do_action( 'yogb_bm_outbox_event', 'local_conflict', [ 'type' => 'report_v2' ] );
@@ -134,6 +140,44 @@ final class YOGB_BM_Outbox {
 		return $id;
 	}
 
+ /** Old/mixed callers cannot acquire successor authority through direct transport. */
+ public static function historical_request( string $route, array $payload, array $headers, array $snapshot ): bool {
+  $idempotency = '';
+  foreach ( $headers as $name => $value ) {
+   if ( in_array( strtolower( (string) $name ), [ 'idempotency-key', 'x-idempotency-key' ], true ) && is_scalar( $value ) ) { $idempotency = (string) $value; }
+  }
+  $keys = [];
+  if ( YOGB_BM_Report::REST_ROUTE . '/reports' === $route || YOGB_BM_Report::REST_ROUTE . '/reports/v2' === $route ) {
+   if ( '' !== $idempotency ) { $keys = [ hash( 'sha256', 'report|' . $idempotency ), hash( 'sha256', 'report_v2|' . $idempotency ) ]; }
+  } elseif ( in_array( $route, [ YOGB_BM_Report::REST_ROUTE . '/decision/outcomes', YOGB_BM_Report::REST_ROUTE . '/decision/outcomes/v2' ], true ) ) {
+   if ( '' !== $idempotency ) { $keys = [ hash( 'sha256', 'outcome|' . $idempotency ) ]; }
+  } elseif ( preg_match( '#^' . preg_quote( YOGB_BM_Report::REST_ROUTE, '#' ) . '/reports/[0-9]+/revoke$#D', $route ) ) {
+   $keys = [ hash( 'sha256', 'revoke|' . $route . '|' . self::canonical_json( $payload ) ) ];
+  }
+  if ( ! $keys ) { return false; }
+  return false !== YOGB_BM_Reconnect_Guard::run( $snapshot, static function() use ( $keys ) {
+   global $wpdb;
+   if ( ! YOGB_BM_Recovery_Store::active() ) { return false; }
+   $placeholders = implode( ',', array_fill( 0, count( $keys ), '%s' ) );
+   $found = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM " . YOGB_BM_Recovery_Store::archive() . " WHERE event_key IN ({$placeholders}) LIMIT 1", $keys ) );
+   return null !== $found || '' !== $wpdb->last_error;
+  } );
+ }
+ /** A refused historical event is never permission to use the legacy queue. */
+ public static function legacy_report_fallback_allowed( string $idempotency ): bool {
+  return self::legacy_fallback_allowed( hash( 'sha256', 'report|' . $idempotency ) );
+ }
+ public static function legacy_revoke_fallback_allowed( string $route, array $payload ): bool {
+  return self::legacy_fallback_allowed( hash( 'sha256', 'revoke|' . $route . '|' . self::canonical_json( $payload ) ) );
+ }
+ private static function legacy_fallback_allowed( string $key ): bool {
+  return true === YOGB_BM_Reconnect_Guard::run( null, static function() use ( $key ) {
+   global $wpdb;
+   if ( YOGB_BM_Recovery_Store::active() ) { return false; }
+   $status = $wpdb->get_var( $wpdb->prepare( "SELECT status FROM " . self::table() . " WHERE event_key=%s", $key ) );
+   return '' === $wpdb->last_error && 'quarantined' !== $status;
+  } );
+ }
 	public static function enqueue_revoke( string $route, array $payload ) : int {
 		return self::enqueue(
 			'revoke',
@@ -165,6 +209,10 @@ final class YOGB_BM_Outbox {
 	}
 
 	public static function retry_outcome( string $event_uuid, int $order_id ) : bool {
+  $result = YOGB_BM_Reconnect_Guard::run( null, static function() use ( $event_uuid, $order_id ) { return self::retry_outcome_guarded( $event_uuid, $order_id ); } );
+  return true === $result;
+ }
+ private static function retry_outcome_guarded( string $event_uuid, int $order_id ) : bool {
 		global $wpdb;
 		if ( ! wp_is_uuid( $event_uuid, 4 ) || $order_id <= 0 || ! self::ensure_table() ) {
 			return false;
@@ -182,11 +230,14 @@ final class YOGB_BM_Outbox {
 		if ( $id <= 0 ) {
 			return false;
 		}
+  $row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id=%d", $id ), ARRAY_A );
+  if ( ! is_array( $row ) || 'quarantined' === $row['status'] || self::quarantine_unreadable( $row ) ) { return false; }
 		$status  = self::auth_is_paused() ? 'auth_paused' : 'pending';
 		$updated = $wpdb->update(
 			$table,
 			[
 				'status'          => $status,
+    'claim_token'     => '',
 				'attempts'        => 0,
 				'next_attempt_at' => null,
 				'last_http_code'  => 0,
@@ -205,6 +256,10 @@ final class YOGB_BM_Outbox {
 	}
 
 	private static function enqueue( string $type, string $route, array $payload, array $headers, int $order_id, string $event_key ) : int {
+  $result = YOGB_BM_Reconnect_Guard::run( null, static function() use ( $type, $route, $payload, $headers, $order_id, $event_key ) { return self::enqueue_guarded( $type, $route, $payload, $headers, $order_id, $event_key ); } );
+  return is_int( $result ) ? $result : 0;
+ }
+ private static function enqueue_guarded( string $type, string $route, array $payload, array $headers, int $order_id, string $event_key ) : int {
 		global $wpdb;
 		if ( ! self::ensure_table() ) {
 			return 0;
@@ -220,10 +275,11 @@ final class YOGB_BM_Outbox {
 		}
 
 		$existing = $wpdb->get_row(
-			$wpdb->prepare( "SELECT id,status FROM {$table} WHERE event_key=%s LIMIT 1", $event_key ),
+			$wpdb->prepare( "SELECT * FROM {$table} WHERE event_key=%s LIMIT 1", $event_key ),
 			ARRAY_A
 		);
 		if ( $existing ) {
+   if ( self::quarantine_unreadable( $existing ) || 'quarantined' === $existing['status'] ) { return 0; }
 			$id = (int) $existing['id'];
 			if ( 'dead' === (string) $existing['status'] ) {
 				$wpdb->update(
@@ -286,69 +342,84 @@ final class YOGB_BM_Outbox {
 	}
 
 	public static function process_due() : void {
-		global $wpdb;
-		if ( ! self::ensure_table() ) {
-			return;
-		}
-		$table = self::table();
-		if ( self::auth_is_paused() ) {
-			$wpdb->query(
-				"UPDATE {$table} SET status='auth_paused',next_attempt_at=NULL,last_error='auth_paused_stale_claim'
-				WHERE status='processing' AND updated_at<DATE_SUB(UTC_TIMESTAMP(),INTERVAL 15 MINUTE)"
-			);
-			self::pause_for_auth();
-		} else {
-			$wpdb->query(
-				"UPDATE {$table} SET status='retry',next_attempt_at=UTC_TIMESTAMP(),last_error='stale_claim_recovered'
-				WHERE status='processing' AND updated_at<DATE_SUB(UTC_TIMESTAMP(),INTERVAL 15 MINUTE)"
-			);
-			self::resume_after_auth();
-		}
-		$ids = $wpdb->get_col(
-			"SELECT id FROM {$table}
-			WHERE status IN ('pending','retry','deferred') AND (next_attempt_at IS NULL OR next_attempt_at<=UTC_TIMESTAMP())
-			ORDER BY id ASC LIMIT 20"
-		);
-		foreach ( (array) $ids as $id ) {
-			self::process_id( (int) $id );
-		}
-		$wpdb->query( "DELETE FROM {$table} WHERE status='dead' AND updated_at<DATE_SUB(UTC_TIMESTAMP(),INTERVAL 30 DAY)" );
-	}
+  global $wpdb;
+  $ids = YOGB_BM_Reconnect_Guard::run( null, static function() use ( $wpdb ) {
+   if ( ! self::ensure_table() ) { return []; }
+   $table = self::table();
+   if ( self::auth_is_paused() ) {
+    $wpdb->query( "UPDATE {$table} SET status='auth_paused',claim_token='',next_attempt_at=NULL,last_error='auth_paused_stale_claim' WHERE status='processing' AND updated_at<DATE_SUB(UTC_TIMESTAMP(),INTERVAL 15 MINUTE)" );
+    self::pause_for_auth();
+   } else {
+    $wpdb->query( "UPDATE {$table} SET status='retry',claim_token='',next_attempt_at=UTC_TIMESTAMP(),last_error='stale_claim_recovered' WHERE status='processing' AND updated_at<DATE_SUB(UTC_TIMESTAMP(),INTERVAL 15 MINUTE)" );
+    self::resume_after_auth();
+   }
+   return $wpdb->get_col( "SELECT id FROM {$table} WHERE status IN ('pending','retry','deferred') AND (next_attempt_at IS NULL OR next_attempt_at<=UTC_TIMESTAMP()) ORDER BY id ASC LIMIT 20" );
+  } );
+  foreach ( is_array( $ids ) ? $ids : [] as $id ) { self::process_id( (int) $id ); }
+  YOGB_BM_Reconnect_Guard::run( null, static function() use ( $wpdb ) {
+   if ( ! self::ensure_table() ) { return; }
+   $table = self::table();
+   $dead = $wpdb->get_results( "SELECT * FROM {$table} WHERE status='dead' AND updated_at<DATE_SUB(UTC_TIMESTAMP(),INTERVAL 30 DAY) ORDER BY id LIMIT 20", ARRAY_A );
+   foreach ( (array) $dead as $item ) {
+    if ( ! self::quarantine_unreadable( $item ) ) { $wpdb->delete( $table, [ 'id' => (int) $item['id'], 'status' => 'dead' ] ); }
+   }
+  } );
+ }
 
 	private static function process_id( int $id ) : void {
 		global $wpdb;
-		if ( $id <= 0 || ! self::ensure_table() ) {
-			return;
-		}
-		$table = self::table();
+		if ( $id <= 0 ) { return; }
+  $preflight = YOGB_BM_Reconnect_Guard::run( null, static function() use ( $wpdb, $id ) {
+   if ( ! self::ensure_table() ) { return null; }
+   $table = self::table();
+
 		$before = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id=%d", $id ), ARRAY_A );
-		if ( ! $before ) {
-			return;
-		}
+		if ( ! $before || 'quarantined' === $before['status'] ) { return null; }
 		if ( self::auth_is_paused() ) {
 			if ( in_array( (string) $before['status'], [ 'pending', 'retry', 'processing' ], true ) ) {
 				self::mark_auth_paused_if_state( $id, (string) $before['status'], 0, 'auth_paused' );
 			}
-			return;
+			return null;
 		}
+		if ( self::quarantine_unreadable( $before ) ) { return null; }
 		if ( 'report_v2' === (string) $before['event_type'] && ! self::prepare_v2_for_delivery( $before ) ) {
-			return;
+			return null;
 		}
+   $snapshot = YOGB_BM_Registrar::committed_credential_snapshot();
+   $snapshot['outbox_table'] = $table;
+   return $snapshot;
+  } );
+  if ( ! is_array( $preflight ) || empty( $preflight['ok'] ) ) { return; }
+
+  $snapshot = $preflight; $table = $snapshot['outbox_table'];
+  $claim = wp_generate_uuid4();
+  $row = YOGB_BM_Reconnect_Guard::run( $snapshot, static function() use ( $wpdb, $table, $id, $claim ) {
+   if ( self::table() !== $table ) { return null; }
 		$claimed = $wpdb->query(
 			$wpdb->prepare(
-				"UPDATE {$table} SET status='processing',attempts=attempts+1,updated_at=UTC_TIMESTAMP()
+				"UPDATE {$table} SET status='processing',claim_token=%s,attempts=attempts+1,updated_at=UTC_TIMESTAMP()
 				WHERE id=%d AND status IN ('pending','retry') AND (next_attempt_at IS NULL OR next_attempt_at<=UTC_TIMESTAMP())",
+				$claim,
 				$id
 			)
 		);
 		if ( 1 !== $claimed ) {
-			return;
+			return null;
 		}
 
 		$row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id=%d", $id ), ARRAY_A );
 		if ( ! $row ) {
-			return;
+			return null;
 		}
+		return $row;
+  } );
+  if ( ! is_array( $row ) || ! isset( $row['id'] ) ) { return; }
+
+  $prepared = YOGB_BM_Reconnect_Guard::run( $snapshot, static function() use ( $wpdb, $table, $row, $id, $claim ) {
+   if ( self::table() !== $table || self::quarantine_unreadable( $row ) ) { return null; }
+   $owned = $wpdb->get_var( $wpdb->prepare( "SELECT claim_token FROM {$table} WHERE id=%d AND status='processing'", $id ) );
+   if ( ! is_string( $owned ) || ! hash_equals( $claim, $owned ) ) { return null; }
+
 		$is_v2   = 'report_v2' === (string) $row['event_type'];
 		$raw_body = $is_v2 ? self::decode_raw_payload( (string) $row['payload_json'] ) : null;
 		$payload = $is_v2 ? ( is_string( $raw_body ) ? json_decode( $raw_body, true ) : null ) : self::decode_payload( (string) $row['payload_json'] );
@@ -370,9 +441,41 @@ final class YOGB_BM_Outbox {
 			self::mark_dead( $id, 0, 'payload_hash_mismatch', true );
 			return;
 		}
+   return [ $is_v2, $raw_body, $payload, $headers, $local_v2, $outcome_ref, $outcome_uuid ];
+  } );
+  if ( ! is_array( $prepared ) || 7 !== count( $prepared ) ) { return; }
+  [ $is_v2, $raw_body, $payload, $headers, $local_v2, $outcome_ref, $outcome_uuid ] = $prepared;
+
 		$res  = $is_v2
-			? YOGB_BM_Report::post_raw_json_signed( (string) $row['route'], (string) $raw_body, $headers, $payload, true )
-			: YOGB_BM_Report::post_json_signed( (string) $row['route'], $payload, $headers );
+			? YOGB_BM_Report::post_raw_json_signed( (string) $row['route'], (string) $raw_body, $headers, $payload, true, $snapshot )
+			: YOGB_BM_Report::post_json_signed( (string) $row['route'], $payload, $headers, $snapshot );
+  if ( empty( $res['authority_context'] ) ) {
+   // Abandon only our still-owned claim. No response-driven projections or new claim mutation.
+   YOGB_BM_Reconnect_Guard::run( null, static function() use ( $wpdb, $table, $id, $claim, $snapshot ) {
+    if ( (string) ( $snapshot['recovery_epoch'] ?? '' ) !== YOGB_BM_Recovery_Store::epoch() || self::table() !== $table || self::auth_is_paused() ) { return; }
+    $updated = $wpdb->query( $wpdb->prepare(
+     "UPDATE {$table} SET status='retry',claim_token='',attempts=IF(attempts>0,attempts-1,0),next_attempt_at=DATE_ADD(UTC_TIMESTAMP(),INTERVAL 3 SECOND),last_error='stale_auth_epoch',updated_at=UTC_TIMESTAMP() WHERE id=%d AND status='processing' AND claim_token=%s",
+     $id, $claim
+    ) );
+    if ( 1 === $updated ) { self::schedule_item( $id, 3 ); }
+   } );
+   return;
+  }
+  YOGB_BM_Reconnect_Guard::run( $res['authority_context'] ?? [], static function() use ( $wpdb, $table, $row, $res, $id, $claim, $is_v2, $local_v2, $outcome_ref, $outcome_uuid ) {
+   if ( self::table() !== $table ) { return; }
+   $owned = $wpdb->get_row( $wpdb->prepare( "SELECT status,claim_token,last_http_code,attempts FROM {$table} WHERE id=%d", $id ), ARRAY_A );
+   if ( ! is_array( $owned ) || ! hash_equals( $claim, (string) $owned['claim_token'] ) ) { return; }
+   // The authorized 401 handler paused the exact claim under the same guard.
+   // Retain its token only as correlation until this outcome projection finishes.
+   if ( 'auth_paused' === $owned['status'] && 401 === (int) ( $res['code'] ?? 0 ) && 401 === (int) $owned['last_http_code'] && self::auth_is_paused() ) {
+    if ( 'outcome' === (string) $row['event_type'] ) {
+     self::store_outcome_delivery( (int) $row['order_id'], 'auth_paused', $outcome_ref, $outcome_uuid, 401, 'auth_paused', (int) $owned['attempts'], '' );
+    }
+    $wpdb->update( $table, [ 'claim_token' => '' ], [ 'id' => $id, 'status' => 'auth_paused', 'claim_token' => $claim ] );
+    return;
+   }
+   if ( 'processing' !== $owned['status'] ) { return; }
+
 		$code = (int) ( $res['code'] ?? 0 );
 		if ( ! empty( $res['ok'] ) ) {
 			if ( in_array( (string) $row['event_type'], [ 'report', 'report_v2' ], true ) ) {
@@ -462,17 +565,23 @@ final class YOGB_BM_Outbox {
 			self::store_outcome_delivery( (int) $row['order_id'], 'retrying', $outcome_ref, $outcome_uuid, $code, $error, $attempts, $next );
 		}
 		do_action( 'yogb_bm_outbox_event', 'retry', [ 'type' => (string) $row['event_type'], 'code' => $code, 'attempts' => $attempts ] );
-	}
+
+  } );
+}
 
 	/** Pause only claimable durable delivery; capability-deferred v2 rows remain deferred. */
-	public static function pause_for_auth() : int {
+	public static function pause_for_auth( int $code = 0 ) : int {
+  $result = YOGB_BM_Reconnect_Guard::run( null, static function() use ( $code ) { return self::pause_for_auth_guarded( $code ); } );
+  return is_int( $result ) ? $result : 0;
+ }
+ private static function pause_for_auth_guarded( int $code ) : int {
 		global $wpdb;
 		if ( ! self::ensure_table() ) {
 			return 0;
 		}
 		$updated = $wpdb->query(
-			"UPDATE " . self::table() . " SET status='auth_paused',next_attempt_at=NULL,last_error='auth_paused',updated_at=UTC_TIMESTAMP()
-			WHERE status IN ('pending','retry')"
+			"UPDATE " . self::table() . " SET attempts=IF(status='processing' AND attempts>0,attempts-1,attempts),last_http_code=IF(status='processing'," . (int) $code . ",last_http_code),claim_token=IF(status='processing',claim_token,''),status='auth_paused',next_attempt_at=NULL,last_error='auth_paused',updated_at=UTC_TIMESTAMP()
+			WHERE status IN ('pending','retry','processing')"
 		);
 		if ( false === $updated ) {
 			return 0;
@@ -489,6 +598,10 @@ final class YOGB_BM_Outbox {
 
 	/** Resume one bounded batch; route v2 through its existing capability gate again. */
 	public static function resume_after_auth() : int {
+  $result = YOGB_BM_Reconnect_Guard::run( null, static function() { return self::resume_after_auth_guarded(); } );
+  return is_int( $result ) ? $result : 0;
+ }
+ private static function resume_after_auth_guarded() : int {
 		global $wpdb;
 		if ( self::auth_is_paused() || ! self::ensure_table() ) {
 			return 0;
@@ -496,7 +609,7 @@ final class YOGB_BM_Outbox {
 		$table = self::table();
 		$rows  = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT id,event_type FROM {$table} WHERE status='auth_paused' ORDER BY id ASC LIMIT %d",
+				"SELECT * FROM {$table} WHERE status='auth_paused' ORDER BY id ASC LIMIT %d",
 				self::AUTH_RESUME_BATCH
 			),
 			ARRAY_A
@@ -509,12 +622,13 @@ final class YOGB_BM_Outbox {
 		self::schedule_auth_resume();
 		$count = 0;
 		foreach ( is_array( $rows ) ? $rows : [] as $row ) {
+			if ( self::quarantine_unreadable( $row ) ) { continue; }
 			$id      = (int) $row['id'];
 			$is_v2   = 'report_v2' === (string) $row['event_type'];
 			$status  = $is_v2 ? 'deferred' : 'pending';
 			$updated = $wpdb->update(
 				$table,
-				[ 'status' => $status, 'next_attempt_at' => null, 'last_http_code' => 0, 'last_error' => '', 'updated_at' => current_time( 'mysql', true ) ],
+				[ 'status' => $status, 'claim_token' => '', 'next_attempt_at' => null, 'last_http_code' => 0, 'last_error' => '', 'updated_at' => current_time( 'mysql', true ) ],
 				[ 'id' => $id, 'status' => 'auth_paused' ]
 			);
 			if ( 1 === $updated ) {
@@ -532,7 +646,7 @@ final class YOGB_BM_Outbox {
 		$updated = $wpdb->query(
 			$wpdb->prepare(
 				"UPDATE " . self::table() . "
-				SET status='auth_paused',next_attempt_at=NULL,last_http_code=%d,last_error=%s,updated_at=UTC_TIMESTAMP(),
+				SET status='auth_paused',claim_token='',next_attempt_at=NULL,last_http_code=%d,last_error=%s,updated_at=UTC_TIMESTAMP(),
 					attempts={$attempts_sql}
 				WHERE id=%d AND status=%s",
 				$code,
@@ -609,6 +723,12 @@ final class YOGB_BM_Outbox {
 	}
 
 	private static function prepare_v2_for_delivery( array $row ) : bool {
+  $result = YOGB_BM_Reconnect_Guard::run( null, static function() use ( $row ) { return self::prepare_v2_for_delivery_guarded( $row ); } );
+  return true === $result;
+ }
+ private static function prepare_v2_for_delivery_guarded( array $row ) : bool {
+		if ( self::quarantine_unreadable( $row ) ) { return false; }
+
 		global $wpdb;
 		$headers = json_decode( (string) ( $row['headers_json'] ?? '' ), true );
 		$meta    = is_array( $headers ) ? (array) ( $headers['__yogb_v2'] ?? [] ) : [];
@@ -677,6 +797,13 @@ final class YOGB_BM_Outbox {
 	}
 
 	private static function mark_dead( int $id, int $code, string $error, bool $clear_payload = true ) : void {
+  YOGB_BM_Reconnect_Guard::run( null, static function() use ( $id, $code, $error, $clear_payload ) { self::mark_dead_guarded( $id, $code, $error, $clear_payload ); } );
+ }
+ private static function mark_dead_guarded( int $id, int $code, string $error, bool $clear_payload = false ) : void {
+  global $wpdb;
+  $old = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM " . self::table() . " WHERE id=%d", $id ), ARRAY_A );
+  if ( $old && self::quarantine_unreadable( $old ) ) { return; }
+
 		global $wpdb;
 		$values = [
 			'status'          => 'dead',
@@ -760,32 +887,91 @@ final class YOGB_BM_Outbox {
 
 	private static function ensure_table() : bool {
 		global $wpdb;
-		if ( self::$table_ready ) {
+		if ( self::$table_ready === self::table() ) {
 			return true;
 		}
 		$table = self::table();
 		if ( $table === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) ) {
-			self::$table_ready = true;
-			return true;
+			self::$table_ready = self::claim_schema_ready() ? $table : false;
+			return false !== self::$table_ready;
 		}
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 		$charset = $wpdb->get_charset_collate();
 		$sql = "CREATE TABLE {$table} (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,event_key varchar(64) NOT NULL,event_type varchar(20) NOT NULL,
 			route varchar(255) NOT NULL,payload_json longtext NOT NULL,headers_json text NOT NULL,order_id bigint(20) unsigned NOT NULL DEFAULT 0,
-			attempts int(10) unsigned NOT NULL DEFAULT 0,max_attempts int(10) unsigned NOT NULL DEFAULT 8,status varchar(20) NOT NULL DEFAULT 'pending',
+			attempts int(10) unsigned NOT NULL DEFAULT 0,max_attempts int(10) unsigned NOT NULL DEFAULT 8,status varchar(20) NOT NULL DEFAULT 'pending',claim_token char(36) NOT NULL DEFAULT '',
 			next_attempt_at datetime DEFAULT NULL,last_http_code int(11) NOT NULL DEFAULT 0,last_error varchar(255) NOT NULL DEFAULT '',
 			created_at datetime NOT NULL,updated_at datetime NOT NULL,PRIMARY KEY  (id),UNIQUE KEY event_key (event_key),
 			KEY status_next (status,next_attempt_at),KEY order_id (order_id)
 		) {$charset};";
 		dbDelta( $sql );
-		self::$table_ready = ( $table === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) );
-		return self::$table_ready;
+		$ready = ( $table === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) ) && self::claim_schema_ready();
+		self::$table_ready = $ready ? $table : false;
+		return $ready;
 	}
+
+
+ public static function reconnect_schema_ready() : bool {
+  global $wpdb;
+  return self::ensure_table() && self::claim_schema_ready() && 'InnoDB' === $wpdb->get_var( $wpdb->prepare(
+   'SELECT ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=%s', self::table()
+  ) );
+ }
+ public static function inventory_limit() : int {
+  global $wpdb;
+  return self::reconnect_schema_ready() ? (int) $wpdb->get_var( "SELECT MAX(id) FROM " . self::table() ) : 0;
+ }
+ public static function inventory_batch( int $cursor, int $limit ) : int {
+  global $wpdb;
+  if ( ! self::reconnect_schema_ready() ) { return $cursor; }
+  $rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM " . self::table() . " WHERE id>%d AND id<=%d ORDER BY id LIMIT 20", $cursor, $limit ), ARRAY_A );
+  foreach ( (array) $rows as $row ) { self::quarantine_unreadable( $row ); $cursor = (int) $row['id']; }
+  return count( (array) $rows ) < 20 ? $limit : $cursor;
+ }
+
+ private static function claim_schema_ready() : bool {
+  global $wpdb;
+  return 'char' === $wpdb->get_var( $wpdb->prepare(
+   "SELECT DATA_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=%s AND COLUMN_NAME='claim_token' AND CHARACTER_MAXIMUM_LENGTH=36",
+   self::table()
+  ) );
+ }
+ public static function upgrade_reconnect_schema() : void {
+  global $wpdb;
+  if ( ! current_user_can( 'manage_options' ) || self::claim_schema_ready() ) { return; }
+  YOGB_BM_Reconnect_Guard::run( null, static function() use ( $wpdb ) {
+   if ( ! self::claim_schema_ready() && self::table() === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', self::table() ) ) ) {
+    $wpdb->query( "ALTER TABLE " . self::table() . " ADD COLUMN claim_token CHAR(36) NOT NULL DEFAULT ''" );
+   }
+  } );
+ }
+ private static function quarantine_unreadable( array $row ) : bool {
+  $result = YOGB_BM_Reconnect_Guard::run( null, static function() use ( $row ) { return self::quarantine_unreadable_guarded( $row ); } );
+  return true === $result;
+ }
+ private static function quarantine_unreadable_guarded( array $row ) : bool {
+  global $wpdb;
+  $encoded = (string) $row['payload_json'];
+  $encrypted = 0 === strpos( $encoded, 'enc1:' ) || 0 === strpos( $encoded, 'rawenc1:' );
+  if ( ! $encrypted ) { return false; }
+  $decoded = 'report_v2' === $row['event_type'] ? self::decode_raw_payload( $encoded ) : self::decode_payload( $encoded );
+  if ( null !== $decoded ) { return false; }
+  $wpdb->query( $wpdb->prepare(
+   "UPDATE " . self::table() . " SET status='quarantined',claim_token='',next_attempt_at=NULL,last_error='historical_key_unavailable' WHERE id=%d AND BINARY payload_json=BINARY %s",
+   (int) $row['id'], $encoded
+  ) );
+  return true;
+ }
+ public static function historical_queue_count() : int {
+  global $wpdb;
+  if ( ! self::ensure_table() ) { return 0; }
+  return (int) $wpdb->get_var( "SELECT COUNT(*) FROM " . self::table() . " WHERE status='quarantined'" );
+ }
 
 	private static function table() : string {
 		global $wpdb;
-		return $wpdb->prefix . 'wc_blacklist_gbl_outbox';
+		return YOGB_BM_Recovery_Store::active() ? YOGB_BM_Recovery_Store::queue() : YOGB_BM_Recovery_Store::legacy_table();
 	}
 
 	private static function encode_payload( array $payload, bool $requires_encryption = false ) : string {

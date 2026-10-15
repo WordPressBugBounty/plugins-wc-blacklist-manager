@@ -41,10 +41,16 @@ final class YOGB_BM_Subscription_Activation {
 			self::store( [ 'error' => self::error_message( (string) ( $result['error_code'] ?? '' ) ) ] );
 			wp_safe_redirect( $redirect ); exit;
 		}
+  $stored = YOGB_BM_Reconnect_Guard::run( $result['authority_context'] ?? [], static function() use ( $body, $key ) {
+
 		update_option( 'yogb_bm_subscription_key_last4', substr( str_replace( '-', '', $key ), -4 ), false );
 		update_option( 'yogb_bm_subscription_id', sanitize_text_field( (string) ( $body['subscription_id'] ?? '' ) ), false );
 		update_option( 'yogb_bm_subscription_activation_status', 'active', false );
 		if ( ! get_option( 'yogb_bm_subscription_activated_at' ) ) update_option( 'yogb_bm_subscription_activated_at', time(), false );
+
+  return true;
+  } );
+  if ( true !== $stored ) { self::store( [ 'error' => 'Connection changed; retry the activation.' ] ); wp_safe_redirect( $redirect ); exit; }
 
 		// The activation response confirms the command, but tier and plan state are
 		// only trusted after the normal signed snapshot pull verifies its HMAC.

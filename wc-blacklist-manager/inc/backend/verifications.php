@@ -172,21 +172,14 @@ class WC_Blacklist_Manager_Verifications {
 			}
 
 			// Unslash and sanitize the nonce field
-			$nonce = sanitize_text_field(wp_unslash($_POST['wc_blacklist_verifications_nonce']));
+			$nonce = $_POST['wc_blacklist_verifications_nonce'];
+			if ( ! is_string( $nonce ) ) { return ''; }
+			$nonce = wp_unslash( $nonce );
 			
 			// Verify nonce
 			if (wp_verify_nonce($nonce, 'wc_blacklist_verifications_action')) {
-				// Sanitize the 'message' field if it is present
-				$message = isset($_POST['message']) ? sanitize_textarea_field(wp_unslash($_POST['message'])) : '';
-	
-				// Store the sanitized 'message' field in the settings
-				$this->save_settings($message);
-	
-				// Display success or error message
-				if (!get_settings_errors('wc_blacklist_verifications_settings')) {
-					add_settings_error('wc_blacklist_verifications_settings', 'settings_saved', __('Changes saved successfully.', 'wc-blacklist-manager'), 'updated');
-				}
-	
+				$this->save_settings();
+
 				// Return an empty string as the message will be handled by settings_errors()
 				return '';
 			}
@@ -241,109 +234,96 @@ class WC_Blacklist_Manager_Verifications {
 	private function save_settings() {
 		$premium_active = function_exists( 'wc_blacklist_manager_is_premium_available' )
 			&& wc_blacklist_manager_is_premium_available();
-
-		$email_verification_enabled = isset($_POST['email_verification_enabled']) ? '1' : '0';
-		$checkout_verification_interface = isset( $_POST['checkout_verification_interface'] )
-			? WC_Blacklist_Manager_Checkout_Verification_Coordinator::sanitize_interface( wp_unslash( $_POST['checkout_verification_interface'] ) )
-			: 'inline';
-		$email_verification_action = isset($_POST['email_verification_action'])
-			? sanitize_text_field(wp_unslash($_POST['email_verification_action']))
-			: 'all';
-		$email_subject = isset($_POST['email_verification_subject'])
-			? sanitize_text_field( $this->get_posted_value( 'email_verification_subject' ) )
-			: '';
-		$email_heading = isset($_POST['email_verification_heading'])
-			? sanitize_text_field( $this->get_posted_value( 'email_verification_heading' ) )
-			: '';
-		if ( isset( $_POST['email_verification_message'] ) ) {
-			$email_message = wp_kses_post( $this->get_posted_value( 'email_verification_message' ) );
-		} else {
-			$email_message = '';
-		}
-
-		$email_subject = !empty($email_subject) ? wp_kses_post($email_subject) : $this->default_email_subject;
-		$email_heading = !empty($email_heading) ? wp_kses_post($email_heading) : $this->default_email_heading;
-		$email_message = !empty($email_message) ? wp_kses_post($email_message) : $this->default_email_message;
-
-		if (strpos($email_message, '{code}') === false) {
-			add_settings_error('wc_blacklist_verifications_settings', 'invalid_message', __('The message must contain the {code} placeholder.', 'wc-blacklist-manager'), 'error');
-			return;
-		}
-
-		$email_verification_settings = [
-			'resend' => isset($_POST['email_verification_resend']) ? intval(wp_unslash($_POST['email_verification_resend'])) : 180,
-			'subject' => $email_subject,
-			'heading' => $email_heading,
-			'message' => $email_message,
-		];
-
-		$email_verification_real_time_validate    = isset( $_POST['email_verification_real_time_validate'] ) ? '1' : '0';
-		$email_verification_disposable            = isset( $_POST['email_verification_disposable'] ) ? '1' : '0';
-		$phone_verification_disposable            = isset( $_POST['phone_verification_disposable'] ) ? '1' : '0';
-		$phone_verification_real_time_validate    = isset( $_POST['phone_verification_real_time_validate'] ) ? '1' : '0';
-		$name_verification_auto_capitalization    = isset( $_POST['name_verification_auto_capitalization'] ) ? '1' : '0';
-		$name_verification_real_time_validate     = isset( $_POST['name_verification_real_time_validate'] ) ? '1' : '0';
-		$phone_verification_country_code_disabled = isset( $_POST['phone_verification_country_code_disabled'] ) ? '1' : '0';
-
-		if ( ! $premium_active ) {
-			$email_verification_settings = get_option(
-				'wc_blacklist_email_verification',
-				array(
-					'resend'  => 180,
-					'subject' => $this->default_email_subject,
-					'heading' => $this->default_email_heading,
-					'message' => $this->default_email_message,
-				)
-			);
-			$email_verification_real_time_validate    = '0';
-			$email_verification_disposable            = '0';
-			$phone_verification_disposable            = '0';
-			$phone_verification_real_time_validate    = '0';
-			$name_verification_auto_capitalization    = '0';
-			$name_verification_real_time_validate     = '0';
-			$phone_verification_country_code_disabled = '0';
-		}
-
-		// BM-0191: a compatible Premium may publish its private capability
-		// projection.  Its absence deliberately preserves the supported legacy
-		// Core/Premium pairing instead of treating an old Premium as broken.
-		$projection = apply_filters( 'wc_blacklist_manager_integration_capabilities_v1', null );
-		if ( is_array( $projection ) && 1 === (int) ( $projection['version'] ?? 0 ) && is_array( $projection['capabilities'] ?? null ) ) {
-			$required = array(
-				'zerobounce_email' => array( 'value' => &$email_verification_real_time_validate, 'option' => 'wc_blacklist_email_verification_real_time_validate', 'label' => __( 'Email address validation requires a working ZeroBounce integration.', 'wc-blacklist-manager' ) ),
-				'bigdatacloud_email' => array( 'value' => &$email_verification_disposable, 'option' => 'wc_blacklist_email_verification_disposable', 'label' => __( 'Disposable email blocking requires a working BigDataCloud integration.', 'wc-blacklist-manager' ) ),
-				'numcheckr_phone' => array( 'value' => &$phone_verification_disposable, 'option' => 'wc_blacklist_manager_premium_enable_numcheckr', 'label' => __( 'Disposable phone blocking requires a working NumCheckr integration.', 'wc-blacklist-manager' ) ),
-			);
-			foreach ( $required as $capability => &$dependency ) {
-				$state = (string) ( $projection['capabilities'][ $capability ]['state'] ?? 'UNKNOWN' );
-				if ( '1' === $dependency['value'] && 'MISCONFIGURED' === $state ) {
-					// A relevant administrator save durably reconciles hard failure.
-					$dependency['value'] = '0';
-					add_settings_error( 'wc_blacklist_verifications_settings', 'integration_' . $capability, $dependency['label'] . ' ' . __( 'Configure it in Integrations, then save again.', 'wc-blacklist-manager' ), 'error' );
+		$woocommerce_active = class_exists( 'WooCommerce' );
+		// Field intent marks unchecked controls in the actual rendered form. It
+		// never grants entitlement: intersect it with current server ownership.
+		$intent = $_POST['wc_blacklist_verifications_fields'] ?? array();
+		if ( ! is_array( $intent ) ) { return; }
+		$checkboxes = array();
+		if ( $woocommerce_active ) { $checkboxes['email_verification_enabled'] = 'wc_blacklist_email_verification_enabled'; }
+		if ( $premium_active ) {
+			$checkboxes['email_verification_real_time_validate'] = 'wc_blacklist_email_verification_real_time_validate';
+			$checkboxes['email_verification_disposable'] = 'wc_blacklist_email_verification_disposable';
+			if ( $woocommerce_active ) {
+				$checkboxes['phone_verification_disposable'] = 'wc_blacklist_manager_premium_enable_numcheckr';
+				$checkboxes['phone_verification_real_time_validate'] = 'wc_blacklist_phone_verification_real_time_validate';
+				$checkboxes['name_verification_auto_capitalization'] = 'wc_blacklist_name_verification_auto_capitalization';
+				$checkboxes['name_verification_real_time_validate'] = 'wc_blacklist_name_verification_real_time_validate';
+				$countries = get_option( 'woocommerce_specific_allowed_countries', array() );
+				if ( 'specific' !== get_option( 'woocommerce_allowed_countries', 'all' ) || ! is_array( $countries ) || 1 !== count( $countries ) ) {
+					$checkboxes['phone_verification_country_code_disabled'] = 'wc_blacklist_phone_verification_country_code_disabled';
 				}
 			}
-			unset( $dependency );
 		}
-
-		update_option( 'wc_blacklist_email_verification_enabled', $email_verification_enabled );
-		update_option( WC_Blacklist_Manager_Checkout_Verification_Coordinator::SETTING_OPTION, $checkout_verification_interface );
-		update_option( 'wc_blacklist_email_verification_action', $email_verification_action );
-		update_option( 'wc_blacklist_email_verification', $email_verification_settings );
-		update_option( 'wc_blacklist_email_verification_real_time_validate', $email_verification_real_time_validate );
-		update_option( 'wc_blacklist_email_verification_disposable', $email_verification_disposable );
-		update_option( 'wc_blacklist_manager_premium_enable_numcheckr', $phone_verification_disposable );
-		update_option( 'wc_blacklist_phone_verification_real_time_validate', $phone_verification_real_time_validate );
-		update_option( 'wc_blacklist_name_verification_auto_capitalization', $name_verification_auto_capitalization );
-		update_option( 'wc_blacklist_name_verification_real_time_validate', $name_verification_real_time_validate );
-		update_option( 'wc_blacklist_phone_verification_country_code_disabled', $phone_verification_country_code_disabled );
-
-		if ( has_action( 'wc_blacklist_manager_save_phone_verification_settings' ) ) {
+		$patch = array();
+		foreach ( $checkboxes as $field => $option ) {
+			if ( array_key_exists( $field, $_POST ) && ! is_string( $_POST[ $field ] ) ) { return; }
+			if ( array_key_exists( $field, $intent ) && '1' !== $intent[ $field ] ) { return; }
+			if ( isset( $_POST[ $field ] ) || isset( $intent[ $field ] ) ) {
+				$patch[ $option ] = isset( $_POST[ $field ] ) && '1' === $_POST[ $field ] ? '1' : '0';
+			}
+		}
+		if ( $woocommerce_active ) {
+			foreach ( array( 'checkout_verification_interface' => WC_Blacklist_Manager_Checkout_Verification_Coordinator::SETTING_OPTION, 'email_verification_action' => 'wc_blacklist_email_verification_action' ) as $field => $option ) {
+				if ( ! array_key_exists( $field, $_POST ) ) { continue; }
+				if ( ! is_string( $_POST[ $field ] ) ) { return; }
+				$value = wp_unslash( $_POST[ $field ] );
+				if ( 'email_verification_action' === $field && ! in_array( $value, array( 'all', 'suspect' ), true ) ) { return; }
+				$patch[ $option ] = 'checkout_verification_interface' === $field
+					? WC_Blacklist_Manager_Checkout_Verification_Coordinator::sanitize_interface( $value ) : $value;
+			}
+		}
+		if ( $premium_active && $woocommerce_active ) {
+			$template_patch = array();
+			foreach ( array( 'resend', 'subject', 'heading', 'message' ) as $member ) {
+				$field = 'email_verification_' . $member;
+				if ( ! array_key_exists( $field, $_POST ) ) { continue; }
+				if ( ! is_string( $_POST[ $field ] ) ) { return; }
+				$value = wp_unslash( $_POST[ $field ] );
+				if ( 'resend' === $member ) { $value = intval( $value ); }
+				else {
+					$value = 'message' === $member ? wp_kses_post( $value ) : sanitize_text_field( $value );
+					$value = ! empty( $value ) ? $value : $this->{'default_email_' . $member};
+				}
+				if ( 'message' === $member && false === strpos( $value, '{code}' ) ) {
+					add_settings_error( 'wc_blacklist_verifications_settings', 'invalid_message', __( 'The message must contain the {code} placeholder.', 'wc-blacklist-manager' ), 'error' );
+					return;
+				}
+				$template_patch[ $member ] = $value;
+			}
+			if ( $template_patch ) {
+				$stored = get_option( 'wc_blacklist_email_verification', array() );
+				if ( ! is_array( $stored ) ) { return; }
+				$patch['wc_blacklist_email_verification'] = array_replace( $stored, $template_patch );
+			}
+		}
+		// BM-0191 hard failures reconcile only a related, currently authorized
+		// Premium field. Missing/hidden preferences are never reconciled here.
+		if ( $premium_active ) {
+			$projection = apply_filters( 'wc_blacklist_manager_integration_capabilities_v1', null );
+			if ( is_array( $projection ) && 1 === (int) ( $projection['version'] ?? 0 ) && is_array( $projection['capabilities'] ?? null ) ) {
+				foreach ( array( 'zerobounce_email' => 'wc_blacklist_email_verification_real_time_validate', 'bigdatacloud_email' => 'wc_blacklist_email_verification_disposable', 'numcheckr_phone' => 'wc_blacklist_manager_premium_enable_numcheckr' ) as $capability => $option ) {
+					if ( isset( $patch[ $option ] ) && '1' === $patch[ $option ] && 'MISCONFIGURED' === ( $projection['capabilities'][ $capability ]['state'] ?? '' ) ) {
+						$patch[ $option ] = '0';
+						add_settings_error( 'wc_blacklist_verifications_settings', 'integration_' . $capability, __( 'Configure the required integration in Integrations, then save again.', 'wc-blacklist-manager' ), 'error' );
+					}
+				}
+			}
+		}
+		// The phone owner accepts a complete phone section; never default its
+		// absent fields during a partial email-only or unentitled submission.
+		$phone_form = $premium_active && $woocommerce_active;
+		foreach ( array( 'sms_service', 'phone_verification_action', 'code_length', 'resend', 'limit', 'message' ) as $field ) {
+			$phone_form = $phone_form && isset( $_POST[ $field ] ) && is_string( $_POST[ $field ] );
+		}
+		if ( isset( $_POST['phone_verification_enabled'] ) && ! is_string( $_POST['phone_verification_enabled'] ) ) { return; }
+		foreach ( $patch as $option => $value ) { update_option( $option, $value ); }
+		if ( $phone_form && has_action( 'wc_blacklist_manager_save_phone_verification_settings' ) ) {
 			do_action( 'wc_blacklist_manager_save_phone_verification_settings' );
-		} elseif ( $premium_active && ! defined( 'WC_BLACKLIST_MANAGER_PREMIUM_PHONE_CHANNEL_CONTRACT_VERSION' ) ) {
+		} elseif ( $phone_form && ! defined( 'WC_BLACKLIST_MANAGER_PREMIUM_PHONE_CHANNEL_CONTRACT_VERSION' ) ) {
 			$this->save_legacy_premium_phone_settings();
 		}
-
-		if ( ! get_settings_errors( 'wc_blacklist_verifications_settings' ) ) {
+		if ( ( $patch || $phone_form ) && ! get_settings_errors( 'wc_blacklist_verifications_settings' ) ) {
 			add_settings_error( 'wc_blacklist_verifications_settings', 'settings_saved', __( 'Settings saved successfully.', 'wc-blacklist-manager' ), 'updated' );
 		}
 	}

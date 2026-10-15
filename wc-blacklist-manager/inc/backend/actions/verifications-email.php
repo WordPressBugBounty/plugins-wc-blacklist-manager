@@ -8,6 +8,9 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 	private $whitelist_table;
 	private $blacklist_table;
 
+	private $classic_checkout_started = false;
+	private $classic_email_audit = null;
+
 	private $session_state_key = 'wc_blacklist_email_verification_state';
 
 	private $resend_cooldown_seconds;
@@ -40,6 +43,12 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 		$coordinator_registered = function_exists( 'wc_blacklist_manager_register_checkout_verification_channel' );
 		if ( $coordinator_registered ) {
 			wc_blacklist_manager_register_checkout_verification_channel( $this );
+			add_action( 'woocommerce_before_checkout_process', array( $this, 'begin_classic_email_audit' ), 0 );
+			add_action( 'woocommerce_after_checkout_validation', array( $this, 'capture_classic_email_audit' ), PHP_INT_MAX, 2 );
+			add_action( 'woocommerce_created_customer', array( $this, 'observe_classic_audit_customer' ), 10, 2 );
+			add_action( 'set_current_user', array( $this, 'observe_classic_audit_authentication' ) );
+			add_action( 'woocommerce_checkout_create_order', array( $this, 'bind_classic_email_audit_order' ), PHP_INT_MAX, 1 );
+			add_action( 'woocommerce_checkout_order_exception', array( $this, 'reset_classic_email_audit' ) );
 		}
 
 		if ( ! $coordinator_registered ) {
@@ -1004,6 +1013,143 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 				array( 'email' => $normalized_email, 'verified_email' => 1 ),
 				array( '%s', '%d' )
 			);
+		}
+	}
+
+	private function classic_audit_context_allowed() {
+		return defined( 'WOOCOMMERCE_CHECKOUT' ) && WOOCOMMERCE_CHECKOUT
+			&& ! ( defined( 'REST_REQUEST' ) && REST_REQUEST ) && ! is_admin()
+			&& ! ( function_exists( 'is_checkout_pay_page' ) && is_checkout_pay_page() );
+	}
+
+	public function reset_classic_email_audit() {
+		$this->classic_email_audit = null;
+		$this->classic_checkout_started = false;
+	}
+
+	public function begin_classic_email_audit() {
+		$this->reset_classic_email_audit();
+		$this->classic_checkout_started = $this->classic_audit_context_allowed() && 0 === get_current_user_id();
+	}
+
+	public function capture_classic_email_audit( $data, $errors ) {
+		$this->classic_email_audit = null;
+		if ( ! $this->classic_checkout_started || ! $this->classic_audit_context_allowed()
+			|| get_current_user_id() || ! is_array( $data ) || ! empty( $data['woocommerce_checkout_update_totals'] )
+			|| ! is_wp_error( $errors ) || $errors->get_error_codes() || wc_notice_count( 'error' )
+			|| ! $this->uses_otp_state_contract() ) {
+			return;
+		}
+		try {
+			$coordinator = wc_blacklist_manager_checkout_verification_coordinator();
+			if ( ! $coordinator->project_state( $data )['ready'] ) { return; }
+			$email = $this->canonical_email_from_context( $data );
+			$service = wc_blacklist_manager_otp_state();
+			$subject = $service->resolve_subject();
+			if ( '' === $email || is_wp_error( $subject ) || 'guest' !== $subject['type'] ) { return; }
+			$proof = $service->inspect_email_order_audit_proof( $subject['key'], $email );
+			if ( ! $proof || empty( $proof['proof_id'] ) || ! WC()->session ) { return; }
+			$this->classic_email_audit = array(
+				'email' => $email, 'subject' => $subject['key'], 'proof' => $proof,
+				'session' => WC()->session, 'guest_id' => (string) WC()->session->get_customer_id(),
+				'customer_id' => 0, 'authenticated' => false, 'order' => null, 'written' => false,
+			);
+		} catch ( \Throwable $e ) {
+			$this->reset_classic_email_audit();
+		}
+	}
+
+	public function observe_classic_audit_customer( $customer_id, $customer_data ) {
+		$audit = $this->classic_email_audit;
+		if ( ! $audit ) { return; }
+		if ( ! $this->classic_audit_context_allowed() || get_current_user_id() || $audit['customer_id']
+			|| ! is_array( $customer_data ) || empty( $customer_data['user_email'] ) || (int) $customer_id <= 0
+			|| $audit['email'] !== sanitize_email( $customer_data['user_email'] )
+			|| WC()->session !== $audit['session'] || (string) WC()->session->get_customer_id() !== $audit['guest_id'] ) {
+			$this->reset_classic_email_audit();
+			return;
+		}
+		$this->classic_email_audit['customer_id'] = (int) $customer_id;
+	}
+
+	public function observe_classic_audit_authentication() {
+		$audit = $this->classic_email_audit;
+		if ( ! $audit ) { return; }
+		if ( ! $audit['customer_id'] || $audit['authenticated'] || get_current_user_id() !== $audit['customer_id'] ) {
+			$this->reset_classic_email_audit();
+			return;
+		}
+		$this->classic_email_audit['authenticated'] = true;
+	}
+
+	private function classic_audit_matches_order( $order ) {
+		$audit = $this->classic_email_audit;
+		return $audit && $this->classic_audit_context_allowed() && ! wc_notice_count( 'error' )
+			&& $audit['authenticated'] && get_current_user_id() === $audit['customer_id']
+			&& WC()->session === $audit['session']
+			&& in_array( (string) WC()->session->get_customer_id(), array( $audit['guest_id'], (string) $audit['customer_id'] ), true )
+			&& $order instanceof WC_Order && 'shop_order' === $order->get_type()
+			&& 'checkout' === $order->get_created_via() && (int) $order->get_customer_id() === $audit['customer_id']
+			&& sanitize_email( $order->get_billing_email() ) === $audit['email'];
+	}
+
+	public function bind_classic_email_audit_order( $order ) {
+		if ( ! $this->classic_email_audit ) { return; }
+		if ( $this->classic_email_audit['order'] || ! $this->classic_audit_matches_order( $order ) ) {
+			$this->reset_classic_email_audit();
+			return;
+		}
+		// Keep the exact object until Woo saves it and assigns its native order ID.
+		$this->classic_email_audit['order'] = $order;
+	}
+
+	/** Audit only: never supplies readiness or authorization to the coordinator. */
+	public function persist_classic_email_order_audit( $order ) {
+		$audit = $this->classic_email_audit;
+		if ( ! $audit || ! $audit['order'] ) { return; }
+		try {
+			if ( ! doing_action( 'woocommerce_checkout_update_order_meta' )
+				|| ! $this->classic_audit_matches_order( $order ) || $order->get_id() <= 0
+				|| (int) $audit['order']->get_id() !== (int) $order->get_id() ) {
+				$this->reset_classic_email_audit();
+				return;
+			}
+			if ( $audit['written'] ) { return; }
+			$proof = wc_blacklist_manager_otp_state()->inspect_email_order_audit_proof( $audit['subject'], $audit['email'] );
+			foreach ( array( 'proof_id', 'proof_verified_at', 'proof_expires_at', 'generation', 'revision', 'identity_token' ) as $key ) {
+				if ( ! $proof || $proof[ $key ] !== $audit['proof'][ $key ] ) {
+					$this->reset_classic_email_audit();
+					return;
+				}
+			}
+			// Do not replace audit already retained on a resumed original order.
+			if ( $order->get_meta( '_verified_email', true ) || $order->get_meta( '_wc_blacklist_manager_email_proof_id', true )
+				|| $order->get_meta( '_wc_blacklist_manager_email_evidence_v1', true ) ) {
+				return;
+			}
+			$companion = wc_blacklist_manager_evidence_trust_order_companion(
+				'email', $audit['email'], $proof['proof_id'], $proof['proof_verified_at']
+			);
+			if ( ! $companion ) { return; }
+			$order->update_meta_data( '_verified_email', 1 );
+			$order->update_meta_data( '_wc_blacklist_manager_email_proof_id', $proof['proof_id'] );
+			$order->update_meta_data( '_wc_blacklist_manager_email_evidence_v1', $companion );
+			try {
+				$saved = $order->save();
+			} catch ( \Throwable $e ) {
+				$saved = false;
+			}
+			if ( $saved ) {
+				$this->classic_email_audit['written'] = true;
+			} else {
+				foreach ( array( '_verified_email', '_wc_blacklist_manager_email_proof_id', '_wc_blacklist_manager_email_evidence_v1' ) as $key ) {
+					$order->delete_meta_data( $key );
+				}
+			}
+
+		} catch ( \Throwable $e ) {
+			// Optional audit must not change an otherwise legitimate checkout result.
+			$this->reset_classic_email_audit();
 		}
 	}
 

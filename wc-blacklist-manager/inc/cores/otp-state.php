@@ -604,6 +604,26 @@ final class WC_Blacklist_Manager_OTP_State {
 		return $this->projection( $row, $identity_key );
 	}
 
+	/** Internal audit-only read; never resolves the current user or mutates proof state. */
+	public function inspect_email_order_audit_proof( $subject_key, $email ) {
+		if ( ! preg_match( '/^[a-f0-9]{64}$/D', (string) $subject_key ) || ! WC_Blacklist_Manager_OTP_Schema::is_ready() ) {
+			return false;
+		}
+		global $wpdb;
+		$table = WC_Blacklist_Manager_OTP_Schema::state_table();
+		$row = $wpdb->get_row( $wpdb->prepare(
+			"SELECT * FROM {$table} WHERE subject_key = %s AND channel = 'email' LIMIT 1", $subject_key
+		), ARRAY_A );
+		$identity_key = $this->identity_key( 'email', $email );
+		if ( ! is_array( $row ) || empty( $row['secret_fingerprint'] )
+			|| ! hash_equals( $this->secret_fingerprint(), (string) $row['secret_fingerprint'] )
+			|| empty( $row['identity_key'] ) || ! hash_equals( $identity_key, (string) $row['identity_key'] ) ) {
+			return false;
+		}
+		$projection = $this->projection( $row, $identity_key );
+		return ! empty( $projection['verified'] ) ? $projection : false;
+	}
+
 	private function projection( $row, $identity_key ) {
 		$now      = $this->now();
 		$verified = ! empty( $row['proof_id'] ) && ! empty( $row['proof_identity_key'] )

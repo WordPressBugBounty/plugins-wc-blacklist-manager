@@ -55,7 +55,7 @@ final class YOGB_BM_Usage {
 		} );
 	}
 	public static function row( $db, $table, $key ) {
-		return $db->row( "SELECT IF(OCTET_LENGTH(option_value)<=4096,option_value,NULL),autoload,SHA2(LEFT(option_value,4096),256) FROM {$table} WHERE option_name=" . $db::hex( $key ) );
+		return $db->row( "SELECT IF(OCTET_LENGTH(option_value)<=4096,option_value,NULL),autoload,SHA2(LEFT(option_value,4096),256) FROM {$table} WHERE option_name=" . $db::hex( YOGB_BM_Recovery_Store::option_name( $key ) ) );
 	}
 	public static function decode( $row ) {
 		return $row && is_string( $row[0] ) && in_array( $row[1], array( 'no', 'off', 'auto-off' ), true ) ? json_decode( $row[0], true, 8 ) : null;
@@ -65,7 +65,7 @@ final class YOGB_BM_Usage {
 		$json = json_encode( $value );
 		if ( ! is_string( $json ) || strlen( $json ) > 4096 ) { throw new RuntimeException(); }
 		if ( $row && $row[0] === $json && in_array( $row[1], array( 'no', 'off', 'auto-off' ), true ) ) { return; }
-		$k = $db::hex( $key ); $v = $db::hex( $json );
+		$k = $db::hex( YOGB_BM_Recovery_Store::option_name( $key ) ); $v = $db::hex( $json );
 		if ( $row ) {
 			$db->query( "UPDATE {$table} SET option_value={$v},autoload='no' WHERE option_name={$k} AND SHA2(LEFT(option_value,4096),256)=" . $db::hex( $row[2] ) . ' AND BINARY autoload=' . $db::hex( $row[1] ) );
 		} else { $db->query( "INSERT IGNORE INTO {$table}(option_name,option_value,autoload) VALUES({$k},{$v},'no')" ); }
@@ -78,9 +78,9 @@ final class YOGB_BM_Usage {
 		if ( ! class_exists( 'YOGB_BM_Registrar' ) || ! class_exists( 'YOGB_BM_Secret_Store' ) ) { return false; }
 		$cols = array();
 		foreach ( array( YOGB_BM_Registrar::OPT_API_KEY, YOGB_BM_Registrar::OPT_API_SECRET, YOGB_BM_Registrar::OPT_REPORTER_ID, 'yogb_bm_tier_version' ) as $k ) {
-			$cols[] = "(SELECT IF(OCTET_LENGTH(option_value)<=4096,option_value,NULL) FROM {$table} WHERE option_name=" . $db::hex( $k ) . ')';
+			$cols[] = "(SELECT IF(OCTET_LENGTH(option_value)<=4096,option_value,NULL) FROM {$table} WHERE option_name=" . $db::hex( YOGB_BM_Recovery_Store::option_name( $k ) ) . ')';
 		}
-		$auth_key = $db::hex( YOGB_BM_Registrar::OPT_AUTH_RECOVERY );
+		$auth_key = $db::hex( YOGB_BM_Recovery_Store::option_name( YOGB_BM_Registrar::OPT_AUTH_RECOVERY ) );
 		$cols[] = "(SELECT IF(OCTET_LENGTH(option_value)<=32768,option_value,NULL) FROM {$table} WHERE option_name={$auth_key})";
 		$cols[] = "(SELECT OCTET_LENGTH(option_value) FROM {$table} WHERE option_name={$auth_key})";
 		$r = $db->row( 'SELECT ' . implode( ',', $cols ) );

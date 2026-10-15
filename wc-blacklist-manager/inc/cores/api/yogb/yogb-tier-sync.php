@@ -100,7 +100,8 @@ final class YOGB_BM_Tier_Sync {
 			$server_base .= '/wp-json';
 		}
 		$ts  = (string) time();
-		$sig = base64_encode( hash_hmac( 'sha256', $api_key . "\n" . $ts, $secret, true ) );
+		$epoch = (string) ( $credential_snapshot['recovery_epoch'] ?? '' );
+		$sig = base64_encode( hash_hmac( 'sha256', $api_key . "\n" . $ts . ( '' !== $epoch ? "\n" . $epoch : '' ), $secret, true ) );
 		$credential_fingerprint = class_exists( 'YOGB_BM_Registrar' )
 			? (string) $credential_snapshot['credential_fingerprint']
 			: hash( 'sha256', $api_key . "\0" . $secret );
@@ -114,6 +115,7 @@ final class YOGB_BM_Tier_Sync {
 				'X-API-Key'           => $api_key,
 				'X-Request-Timestamp' => $ts,
 				'X-Signature'         => $sig,
+    'X-YOGB-Recovery-Epoch' => $epoch,
 				'Cache-Control'       => 'no-cache',
 				'Pragma'              => 'no-cache',
 			],
@@ -126,6 +128,8 @@ final class YOGB_BM_Tier_Sync {
 		if ( class_exists( 'YOGB_BM_Registrar' ) && ( ! YOGB_BM_Registrar::credential_snapshot_is_current( $credential_snapshot ) || ( $recovery_source && ! YOGB_BM_Registrar::auth_recovery_lock_is_current() ) ) ) {
 			return [ 'ok' => false, 'status' => $recovery_source ? 'recovery_lock_lost' : 'credential_epoch_changed' ];
 		}
+  $guarded = YOGB_BM_Reconnect_Guard::run( $credential_snapshot, static function() use ( $res, $credential_snapshot, $credential_fingerprint, $secret, $source, $surface, $recovery_source ) {
+
 		if ( is_wp_error( $res ) ) {
 			if ( class_exists( 'YOGB_BM_Registrar' ) ) YOGB_BM_Registrar::mark_connection_error( 'transport_error', 'tier_pull' );
 			do_action( 'yogb_bm_control_sync_event', 'pull_failed', [ 'source' => $source, 'state' => 'transport' ] );
@@ -207,7 +211,16 @@ final class YOGB_BM_Tier_Sync {
 		}
 		do_action( 'yogb_bm_control_sync_event', 'pull_applied', [ 'source' => $source, 'state' => sanitize_key( (string) ( $result['status'] ?? 'ok' ) ) ] );
 		return $result;
-	}
+
+  } );
+  if ( in_array( $guarded['error'] ?? '', [ 'reconnect_busy', 'reconnect_storage_unavailable' ], true ) ) {
+   $error = 'reconnect_busy' === $guarded['error'] ? 'control_apply_busy' : 'control_apply_storage_failed';
+   if ( ! $surface && class_exists( 'YOGB_BM_Report_V2' ) ) { YOGB_BM_Report_V2::schedule_capability_refresh(); }
+   do_action( 'yogb_bm_control_sync_event', 'pull_deferred', [ 'source' => $source, 'state' => $error ] );
+   return [ 'ok' => false, 'error' => $error, 'code' => 503, 'repair_required' => true ];
+  }
+  return $guarded;
+}
 
 	private static function stable_jitter() : int {
 		$identity = untrailingslashit( strtolower( (string) home_url( '/' ) ) ) . '|blog:' . (int) get_current_blog_id();

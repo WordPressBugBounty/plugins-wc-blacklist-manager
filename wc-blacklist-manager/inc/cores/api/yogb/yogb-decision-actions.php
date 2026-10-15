@@ -245,11 +245,11 @@ final class YOGB_BM_Decision_Actions {
 		$view_url = is_array( $payload ) && isset( $payload['view_url'] ) && is_string( $payload['view_url'] ) ? $payload['view_url'] : '';
 		$failure = self::view_failure_class( $response, $payload, $view_url );
 		if ( '' !== $failure ) {
-			self::record_view_failure( $failure, (int) ( $response['code'] ?? 0 ) );
+			YOGB_BM_Reconnect_Guard::run( (array) ( $response['authority_context'] ?? [] ), static function() use ( $failure, $response ) { self::record_view_failure( $failure, (int) ( $response['code'] ?? 0 ) ); } );
 			self::redirect_to_order( $order, 'detail_error' );
 		}
 
-		delete_option( self::DETAIL_FAILURE_OPTION );
+		YOGB_BM_Reconnect_Guard::run( (array) ( $response['authority_context'] ?? [] ), static function() { delete_option( self::DETAIL_FAILURE_OPTION ); } );
 		wp_redirect( esc_url_raw( $view_url ), 302, 'Blacklist Manager' );
 		exit;
 	}

@@ -145,6 +145,7 @@ class WC_Blacklist_Manager_Backend {
 	}
 
 	private function includes() {
+		require_once plugin_dir_path(__FILE__) . '../backend/helpers/subscriptions-meta-compatibility.php';
 		include_once plugin_dir_path(__FILE__) . '../backend/helpers/action-upsells.php';
 		include_once plugin_dir_path(__FILE__) . '../backend/helpers/dashboard-insights.php';
 		include_once plugin_dir_path(__FILE__) . '../backend/helpers/dashboard-presentation.php';
@@ -184,6 +185,7 @@ class WC_Blacklist_Manager_Backend {
 		require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-usage.php';
 		require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-tier-sync.php';
 		require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-subscription-activation.php';
+		require_once plugin_dir_path(__FILE__) . '/api/yogb/yogb-reconnect.php';
 
 	}
 }

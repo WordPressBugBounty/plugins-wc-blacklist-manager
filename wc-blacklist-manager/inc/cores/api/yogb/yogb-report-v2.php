@@ -47,11 +47,11 @@ final class YOGB_BM_Report_V2 {
 		sort( $capabilities );
 		$verified_at = $verified_at > 0 ? $verified_at : time();
 		if ( get_option( 'yogb_bm_server_capabilities', null ) !== $capabilities ) {
-			update_option( 'yogb_bm_server_capabilities', $capabilities, false );
+			YOGB_BM_Recovery_Store::update_option( 'yogb_bm_server_capabilities', $capabilities, false );
 		}
 		$snapshot = [ 'capabilities' => $capabilities, 'verified_at' => $verified_at ];
 		if ( get_option( self::CAPABILITY_OPTION, null ) !== $snapshot ) {
-			update_option( self::CAPABILITY_OPTION, $snapshot, false );
+			YOGB_BM_Recovery_Store::update_option( self::CAPABILITY_OPTION, $snapshot, false );
 		}
 	}
 
@@ -59,7 +59,7 @@ final class YOGB_BM_Report_V2 {
 		$snapshot = get_option( self::CAPABILITY_OPTION, [] );
 		$snapshot = is_array( $snapshot ) ? $snapshot : [];
 		$snapshot['verified_at'] = 0;
-		update_option( self::CAPABILITY_OPTION, $snapshot, false );
+		YOGB_BM_Recovery_Store::update_option( self::CAPABILITY_OPTION, $snapshot, false );
 		self::schedule_capability_refresh();
 	}
 

@@ -34,6 +34,17 @@ final class YOGB_BM_Secret_Store {
 		}
 	}
 
+ public static function encrypt_strict( string $value ) : string {
+  if ( '' === $value || ! function_exists( 'wp_salt' ) || '' === wp_salt( 'auth' ) || ! function_exists( 'openssl_encrypt' ) ) { return ''; }
+  try {
+   $iv = random_bytes( 12 ); $tag = '';
+   $raw = openssl_encrypt( $value, 'aes-256-gcm', self::key(), OPENSSL_RAW_DATA, $iv, $tag );
+   if ( ! is_string( $raw ) || 16 !== strlen( $tag ) ) { return ''; }
+   $cipher = self::PREFIX . base64_encode( $iv . $tag . $raw );
+   return hash_equals( $value, self::decrypt_from_storage( $cipher ) ) ? $cipher : '';
+  } catch ( Throwable $error ) { return ''; }
+ }
+
 	public static function decrypt_from_storage( $value ) : string {
 		$value = is_scalar( $value ) ? (string) $value : '';
 		if ( 0 !== strpos( $value, self::PREFIX ) ) {

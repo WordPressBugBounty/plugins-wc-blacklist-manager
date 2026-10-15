@@ -5,7 +5,7 @@ Requires at least: 6.3
 Tested up to: 7.1
 WC tested up to: 11.0
 Requires PHP: 7.4
-Stable tag: 2.3.3
+Stable tag: 2.3.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -135,11 +135,11 @@ Global Blacklist Decisions is a connected fraud-prevention service. Data exchang
 
 == Changelog ==
 
-= 2.3.3 (Oct 8, 2026) =
-* Fix: Keeps checkout validation reliable when shipping context changes or external integrations cannot provide trusted results.
-* Fix: Reads order customer IP addresses through WooCommerce's order API for compatible order storage.
-* Fix: Restores the Dark Sentinel logo in delivered notification emails.
-* Fix: Refreshes eligible Block action configuration before opening the order modal, avoiding stale settings and nonce errors.
-* Improve: Handles Global decision detail failures and rate limits more clearly while preserving safe return to the order.
-* Improve: Clarifies recovery for unavailable or misconfigured verification providers and reconciles affected options when settings are saved.
-* Security: Removes the retired automatic YoExpress marketing-email subscription request.
+= 2.3.4 (Oct 15, 2026) =
+* Fix: Preserves saved Premium settings when Core settings are saved while Premium is inactive or unavailable.
+* Fix: Restores eligible Premium weekly security and manual-blacklist digests with verified v5 licensing, including sites retaining inactive v6 data.
+* Fix: Keeps checkout verification, device and Global decision evidence on the original order instead of copying it into subscriptions and renewals.
+* Fix: Retains completed email verification in order audit information when Classic Checkout creates a customer account.
+* Improve: Adds guarded recovery for an existing Global Blacklist registration where Reconnect is explicitly enabled and supported by the service; Reconnect remains off by default and does not automatically activate the service.
+* Security: Prevents stale Global check results and queued reports from crossing a changed connection authority.
+* Compatibility: Supports the v5-only Premium 2.7.6 client while keeping local Core protection available independently of Premium and the optional Global Blacklist service.

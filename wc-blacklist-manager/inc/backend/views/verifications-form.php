@@ -49,6 +49,7 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 						<label for="email_verification_enabled"><?php echo esc_html__('Email verification at checkout', 'wc-blacklist-manager'); ?></label>
 					</th>
 					<td>
+						<input type="hidden" name="wc_blacklist_verifications_fields[email_verification_enabled]" value="1">
 						<input type="checkbox" id="email_verification_enabled" name="email_verification_enabled" value="1" <?php checked(!empty($data['email_verification_enabled'])); ?>>
 						<label for="email_verification_enabled"><?php echo esc_html__('Enable email verification at checkout', 'wc-blacklist-manager'); ?></label>
 						<p class="description">
@@ -131,6 +132,7 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 						<label for="email_verification_real_time_validate"><?php echo esc_html__('Email address validation', 'wc-blacklist-manager'); ?></label>
 					</th>
 					<td>
+						<input type="hidden" name="wc_blacklist_verifications_fields[email_verification_real_time_validate]" value="1">
 						<input type="checkbox" id="email_verification_real_time_validate" name="email_verification_real_time_validate" value="1" <?php checked(!empty($data['email_verification_real_time_validate']) && 'MISCONFIGURED' !== (string) ( $data['integration_capabilities']['capabilities']['zerobounce_email']['state'] ?? '' )); ?>>
 						<?php if ($woocommerce_active): ?>
 							<label for="email_verification_real_time_validate"><?php echo esc_html__('Enable email address validation on the registration and checkout pages', 'wc-blacklist-manager'); ?></label>
@@ -152,6 +154,7 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 						<label for="email_verification_disposable"><?php echo esc_html__('Disposable email blocking', 'wc-blacklist-manager'); ?></label>
 					</th>
 					<td>
+						<input type="hidden" name="wc_blacklist_verifications_fields[email_verification_disposable]" value="1">
 						<input type="checkbox" id="email_verification_disposable" name="email_verification_disposable" value="1" <?php checked(!empty($data['email_verification_disposable']) && 'MISCONFIGURED' !== (string) ( $data['integration_capabilities']['capabilities']['bigdatacloud_email']['state'] ?? '' )); ?>>
 						<label for="email_verification_disposable"><?php echo esc_html__('Detect and block disposable email addresses', 'wc-blacklist-manager'); ?></label>
 						<?php if ($woocommerce_active): ?>
@@ -221,7 +224,8 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 					<tr>
 						<th scope="row"><label for="phone_verification_enabled"><?php echo esc_html__( 'Phone verification at checkout', 'wc-blacklist-manager' ); ?></label></th>
 						<td>
-							<input type="checkbox" id="phone_verification_enabled" name="phone_verification_enabled" value="1" <?php checked( ! empty( $data['phone_verification_enabled'] ) ); ?>>
+							<input type="hidden" name="wc_blacklist_verifications_fields[phone_verification_enabled]" value="1">
+						<input type="checkbox" id="phone_verification_enabled" name="phone_verification_enabled" value="1" <?php checked( ! empty( $data['phone_verification_enabled'] ) ); ?>>
 							<label for="phone_verification_enabled"><?php echo esc_html__( 'Enable phone verification at checkout through the active legacy Premium integration', 'wc-blacklist-manager' ); ?></label>
 							<p class="description"><?php echo esc_html__( 'When required by the policy below, customers must prove control of the submitted phone number with a one-time SMS code.', 'wc-blacklist-manager' ); ?></p>
 						</td>
@@ -270,7 +274,8 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 						<label for="phone_verification_country_code_disabled"><?php echo esc_html__('Country code selector', 'wc-blacklist-manager'); ?></label>
 						</th>
 						<td>
-							<input type="checkbox" id="phone_verification_country_code_disabled" name="phone_verification_country_code_disabled" value="1" <?php checked(!empty($data['phone_verification_country_code_disabled'])); ?>>
+							<input type="hidden" name="wc_blacklist_verifications_fields[phone_verification_country_code_disabled]" value="1">
+						<input type="checkbox" id="phone_verification_country_code_disabled" name="phone_verification_country_code_disabled" value="1" <?php checked(!empty($data['phone_verification_country_code_disabled'])); ?>>
 						<label for="phone_verification_country_code_disabled"><?php echo esc_html__('Disable the country code selector at checkout', 'wc-blacklist-manager'); ?></label>
 						<p class="description"><?php echo esc_html__('When disabled, phone identities are stored and compared without a country dial-code prefix where the existing phone-number handling rules apply.', 'wc-blacklist-manager'); ?></p>
 					</td>
@@ -288,7 +293,8 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 						<label for="phone_verification_real_time_validate"><?php echo esc_html__('Phone number format validation', 'wc-blacklist-manager'); ?></label>
 						</th>
 						<td>
-							<input type="checkbox" id="phone_verification_real_time_validate" name="phone_verification_real_time_validate" value="1" <?php checked(!empty($data['phone_verification_real_time_validate'])); ?>>
+							<input type="hidden" name="wc_blacklist_verifications_fields[phone_verification_real_time_validate]" value="1">
+						<input type="checkbox" id="phone_verification_real_time_validate" name="phone_verification_real_time_validate" value="1" <?php checked(!empty($data['phone_verification_real_time_validate'])); ?>>
 						<label for="phone_verification_real_time_validate"><?php echo esc_html__('Enable phone number format validation at checkout', 'wc-blacklist-manager'); ?></label>
 						<p class="description"><?php echo esc_html__('Validate supported billing and shipping phone-number fields using the configured format rules. This validates format; it does not prove control of the phone number.', 'wc-blacklist-manager'); ?></p>
 						</td>
@@ -311,7 +317,8 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 						<label for="phone_verification_disposable"><?php echo esc_html__('Disposable phone blocking', 'wc-blacklist-manager'); ?></label>
 						</th>
 						<td>
-							<input type="checkbox" id="phone_verification_disposable" name="phone_verification_disposable" value="1" <?php checked(!empty($data['phone_verification_disposable']) && 'MISCONFIGURED' !== (string) ( $data['integration_capabilities']['capabilities']['numcheckr_phone']['state'] ?? '' )); ?>>
+							<input type="hidden" name="wc_blacklist_verifications_fields[phone_verification_disposable]" value="1">
+						<input type="checkbox" id="phone_verification_disposable" name="phone_verification_disposable" value="1" <?php checked(!empty($data['phone_verification_disposable']) && 'MISCONFIGURED' !== (string) ( $data['integration_capabilities']['capabilities']['numcheckr_phone']['state'] ?? '' )); ?>>
 						<label for="phone_verification_disposable"><?php echo esc_html__('Detect and block disposable phone numbers', 'wc-blacklist-manager'); ?></label>
 						<p class="description"><?php echo esc_html__('Detect and block phone numbers confirmed as disposable on supported protected flows.', 'wc-blacklist-manager'); ?></p>
 						<?php $numcheckr_state = (string) ( $data['integration_capabilities']['capabilities']['numcheckr_phone']['state'] ?? '' ); $numcheckr_effective = ! empty( $data['integration_capabilities']['capabilities']['numcheckr_phone']['effective'] ); if ( ! empty( $data['phone_verification_disposable'] ) && in_array( $numcheckr_state, array( 'MISCONFIGURED', 'UNAVAILABLE', 'UNKNOWN' ), true ) ) : ?>
@@ -360,7 +367,8 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 						<label for="name_verification_auto_capitalization"><?php echo esc_html__('Name capitalization', 'wc-blacklist-manager'); ?></label>
 						</th>
 						<td>
-							<input type="checkbox" id="name_verification_auto_capitalization" name="name_verification_auto_capitalization" value="1" <?php checked(!empty($data['name_verification_auto_capitalization'])); ?>>
+							<input type="hidden" name="wc_blacklist_verifications_fields[name_verification_auto_capitalization]" value="1">
+						<input type="checkbox" id="name_verification_auto_capitalization" name="name_verification_auto_capitalization" value="1" <?php checked(!empty($data['name_verification_auto_capitalization'])); ?>>
 						<label for="name_verification_auto_capitalization"><?php echo esc_html__('Capitalize customer first and last names on supported forms', 'wc-blacklist-manager'); ?></label>
 						<p class="description"><?php echo esc_html__('Capitalize the first character of each space-separated name word on supported checkout and account fields without lowercasing or otherwise changing the remaining characters.', 'wc-blacklist-manager'); ?></p>
 						</td>
@@ -371,7 +379,8 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 						<label for="name_verification_real_time_validate"><?php echo esc_html__('Name format validation', 'wc-blacklist-manager'); ?></label>
 						</th>
 						<td>
-							<input type="checkbox" id="name_verification_real_time_validate" name="name_verification_real_time_validate" value="1" <?php checked(!empty($data['name_verification_real_time_validate'])); ?>>
+							<input type="hidden" name="wc_blacklist_verifications_fields[name_verification_real_time_validate]" value="1">
+						<input type="checkbox" id="name_verification_real_time_validate" name="name_verification_real_time_validate" value="1" <?php checked(!empty($data['name_verification_real_time_validate'])); ?>>
 						<label for="name_verification_real_time_validate"><?php echo esc_html__('Enable customer name format validation at checkout', 'wc-blacklist-manager'); ?></label>
 						<p class="description"><?php echo esc_html__('Validate supported billing and shipping first/last-name fields using the configured name rules. This validates format; it does not verify customer identity.', 'wc-blacklist-manager'); ?></p>
 						</td>

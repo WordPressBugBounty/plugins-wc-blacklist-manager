@@ -5,6 +5,9 @@ if ( ! defined( 'YOGB_BM_ALLOW_NONPROD' ) ) {
     define( 'YOGB_BM_ALLOW_NONPROD', false );
 }
 
+require_once __DIR__ . '/yogb-reconnect-guard.php';
+require_once __DIR__ . '/yogb-recovery-store.php';
+
 class YOGB_BM_Registrar {
 	private static $active_auth_recovery_lock = null;
 
@@ -316,7 +319,7 @@ class YOGB_BM_Registrar {
 		if ( false === self::registration_budget_key( $option ) || ! self::activate_registration_budget( $option ) ) {
 			return false;
 		}
-		update_option( $option, $value, false );
+		YOGB_BM_Recovery_Store::update_option( $option, $value, false );
 		$stored = get_option( $option, false );
 		return hash_equals( self::registration_budget_digest( $option, $value ), self::registration_budget_digest( $option, $stored ) );
 	}
@@ -385,8 +388,9 @@ class YOGB_BM_Registrar {
 	/** @return array{exists:bool,raw:string,state:array<string,mixed>,token:string} */
 	private static function raw_auth_recovery_record() : array {
 		global $wpdb;
+  YOGB_BM_Recovery_Store::refresh();
 		$raw = $wpdb->get_var(
-			$wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name=%s LIMIT 1", self::OPT_AUTH_RECOVERY )
+			$wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name=%s LIMIT 1", YOGB_BM_Recovery_Store::option_name( self::OPT_AUTH_RECOVERY ) )
 		);
 		$exists = is_string( $raw );
 		$raw    = $exists ? $raw : '';
@@ -401,7 +405,7 @@ class YOGB_BM_Registrar {
 	}
 
 	private static function invalidate_auth_recovery_state_cache() : void {
-		wp_cache_delete( self::OPT_AUTH_RECOVERY, 'options' );
+		wp_cache_delete( YOGB_BM_Recovery_Store::option_name( self::OPT_AUTH_RECOVERY ), 'options' );
 		wp_cache_delete( 'notoptions', 'options' );
 		wp_cache_delete( 'alloptions', 'options' );
 	}
@@ -421,6 +425,14 @@ class YOGB_BM_Registrar {
 	}
 
 	private static function cas_auth_recovery_state( string $expected_token, array $state ) : bool {
+  $result = YOGB_BM_Reconnect_Guard::run( null, static function() use ( $expected_token, $state ) {
+   return self::cas_auth_recovery_state_guarded( $expected_token, $state );
+  } );
+  return true === $result;
+ }
+
+ private static function cas_auth_recovery_state_guarded( string $expected_token, array $state ) : bool {
+
 		global $wpdb;
 		$current = self::raw_auth_recovery_record();
 		if ( '' === $expected_token || ! hash_equals( $expected_token, (string) $current['token'] ) ) {
@@ -433,7 +445,7 @@ class YOGB_BM_Registrar {
 				$wpdb->prepare(
 					"UPDATE {$wpdb->options} SET option_value=%s,autoload='no' WHERE option_name=%s AND BINARY option_value=BINARY %s",
 					$raw_new,
-					self::OPT_AUTH_RECOVERY,
+					YOGB_BM_Recovery_Store::option_name( self::OPT_AUTH_RECOVERY ),
 					(string) $current['raw']
 				)
 			);
@@ -441,7 +453,7 @@ class YOGB_BM_Registrar {
 			$changed = $wpdb->query(
 				$wpdb->prepare(
 					"INSERT IGNORE INTO {$wpdb->options} (option_name,option_value,autoload) VALUES (%s,%s,'no')",
-					self::OPT_AUTH_RECOVERY,
+					YOGB_BM_Recovery_Store::option_name( self::OPT_AUTH_RECOVERY ),
 					$raw_new
 				)
 			);
@@ -460,12 +472,19 @@ class YOGB_BM_Registrar {
 		$unknown = [ 'category' => 'unknown', 'generation' => '', 'at' => 0 ];
 		$columns = [];
 		foreach ( [ self::OPT_AUTH_RECOVERY => 32768, self::OPT_API_KEY => 4096, self::OPT_API_SECRET => 4096, self::OPT_REPORTER_ID => 20 ] as $key => $limit ) {
-			$columns[] = "(SELECT IF(OCTET_LENGTH(option_value)<={$limit},option_value,NULL) FROM {$table} WHERE option_name=" . $db::hex( $key ) . ')';
+			$marker_key = $db::hex( YOGB_BM_Recovery_Store::MARKER );
+   $old_key = $db::hex( $key ); $new_key = $db::hex( 'yogb_successor_v2_' . $key );
+   $columns[] = "IF(EXISTS(SELECT 1 FROM {$table} WHERE option_name={$marker_key}),(SELECT IF(OCTET_LENGTH(option_value)<={$limit},option_value,NULL) FROM {$table} WHERE option_name={$new_key}),(SELECT IF(OCTET_LENGTH(option_value)<={$limit},option_value,NULL) FROM {$table} WHERE option_name={$old_key}))";
 		}
-		// One statement observes source and credential components in the same database snapshot.
+		$columns[] = "(SELECT IF(OCTET_LENGTH(option_value)<=4096,option_value,'invalid') FROM {$table} WHERE option_name={$marker_key})";
+  // One statement selects the namespace and observes its bound credentials.
 		$row = $db->row( 'SELECT ' . implode( ',', $columns ) );
 		if ( ! $row || ! is_string( $row[0] ) || strlen( $row[0] ) > 32768 || ! is_string( $row[1] ) || '' === $row[1]
 			|| ! is_string( $row[2] ) || '' === $row[2] || ! is_string( $row[3] ) || ! preg_match( '/^[1-9][0-9]{0,18}$/D', $row[3] ) ) { return $unknown; }
+  if ( isset( $row[4] ) ) {
+   $marker = unserialize( $row[4], [ 'allowed_classes' => false, 'max_depth' => 8 ] );
+   if ( ! is_array( $marker ) || 2 !== ( $marker['version'] ?? 0 ) || YOGB_BM_Recovery_Store::CONTRACT !== ( $marker['contract'] ?? '' ) || ! preg_match( '/^[a-f0-9-]{36}$/D', (string) ( $marker['server_epoch'] ?? '' ) ) ) { return $unknown; }
+  }
 		// Interpret the same bounded DB snapshot through the canonical at-rest contract.
 		if ( ! class_exists( 'YOGB_BM_Secret_Store' ) ) { return $unknown; }
 		$secret = YOGB_BM_Secret_Store::decrypt_from_storage( $row[2] );
@@ -557,6 +576,7 @@ class YOGB_BM_Registrar {
 			'credential_fingerprint' => $fingerprint,
 			'authority_token'        => (string) $after['token'],
 			'allow_recovery'         => $allow_recovery,
+   'recovery_epoch' => YOGB_BM_Recovery_Store::epoch(),
 		];
 	}
 
@@ -594,7 +614,7 @@ class YOGB_BM_Registrar {
 		if ( $expected_reporter > 0 && $local_reporter > 0 && $expected_reporter !== $local_reporter ) {
 			self::mark_manual_intervention( 'local_reporter_mismatch' );
 			if ( class_exists( 'YOGB_BM_Outbox' ) ) {
-				YOGB_BM_Outbox::pause_for_auth();
+				YOGB_BM_Outbox::pause_for_auth( 401 );
 			}
 			return false;
 		}
@@ -603,7 +623,7 @@ class YOGB_BM_Registrar {
 		}
 		if ( 'recovering' === $state['state'] && '' !== $state['credential_fingerprint'] && hash_equals( $state['credential_fingerprint'], $current_fingerprint ) ) {
 			if ( class_exists( 'YOGB_BM_Outbox' ) ) {
-				YOGB_BM_Outbox::pause_for_auth();
+				YOGB_BM_Outbox::pause_for_auth( 401 );
 			}
 			self::schedule_auth_recovery( max( 10, (int) $state['next_attempt_at'] - time() ) );
 			return true;
@@ -619,7 +639,7 @@ class YOGB_BM_Registrar {
 		}
 		self::mark_connection_error( 'unauthorized', $source );
 		if ( class_exists( 'YOGB_BM_Outbox' ) ) {
-			YOGB_BM_Outbox::pause_for_auth();
+			YOGB_BM_Outbox::pause_for_auth( 401 );
 		}
 		self::schedule_auth_recovery( 30 );
 		do_action( 'yogb_bm_auth_recovery', sanitize_key( $source ) );
@@ -630,16 +650,16 @@ class YOGB_BM_Registrar {
 		if ( self::is_auth_paused() ) {
 			return;
 		}
-		update_option( 'yogb_bm_last_server_success_at', time(), false );
-		delete_option( 'yogb_bm_last_server_error_code' );
-		delete_option( 'yogb_bm_last_server_error_at' );
-		delete_option( 'yogb_bm_last_server_error_source' );
+		YOGB_BM_Recovery_Store::update_option( 'yogb_bm_last_server_success_at', time(), false );
+		YOGB_BM_Recovery_Store::delete_option( 'yogb_bm_last_server_error_code' );
+		YOGB_BM_Recovery_Store::delete_option( 'yogb_bm_last_server_error_at' );
+		YOGB_BM_Recovery_Store::delete_option( 'yogb_bm_last_server_error_source' );
 	}
 
 	public static function mark_connection_error( string $code, string $source = '' ) : void {
-		update_option( 'yogb_bm_last_server_error_code', sanitize_key( $code ), false );
-		update_option( 'yogb_bm_last_server_error_at', time(), false );
-		update_option( 'yogb_bm_last_server_error_source', sanitize_key( $source ), false );
+		YOGB_BM_Recovery_Store::update_option( 'yogb_bm_last_server_error_code', sanitize_key( $code ), false );
+		YOGB_BM_Recovery_Store::update_option( 'yogb_bm_last_server_error_at', time(), false );
+		YOGB_BM_Recovery_Store::update_option( 'yogb_bm_last_server_error_source', sanitize_key( $source ), false );
 	}
 
 	public static function validate_control_authority( array $payload, string $observed_fingerprint = '' ) : bool {
@@ -719,6 +739,11 @@ class YOGB_BM_Registrar {
 			YOGB_BM_Outbox::resume_after_auth();
 		}
 	}
+
+ /** Internal reconnect transition, bound to the caller's captured raw CAS token. */
+ public static function reconnect_write_state( array $state ) : bool {
+  return self::cas_auth_recovery_state( (string) ( $state['authority_token'] ?? '' ), $state );
+ }
 
 	public static function mark_manual_intervention( string $source ) : void {
 		$state                    = self::auth_recovery_state();
@@ -1000,17 +1025,23 @@ class YOGB_BM_Registrar {
 	}
 
 	private static function stage_credential_component( string $component, $value, array $state, array $lock ) : bool {
+		return true === YOGB_BM_Reconnect_Guard::run( null, static function() use ( $component, $value, $state, $lock ) {
+			return self::stage_credential_component_guarded( $component, $value, $state, $lock );
+		} );
+	}
+
+	private static function stage_credential_component_guarded( string $component, $value, array $state, array $lock ) : bool {
 		if ( ! self::credential_commit_is_current( $state, $lock ) ) {
 			return false;
 		}
 		if ( 'reporter' === $component ) {
-			update_option( self::OPT_REPORTER_ID, max( 0, (int) $value ), false );
+			YOGB_BM_Recovery_Store::update_option( self::OPT_REPORTER_ID, max( 0, (int) $value ), false );
 			$stored = (string) max( 0, (int) get_option( self::OPT_REPORTER_ID, 0 ) );
 		} elseif ( 'key' === $component ) {
-			update_option( self::OPT_API_KEY, (string) $value, false );
+			YOGB_BM_Recovery_Store::update_option( self::OPT_API_KEY, (string) $value, false );
 			$stored = (string) get_option( self::OPT_API_KEY, '' );
 		} else {
-			update_option( self::OPT_API_SECRET, (string) $value, false );
+			YOGB_BM_Recovery_Store::update_option( self::OPT_API_SECRET, (string) $value, false );
 			$stored = (string) get_option( self::OPT_API_SECRET, '' );
 		}
 		do_action( 'yogb_bm_credential_commit_boundary', $component . '_staged' );
@@ -1148,7 +1179,7 @@ class YOGB_BM_Registrar {
 	}
 
 	private static function store_pending_challenge( string $challenge_id, string $site_hash ) : void {
-		update_option(
+		YOGB_BM_Recovery_Store::update_option(
 			self::OPT_PENDING_CHALLENGE,
 			[
 				'challenge_id' => $challenge_id,
@@ -1163,11 +1194,15 @@ class YOGB_BM_Registrar {
 		if ( '' !== $challenge_id ) {
 			delete_transient( self::TRANSIENT_PREFIX . $challenge_id );
 		}
-		delete_option( self::OPT_PENDING_CHALLENGE );
+		YOGB_BM_Recovery_Store::delete_option( self::OPT_PENDING_CHALLENGE );
 	}
 
 	/** Main register flow */
 	public static function run_registration( $quiet = false, bool $manual_initial = false ) {
+  if ( YOGB_BM_Recovery_Store::active() ) {
+   if ( self::is_auth_paused() ) { self::mark_manual_intervention( 'successor_reconnect_required' ); }
+   return;
+  }
 		$authority     = self::auth_recovery_state();
 		$marker        = self::normalize_credential_commit( $authority['credential_commit'] ?? [] );
 		$recovery_mode = ! empty( $marker ) ? 'recovery' === (string) $marker['mode'] : 're_registering' === (string) $authority['state'];

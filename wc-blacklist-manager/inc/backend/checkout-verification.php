@@ -425,9 +425,13 @@ final class WC_Blacklist_Manager_Checkout_Verification_Coordinator {
 
 	public function persist_order_evidence( $order_or_id ) {
 		$order = is_numeric( $order_or_id ) && function_exists( 'wc_get_order' ) ? wc_get_order( $order_or_id ) : $order_or_id;
-		if ( ! is_object( $order ) || ! $this->project_state( $this->context_from_order( $order ) )['ready'] ) {
-			return;
+		if ( ! is_object( $order ) ) { return; }
+		// Admission already happened before native Classic account creation. This is audit only.
+		$email = isset( $this->channels['email'] ) ? $this->channels['email'] : null;
+		if ( is_callable( array( $email, 'persist_classic_email_order_audit' ) ) ) {
+			$email->persist_classic_email_order_audit( $order );
 		}
+		if ( ! $this->project_state( $this->context_from_order( $order ) )['ready'] ) { return; }
 		foreach ( $this->ordered_channels() as $channel ) {
 			if ( is_callable( array( $channel, 'checkout_verification_persist_order_evidence' ) ) ) {
 				$channel->checkout_verification_persist_order_evidence( $order );

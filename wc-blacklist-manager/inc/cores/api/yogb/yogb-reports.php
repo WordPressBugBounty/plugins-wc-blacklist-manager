@@ -53,9 +53,10 @@ final class YOGB_BM_Report {
 
 		foreach ( $payloads as $p ) {
 			$idemp = self::make_idempotency_key_per_identity( $order, $reason_code, $p['identity'] );
-			if ( class_exists( 'YOGB_BM_Outbox' ) && YOGB_BM_Outbox::enqueue_report( $p, $idemp, (int) $order->get_id() ) > 0 ) {
-				continue;
-			}
+			if ( class_exists( 'YOGB_BM_Outbox' ) ) {
+    if ( YOGB_BM_Outbox::enqueue_report( $p, $idemp, (int) $order->get_id() ) > 0 ) { continue; }
+    if ( ! YOGB_BM_Outbox::legacy_report_fallback_allowed( $idemp ) ) { continue; }
+   }
 
 			// Upgrade fallback: retain the previous queue only if outbox creation fails.
 			$envelope = [
@@ -75,9 +76,17 @@ final class YOGB_BM_Report {
 
 	/** Worker: send one payload (one identity). */
 	public static function cron_send_report( string $key ) : void {
-		$args = get_transient( 'yogb_bm_payload_' . $key );
-		if ( ! is_array( $args ) ) return;
-		delete_transient( 'yogb_bm_payload_' . $key );
+		$job = YOGB_BM_Reconnect_Guard::run( null, static function() use ( $key ) {
+   if ( YOGB_BM_Recovery_Store::active() ) { return null; }
+   $args = get_transient( 'yogb_bm_payload_' . $key );
+   if ( ! is_array( $args ) ) { return null; }
+   $snapshot = YOGB_BM_Registrar::committed_credential_snapshot();
+   if ( empty( $snapshot['ok'] ) ) { return null; }
+   delete_transient( 'yogb_bm_payload_' . $key );
+   return [ 'args' => $args, 'snapshot' => $snapshot ];
+  } );
+  if ( ! is_array( $job ) || ! isset( $job['args'], $job['snapshot'] ) ) { return; }
+  $args = $job['args'];
 
 		$payload = $args['payload'] ?? null;
 		$idemp   = $args['idempotency'] ?? '';
@@ -88,8 +97,11 @@ final class YOGB_BM_Report {
 		$res = self::post_json_signed(
 			self::REST_ROUTE . '/reports',
 			$payload,
-			[ 'Idempotency-Key' => $idemp ]
+			[ 'Idempotency-Key' => $idemp ],
+   $job['snapshot']
 		);
+
+  YOGB_BM_Reconnect_Guard::run( $res['authority_context'] ?? [], static function() use ( $res, $order_id ) {
 
 		// If success, try to store report_id on the order.
 		if ( ! empty( $res['ok'] ) && $order_id > 0 ) {
@@ -126,7 +138,9 @@ final class YOGB_BM_Report {
 		//if ( defined('WP_DEBUG') && WP_DEBUG ) {
 		//	error_log( '[YOGB] report sent code=' . ($res['code'] ?? 0) . ' ok=' . (!empty($res['ok']) ? '1':'0') );
 		//}
-	}
+
+  } );
+}
 
 	/** True if we have credentials. */
 	public static function is_ready() : bool {
@@ -748,7 +762,7 @@ final class YOGB_BM_Report {
 	// ---- HTTP (signed) -----------------------------------------------------
 
 	/** POST JSON with HMAC headers to the server. */
-	public static function post_json_signed( string $route, array $payload, array $extra_headers = [] ) : array {
+	public static function post_json_signed( string $route, array $payload, array $extra_headers = [], ?array $credential_context = null ) : array {
 		if ( ! class_exists( 'YOGB_BM_Registrar' ) && ! self::is_ready() ) {
 			return [
 				'ok'   => false,
@@ -767,14 +781,20 @@ final class YOGB_BM_Report {
 			];
 		}
 
-		return self::post_raw_json_signed( $route, $body, $extra_headers, $payload );
+		return self::post_raw_json_signed( $route, $body, $extra_headers, $payload, false, $credential_context );
 	}
 
 	/** POST already serialized JSON bytes without rebuilding them. */
-	public static function post_raw_json_signed( string $route, string $body, array $extra_headers = [], array $filter_payload = [], bool $lock_body = false ) : array {
+	public static function post_raw_json_signed( string $route, string $body, array $extra_headers = [], array $filter_payload = [], bool $lock_body = false, ?array $credential_context = null ) : array {
 		$credential_snapshot = [];
 		if ( class_exists( 'YOGB_BM_Registrar' ) ) {
-			$credential_snapshot = YOGB_BM_Registrar::committed_credential_snapshot( false );
+			if ( null !== $credential_context ) {
+    if ( empty( $credential_context['ok'] ) || empty( $credential_context['api_key'] ) || empty( $credential_context['api_secret'] )
+     || true !== YOGB_BM_Reconnect_Guard::run( $credential_context, static function() { return true; } ) ) {
+     return [ 'ok' => false, 'code' => 0, 'err' => 'credential_epoch_changed', 'error_code' => 'credential_epoch_changed' ];
+    }
+    $credential_snapshot = $credential_context;
+   } else { $credential_snapshot = YOGB_BM_Registrar::committed_credential_snapshot( false ); }
 			if ( empty( $credential_snapshot['ok'] ) ) {
 				$status = sanitize_key( (string) ( $credential_snapshot['status'] ?? 'auth_paused' ) );
 				$paused = 'not_configured' !== $status;
@@ -788,7 +808,12 @@ final class YOGB_BM_Report {
 		} elseif ( ! self::is_ready() ) {
 			return [ 'ok' => false, 'code' => 0, 'err' => 'not_ready' ];
 		}
-		if ( '' === $body || ! is_array( json_decode( $body, true ) ) ) {
+  $operation_payload = json_decode( $body, true );
+  if ( ! empty( $credential_snapshot['recovery_epoch'] )
+   && ( ! class_exists( 'YOGB_BM_Outbox' ) || YOGB_BM_Outbox::historical_request( $route, is_array( $operation_payload ) ? $operation_payload : [], $extra_headers, $credential_snapshot ) ) ) {
+   return [ 'ok' => false, 'code' => 0, 'err' => 'historical_operation_refused', 'error_code' => 'historical_operation_refused' ];
+  }
+		if ( '' === $body || ! is_array( $operation_payload ) ) {
 			return [
 				'ok'   => false,
 				'code' => 0,
@@ -816,6 +841,8 @@ final class YOGB_BM_Report {
 			hash( 'sha256', $body ),
 		] );
 
+		$epoch = (string) ( $credential_snapshot['recovery_epoch'] ?? '' );
+  if ( '' !== $epoch ) { $canon .= "\n" . $epoch; }
 		$sig_raw = hash_hmac( 'sha256', $canon, $secret, true );
 		$sig     = base64_encode( $sig_raw );
 
@@ -827,6 +854,7 @@ final class YOGB_BM_Report {
 			'X-Request-Nonce'     => $nonce,
 			'X-Signature'         => $sig,
 		], $extra_headers );
+  $headers['X-YOGB-Recovery-Epoch'] = $epoch;
 
 		/**
 		 * Decide timeout based on context:
@@ -890,6 +918,8 @@ final class YOGB_BM_Report {
 			];
 		}
 
+  return YOGB_BM_Reconnect_Guard::run( $credential_snapshot, static function() use ( $res, $route, $credential_fingerprint ) {
+
 		if ( is_wp_error( $res ) ) {
 			// Timeout / DNS / SSL / connection issues.
 			if ( class_exists( 'YOGB_BM_Registrar' ) ) YOGB_BM_Registrar::mark_connection_error( 'transport_error', 'signed_post' );
@@ -899,6 +929,7 @@ final class YOGB_BM_Report {
 				'code' => 0,
 				'err'  => 'transport_error',
 				'error_code' => 'transport_error',
+				'authority_context' => YOGB_BM_Reconnect_Guard::context( YOGB_BM_Registrar::committed_credential_snapshot( true ) ),
 			];
 		}
 
@@ -935,8 +966,11 @@ final class YOGB_BM_Report {
 			'error_code' => $error_code,
 			'retry_after' => $retry_after,
 			'credential_fingerprint' => $credential_fingerprint,
+			'authority_context' => YOGB_BM_Reconnect_Guard::context( YOGB_BM_Registrar::committed_credential_snapshot( true ) ),
 		];
-	}
+
+  } );
+}
 }
 
 // Register the worker

@@ -432,7 +432,7 @@ final class YOGB_BM_Check_Orders {
 
 		$cached = get_transient( $key );
 
-		return is_array( $cached ) ? $cached : null;
+		return is_array( $cached ) && YOGB_BM_Reconnect_Guard::current( $cached['authority_context'] ?? [] ) ? $cached : null;
 	}
 
 	private static function cache_strict_check( WC_Order $order, array $resp ) : void {
@@ -440,6 +440,7 @@ final class YOGB_BM_Check_Orders {
 			return;
 		}
 
+  YOGB_BM_Reconnect_Guard::run( $resp['authority_context'] ?? [], static function() use ( $order, $resp ) {
 		$ttl = self::get_strict_cache_ttl();
 		if ( $ttl <= 0 ) {
 			return;
@@ -450,11 +451,13 @@ final class YOGB_BM_Check_Orders {
 			return;
 		}
 
-		set_transient( $key, $resp, $ttl );
 		$transfer_key = self::get_strict_transfer_cache_key( $order );
-		if ( '' !== $transfer_key ) {
+  if ( ! YOGB_BM_Reconnect_Guard::current( $resp['authority_context'] ?? [] ) ) { return; }
+		set_transient( $key, $resp, $ttl );
+		if ( '' !== $transfer_key && YOGB_BM_Reconnect_Guard::current( $resp['authority_context'] ?? [] ) ) {
 			set_transient( $transfer_key, $resp, $ttl );
 		}
+  } );
 	}
 
 	private static function get_strict_transfer_cache_key( WC_Order $order ) : string {
@@ -480,7 +483,7 @@ final class YOGB_BM_Check_Orders {
 			return null;
 		}
 		$value = get_transient( $key );
-		return is_array( $value ) ? $value : null;
+		return is_array( $value ) && YOGB_BM_Reconnect_Guard::current( $value['authority_context'] ?? [] ) ? $value : null;
 	}
 
 	private static function check_order_for_strict_mode( WC_Order $order ) : array {
@@ -520,6 +523,7 @@ final class YOGB_BM_Check_Orders {
 		}
 
 		$resp     = self::check_order_for_strict_mode( $order );
+  YOGB_BM_Reconnect_Guard::run( $resp['authority_context'] ?? [], static function() use ( $resp, $order, $errors ) {
 		$decision = YOGB_BM_Check::get_overall_decision( $resp );
 
 		if ( 'block' === $decision ) {
@@ -536,6 +540,7 @@ final class YOGB_BM_Check_Orders {
 
 			self::record_global_decision_activity( $order, $decision, $resp, 'classic_strict_checkout', 'woo_checkout' );
 		}
+  } );
 	}
 
 	/**
@@ -637,16 +642,18 @@ final class YOGB_BM_Check_Orders {
 		}
 
 		$resp     = self::check_order_for_strict_mode( $order );
+  $blocked = YOGB_BM_Reconnect_Guard::run( $resp['authority_context'] ?? [], static function() use ( $resp, $order ) {
 		$decision = YOGB_BM_Check::get_overall_decision( $resp );
 
 		if ( 'block' === $decision ) {
-			$message = __(
-				'Your order cannot be placed at this time due to our fraud protection rules. Please contact the store owner for assistance.',
-				'wc-blacklist-manager'
-			);
 			self::record_global_decision_activity( $order, $decision, $resp, 'store_api_strict_checkout', 'woo_store_api_checkout' );
-			throw new Exception( esc_html( $message ) );
+   return true;
 		}
+   return false;
+  } );
+  if ( true === $blocked ) {
+   throw new Exception( esc_html__( 'Your order cannot be placed at this time due to our fraud protection rules. Please contact the store owner for assistance.', 'wc-blacklist-manager' ) );
+  }
 	}
 
 	/**
@@ -672,13 +679,32 @@ final class YOGB_BM_Check_Orders {
 			return;
 		}
 
-		$attempt = self::begin_global_check_attempt( $order );
+  $start = YOGB_BM_Reconnect_Guard::run( null, static function() use ( $order ) {
+   if ( self::is_global_check_complete( $order ) || self::has_recent_pending_check( $order ) ) { return [ 'skip' => true ]; }
+   return [ 'attempt' => self::begin_global_check_attempt( $order ), 'authority_token' => (string) ( YOGB_BM_Registrar::auth_recovery_state()['authority_token'] ?? '' ) ];
+  } );
+  if ( ! empty( $start['skip'] ) ) { return; }
+  if ( ! isset( $start['attempt'] ) ) {
+   if ( 'reconnect_busy' === ( $start['error'] ?? '' ) ) { self::schedule_global_check_retry( $order_id, 5 * MINUTE_IN_SECONDS + 1 ); }
+   return;
+  }
+  $attempt = (int) $start['attempt'];
 		$mode    = self::get_decision_mode();
 
 		$resp = 'strict' === $mode ? self::get_transferred_strict_check( $order ) : null;
 		if ( ! is_array( $resp ) ) {
-			$resp = YOGB_BM_Check::check_order( $order );
+			$resp = YOGB_BM_Check::check_order( $order, (string) $start['authority_token'] );
 		}
+  // A guard failure has no reusable remote result; retain only a local failure under the attempt's captured authority.
+  if ( isset( $resp['error'] ) && ! isset( $resp['authority_context'] ) && ! isset( $resp['local_authority_token'] ) ) {
+   $resp = [ 'ok' => false, 'code' => 0, 'err' => $resp['error'], 'local_authority_token' => $start['authority_token'] ];
+  }
+  $projection = YOGB_BM_Reconnect_Guard::run( $resp['authority_context'] ?? null, static function() use ( $resp, $order, $order_id, $attempt, $mode ) {
+   if ( ! isset( $resp['authority_context'] ) && ( empty( $resp['local_authority_token'] )
+    || ! hash_equals( (string) $resp['local_authority_token'], (string) ( YOGB_BM_Registrar::auth_recovery_state()['authority_token'] ?? '' ) ) ) ) {
+    return [ 'ok' => false, 'error' => 'credential_epoch_changed' ];
+   }
+
 		$tier      = isset( $resp['tier'] ) ? (string) $resp['tier'] : '';
 		$http_code = isset( $resp['code'] ) ? (int) $resp['code'] : 0;
 		$error_code = isset( $resp['err'] ) ? sanitize_key( (string) $resp['err'] ) : '';
@@ -833,7 +859,13 @@ final class YOGB_BM_Check_Orders {
 		$order->save();
 
 		do_action( 'yogb_after_gbl_check', $order->get_id(), 'yogb_gbl_run_check_async' );
-	}
+
+  } );
+  if ( is_array( $projection ) && ! empty( $projection['error'] ) ) {
+   // Queue a fresh request after the pending lease expires. Never replay the discarded response.
+   self::schedule_global_check_retry( $order_id, max( 5 * MINUTE_IN_SECONDS + 1, self::get_retry_delay_seconds( $attempt ) ) );
+  }
+}
 
 	public static function handle_manual_order_check() : void {
 		$order_id = isset( $_GET['order_id'] ) ? absint( $_GET['order_id'] ) : 0;
@@ -1262,6 +1294,7 @@ final class YOGB_BM_Check_Orders {
 		string $context,
 		string $source
 	) : void {
+  YOGB_BM_Reconnect_Guard::run( $resp['authority_context'] ?? [], static function() use ( $order, $decision, $resp, $context, $source ) {
 		global $wpdb;
 
 		if ( ! isset( $wpdb ) ) {
@@ -1307,6 +1340,7 @@ final class YOGB_BM_Check_Orders {
 			),
 			array( '%s', '%s', '%s', '%s', '%s', '%s' )
 		);
+  } );
 	}
 
 	/**
@@ -1385,6 +1419,7 @@ final class YOGB_BM_Check_Orders {
 				$order->add_order_note( $note );
 				break;
 		}
+		YOGB_BM_Recovery_Store::annotate_order( $order );
 	}
 
 	private static function format_match_mode_label_static( string $mode ) : string {
