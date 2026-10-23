@@ -107,7 +107,11 @@ final class YOGB_BM_Subscription_Activation {
 			$retry = wp_nonce_url( admin_url( 'admin-post.php?action=yogb_bm_retry_registration' ), 'yogb_bm_retry_registration', 'yogb_bm_retry_nonce' );
 			echo '<section class="yogb-gbl-card yogb-gbl-card--warning">';
 			echo '<div class="yogb-gbl-card__body"><div class="yogb-gbl-state"><span class="yogb-gbl-state__icon" aria-hidden="true">!</span><div><h3>' . esc_html__( 'Connection needs attention', 'wc-blacklist-manager' ) . '</h3><p>' . esc_html__( 'Secure site registration must complete before order checking or plan activation can be used.', 'wc-blacklist-manager' ) . '</p></div></div>';
-			echo '<div class="yogb-gbl-actions"><a class="button button-secondary" href="' . esc_url( $retry ) . '">' . esc_html__( 'Retry connection', 'wc-blacklist-manager' ) . '</a></div></div></section></td></tr>';
+			echo '<div class="yogb-gbl-actions"><a class="button button-secondary" href="' . esc_url( $retry ) . '">' . esc_html__( 'Retry connection', 'wc-blacklist-manager' ) . '</a></div></div>';
+			if ( class_exists( 'YOGB_BM_Reconnect' ) ) {
+				YOGB_BM_Reconnect::render();
+			}
+			echo '</section></td></tr>';
 			return;
 		}
 
@@ -188,6 +192,9 @@ final class YOGB_BM_Subscription_Activation {
 			echo '<div class="yogb-gbl-legacy-note">' . esc_html__( 'This server does not support subscription-key activation yet. Existing Site ID plans continue to synchronize normally.', 'wc-blacklist-manager' ) . '</div>';
 		} else {
 			echo '<div class="yogb-gbl-legacy-note">' . esc_html__( 'Synchronizing server features… Activation options will be updated after this check finishes.', 'wc-blacklist-manager' ) . '</div>';
+		}
+		if ( class_exists( 'YOGB_BM_Reconnect' ) ) {
+			YOGB_BM_Reconnect::render();
 		}
 		echo '</section></td></tr>';
 	}

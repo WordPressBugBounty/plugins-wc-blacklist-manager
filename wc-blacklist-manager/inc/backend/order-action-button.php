@@ -66,12 +66,7 @@ class WC_Blacklist_Manager_Order_Actions {
 	private function surface_config( WC_Order $order, array $observation, int $sequence = 0 ) : array {
 		$legacy = $this->legacy_block_modal_config();
 		$block = YOGB_BM_Report_V2::modal_config( $order, $observation['capability'] );
-		if ( is_array( $block ) ) {
-			$block['cta'] = $legacy['cta'];
-			$block['legacyFallback'] = $legacy;
-		} else {
-			$block = $legacy;
-		}
+		$block['cta'] = $legacy['cta'];
 		return array(
 			'version' => 1,
 			'order_id' => (int) $order->get_id(),
@@ -263,11 +258,17 @@ class WC_Blacklist_Manager_Order_Actions {
 			);
 			return sanitize_key( (string) ( $result['state'] ?? 'not_queued_invalid' ) );
 		}
-		if ( class_exists( 'YOGB_BM_Report' ) && YOGB_BM_Report::is_ready() ) {
-			YOGB_BM_Report::queue_report_from_order( $order, $reason_code, $local_details );
-			return 'legacy_queued';
+		return 'local_only';
+	}
+
+	private function report_delivery_message( string $state ) : string {
+		if ( 'queued' === $state ) {
+			return ' ' . __( 'Global report queued; delivery is not yet confirmed.', 'wc-blacklist-manager' );
 		}
-		return 'not_queued';
+		if ( 'deferred' === $state ) {
+			return ' ' . __( 'Global report deferred for up to 24 hours while signed capability is unavailable; delivery is not guaranteed.', 'wc-blacklist-manager' );
+		}
+		return ' ' . __( 'Local block saved; no Global report was queued.', 'wc-blacklist-manager' );
 	}
 
 	/**
@@ -1768,7 +1769,7 @@ class WC_Blacklist_Manager_Order_Actions {
 
 			wp_send_json_success(
 				array(
-					'message'               => esc_html__( 'Moved to the blocklist successfully.', 'wc-blacklist-manager' ),
+					'message'               => esc_html__( 'Moved to the blocklist successfully.', 'wc-blacklist-manager' ) . $this->report_delivery_message( $global_delivery_state ),
 					'global_delivery_state' => $global_delivery_state,
 				)
 			);
@@ -1998,7 +1999,7 @@ class WC_Blacklist_Manager_Order_Actions {
 
 			wp_send_json_success(
 				array(
-					'message'               => esc_html__( 'Added to blocklist successfully.', 'wc-blacklist-manager' ),
+					'message'               => esc_html__( 'Added to blocklist successfully.', 'wc-blacklist-manager' ) . $this->report_delivery_message( $global_delivery_state ),
 					'global_delivery_state' => $global_delivery_state,
 				)
 			);
@@ -2248,11 +2249,32 @@ class WC_Blacklist_Manager_Order_Actions {
 		);
 	}
 
+	private function display_global_advisory_notice( WC_Order $order ): void {
+		$current = $this->get_current_admin_order();
+		if ( ! $current instanceof WC_Order || $current->get_id() !== $order->get_id()
+			|| ! $this->current_user_can_moderate_order( $order )
+			|| '0' !== (string) get_option( 'wc_blacklist_development_mode', '0' )
+			|| ! class_exists( 'YOGB_BM_Check_Orders' ) ) { return; }
+		global $pagenow;
+		if ( 'admin.php' === $pagenow && ( ! isset( $_GET['action'] ) || 'edit' !== sanitize_key( wp_unslash( $_GET['action'] ) ) ) ) { return; }
+		$policy = YOGB_BM_Check_Orders::get_applied_policy( $order );
+		if ( 'moderate' !== ( $policy['mode'] ?? '' ) ) { return; }
+		if ( 'challenge' === $policy['decision'] ) {
+			$message = __( 'Global Blacklist flagged this order for review. Review the order before fulfillment.', 'wc-blacklist-manager' );
+			$severity = 'notice-warning';
+		} elseif ( 'block' === $policy['decision'] ) {
+			$message = __( 'Global Blacklist returned a high-risk decision for this order. Review the order before fulfillment.', 'wc-blacklist-manager' );
+			$severity = 'notice-error';
+		} else { return; }
+		echo '<div class="notice ' . esc_attr( $severity ) . '"><p>' . esc_html( $message ) . '</p></div>';
+	}
+
 	public function display_blacklist_notices( WC_Order $order ) {
 		if ( $this->is_add_new_order_screen() ) {
 			return;
 		}
 
+		$this->display_global_advisory_notice( $order );
 		$state = $this->get_order_blacklist_state( $order );
 
 		if ( ! empty( $state['blocked_labels'] ) ) {

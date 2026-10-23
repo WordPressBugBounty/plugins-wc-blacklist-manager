@@ -756,20 +756,23 @@ class YOGB_BM_Registrar {
 		self::mark_connection_error( sanitize_key( $source ), 'auth_recovery' );
 	}
 
-	private static function schedule_recovery_retry( string $source ) : void {
+	private static function schedule_recovery_retry( string $source, bool $availability = false, int $retry_after = 0 ) : void {
 		$state = self::auth_recovery_state();
-		$state['failures'] = min( 10, (int) $state['failures'] + 1 );
-		if ( $state['failures'] >= 10 ) {
+		$state['failures'] = $availability ? (int) $state['failures'] : min( 10, (int) $state['failures'] + 1 );
+		if ( ! $availability && $state['failures'] >= 10 ) {
 			self::mark_manual_intervention( 'recovery_attempts_exhausted' );
 			return;
 		}
 		$delay = min( 6 * HOUR_IN_SECONDS, max( 60, (int) pow( 2, min( 8, (int) $state['failures'] ) ) * 30 ) );
+		// Reuse the existing bounded source field for availability cadence only.
+		$availability_attempt = preg_match( '/^availability_retry_([1-8])$/D', $state['source'], $match ) ? min( 8, (int) $match[1] + 1 ) : 1;
+		if ( $availability ) $delay = YOGB_BM_Tier_Sync::retry_delay( $availability_attempt, $retry_after );
 		$state['next_attempt_at'] = time() + $delay;
-		$state['source']          = sanitize_key( $source );
+		$state['source']          = $availability ? 'availability_retry_' . $availability_attempt : sanitize_key( $source );
 		if ( ! self::write_auth_recovery_state( $state ) ) {
 			return;
 		}
-		self::schedule_auth_recovery( $delay + wp_rand( 0, 120 ) );
+		self::schedule_auth_recovery( $availability ? $delay : $delay + wp_rand( 0, 120 ) );
 	}
 
 	private static function invalidate_auth_recovery_lock_cache() : void {
@@ -1118,6 +1121,10 @@ class YOGB_BM_Registrar {
 				return;
 			}
 			$status = sanitize_key( (string) ( $result['status'] ?? '' ) );
+			if ( ! empty( $result['availability'] ) ) {
+				self::schedule_recovery_retry( $status ?: 'availability', true, (int) ( $result['retry_after'] ?? 0 ) );
+				return;
+			}
 			if ( 'stale_version_ignored' === $status ) {
 				self::mark_manual_intervention( 'recovery_stale_version' );
 				return;

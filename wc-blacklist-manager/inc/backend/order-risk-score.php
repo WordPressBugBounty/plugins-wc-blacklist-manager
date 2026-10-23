@@ -306,6 +306,13 @@ class WC_Blacklist_Manager_Order_Risk_Score {
 	}
 
 	private static function render_pending( WC_Order $order ) : void {
+		$started = (int) $order->get_meta( '_yogb_gbl_check_started_at', true );
+		$active = 'pending' === $order->get_meta( '_yogb_gbl_check_status', true ) && $started > time() - 5 * MINUTE_IN_SECONDS;
+		$queued = function_exists( 'as_next_scheduled_action' ) && as_next_scheduled_action( 'yogb_gbl_run_check_async', [ 'order_id' => (int) $order->get_id() ], 'yogb-global-blacklist' );
+		$queued = $queued || wp_next_scheduled( 'yogb_gbl_run_check_async', [ (int) $order->get_id() ] );
+		$unavailable = 'unavailable' === $order->get_meta( '_yogb_gbl_check_status', true );
+		$title = $unavailable ? __( 'Check unavailable', 'wc-blacklist-manager' ) : ( $active || $queued ? __( 'Checking order', 'wc-blacklist-manager' ) : __( 'Check unavailable', 'wc-blacklist-manager' ) );
+		$summary = $unavailable && $queued ? __( 'The check could not complete. A fresh retry is scheduled.', 'wc-blacklist-manager' ) : ( $active || $queued ? __( 'The background check has not completed yet.', 'wc-blacklist-manager' ) : __( 'No completed result or scheduled check is available. Review the connection and background actions before rechecking.', 'wc-blacklist-manager' ) );
 		$created          = $order->get_date_created();
 		$can_show_recheck = ! $created || time() - $created->getTimestamp() >= 2 * MINUTE_IN_SECONDS;
 		?>
@@ -315,10 +322,10 @@ class WC_Blacklist_Manager_Order_Risk_Score {
 					<span class="bm-gbl-result__icon" aria-hidden="true"></span>
 					<div>
 						<span class="bm-gbl-result__eyebrow"><?php esc_html_e( 'Global Blacklist result', 'wc-blacklist-manager' ); ?></span>
-						<strong class="bm-gbl-result__title"><?php esc_html_e( 'Checking order', 'wc-blacklist-manager' ); ?></strong>
+						<strong class="bm-gbl-result__title"><?php echo esc_html( $title ); ?></strong>
 					</div>
 				</div>
-				<p class="bm-gbl-result__summary"><?php esc_html_e( 'The background check has not completed yet.', 'wc-blacklist-manager' ); ?></p>
+				<p class="bm-gbl-result__summary"><?php echo esc_html( $summary ); ?></p>
 				<?php if ( $can_show_recheck ) : ?>
 					<div class="bm-gbl-result__footer">
 						<a class="button button-secondary bm-gbl-result__button bm-gbl-result__recheck" href="<?php echo esc_url( self::recheck_url( (int) $order->get_id() ) ); ?>">

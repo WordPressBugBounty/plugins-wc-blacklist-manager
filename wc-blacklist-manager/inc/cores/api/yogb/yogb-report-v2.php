@@ -25,14 +25,12 @@ final class YOGB_BM_Report_V2 {
 
 	public static function refresh_capabilities() : void {
 		if ( class_exists( 'YOGB_BM_Tier_Sync' ) ) {
-			YOGB_BM_Tier_Sync::run_repair();
+			YOGB_BM_Tier_Sync::refresh_background();
 		}
 	}
 
-	public static function schedule_capability_refresh() : void {
-		if ( ! wp_next_scheduled( self::CAPABILITY_REFRESH_HOOK ) ) {
-			wp_schedule_single_event( time() + 5, self::CAPABILITY_REFRESH_HOOK );
-		}
+	public static function schedule_capability_refresh( int $intent = 1 ) : void {
+		if ( class_exists( 'YOGB_BM_Tier_Sync' ) ) YOGB_BM_Tier_Sync::request_refresh( $intent );
 	}
 
 	/** Persist a capability set only after its signed tier payload has validated. */
@@ -264,12 +262,9 @@ final class YOGB_BM_Report_V2 {
 		return [ 'cod', 'bank_transfer', 'manual_payment', 'card', 'wallet', 'direct_debit', 'bnpl', 'other_online', 'unknown' ];
 	}
 
-	/** Build the v2-only modal configuration; callers retain their existing v1 config otherwise. */
+	/** Build v2 selection independently of delivery capability. */
 	public static function modal_config( WC_Order $order, ?array $capability = null ) : ?array {
 		$capability = null === $capability ? self::capability_state() : $capability;
-		if ( empty( $capability['supported'] ) ) {
-			return null;
-		}
 
 		$payment      = self::classify_payment( $order );
 		$recommended  = self::recommended_reasons( (string) $payment['family'] );
@@ -448,15 +443,12 @@ final class YOGB_BM_Report_V2 {
 		return 'unknown';
 	}
 
-	/** Queue either unchanged legacy v1 or a manual immutable v2 intent. */
+	/** Queue a manual immutable v2 intent; legacy consumers retain their local action only. */
 	public static function queue_intent_from_order( WC_Order $order, array $intent ) : array {
 		$contract = sanitize_key( (string) ( $intent['contract'] ?? 'v1' ) );
 		$source   = sanitize_key( (string) ( $intent['source_kind'] ?? 'merchant_manual_block' ) );
 		if ( 'v2' !== $contract ) {
-			$legacy_reason = sanitize_key( (string) ( $intent['legacy_reason'] ?? $intent['reason_code'] ?? '' ) );
-			$legacy_details = (string) ( $intent['legacy_details'] ?? $intent['details'] ?? '' );
-			YOGB_BM_Report::queue_report_from_order( $order, $legacy_reason, $legacy_details );
-			return self::selection_result( $contract, [ 'state' => 'legacy_queued', 'source_kind' => $source ] );
+			return self::selection_result( $contract, [ 'state' => 'local_only', 'source_kind' => $source ] );
 		}
 
 		if ( 'merchant_manual_block' !== $source || empty( $intent['selection_authorized'] ) ) {

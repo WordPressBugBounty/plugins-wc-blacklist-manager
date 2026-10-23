@@ -2,7 +2,7 @@
 # This file is distributed under the GPL v2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Blacklist Manager 2.3.4\n"
+"Project-Id-Version: Blacklist Manager 2.4.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/wc-blacklist-manager\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -6026,6 +6026,10 @@ msgstr ""
 msgid "Plan & connection"
 msgstr ""
 
+#: inc/cores/api/yogb/yogb-reconnect.php
+msgid "Reconnect an existing site"
+msgstr ""
+
 #: inc/cores/api/yogb/yogb-subscription-activation.php:103
 msgid "Connection needs attention"
 msgstr ""
@@ -6778,4 +6782,264 @@ msgstr ""
 
 #: inc/backend/views/verifications-form.php:235
 msgid "SMS message and resend options"
+msgstr ""
+
+#: inc/cores/notifications/renderer.php
+msgid "Review Checkout health"
+msgstr ""
+
+#: inc/cores/schema-readiness.php:152
+msgid "Reporting indexes are verified and ready."
+msgstr ""
+
+#: inc/cores/schema-readiness.php:153
+msgid "Reporting indexes are pending. Open Blacklist management to check or schedule the background readiness repair."
+msgstr ""
+
+#: inc/cores/schema-readiness.php:154
+msgid "Reporting index repair is in progress. Check Blacklist management again after the worker completes."
+msgstr ""
+
+#: inc/cores/schema-readiness.php:155
+msgid "Reporting index repair failed. Review the database readiness notice in Blacklist management before retrying."
+msgstr ""
+
+#: inc/cores/schema-readiness.php:156
+msgid "Reporting indexes require a maintenance window. Ask your administrator or hosting provider to review the database indexes and use wp blacklist-manager schema repair --allow-blocking only during approved CLI maintenance."
+msgstr ""
+
+#: inc/cores/schema-readiness.php:157
+msgid "The stored reporting schema is newer than this Core version. Restore a compatible Core version before attempting repair."
+msgstr ""
+
+#: inc/cores/schema-readiness.php:259
+msgid "The next database readiness repair could not be scheduled. Please try again."
+msgstr ""
+
+#: inc/cores/schema-readiness.php:302
+msgid "Database readiness repair could not be scheduled. Please try again."
+msgstr ""
+
+#: inc/cores/schema-readiness.php:347
+msgid "Reporting index readiness is separate from stored blacklist data. Pending reporting indexes do not remove existing records or disable local protection; lists and exports remain available."
+msgstr ""
+
+#: inc/cores/schema-readiness.php:352
+msgid "The scheduled repair is overdue. Ask your administrator to check WordPress cron; scheduling again will not create a duplicate job."
+msgstr ""
+
+#: inc/cores/schema-readiness.php:364
+msgid "Scheduling again cannot resolve this database limitation. Ask your administrator or hosting provider to plan maintenance after checking backups and database capacity. This warning remains until the required indexes are verified."
+msgstr ""
+
+#: inc/cores/schema-readiness.php:369
+msgid "No database readiness repair was queued by this request. Review the diagnostic above and ask your administrator to check WordPress cron."
+msgstr ""
+
+#: inc/cores/schema-readiness.php:371
+msgid "Database readiness is being checked or repaired by another request. Please check again shortly."
+msgstr ""
+
+#: inc/cores/schema-readiness.php:236
+msgid "Database index metadata could not be read. Ask your administrator to check database permissions before repair."
+msgstr ""
+
+#: inc/cores/schema-readiness.php:339
+msgid "You are not allowed to dismiss this database notice."
+msgstr ""
+
+#: inc/cores/schema-readiness.php:344
+msgid "The notice preference could not be saved. Please try again."
+msgstr ""
+
+#: inc/cores/schema-readiness.php:397
+msgid "Blacklist Manager reporting indexes are not ready."
+msgstr ""
+
+#: inc/cores/schema-readiness.php:398
+msgid "Blacklist Manager database repair is in progress."
+msgstr ""
+
+#: inc/cores/schema-readiness.php:399
+msgid "Blacklist Manager database repair needs attention."
+msgstr ""
+
+#: inc/cores/schema-readiness.php:400
+msgid "Blacklist Manager needs database maintenance."
+msgstr ""
+
+#: inc/cores/schema-readiness.php:401
+msgid "Blacklist Manager database version needs review."
+msgstr ""
+
+#: inc/cores/schema-readiness.php:402
+msgid "Blacklist Manager database readiness could not be verified."
+msgstr ""
+
+#: inc/cores/schema-readiness.php:433
+msgid "Dismiss Database Readiness notices permanently for your account on this site"
+msgstr ""
+
+#: inc/cores/schema-readiness.php:433
+msgid "Dismiss permanently"
+msgstr ""
+
+#: inc/cores/schema-readiness.php:436
+msgid "Stored blacklist records and local protection are unaffected; lists and exports remain available."
+msgstr ""
+
+#: inc/cores/schema-readiness.php:442
+msgid "View remediation instructions"
+msgstr ""
+
+#: inc/cores/schema-readiness.php:447
+msgid "No database readiness repair was queued by this request. Ask your administrator to check WordPress cron."
+msgstr ""
+
+#: inc/cores/schema-readiness.php:449
+msgid "Another request holds the readiness lock. Please check again shortly."
+msgstr ""
+
+#: inc/cores/schema-readiness.php:480
+msgid "Exact"
+msgstr ""
+
+#: inc/cores/schema-readiness.php:480
+msgid "Missing"
+msgstr ""
+
+#: inc/cores/schema-readiness.php:480
+msgid "Wrong columns"
+msgstr ""
+
+#: inc/cores/schema-readiness.php:481
+msgid "Hello Hosting Support, please help verify Blacklist Manager reporting index readiness on this WordPress site."
+msgstr ""
+
+#: inc/cores/schema-readiness.php:483
+msgid "Engine unavailable"
+msgstr ""
+
+#: inc/cores/schema-readiness.php:488
+msgid "Metadata is unavailable. Check database metadata permissions and verify physical indexes first. Do not assume indexes are missing or begin repair from an unknown result."
+msgstr ""
+
+#: inc/cores/schema-readiness.php:490
+msgid "Verify a restorable backup, database/temp capacity, required ALTER privileges and an approved low-traffic maintenance window with appropriate traffic controls. Blocking repair may interrupt purchases."
+msgstr ""
+
+#: inc/cores/schema-readiness.php:491
+msgid "This command refreshes stored readiness diagnostics. Use the correct WordPress site context."
+msgstr ""
+
+#: inc/cores/schema-readiness.php:492
+msgid "Only during explicitly authorized CLI maintenance:"
+msgstr ""
+
+#: inc/cores/schema-readiness.php:493
+msgid "Each invocation repairs at most one index. Re-inspect status and exact physical columns after each step; authorize the next step separately only if still required. On error, timeout or uncertain completion, stop and inspect database sessions before retrying. Never run a blind retry loop."
+msgstr ""
+
+#: inc/cores/schema-readiness.php:494
+msgid "After all required indexes are physically verified, reload Admin to confirm readiness. If WP-CLI is unavailable, arrange operator-led hosting maintenance; do not run blocking repair from a web request. Dismissed notices do not mean the database is ready."
+msgstr ""
+
+#: inc/backend/views/schema-readiness.php:10
+msgid "Online repair cannot complete on this database. Scheduling again will not resolve this limitation. Ask your administrator or hosting provider to repair the affected indexes during approved maintenance."
+msgstr ""
+
+#: inc/backend/views/schema-readiness.php:12
+msgid "Physical metadata is unavailable. Do not assume indexes are missing or that repair is needed. Ask hosting to check metadata access and verify the exact indexes first."
+msgstr ""
+
+#: inc/backend/views/schema-readiness.php:20
+msgid "Site-local reporting indexes"
+msgstr ""
+
+#: inc/backend/views/schema-readiness.php:21
+msgid "Table / index"
+msgstr ""
+
+#: inc/backend/views/schema-readiness.php:21
+msgid "Expected columns"
+msgstr ""
+
+#: inc/backend/views/schema-readiness.php:21
+msgid "Engine"
+msgstr ""
+
+#: inc/backend/views/schema-readiness.php:21
+msgid "Physical status"
+msgstr ""
+
+#: inc/backend/views/schema-readiness.php:26
+msgid "Hosting maintenance instructions"
+msgstr ""
+
+#: inc/backend/views/schema-readiness.php:28
+msgid "Blocking repair may interrupt purchases. Hosting must verify a restorable backup, database and temporary-space capacity, required permissions and an approved low-traffic maintenance window with traffic controls."
+msgstr ""
+
+#: inc/backend/views/schema-readiness.php:30
+msgid "Inspect the correct WordPress site."
+msgstr ""
+
+#: inc/backend/views/schema-readiness.php:30
+msgid "This command refreshes stored readiness diagnostics."
+msgstr ""
+
+#: inc/backend/views/schema-readiness.php:31
+msgid "Repair one index during authorized CLI maintenance."
+msgstr ""
+
+#: inc/backend/views/schema-readiness.php:31
+msgid "At most one index is repaired per invocation. This page does not execute this command."
+msgstr ""
+
+#: inc/backend/views/schema-readiness.php:32
+msgid "Re-inspect before each next step."
+msgstr ""
+
+#: inc/backend/views/schema-readiness.php:32
+msgid "Verify the exact index columns. Authorize another step separately only if still required. On an error, timeout or uncertain completion, stop and ask hosting to inspect the database session before retrying. Never use a blind retry loop."
+msgstr ""
+
+#: inc/backend/views/schema-readiness.php:33
+msgid "Confirm physical readiness."
+msgstr ""
+
+#: inc/backend/views/schema-readiness.php:33
+msgid "After every required index is physically verified, reload Admin. The readiness notice disappears once the database is ready."
+msgstr ""
+
+#: inc/backend/views/schema-readiness.php:35
+msgid "Ask hosting to verify metadata permissions and physical indexes first. Do not begin repair based on an unknown result."
+msgstr ""
+
+#: inc/backend/views/schema-readiness.php:36
+msgid "Schedule queues an online-only repair. If the database cannot support it, maintenance guidance will be available here. No blocking fallback runs automatically."
+msgstr ""
+
+#: inc/backend/views/schema-readiness.php:38
+msgid "Hosting instructions copied."
+msgstr ""
+
+#: inc/backend/views/schema-readiness.php:38
+msgid "Message selected. Use your browser copy command."
+msgstr ""
+
+#: inc/backend/views/schema-readiness.php:38
+msgid "Copy instructions for hosting"
+msgstr ""
+
+#: inc/backend/views/schema-readiness.php:38
+msgid "No WP-CLI access? Send this message to your hosting provider."
+msgstr ""
+
+#: inc/backend/views/schema-readiness.php:39
+msgid "Preview the hosting message"
+msgstr ""
+
+#: inc/backend/views/schema-readiness.php:39
+msgid "Hosting support message"
 msgstr ""

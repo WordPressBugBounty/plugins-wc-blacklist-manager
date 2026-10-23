@@ -4,25 +4,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-if ( ! function_exists( 'get_real_customer_ip' ) ) {
-	/**
-	 * Get the best trustworthy public client IP for the current request.
-	 *
-	 * Priority:
-	 * 1. CF-Connecting-IP when REMOTE_ADDR is a trusted Cloudflare IP
-	 * 2. First public IP from X-Forwarded-For when REMOTE_ADDR is a trusted proxy
-	 * 3. REMOTE_ADDR
-	 *
-	 * Returns:
-	 * - Public IP string when available
-	 * - Empty string when no valid IP is available
-	 */
-	function get_real_customer_ip(): string {
-		$remote_addr = isset( $_SERVER['REMOTE_ADDR'] ) && is_string( $_SERVER['REMOTE_ADDR'] )
-			? trim( explode( ',', wp_unslash( $_SERVER['REMOTE_ADDR'] ) )[0] )
-			: '';
-
-		$cloudflare_proxies = apply_filters(
+if ( ! function_exists( 'yobm_cloudflare_proxy_ranges' ) ) {
+	/** Existing resolver CIDR policy; no network refresh or visitor data. */
+	function yobm_cloudflare_proxy_ranges() {
+		return apply_filters(
 			'yobmp_cloudflare_proxies',
 			[
 				'173.245.48.0/20',
@@ -49,6 +34,28 @@ if ( ! function_exists( 'get_real_customer_ip' ) ) {
 				'2c0f:f248::/32',
 			]
 		);
+	}
+}
+
+if ( ! function_exists( 'get_real_customer_ip' ) ) {
+	/**
+	 * Get the best trustworthy public client IP for the current request.
+	 *
+	 * Priority:
+	 * 1. CF-Connecting-IP when REMOTE_ADDR is a trusted Cloudflare IP
+	 * 2. First public IP from X-Forwarded-For when REMOTE_ADDR is a trusted proxy
+	 * 3. REMOTE_ADDR
+	 *
+	 * Returns:
+	 * - Public IP string when available
+	 * - Empty string when no valid IP is available
+	 */
+	function get_real_customer_ip(): string {
+		$remote_addr = isset( $_SERVER['REMOTE_ADDR'] ) && is_string( $_SERVER['REMOTE_ADDR'] )
+			? trim( explode( ',', wp_unslash( $_SERVER['REMOTE_ADDR'] ) )[0] )
+			: '';
+
+		$cloudflare_proxies = yobm_cloudflare_proxy_ranges();
 
 		$trusted_proxies = apply_filters( 'yobmp_trusted_proxies', [] );
 

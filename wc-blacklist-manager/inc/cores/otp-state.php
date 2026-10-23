@@ -110,6 +110,7 @@ final class WC_Blacklist_Manager_OTP_Schema {
 		$state_sql = "CREATE TABLE {$state} (
 			subject_key varchar(64) NOT NULL,
 			channel varchar(16) NOT NULL,
+			row_incarnation varchar(32) NOT NULL DEFAULT '',
 			secret_fingerprint varchar(64) NOT NULL,
 			identity_key varchar(64) NOT NULL DEFAULT '',
 			revision bigint(20) unsigned NOT NULL DEFAULT 0,
@@ -163,6 +164,7 @@ final class WC_Blacklist_Manager_OTP_Schema {
 			self::$ready_cache = true;
 			delete_transient( self::REPAIR_LOCK );
 			self::schedule_cleanup();
+			WC_Blacklist_Manager_OTP_State::instance()->adopt_legacy_rows( self::CLEANUP_BATCH );
 			return true;
 		}
 
@@ -175,7 +177,7 @@ final class WC_Blacklist_Manager_OTP_Schema {
 		$state          = self::state_table();
 		$rate           = self::rate_table();
 		$state_columns  = array(
-			'subject_key', 'channel', 'secret_fingerprint', 'identity_key', 'revision', 'generation',
+			'subject_key', 'channel', 'row_incarnation', 'secret_fingerprint', 'identity_key', 'revision', 'generation',
 			'challenge_id', 'otp_verifier', 'challenge_status', 'challenge_issued_at', 'challenge_expires_at',
 			'resend_available_at', 'attempt_count', 'resend_count', 'proof_id', 'proof_identity_key',
 			'proof_verified_at', 'proof_expires_at', 'last_request_id', 'last_request_fingerprint',
@@ -196,8 +198,10 @@ final class WC_Blacklist_Manager_OTP_Schema {
 			'expiry'  => array( 'expires_at' ),
 		);
 
-		return self::table_matches( $state, $state_columns, $state_indexes )
-			&& self::table_matches( $rate, $rate_columns, $rate_indexes );
+		if ( ! self::table_matches( $state, $state_columns, $state_indexes ) || ! self::table_matches( $rate, $rate_columns, $rate_indexes ) ) { return false; }
+		$incarnation = $wpdb->get_row( "SHOW COLUMNS FROM `{$state}` LIKE 'row_incarnation'", ARRAY_A );
+		return is_array( $incarnation ) && 'varchar(32)' === strtolower( $incarnation['Type'] )
+			&& 'NO' === $incarnation['Null'] && '' === $incarnation['Default'];
 	}
 
 	private static function table_matches( $table, array $columns, array $indexes ) {
@@ -430,37 +434,95 @@ final class WC_Blacklist_Manager_OTP_State {
 		return $remote;
 	}
 
+	private function scope( array $row, $identity_key, $subject_key = '', $channel = '' ) {
+		if ( $row ) {
+			if ( empty( $row['row_incarnation'] ) || ! preg_match( '/^[a-f0-9]{32}$/D', $row['row_incarnation'] ) ) {
+				return '';
+			}
+			$subject_key = $row['subject_key'];
+			$channel = $row['channel'];
+		} elseif ( '' === $subject_key || '' === $channel ) {
+			return '';
+		}
+		return 'otp-scope-v1:' . $this->hmac( 'state-scope', implode( '|', array( $subject_key, $channel, $identity_key, $row ? $row['row_incarnation'] : 'absent' ) ) );
+	}
+
 	private function get_row( $subject_key, $channel ) {
 		global $wpdb;
 		$table = WC_Blacklist_Manager_OTP_Schema::state_table();
-		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE subject_key = %s AND channel = %s LIMIT 1", $subject_key, $channel ), ARRAY_A );
+		$row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE subject_key = %s AND channel = %s LIMIT 1", $subject_key, $channel ), ARRAY_A );
 		if ( ! is_array( $row ) ) {
 			return array();
 		}
 		if ( empty( $row['secret_fingerprint'] ) || ! hash_equals( $this->secret_fingerprint(), (string) $row['secret_fingerprint'] ) ) {
-			$wpdb->delete( $table, array( 'subject_key' => $subject_key, 'channel' => $channel ) );
+			$wpdb->delete( $table, array( 'subject_key' => $subject_key, 'channel' => $channel, 'row_incarnation' => $row['row_incarnation'], 'secret_fingerprint' => $row['secret_fingerprint'], 'revision' => $row['revision'] ) );
 			return array();
+		}
+		if ( '' === (string) $row['row_incarnation'] ) {
+			$incarnation = $this->random_id();
+			if ( is_wp_error( $incarnation ) ) {
+				return $row;
+			}
+			// Compare every physical field: a concurrent old writer must not be overwritten.
+			$where = array(); $values = array( $incarnation );
+			foreach ( $row as $column => $value ) {
+				$where[] = '`' . str_replace( '`', '``', $column ) . '` = %s';
+				$values[] = $value;
+			}
+			$wpdb->query( $wpdb->prepare( "UPDATE {$table} SET row_incarnation=%s WHERE " . implode( ' AND ', $where ), $values ) );
+			// One re-read, no retry loop. Only the database winner is projected.
+			$row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE subject_key=%s AND channel=%s LIMIT 1", $subject_key, $channel ), ARRAY_A );
+			if ( ! is_array( $row ) || empty( $row['secret_fingerprint'] ) || ! hash_equals( $this->secret_fingerprint(), (string) $row['secret_fingerprint'] ) ) {
+				return array();
+			}
 		}
 		return $row;
 	}
 
+	/** Admin/repair only: at most one existing cleanup-sized batch. */
+	public function adopt_legacy_rows( $limit = 200 ) {
+		global $wpdb;
+		$table = WC_Blacklist_Manager_OTP_Schema::state_table();
+		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT subject_key,channel FROM {$table} WHERE row_incarnation='' LIMIT %d", max( 1, min( 200, (int) $limit ) ) ), ARRAY_A );
+		foreach ( (array) $rows as $row ) {
+			$this->get_row( $row['subject_key'], $row['channel'] );
+		}
+	}
+
 	private function ensure_row( $subject_key, $channel ) {
 		global $wpdb;
-		$now   = $this->now();
+		$incarnation = $this->random_id();
+		if ( is_wp_error( $incarnation ) ) {
+			return $incarnation;
+		}
+		$now = $this->now();
 		$table = WC_Blacklist_Manager_OTP_Schema::state_table();
-		$sql   = $wpdb->prepare(
-			"INSERT IGNORE INTO {$table} (subject_key,channel,secret_fingerprint,created_at,updated_at) VALUES (%s,%s,%s,%d,%d)",
-			$subject_key,
-			$channel,
-			$this->secret_fingerprint(),
-			$now,
-			$now
-		);
-		return false !== $wpdb->query( $sql );
+		$result = $wpdb->query( $wpdb->prepare(
+			"INSERT IGNORE INTO {$table} (subject_key,channel,row_incarnation,secret_fingerprint,created_at,updated_at) VALUES (%s,%s,%s,%s,%d,%d)",
+			$subject_key, $channel, $incarnation, $this->secret_fingerprint(), $now, $now
+		) );
+		return 1 === (int) $result ? $incarnation : false;
+	}
+
+	private $operation_context = null;
+
+	/** Forward the original client scope through older channel adapters unchanged. */
+	public function with_operation_scope( $channel, $operation, $scope, callable $callback ) {
+		$subject = $this->resolve_subject();
+		if ( is_wp_error( $subject ) ) {
+			return $subject;
+		}
+		$previous = $this->operation_context;
+		$this->operation_context = array( $subject['key'], $channel, $operation, (string) $scope );
+		try {
+			return $callback();
+		} finally {
+			$this->operation_context = $previous;
+		}
 	}
 
 	private function expire_row( $row ) {
-		if ( empty( $row ) ) {
+		if ( empty( $row ) || empty( $row['row_incarnation'] ) ) {
 			return $row;
 		}
 		$now               = $this->now();
@@ -490,11 +552,21 @@ final class WC_Blacklist_Manager_OTP_State {
 			$set[] = 'proof_verified_at = 0';
 			$set[] = 'proof_expires_at = 0';
 		}
-		$wpdb->query( $wpdb->prepare( "UPDATE {$table} SET " . implode( ',', $set ) . ' WHERE subject_key = %s AND channel = %s AND revision = %d', $row['subject_key'], $row['channel'], (int) $row['revision'] ) );
+		$wpdb->query( $wpdb->prepare( "UPDATE {$table} SET " . implode( ',', $set ) . ' WHERE subject_key = %s AND channel = %s AND revision = %d AND row_incarnation = %s', $row['subject_key'], $row['channel'], (int) $row['revision'], $row['row_incarnation'] ) );
 		return $this->get_row( $row['subject_key'], $row['channel'] );
 	}
 
 	private function controls( $operation, $subject_key, $channel, $identity_key, array $args ) {
+		$scope = array_key_exists( 'expected_scope', $args ) ? (string) $args['expected_scope'] : null;
+		if ( $this->operation_context && array_slice( $this->operation_context, 0, 3 ) === array( $subject_key, $channel, $operation ) ) {
+			if ( null !== $scope && ! hash_equals( $this->operation_context[3], $scope ) ) {
+				return new WP_Error( 'yobm_otp_stale_scope', __( 'Verification state changed. Please refresh and try again.', 'wc-blacklist-manager' ) );
+			}
+			$scope = $this->operation_context[3];
+		}
+		if ( ! is_string( $scope ) || ! preg_match( '/^otp-scope-v1:[a-f0-9]{64}$/D', $scope ) ) {
+			return new WP_Error( 'yobm_otp_stale_scope', __( 'Verification state changed. Please refresh and try again.', 'wc-blacklist-manager' ) );
+		}
 		$request_id = isset( $args['request_id'] ) ? trim( (string) $args['request_id'] ) : '';
 		if ( '' === $request_id ) {
 			$request_id = $this->random_id();
@@ -516,8 +588,10 @@ final class WC_Blacklist_Manager_OTP_State {
 		if ( '' !== $challenge && ! preg_match( '/^[a-f0-9]{32}$/i', $challenge ) ) {
 			return new WP_Error( 'yobm_otp_invalid_challenge_id', __( 'The verification challenge is invalid. Please refresh and try again.', 'wc-blacklist-manager' ) );
 		}
-		$binding    = implode( '|', array( $subject_key, $channel, $request_id, $operation, $identity_key, null === $revision ? '-' : $revision, null === $generation ? '-' : $generation, $challenge ) );
+		$binding    = implode( '|', array( $subject_key, $channel, $request_id, $operation, $identity_key, $scope, null === $revision ? '-' : $revision, null === $generation ? '-' : $generation, $challenge ) );
 		return array(
+			'scope'        => $scope,
+			'identity_key' => $identity_key,
 			'request_id'   => $request_id,
 			'revision'     => $revision,
 			'generation'   => $generation,
@@ -537,6 +611,10 @@ final class WC_Blacklist_Manager_OTP_State {
 	}
 
 	private function validate_expected( $row, $controls ) {
+		$scope = $this->scope( $row, $controls['identity_key'] );
+		if ( '' === $scope || ! hash_equals( $scope, $controls['scope'] ) ) {
+			return new WP_Error( 'yobm_otp_stale_scope', __( 'Verification state changed. Please refresh and try again.', 'wc-blacklist-manager' ) );
+		}
 		if ( null !== $controls['revision'] && (int) $row['revision'] !== $controls['revision'] ) {
 			return new WP_Error( 'yobm_otp_stale_revision', __( 'Verification state changed. Please try again.', 'wc-blacklist-manager' ) );
 		}
@@ -601,7 +679,10 @@ final class WC_Blacklist_Manager_OTP_State {
 		}
 		$row          = $this->expire_row( $this->get_row( $subject['key'], $channel ) );
 		$identity_key = $this->identity_key( $channel, $identity );
-		return $this->projection( $row, $identity_key );
+		if ( $row && '' === $this->scope( $row, $identity_key ) ) {
+			return new WP_Error( 'yobm_otp_unavailable', __( 'Verification is temporarily unavailable. Please try again shortly.', 'wc-blacklist-manager' ) );
+		}
+		return $this->projection( $row, $identity_key, $subject['key'], $channel );
 	}
 
 	/** Internal audit-only read; never resolves the current user or mutates proof state. */
@@ -624,9 +705,10 @@ final class WC_Blacklist_Manager_OTP_State {
 		return ! empty( $projection['verified'] ) ? $projection : false;
 	}
 
-	private function projection( $row, $identity_key ) {
+	private function projection( $row, $identity_key, $subject_key = '', $channel = '' ) {
 		$now      = $this->now();
-		$verified = ! empty( $row['proof_id'] ) && ! empty( $row['proof_identity_key'] )
+		$scope = $this->scope( $row, $identity_key, $subject_key, $channel );
+		$verified = '' !== $scope && ! empty( $row['proof_id'] ) && ! empty( $row['proof_identity_key'] )
 			&& hash_equals( (string) $row['proof_identity_key'], $identity_key ) && (int) $row['proof_expires_at'] > $now;
 		$pending  = ! empty( $row['challenge_id'] ) && ! empty( $row['otp_verifier'] )
 			&& ! empty( $row['identity_key'] ) && hash_equals( (string) $row['identity_key'], $identity_key )
@@ -642,7 +724,8 @@ final class WC_Blacklist_Manager_OTP_State {
 			'revision'            => isset( $row['revision'] ) ? (int) $row['revision'] : 0,
 			'generation'          => isset( $row['generation'] ) ? (int) $row['generation'] : 0,
 			'challenge_id'        => $pending ? (string) $row['challenge_id'] : '',
-			'identity_token'      => $this->hmac( 'identity-token', $identity_key ),
+			'identity_token'      => $scope,
+			'state_scope'         => $scope,
 			'resend_available_at' => $pending ? (int) $row['resend_available_at'] : 0,
 			'retry_after'         => $pending && 'sending' === (string) $row['challenge_status'] ? max( 0, (int) $row['operation_expires_at'] - $now ) : 0,
 			'proof_id'            => $verified ? (string) $row['proof_id'] : '',
@@ -667,7 +750,14 @@ final class WC_Blacklist_Manager_OTP_State {
 		if ( is_wp_error( $controls ) ) {
 			return $controls;
 		}
-		$this->ensure_row( $subject['key'], $channel );
+		$row = $this->get_row( $subject['key'], $channel );
+		$created = false;
+		if ( ! $row && 'issue' === $operation && hash_equals( $this->scope( array(), $identity_key, $subject['key'], $channel ), $controls['scope'] ) ) {
+			$created = $this->ensure_row( $subject['key'], $channel );
+			if ( is_wp_error( $created ) ) {
+				return $created;
+			}
+		}
 		$row   = $this->expire_row( $this->get_row( $subject['key'], $channel ) );
 		$retry = $this->retry_result( $row, $controls );
 		if ( is_wp_error( $retry ) ) {
@@ -682,14 +772,22 @@ final class WC_Blacklist_Manager_OTP_State {
 			);
 		}
 
-		$expected = $this->validate_expected( $row, $controls );
+		$expected_controls = $controls;
+		if ( $created && ! empty( $row['row_incarnation'] ) && hash_equals( $created, $row['row_incarnation'] ) ) {
+			$expected_controls['scope'] = $this->scope( $row, $identity_key );
+		}
+		$expected = $this->validate_expected( $row, $expected_controls );
 		if ( is_wp_error( $expected ) ) {
 			return $expected;
 		}
 		$now = $this->now();
 		if ( ! empty( $row['identity_key'] ) && ! hash_equals( (string) $row['identity_key'], $identity_key ) ) {
 			$this->invalidate_row( $row );
-			$row = $this->get_row( $subject['key'], $channel );
+			$next_row = $this->get_row( $subject['key'], $channel );
+			if ( empty( $next_row['row_incarnation'] ) || ! hash_equals( $row['row_incarnation'], $next_row['row_incarnation'] ) || (int) $next_row['revision'] !== (int) $row['revision'] + 1 ) {
+				return new WP_Error( 'yobm_otp_conflict', __( 'Verification state changed. Please try again.', 'wc-blacklist-manager' ) );
+			}
+			$row = $next_row;
 		}
 		$active = ! empty( $row['challenge_id'] ) && ! empty( $row['otp_verifier'] ) && (int) $row['challenge_expires_at'] > $now;
 		if ( 'issue' === $operation && $active ) {
@@ -748,12 +846,12 @@ final class WC_Blacklist_Manager_OTP_State {
 		global $wpdb;
 		$table = WC_Blacklist_Manager_OTP_Schema::state_table();
 		$sql   = $wpdb->prepare(
-			"UPDATE {$table} SET secret_fingerprint=%s,identity_key=%s,revision=revision+1,generation=%d,challenge_id=%s,otp_verifier=%s,challenge_status='sending',challenge_issued_at=%d,challenge_expires_at=%d,resend_available_at=%d,attempt_count=0,resend_count=%d,proof_id='',proof_identity_key='',proof_verified_at=0,proof_expires_at=0,last_request_id=%s,last_request_fingerprint=%s,last_request_operation=%s,last_request_result='reserved',operation_token=%s,operation_expires_at=%d,updated_at=%d WHERE subject_key=%s AND channel=%s AND revision=%d",
+			"UPDATE {$table} SET secret_fingerprint=%s,identity_key=%s,revision=revision+1,generation=%d,challenge_id=%s,otp_verifier=%s,challenge_status='sending',challenge_issued_at=%d,challenge_expires_at=%d,resend_available_at=%d,attempt_count=0,resend_count=%d,proof_id='',proof_identity_key='',proof_verified_at=0,proof_expires_at=0,last_request_id=%s,last_request_fingerprint=%s,last_request_operation=%s,last_request_result='reserved',operation_token=%s,operation_expires_at=%d,updated_at=%d WHERE subject_key=%s AND channel=%s AND row_incarnation=%s AND revision=%d",
 			$this->secret_fingerprint(), $identity_key, $generation, $challenge_id,
 			$this->verifier( $channel, $challenge_id, $generation, $identity_key, $code ),
 			$now, $now + self::CHALLENGE_TTL, $now + $cooldown, $resends,
 			$controls['request_id'], $controls['fingerprint'], $operation, $token, $now + $lease, $now,
-			$subject['key'], $channel, (int) $row['revision']
+			$subject['key'], $channel, $row['row_incarnation'], (int) $row['revision']
 		);
 		if ( 1 !== (int) $wpdb->query( $sql ) ) {
 			$this->release_rate( $channel, 'send-identity', $identity_key );
@@ -766,20 +864,21 @@ final class WC_Blacklist_Manager_OTP_State {
 		$reservation = array(
 			'subject_key' => $subject['key'], 'channel' => $channel, 'identity_key' => $identity_key,
 			'challenge_id' => $challenge_id, 'generation' => $generation, 'operation_token' => $token,
-			'request_id' => $controls['request_id'], 'code' => $code, 'dispatch' => true,
+			'row_incarnation' => $row['row_incarnation'], 'request_id' => $controls['request_id'], 'code' => $code, 'dispatch' => true,
 		);
 		return $reservation;
 	}
 
 	public function finalize_dispatch( array $reservation, $outcome ) {
+		if ( empty( $reservation['row_incarnation'] ) ) { return false; }
 		$outcome = in_array( $outcome, array( 'success', 'failed', 'uncertain' ), true ) ? $outcome : 'uncertain';
 		$status  = 'success' === $outcome ? 'sent' : $outcome;
 		global $wpdb;
 		$table = WC_Blacklist_Manager_OTP_Schema::state_table();
 		$clear = 'failed' === $outcome ? ",otp_verifier='',challenge_expires_at=0,resend_available_at=0" : '';
 		$sql   = $wpdb->prepare(
-			"UPDATE {$table} SET challenge_status=%s,last_request_result=%s,operation_token='',operation_expires_at=0,revision=revision+1,updated_at=%d{$clear} WHERE subject_key=%s AND channel=%s AND challenge_id=%s AND generation=%d AND operation_token=%s",
-			$status, $status, $this->now(), $reservation['subject_key'], $reservation['channel'], $reservation['challenge_id'], (int) $reservation['generation'], $reservation['operation_token']
+			"UPDATE {$table} SET challenge_status=%s,last_request_result=%s,operation_token='',operation_expires_at=0,revision=revision+1,updated_at=%d{$clear} WHERE subject_key=%s AND channel=%s AND row_incarnation=%s AND challenge_id=%s AND generation=%d AND operation_token=%s",
+			$status, $status, $this->now(), $reservation['subject_key'], $reservation['channel'], $reservation['row_incarnation'], $reservation['challenge_id'], (int) $reservation['generation'], $reservation['operation_token']
 		);
 		$result = $wpdb->query( $sql );
 		return 1 === (int) $result ? $this->projection( $this->get_row( $reservation['subject_key'], $reservation['channel'] ), $reservation['identity_key'] ) : false;
@@ -789,8 +888,8 @@ final class WC_Blacklist_Manager_OTP_State {
 		global $wpdb;
 		$table = WC_Blacklist_Manager_OTP_Schema::state_table();
 		return $wpdb->query( $wpdb->prepare(
-			"UPDATE {$table} SET identity_key='',revision=revision+1,challenge_id='',otp_verifier='',challenge_status='',challenge_issued_at=0,challenge_expires_at=0,resend_available_at=0,attempt_count=0,resend_count=0,proof_id='',proof_identity_key='',proof_verified_at=0,proof_expires_at=0,last_request_id='',last_request_fingerprint='',last_request_operation='',last_request_result='',operation_token='',operation_expires_at=0,updated_at=%d WHERE subject_key=%s AND channel=%s AND revision=%d",
-			$this->now(), $row['subject_key'], $row['channel'], (int) $row['revision']
+			"UPDATE {$table} SET identity_key='',revision=revision+1,challenge_id='',otp_verifier='',challenge_status='',challenge_issued_at=0,challenge_expires_at=0,resend_available_at=0,attempt_count=0,resend_count=0,proof_id='',proof_identity_key='',proof_verified_at=0,proof_expires_at=0,last_request_id='',last_request_fingerprint='',last_request_operation='',last_request_result='',operation_token='',operation_expires_at=0,updated_at=%d WHERE subject_key=%s AND channel=%s AND row_incarnation=%s AND revision=%d",
+			$this->now(), $row['subject_key'], $row['channel'], $row['row_incarnation'], (int) $row['revision']
 		) );
 	}
 
@@ -798,8 +897,8 @@ final class WC_Blacklist_Manager_OTP_State {
 		global $wpdb;
 		$table = WC_Blacklist_Manager_OTP_Schema::state_table();
 		return $wpdb->query( $wpdb->prepare(
-			"UPDATE {$table} SET last_request_id=%s,last_request_fingerprint=%s,last_request_operation='verify',last_request_result=%s,updated_at=%d WHERE subject_key=%s AND channel=%s AND revision=%d",
-			$controls['request_id'], $controls['fingerprint'], $result, $this->now(), $row['subject_key'], $row['channel'], (int) $row['revision']
+			"UPDATE {$table} SET last_request_id=%s,last_request_fingerprint=%s,last_request_operation='verify',last_request_result=%s,updated_at=%d WHERE subject_key=%s AND channel=%s AND row_incarnation=%s AND revision=%d",
+			$controls['request_id'], $controls['fingerprint'], $result, $this->now(), $row['subject_key'], $row['channel'], $row['row_incarnation'], (int) $row['revision']
 		) );
 	}
 
@@ -866,8 +965,8 @@ final class WC_Blacklist_Manager_OTP_State {
 			$result = $next >= self::MAX_ATTEMPTS ? 'attempt_limited' : 'invalid_code';
 			$clear  = $next >= self::MAX_ATTEMPTS ? ",otp_verifier='',challenge_status='exhausted',challenge_expires_at=0" : '';
 			$sql    = $wpdb->prepare(
-				"UPDATE {$table} SET attempt_count=attempt_count+1,revision=revision+1,last_request_id=%s,last_request_fingerprint=%s,last_request_operation='verify',last_request_result=%s,updated_at=%d{$clear} WHERE subject_key=%s AND channel=%s AND revision=%d AND challenge_id=%s AND generation=%d AND attempt_count < %d",
-				$controls['request_id'], $controls['fingerprint'], $result, $this->now(), $subject['key'], $channel, (int) $row['revision'], $row['challenge_id'], (int) $row['generation'], self::MAX_ATTEMPTS
+				"UPDATE {$table} SET attempt_count=attempt_count+1,revision=revision+1,last_request_id=%s,last_request_fingerprint=%s,last_request_operation='verify',last_request_result=%s,updated_at=%d{$clear} WHERE subject_key=%s AND channel=%s AND row_incarnation=%s AND revision=%d AND challenge_id=%s AND generation=%d AND attempt_count < %d",
+				$controls['request_id'], $controls['fingerprint'], $result, $this->now(), $subject['key'], $channel, $row['row_incarnation'], (int) $row['revision'], $row['challenge_id'], (int) $row['generation'], self::MAX_ATTEMPTS
 			);
 			if ( 1 !== (int) $wpdb->query( $sql ) ) {
 				return new WP_Error( 'yobm_otp_conflict', __( 'Verification state changed. Please try again.', 'wc-blacklist-manager' ) );
@@ -881,9 +980,9 @@ final class WC_Blacklist_Manager_OTP_State {
 		}
 		$now      = $this->now();
 		$sql      = $wpdb->prepare(
-			"UPDATE {$table} SET revision=revision+1,challenge_id='',otp_verifier='',challenge_status='',challenge_issued_at=0,challenge_expires_at=0,resend_available_at=0,attempt_count=0,operation_token='',operation_expires_at=0,proof_id=%s,proof_identity_key=%s,proof_verified_at=%d,proof_expires_at=%d,last_request_id=%s,last_request_fingerprint=%s,last_request_operation='verify',last_request_result='verified',updated_at=%d WHERE subject_key=%s AND channel=%s AND revision=%d AND challenge_id=%s AND generation=%d AND otp_verifier=%s",
+			"UPDATE {$table} SET revision=revision+1,challenge_id='',otp_verifier='',challenge_status='',challenge_issued_at=0,challenge_expires_at=0,resend_available_at=0,attempt_count=0,operation_token='',operation_expires_at=0,proof_id=%s,proof_identity_key=%s,proof_verified_at=%d,proof_expires_at=%d,last_request_id=%s,last_request_fingerprint=%s,last_request_operation='verify',last_request_result='verified',updated_at=%d WHERE subject_key=%s AND channel=%s AND row_incarnation=%s AND revision=%d AND challenge_id=%s AND generation=%d AND otp_verifier=%s",
 			$proof_id, $identity_key, $now, $now + self::PROOF_TTL, $controls['request_id'], $controls['fingerprint'], $now,
-			$subject['key'], $channel, (int) $row['revision'], $row['challenge_id'], (int) $row['generation'], $row['otp_verifier']
+			$subject['key'], $channel, $row['row_incarnation'], (int) $row['revision'], $row['challenge_id'], (int) $row['generation'], $row['otp_verifier']
 		);
 		if ( 1 !== (int) $wpdb->query( $sql ) ) {
 			return new WP_Error( 'yobm_otp_conflict', __( 'Verification state changed. Please try again.', 'wc-blacklist-manager' ) );
@@ -899,9 +998,11 @@ final class WC_Blacklist_Manager_OTP_State {
 		$identity_key = $this->identity_key( $channel, $identity );
 		global $wpdb;
 		$table = WC_Blacklist_Manager_OTP_Schema::state_table();
-		$sql   = $wpdb->prepare(
-			"UPDATE {$table} SET proof_id='',proof_identity_key='',proof_verified_at=0,proof_expires_at=0,revision=revision+1,updated_at=%d WHERE channel=%s AND proof_id=%s AND proof_identity_key=%s",
-			$this->now(), $channel, $proof_id, $identity_key
+		$row = $wpdb->get_row( $wpdb->prepare( "SELECT subject_key,channel,row_incarnation FROM {$table} WHERE channel=%s AND proof_id=%s AND proof_identity_key=%s LIMIT 1", $channel, $proof_id, $identity_key ), ARRAY_A );
+		if ( empty( $row['row_incarnation'] ) ) { return false; }
+		$sql = $wpdb->prepare(
+			"UPDATE {$table} SET proof_id='',proof_identity_key='',proof_verified_at=0,proof_expires_at=0,revision=revision+1,updated_at=%d WHERE subject_key=%s AND channel=%s AND row_incarnation=%s AND proof_id=%s AND proof_identity_key=%s",
+			$this->now(), $row['subject_key'], $channel, $row['row_incarnation'], $proof_id, $identity_key
 		);
 		return 1 === (int) $wpdb->query( $sql );
 	}
@@ -917,6 +1018,9 @@ final class WC_Blacklist_Manager_OTP_State {
 		$channel      = sanitize_key( $channel );
 		$identity_key = $this->identity_key( $channel, $identity );
 		$existing     = $this->get_row( $subject['key'], $channel );
+		if ( $existing && '' === $this->scope( $existing, $identity_key ) ) {
+			return new WP_Error( 'yobm_otp_legacy_persistence_failed', __( 'The previous verification state could not be migrated. Please try again.', 'wc-blacklist-manager' ) );
+		}
 		if ( ! empty( $existing ) && ( ! empty( $existing['challenge_id'] ) || ! empty( $existing['proof_id'] ) || (int) $existing['generation'] > 0 ) ) {
 			$this->invalidate_row( $existing );
 			return new WP_Error( 'yobm_otp_legacy_conflict', __( 'Verification state conflicted with an older session. Please verify again.', 'wc-blacklist-manager' ) );
@@ -926,11 +1030,12 @@ final class WC_Blacklist_Manager_OTP_State {
 		if ( $sent_at <= 0 || $expires <= $this->now() ) {
 			return new WP_Error( 'yobm_otp_legacy_expired', __( 'The previous verification code expired.', 'wc-blacklist-manager' ) );
 		}
-		if ( ! $this->ensure_row( $subject['key'], $channel ) ) {
+		$created = $existing ? false : $this->ensure_row( $subject['key'], $channel );
+		if ( is_wp_error( $created ) || ( ! $existing && ! $created ) ) {
 			return new WP_Error( 'yobm_otp_legacy_persistence_failed', __( 'The previous verification state could not be migrated. Please try again.', 'wc-blacklist-manager' ) );
 		}
 		$row = $this->get_row( $subject['key'], $channel );
-		if ( empty( $row ) ) {
+		if ( empty( $row['row_incarnation'] ) || ( $existing && ( $existing['row_incarnation'] !== $row['row_incarnation'] || $existing['revision'] !== $row['revision'] ) ) || ( $created && $created !== $row['row_incarnation'] ) ) {
 			return new WP_Error( 'yobm_otp_legacy_persistence_failed', __( 'The previous verification state could not be migrated. Please try again.', 'wc-blacklist-manager' ) );
 		}
 		$now = $this->now();
@@ -942,8 +1047,8 @@ final class WC_Blacklist_Manager_OTP_State {
 				return $proof_id;
 			}
 			$sql = $wpdb->prepare(
-				"UPDATE {$table} SET secret_fingerprint=%s,identity_key=%s,revision=revision+1,generation=1,proof_id=%s,proof_identity_key=%s,proof_verified_at=%d,proof_expires_at=%d,updated_at=%d WHERE subject_key=%s AND channel=%s AND revision=%d AND generation=0",
-				$this->secret_fingerprint(), $identity_key, $proof_id, $identity_key, $sent_at, $expires, $now, $subject['key'], $channel, (int) $row['revision']
+				"UPDATE {$table} SET secret_fingerprint=%s,identity_key=%s,revision=revision+1,generation=1,proof_id=%s,proof_identity_key=%s,proof_verified_at=%d,proof_expires_at=%d,updated_at=%d WHERE subject_key=%s AND channel=%s AND row_incarnation=%s AND revision=%d AND generation=0",
+				$this->secret_fingerprint(), $identity_key, $proof_id, $identity_key, $sent_at, $expires, $now, $subject['key'], $channel, $row['row_incarnation'], (int) $row['revision']
 			);
 		} else {
 			$code = isset( $legacy['code'] ) ? trim( (string) $legacy['code'] ) : '';
@@ -955,12 +1060,12 @@ final class WC_Blacklist_Manager_OTP_State {
 				return $challenge_id;
 			}
 			$sql = $wpdb->prepare(
-				"UPDATE {$table} SET secret_fingerprint=%s,identity_key=%s,revision=revision+1,generation=1,challenge_id=%s,otp_verifier=%s,challenge_status='sent',challenge_issued_at=%d,challenge_expires_at=%d,resend_available_at=%d,attempt_count=%d,resend_count=%d,updated_at=%d WHERE subject_key=%s AND channel=%s AND revision=%d AND generation=0",
+				"UPDATE {$table} SET secret_fingerprint=%s,identity_key=%s,revision=revision+1,generation=1,challenge_id=%s,otp_verifier=%s,challenge_status='sent',challenge_issued_at=%d,challenge_expires_at=%d,resend_available_at=%d,attempt_count=%d,resend_count=%d,updated_at=%d WHERE subject_key=%s AND channel=%s AND row_incarnation=%s AND revision=%d AND generation=0",
 				$this->secret_fingerprint(), $identity_key, $challenge_id, $this->verifier( $channel, $challenge_id, 1, $identity_key, $code ),
 				$sent_at, $expires, min( $expires, isset( $legacy['resend_available_at'] ) ? (int) $legacy['resend_available_at'] : $sent_at ),
 				min( self::MAX_ATTEMPTS, isset( $legacy['verify_attempts'] ) ? (int) $legacy['verify_attempts'] : 0 ),
 				min( 10, isset( $legacy['resend_count'] ) ? (int) $legacy['resend_count'] : 0 ), $now,
-				$subject['key'], $channel, (int) $row['revision']
+				$subject['key'], $channel, $row['row_incarnation'], (int) $row['revision']
 			);
 		}
 		$result = $wpdb->query( $sql );

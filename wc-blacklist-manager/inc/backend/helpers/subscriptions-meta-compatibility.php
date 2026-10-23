@@ -96,8 +96,18 @@ function wc_blacklist_manager_filter_subscription_meta( $data, $to_object, $from
 			unset( $data[ $key ] );
 		}
 	}
+	return wc_blacklist_manager_filter_subscription_dispatch_meta( $data, $to_object, $from_object );
+}
+
+function wc_blacklist_manager_filter_subscription_dispatch_meta( $data, $to_object, $from_object ) {
+	if ( ! is_array( $data ) ) { return $data; }
+	foreach ( [ 'sent', 'coordinated', 'recover_at', 'attempt', 'attempts', 'diagnostic' ] as $suffix ) {
+		unset( $data[ '_yobm_admin_new_order_email_' . $suffix ] );
+	}
 	return $data;
 }
 
 add_filter( 'wc_subscriptions_subscription_data', 'wc_blacklist_manager_filter_subscription_meta', 10, 3 );
 add_filter( 'wc_subscriptions_renewal_order_data', 'wc_blacklist_manager_filter_subscription_meta', 10, 3 );
+
+add_filter( 'wc_subscriptions_resubscribe_order_data', 'wc_blacklist_manager_filter_subscription_dispatch_meta', 10, 3 );

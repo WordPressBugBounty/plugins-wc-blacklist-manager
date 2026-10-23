@@ -5,7 +5,7 @@ Requires at least: 6.3
 Tested up to: 7.1
 WC tested up to: 11.0
 Requires PHP: 7.4
-Stable tag: 2.3.4
+Stable tag: 2.4.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -135,11 +135,14 @@ Global Blacklist Decisions is a connected fraud-prevention service. Data exchang
 
 == Changelog ==
 
-= 2.3.4 (Oct 15, 2026) =
-* Fix: Preserves saved Premium settings when Core settings are saved while Premium is inactive or unavailable.
-* Fix: Restores eligible Premium weekly security and manual-blacklist digests with verified v5 licensing, including sites retaining inactive v6 data.
-* Fix: Keeps checkout verification, device and Global decision evidence on the original order instead of copying it into subscriptions and renewals.
-* Fix: Retains completed email verification in order audit information when Classic Checkout creates a customer account.
-* Improve: Adds guarded recovery for an existing Global Blacklist registration where Reconnect is explicitly enabled and supported by the service; Reconnect remains off by default and does not automatically activate the service.
-* Security: Prevents stale Global check results and queued reports from crossing a changed connection authority.
-* Compatibility: Supports the v5-only Premium 2.7.6 client while keeping local Core protection available independently of Premium and the optional Global Blacklist service.
+= 2.4.0 (Oct 22, 2026) =
+* New: Makes Global Blacklist checks post-order in every mode. Light records results; Moderate adds advisory order warnings without enforcing a hold or cancellation. Strict holds pending/processing challenge orders and cancels block decisions even for paid/completed orders; cancellation does not issue a refund. Global no longer rejects checkout synchronously; independent local and Premium protections remain in effect.
+* New: Creates new manual order reports exclusively as v2 and sends them only with a fresh signed service capability. Missing capability defers the immutable report candidate for up to 24 hours without downgrading it to v1; delivery is not guaranteed.
+* Fix: Recovers eligible native WooCommerce New order email after asynchronous checks finish, including early Global-check failures, while preserving fraud holds, native recipients and explicit resend. Only a confirmed failed transport receives one scheduled retry; accepted or uncertain delivery is not replayed automatically, and historical orders are not replayed.
+* Fix: Keeps per-order email dispatch and recovery state out of subscription, renewal and resubscribe copies.
+* Fix: Keeps checkout verification state bound to the current challenge lifetime, preventing expired or replaced challenges and delayed responses from confusing a newer verification attempt, and preserving a rejection from another checkout gate.
+* Fix: Clarifies database-readiness maintenance guidance and preserves failed-repair diagnostics without repeatedly scheduling an unsupported online index repair. Missing reporting indexes do not remove blacklist records or disable local protection.
+* Improve: Places Global Reconnect controls inside the expandable Plan & connection card.
+* Improve: Coalesces Global plan, control and capability refreshes with bounded retry and Retry-After handling, while keeping existing rate limits, credential checks and deferred report ownership.
+* Compatibility: Existing v1 queued reports and historical revoke remain supported. Old forms and current legacy automation retain local actions/local-only behavior and do not manufacture evidence for a new v2 report.
+* Compatibility: Core remains standalone with schema contract 1. The additive OTP row-incarnation column uses the existing administrative schema repair path; an older cached verification page requires a full refresh. Older Premium email consumers may conservatively hold advisory-score mail until compatible completion information is available.

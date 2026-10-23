@@ -7,7 +7,6 @@ final class YOGB_BM_Reconnect {
  public static function init(): void {
   add_action( 'yogb_bm_reconnect_inventory', [ __CLASS__, 'inventory' ] );
   add_action( 'admin_post_yogb_reconnect', [ __CLASS__, 'handle' ] );
-  add_action( 'yogb_bm_global_blacklist_diagnostics_rows', [ __CLASS__, 'render' ] );
  }
  private static function raw( string $name ): ?string {
   global $wpdb;
@@ -265,20 +264,23 @@ final class YOGB_BM_Reconnect {
    if ( ! YOGB_BM_Registrar::authenticated_requests_allowed() ) { $status = __( 'Needs support', 'wc-blacklist-manager' ); }
    elseif ( (int) ( $state['inventory_cursor'] ?? 0 ) < (int) ( $state['inventory_limit'] ?? 0 ) || YOGB_BM_Outbox::historical_queue_count() > 0 ) { $status = __( 'Connected — historical queue needs attention', 'wc-blacklist-manager' ); }
   }
-  echo '<tr><th>' . esc_html__( 'Reconnect Global Blacklist', 'wc-blacklist-manager' ) . '</th><td><p>' . esc_html( $status ) . '</p>';
+  $feedback = get_transient( 'yogb_reconnect_feedback_' . get_current_user_id() );
+  $open = in_array( $state['status'] ?? '', [ 'pending', 'owner_required' ], true ) || ( is_string( $feedback ) && '' !== $feedback );
+  echo '<details class="yogb-gbl-activation yogb-gbl-reconnect"' . ( $open ? ' open' : '' ) . '><summary>' . esc_html__( 'Reconnect an existing site', 'wc-blacklist-manager' ) . '</summary><div class="yogb-gbl-activation__body">';
+  echo '<div class="yogb-gbl-inline-warning" role="status"><strong>' . esc_html( $status ) . '</strong></div>';
   if ( ! empty( $state['reporter'] ) ) { echo '<p>' . esc_html__( 'Expected existing reporter ID:', 'wc-blacklist-manager' ) . ' <code>' . (int) $state['reporter'] . '</code></p>'; }
   if ( YOGB_BM_Registrar::is_auth_paused() || ! YOGB_BM_Report::is_ready() || in_array( $state['status'] ?? '', [ 'pending', 'owner_required' ], true ) ) {
    echo '<p>' . esc_html__( 'Recovery requires verified upgrade eligibility and historical reporter ownership. Old encrypted queue data is retained and may need support.', 'wc-blacklist-manager' ) . '</p>';
    if ( isset( $state['challenge'] ) ) { echo '<p>' . esc_html__( 'Support challenge reference:', 'wc-blacklist-manager' ) . ' ' . esc_html( $state['challenge'] ) . '</p>'; }
    wp_nonce_field( 'yogb_reconnect', 'yogb_reconnect_nonce' );
-   echo '<input type="password" name="yogb_reconnect_activation_key" autocomplete="off" placeholder="' . esc_attr__( 'Existing subscription activation key (optional)', 'wc-blacklist-manager' ) . '">';
-   echo '<label><input type="checkbox" name="yogb_reconnect_confirm" value="1"> ' . esc_html__( 'Confirm recovery of the existing reporter without deleting retained credentials or queue data.', 'wc-blacklist-manager' ) . '</label>';
-   echo '<button type="submit" class="button" name="action" value="yogb_reconnect" formmethod="post" formaction="' . esc_url( admin_url( 'admin-post.php' ) ) . '">' . esc_html__( 'Reconnect Global Blacklist', 'wc-blacklist-manager' ) . '</button>';
+   echo '<label class="yogb-gbl-reconnect__key" for="yogb_reconnect_activation_key">' . esc_html__( 'Existing subscription activation key (optional)', 'wc-blacklist-manager' ) . '</label>';
+   echo '<input type="password" id="yogb_reconnect_activation_key" name="yogb_reconnect_activation_key" autocomplete="off" placeholder="' . esc_attr__( 'Existing subscription activation key (optional)', 'wc-blacklist-manager' ) . '">';
+   echo '<label class="yogb-gbl-reconnect__confirm"><input type="checkbox" name="yogb_reconnect_confirm" value="1"> <span>' . esc_html__( 'Confirm recovery of the existing reporter without deleting retained credentials or queue data.', 'wc-blacklist-manager' ) . '</span></label>';
+   echo '<div class="yogb-gbl-actions"><button type="submit" class="button button-primary" name="action" value="yogb_reconnect" formmethod="post" formaction="' . esc_url( admin_url( 'admin-post.php' ) ) . '">' . esc_html__( 'Reconnect Global Blacklist', 'wc-blacklist-manager' ) . '</button></div>';
   }
   if ( YOGB_BM_Recovery_Store::active() ) {
    echo '<p>' . esc_html__( 'Older in-flight workers may still change orders after recovery. Review affected order status, notes and payment history; retained historical queue bytes are kept separately and unreadable records require support.', 'wc-blacklist-manager' ) . '</p>';
   }
-  $feedback = get_transient( 'yogb_reconnect_feedback_' . get_current_user_id() );
   if ( is_string( $feedback ) && '' !== $feedback ) {
    $messages = [
     'upgrade_verification_required' => __( 'Needs support: the host upgrade must be independently verified before recovery is available.', 'wc-blacklist-manager' ),
@@ -289,9 +291,9 @@ final class YOGB_BM_Reconnect {
     'reconnect_attempt_expired' => __( 'The recovery attempt expired. Start a new attempt.', 'wc-blacklist-manager' ),
     'reconnect_already_pending' => __( 'A recovery attempt is already pending.', 'wc-blacklist-manager' ),
    ];
-   echo '<p>' . esc_html( $messages[ $feedback ] ?? __( 'Needs support: recovery could not be completed. Retained connection and queue data have not been discarded.', 'wc-blacklist-manager' ) ) . '</p>';
+   echo '<p role="status">' . esc_html( $messages[ $feedback ] ?? __( 'Needs support: recovery could not be completed. Retained connection and queue data have not been discarded.', 'wc-blacklist-manager' ) ) . '</p>';
   }
-  echo '</td></tr>';
+  echo '</div></details>';
  }
 }
 YOGB_BM_Reconnect::init();

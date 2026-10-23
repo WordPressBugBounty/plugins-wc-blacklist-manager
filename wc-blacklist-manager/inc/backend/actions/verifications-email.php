@@ -132,6 +132,7 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 	private function otp_operation_args( array $context ) {
 		return array(
 			'request_id'            => $this->context_value( $context, '_yobm_request_id' ),
+			'expected_scope'         => $this->context_value( $context, '_yobm_expected_scope' ),
 			'expected_revision'      => $this->context_value( $context, '_yobm_expected_revision' ),
 			'expected_generation'    => $this->context_value( $context, '_yobm_expected_generation' ),
 			'expected_challenge_id'  => $this->context_value( $context, '_yobm_expected_challenge_id' ),
@@ -246,6 +247,7 @@ class WC_Blacklist_Manager_Verifications_Verify_Email {
 				'state_revision'      => isset( $otp['revision'] ) ? absint( $otp['revision'] ) : 0,
 				'generation'          => isset( $otp['generation'] ) ? absint( $otp['generation'] ) : 0,
 				'challenge_id'        => isset( $otp['challenge_id'] ) ? $otp['challenge_id'] : '',
+				'state_scope'         => isset( $otp['state_scope'] ) ? $otp['state_scope'] : '',
 				'identity_token'      => isset( $otp['identity_token'] ) ? $otp['identity_token'] : '',
 				'retry_after'         => isset( $otp['retry_after'] ) ? absint( $otp['retry_after'] ) : 0,
 			);

@@ -1,0 +1,36 @@
+/* Reporting readiness only; never apply these rules to unrelated admin notices. */
+.yobm-schema-notice.notice { position: relative; padding: 12px 14px; border-left-color: var(--wp-admin-theme-color, #2271b1); background: #fff; background: color-mix(in srgb, var(--wp-admin-theme-color, #2271b1) 5%, #fff); }
+.yobm-schema-notice a { color: var(--wp-admin-theme-color, #2271b1); }
+.yobm-schema-notice-heading, .yobm-schema-panel-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.yobm-schema-dismiss { margin: 0 0 0 auto; flex-shrink: 0; }
+.yobm-schema-dismiss .button-link { display: flex; align-items: center; gap: 4px; color: #50575e; text-decoration: none; font-size: 12px; }
+.yobm-schema-dismiss .dashicons { width: 16px; height: 16px; font-size: 16px; }
+.yobm-schema-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 10px; }
+.yobm-schema-schedule { margin: 0; }
+.yobm-schema-panel { background: #fff; border: 1px solid #c3c4c7; margin-top: 20px; padding: 18px; }
+.yobm-schema-notice .yobm-schema-panel { border: 0; padding: 0; background: transparent; margin-top: 10px; }
+.yobm-schema-panel > .yobm-schema-panel-heading { display: list-item; padding: 4px 0; }
+.yobm-schema-panel details { margin-top: 14px; }
+.yobm-schema-panel summary { color: var(--wp-admin-theme-color, #2271b1); cursor: pointer; padding: 8px 0; font-weight: 600; }
+.yobm-schema-table-scroll { overflow-x: auto; }
+.yobm-schema-panel td { vertical-align: top; overflow-wrap: anywhere; }
+.yobm-schema-index { display: block; color: #50575e; margin-top: 3px; }
+.yobm-schema-panel td code { white-space: normal; }
+.yobm-schema-caution { border-left: 3px solid var(--wp-admin-theme-color, #2271b1); background: #f6f7f7; background: color-mix(in srgb, var(--wp-admin-theme-color, #2271b1) 8%, #fff); padding: 12px; }
+.yobm-schema-steps { padding-left: 5px; }
+.yobm-schema-steps li { margin: 14px 0; }
+.yobm-schema-steps strong, .yobm-schema-steps span { display: block; }
+.yobm-schema-steps code { display: block; background: #f0f0f1; padding: 9px; margin: 7px 0; white-space: normal; overflow-wrap: anywhere; }
+.yobm-schema-copy-feedback { color: #50575e; }
+.yobm-schema-panel textarea { width: 100%; font-family: monospace; }
+@media (max-width: 480px) {
+ .yobm-schema-notice-heading { padding-top: 24px; }
+ .yobm-schema-dismiss { position: absolute; top: 8px; right: 10px; }
+ .yobm-schema-panel { padding: 12px; }
+ .yobm-schema-panel-heading { flex-wrap: wrap; }
+ .yobm-schema-panel table { min-width: 500px; }
+}
+@media (pointer: coarse) {
+ .yobm-schema-dismiss .button-link, .yobm-schema-copy, .yobm-schema-panel summary { min-height: 44px; }
+}
+@media (max-width: 480px) and (pointer: coarse) { .yobm-schema-notice-heading { padding-top: 44px; } }

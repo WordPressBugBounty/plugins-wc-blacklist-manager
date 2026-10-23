@@ -2343,6 +2343,59 @@ th.column-name {
 	border-color: #e6d6a8;
 }
 
+.yogb-gbl-reconnect {
+	background: #fff;
+}
+
+.yogb-gbl-reconnect > summary {
+	display: flex;
+	justify-content: space-between;
+}
+
+.yogb-gbl-reconnect > summary::after {
+	content: '';
+	width: 6px;
+	height: 6px;
+	flex-shrink: 0;
+	margin-inline-end: 3px;
+	border-right: 2px solid currentColor;
+	border-bottom: 2px solid currentColor;
+	transform: rotate(45deg);
+}
+
+.yogb-gbl-reconnect[open] > summary::after {
+	transform: rotate(225deg);
+}
+
+.yogb-gbl-reconnect__key {
+	display: block;
+	margin: 18px 0 8px;
+	font-weight: 600;
+}
+
+.yogb-gbl-reconnect input[type="password"] {
+	width: 100%;
+	min-width: 0;
+	box-sizing: border-box;
+}
+
+.yogb-gbl-reconnect__confirm {
+	display: flex;
+	align-items: flex-start;
+	gap: 8px;
+	margin: 18px 0;
+}
+
+.yogb-gbl-reconnect__confirm input {
+	flex-shrink: 0;
+	margin-top: 3px;
+}
+
+/* Keep retry and explicit recovery as separate actions within the same card. */
+.yogb-gbl-card--warning:has(> .yogb-gbl-reconnect[open]) > .yogb-gbl-card__body > .yogb-gbl-actions {
+	display: none;
+}
+
 .yogb-gbl-state {
 	display: flex;
 	align-items: flex-start;

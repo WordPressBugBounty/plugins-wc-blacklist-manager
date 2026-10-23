@@ -33,45 +33,11 @@ final class YOGB_BM_Report {
 		return in_array( $status, $excluded, true );
 	}
 
-	/** Queue reports for each identity on the order (email, phone, ip, address). */
+	/** Retired legacy producer; retained as a callable void compatibility no-op. */
 	public static function queue_report_from_order( WC_Order $order, string $reason_code, string $description = '' ) : void {
 
-		// Hard gate: do not report excluded (high-noise) statuses.
-		if ( self::is_excluded_order_status( $order ) ) {
-			return;
-		}
-		
-		// Build a deterministic snapshot + hash
-		$snapshot = self::evidence_material_for_order( $order, $reason_code, $description );
-		$ev_hash  = self::compute_evidence_hash( $snapshot );
-
-		// Save locally for auditability (meta + a single note)
-		self::persist_evidence_on_order( $order, $snapshot, $ev_hash );
-
-		// Build per-identity payloads (now including evidence_hash)
-		$payloads = self::build_payloads_from_order( $order, $reason_code, $description, $ev_hash );
-
-		foreach ( $payloads as $p ) {
-			$idemp = self::make_idempotency_key_per_identity( $order, $reason_code, $p['identity'] );
-			if ( class_exists( 'YOGB_BM_Outbox' ) ) {
-    if ( YOGB_BM_Outbox::enqueue_report( $p, $idemp, (int) $order->get_id() ) > 0 ) { continue; }
-    if ( ! YOGB_BM_Outbox::legacy_report_fallback_allowed( $idemp ) ) { continue; }
-   }
-
-			// Upgrade fallback: retain the previous queue only if outbox creation fails.
-			$envelope = [
-				'payload'     => $p,
-				'idempotency' => $idemp,
-				'order_id'    => (int) $order->get_id(),
-			];
-			$when = time() + 3;
-
-			$key = md5( wp_json_encode( [ $idemp, $p ] ) );
-			if ( ! wp_next_scheduled( self::CRON_HOOK, [ $key ] ) ) {
-				wp_schedule_single_event( $when, self::CRON_HOOK, [ $key ] );
-				set_transient( 'yogb_bm_payload_' . $key, $envelope, 10 * MINUTE_IN_SECONDS );
-			}
-		}
+		// Compatibility no-op: legacy reasons cannot establish truthful v2 evidence.
+		// Existing transient/outbox workers below still continue historical jobs.
 	}
 
 	/** Worker: send one payload (one identity). */
@@ -101,7 +67,7 @@ final class YOGB_BM_Report {
    $job['snapshot']
 		);
 
-  YOGB_BM_Reconnect_Guard::run( $res['authority_context'] ?? [], static function() use ( $res, $order_id ) {
+  YOGB_BM_Reconnect_Guard::run( $res['authority_context'] ?? [], static function() use ( $res, $order_id, $payload, $idemp ) {
 
 		// If success, try to store report_id on the order.
 		if ( ! empty( $res['ok'] ) && $order_id > 0 ) {

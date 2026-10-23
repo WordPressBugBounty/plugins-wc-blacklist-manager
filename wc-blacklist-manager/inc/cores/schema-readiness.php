@@ -14,6 +14,8 @@ final class WC_Blacklist_Manager_Schema_Readiness {
 	const LOCK_OPTION      = 'wc_blacklist_manager_schema_migration_lock_v1';
 	const CRON_HOOK        = 'wc_blacklist_manager_schema_migration_v1';
 	const ADMIN_ACTION     = 'wc_blacklist_manager_schedule_schema_repair_v1';
+	const DISMISS_ACTION   = 'wc_blacklist_manager_dismiss_schema_notice';
+	const DISMISS_META     = 'wc_blacklist_manager_schema_notice_dismissed';
 	const STATE_FORMAT     = 1;
 	const LOCK_TTL         = 5 * MINUTE_IN_SECONDS;
 
@@ -31,6 +33,8 @@ final class WC_Blacklist_Manager_Schema_Readiness {
 	private function __construct() {
 		add_action( 'admin_init', array( $this, 'refresh_readiness' ), 5 );
 		add_action( 'admin_post_' . self::ADMIN_ACTION, array( $this, 'handle_schedule_request' ) );
+		add_action( 'admin_post_' . self::DISMISS_ACTION, array( $this, 'handle_dismiss_request' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
 		add_action( self::CRON_HOOK, array( $this, 'run_scheduled_worker' ) );
 		add_action( 'admin_notices', array( $this, 'render_admin_notice' ) );
 		add_action( 'network_admin_notices', array( $this, 'render_admin_notice' ) );
@@ -77,6 +81,23 @@ final class WC_Blacklist_Manager_Schema_Readiness {
 
 	/** Cheap metadata inspection; never changes an index. */
 	public function refresh_readiness() {
+		$token = $this->acquire_lock();
+		if ( '' === $token ) {
+			return get_option( self::STATE_OPTION, array() );
+		}
+
+		try {
+			return $this->refresh_locked();
+		} finally {
+			$this->release_lock( $token );
+			$this->release_database_lock();
+		}
+	}
+
+	/** Called only while holding the same lock as the worker and scheduler. */
+	private function refresh_locked() {
+		$this->clear_option_cache( self::VERSION_OPTION );
+		$this->clear_option_cache( self::STATE_OPTION );
 		$stored = (int) get_option( self::VERSION_OPTION, 0 );
 		if ( $stored > self::CONTRACT_VERSION ) {
 			return $this->write_state( 'newer_than_code', array(), 'newer_schema_contract', 'The stored schema contract is newer than this Core version.' );
@@ -136,7 +157,7 @@ final class WC_Blacklist_Manager_Schema_Readiness {
 			'pending'         => __( 'Reporting indexes are pending. Open Blacklist management to check or schedule the background readiness repair.', 'wc-blacklist-manager' ),
 			'running'         => __( 'Reporting index repair is in progress. Check Blacklist management again after the worker completes.', 'wc-blacklist-manager' ),
 			'failed'          => __( 'Reporting index repair failed. Review the database readiness notice in Blacklist management before retrying.', 'wc-blacklist-manager' ),
-			'manual_required' => __( 'Reporting indexes require a maintenance window. Ask your administrator to review wp blacklist-manager schema status and use wp blacklist-manager schema repair --allow-blocking only during approved CLI maintenance.', 'wc-blacklist-manager' ),
+			'manual_required' => __( 'Reporting indexes require a maintenance window. Ask your administrator or hosting provider to review the database indexes and use wp blacklist-manager schema repair --allow-blocking only during approved CLI maintenance.', 'wc-blacklist-manager' ),
 			'newer_than_code' => __( 'The stored reporting schema is newer than this Core version. Restore a compatible Core version before attempting repair.', 'wc-blacklist-manager' ),
 		);
 		return array(
@@ -185,11 +206,6 @@ final class WC_Blacklist_Manager_Schema_Readiness {
 	/** Internal/CLI worker. Blocking DDL is permitted only for explicit WP-CLI maintenance. */
 	public function run_worker( $allow_blocking = false ) {
 		$allow_blocking = (bool) $allow_blocking && defined( 'WP_CLI' ) && WP_CLI;
-		$stored         = (int) get_option( self::VERSION_OPTION, 0 );
-		if ( $stored > self::CONTRACT_VERSION ) {
-			$this->write_state( 'newer_than_code', array(), 'newer_schema_contract', 'The stored schema contract is newer than this Core version.' );
-			return array( 'status' => 'newer_than_code', 'changed' => false );
-		}
 
 		$token = $this->acquire_lock();
 		if ( '' === $token ) {
@@ -197,11 +213,28 @@ final class WC_Blacklist_Manager_Schema_Readiness {
 		}
 
 		try {
+			$this->clear_option_cache( self::VERSION_OPTION );
+			$this->clear_option_cache( self::STATE_OPTION );
+			$stored = (int) get_option( self::VERSION_OPTION, 0 );
+			if ( $stored > self::CONTRACT_VERSION ) {
+				$this->write_state( 'newer_than_code', array(), 'newer_schema_contract', 'The stored schema contract is newer than this Core version.' );
+				return array( 'status' => 'newer_than_code', 'changed' => false );
+			}
 			$inspection = self::inspect_physical_contracts();
 			if ( ! empty( $inspection['ready'] ) ) {
 				update_option( self::VERSION_OPTION, self::CONTRACT_VERSION, false );
 				$this->write_state( 'ready', array(), '', '' );
 				return array( 'status' => 'ready', 'changed' => false );
+			}
+
+			$state = get_option( self::STATE_OPTION, array() );
+			if ( ! $allow_blocking && 'manual_required' === ( $state['status'] ?? '' ) ) {
+				return array( 'status' => 'manual_required', 'changed' => false );
+			}
+
+			if ( in_array( 'metadata_error', $inspection['details'], true ) ) {
+				$this->write_state( 'failed', $inspection['pending'], 'schema_metadata_unavailable', __( 'Database index metadata could not be read. Ask your administrator to check database permissions before repair.', 'wc-blacklist-manager' ), true );
+				return array( 'status' => 'failed', 'changed' => false, 'error' => 'schema_metadata_unavailable' );
 			}
 
 			$this->write_state( 'running', $inspection['pending'], '', '' );
@@ -231,7 +264,10 @@ final class WC_Blacklist_Manager_Schema_Readiness {
 			}
 
 			$this->write_state( 'pending', $after['pending'], '', '', true );
-			$this->schedule_event();
+			if ( ! $this->schedule_event() ) {
+				$this->write_state( 'failed', $after['pending'], 'schema_schedule_failed', __( 'The next database readiness repair could not be scheduled. Please try again.', 'wc-blacklist-manager' ), true );
+				return array( 'status' => 'failed', 'changed' => true, 'error' => 'schema_schedule_failed' );
+			}
 			return array( 'status' => 'pending', 'changed' => true );
 		} finally {
 			try {
@@ -253,67 +289,211 @@ final class WC_Blacklist_Manager_Schema_Readiness {
 		}
 
 		check_admin_referer( self::ADMIN_ACTION );
-		$this->schedule_event();
-		$inspection = self::inspect_physical_contracts();
-		$this->write_state( 'pending', $inspection['pending'], '', '' );
-
-		wp_safe_redirect( add_query_arg( 'yobm_schema_repair', 'scheduled', wp_get_referer() ?: admin_url() ) );
+		$result = $this->schedule_repair();
+		wp_safe_redirect( add_query_arg( 'yobm_schema_repair', $result, wp_get_referer() ?: admin_url() ) );
 		exit;
 	}
 
-	/** Factual operational notice, deliberately separate from commercial surfaces. */
-	public function render_admin_notice() {
+	/** No DDL; serialize inspection, admission and enqueue with the worker. */
+	private function schedule_repair() {
+		$token = $this->acquire_lock();
+		if ( '' === $token ) {
+			return 'busy';
+		}
+
+		try {
+			$state = $this->refresh_locked();
+			$inspection = self::inspect_physical_contracts();
+			if ( in_array( 'metadata_error', $inspection['details'], true ) ) {
+				return 'metadata_unavailable';
+			}
+			if ( ! in_array( $state['status'], array( 'pending', 'failed' ), true ) ) {
+				return $state['status'];
+			}
+			if ( ! $this->schedule_event() ) {
+				if ( empty( $state['error_code'] ) && empty( $state['error_message'] ) ) {
+					$this->write_state( 'failed', $state['pending'], 'schema_schedule_failed', __( 'Database readiness repair could not be scheduled. Please try again.', 'wc-blacklist-manager' ) );
+				}
+				return 'schedule_failed';
+			}
+			$this->write_state( 'pending', $state['pending'], $state['error_code'], $state['error_message'] );
+			return 'scheduled';
+		} finally {
+			$this->release_lock( $token );
+			$this->release_database_lock();
+		}
+	}
+
+	/** A single unversioned preference, isolated to this user and WordPress site. */
+	private static function dismissal_key() {
+		global $wpdb;
+		return $wpdb->get_blog_prefix() . self::DISMISS_META;
+	}
+
+	public static function notice_dismissed() {
+		return '1' === (string) get_user_meta( get_current_user_id(), self::dismissal_key(), true );
+	}
+
+	public function handle_dismiss_request() {
 		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You are not allowed to dismiss this database notice.', 'wc-blacklist-manager' ), '', array( 'response' => 403 ) );
+		}
+		check_admin_referer( self::DISMISS_ACTION . self::dismissal_key() );
+		update_user_meta( get_current_user_id(), self::dismissal_key(), '1' );
+		if ( ! self::notice_dismissed() ) {
+			wp_die( esc_html__( 'The notice preference could not be saved. Please try again.', 'wc-blacklist-manager' ), '', array( 'response' => 500 ) );
+		}
+		wp_safe_redirect( wp_get_referer() ?: self::readiness_url() );
+		exit;
+	}
+
+	/** Match the existing menu ownership, including registered Blacklist Manager subpages. */
+	public static function is_plugin_page() {
+		global $submenu;
+		$page = isset( $_GET['page'] ) && is_string( $_GET['page'] ) ? $_GET['page'] : '';
+		if ( 'wc-blacklist-manager' === $page ) {
+			return true;
+		}
+		foreach ( (array) ( $submenu['wc-blacklist-manager'] ?? array() ) as $item ) {
+			if ( isset( $item[2] ) && $page === $item[2] ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+
+	public static function readiness_url() {
+		return admin_url( 'admin.php?page=wc-blacklist-manager&section=database-readiness#yobm-database-readiness' );
+	}
+
+	public function enqueue_admin_assets() {
+		if ( ! current_user_can( 'manage_options' ) || is_network_admin() ) {
 			return;
 		}
-
-		$state  = get_option( self::STATE_OPTION, array() );
-		$status = is_array( $state ) ? (string) ( $state['status'] ?? '' ) : '';
-		if ( ! in_array( $status, array( 'pending', 'running', 'failed', 'manual_required', 'newer_than_code' ), true ) ) {
+		if ( self::get_status()['ready'] || ( ! self::is_plugin_page() && self::notice_dismissed() ) ) {
 			return;
 		}
+		$root = dirname( __DIR__, 2 );
+		wp_enqueue_style( 'yobm-schema-readiness', plugins_url( 'css/schema-readiness.css', $root . '/wc-blacklist-manager.php' ), array(), WC_BLACKLIST_MANAGER_VERSION );
+		if ( self::is_plugin_page() ) {
+			wp_enqueue_script( 'yobm-schema-readiness', plugins_url( 'js/schema-readiness.js', $root . '/wc-blacklist-manager.php' ), array(), WC_BLACKLIST_MANAGER_VERSION, true );
+		}
+	}
 
-		$repair_scheduled = false !== wp_next_scheduled( self::CRON_HOOK );
-		$repair_active    = 'running' === $status || ( 'pending' === $status && $repair_scheduled );
+	/** Presentation is read-only and bounded to the three known index contracts. */
+	private function notice_context() {
+		$view = self::get_status();
+		$inspection = self::inspect_physical_contracts();
+		$state = get_option( self::STATE_OPTION, array() );
+		$unknown = in_array( 'metadata_error', $inspection['details'], true );
+		$scheduled = wp_next_scheduled( self::CRON_HOOK );
+		$status = $view['status'];
+		if ( $unknown && 'newer_than_code' !== $status ) {
+			$status = 'unknown';
+		}
+		$active = 'running' === $status || ( 'pending' === $status && false !== $scheduled );
+		$titles = array(
+			'pending' => __( 'Blacklist Manager reporting indexes are not ready.', 'wc-blacklist-manager' ),
+			'running' => __( 'Blacklist Manager database repair is in progress.', 'wc-blacklist-manager' ),
+			'failed' => __( 'Blacklist Manager database repair needs attention.', 'wc-blacklist-manager' ),
+			'manual_required' => __( 'Blacklist Manager needs database maintenance.', 'wc-blacklist-manager' ),
+			'newer_than_code' => __( 'Blacklist Manager database version needs review.', 'wc-blacklist-manager' ),
+			'unknown' => __( 'Blacklist Manager database readiness could not be verified.', 'wc-blacklist-manager' ),
+			'ready' => __( 'Reporting indexes are verified and ready.', 'wc-blacklist-manager' ),
+		);
+		$title = $titles[ $status ];
+		if ( 'pending' === $status && false !== $scheduled ) {
+			$title = __( 'Blacklist Manager database readiness repair is scheduled.', 'wc-blacklist-manager' );
+		}
+		return array( 'status' => $status, 'title' => $title, 'ready' => $view['ready'] && $inspection['ready'], 'state' => is_array( $state ) ? $state : array(), 'inspection' => $inspection, 'scheduled' => $scheduled, 'active' => $active, 'can_schedule' => in_array( $status, array( 'pending', 'failed' ), true ) && ! $active );
+	}
 
-		$pending = is_array( $state ) ? array_values( array_intersect( array_keys( self::contracts() ), (array) ( $state['pending'] ?? array() ) ) ) : array();
-		$labels  = array();
-		foreach ( $pending as $contract_id ) {
-			$labels[] = self::contracts()[ $contract_id ]['label'];
-		}
+	private function render_schedule_form() {
+		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" class="yobm-schema-schedule">';
+		echo '<input type="hidden" name="action" value="' . esc_attr( self::ADMIN_ACTION ) . '">';
+		wp_nonce_field( self::ADMIN_ACTION );
+		echo '<button type="submit" class="button button-primary">' . esc_html__( 'Schedule database readiness repair', 'wc-blacklist-manager' ) . '</button></form>';
+	}
 
-		echo '<div class="notice ' . esc_attr( $repair_active ? 'notice-info' : 'notice-warning' ) . '"><p><strong>';
-		if ( 'running' === $status ) {
-			echo esc_html__( 'Blacklist Manager database readiness repair is in progress.', 'wc-blacklist-manager' );
-		} elseif ( $repair_active ) {
-			echo esc_html__( 'Blacklist Manager database readiness repair is scheduled.', 'wc-blacklist-manager' );
-		} else {
-			echo esc_html__( 'Blacklist Manager database readiness requires attention.', 'wc-blacklist-manager' );
+	/** Compact global notification; detailed diagnostics stay on the owning page. */
+	public function render_admin_notice() {
+		if ( ! current_user_can( 'manage_options' ) || is_network_admin() || ( ! self::is_plugin_page() && self::notice_dismissed() ) ) {
+			return;
 		}
-		echo '</strong></p>';
-		$presentation = self::get_status();
-		echo '<p>' . esc_html( $presentation['message'] ) . '</p>';
-		echo '<p>' . esc_html__( 'Reporting index readiness is separate from stored blacklist data. Pending reporting indexes do not remove existing records or disable local protection; lists and exports remain available.', 'wc-blacklist-manager' ) . '</p>';
-		if ( ! empty( $labels ) ) {
-			echo '<p>' . esc_html( implode( ', ', $labels ) ) . '</p>';
+		$context = $this->notice_context();
+		if ( $context['ready'] ) {
+			return;
 		}
-		if ( $repair_active ) {
-			echo '<p>' . esc_html__( 'WordPress will process the remaining database readiness work in the background. This notice will update after verification completes.', 'wc-blacklist-manager' ) . '</p>';
-		} elseif ( ! empty( $state['error_message'] ) ) {
-			echo '<p>' . esc_html( (string) $state['error_message'] ) . '</p>';
-		}
-		if ( ! $repair_active ) {
-			echo '<p>' . esc_html__( 'Large stores should schedule a maintenance window and verify database capacity before retrying. Core will not silently use blocking index DDL from a web request.', 'wc-blacklist-manager' ) . '</p>';
-		}
-
-		if ( 'newer_than_code' !== $status && ! $repair_active ) {
-			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
-			echo '<input type="hidden" name="action" value="' . esc_attr( self::ADMIN_ACTION ) . '">';
-			wp_nonce_field( self::ADMIN_ACTION );
-			echo '<button type="submit" class="button button-secondary">' . esc_html__( 'Schedule database readiness repair', 'wc-blacklist-manager' ) . '</button>';
-			echo '</form>';
+		echo '<div class="notice yobm-schema-notice ' . esc_attr( $context['active'] ? 'notice-info' : 'notice-warning' ) . '"><div class="yobm-schema-notice-heading"><strong>' . esc_html( $context['title'] ) . '</strong>';
+		if ( ! self::is_plugin_page() ) {
+			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" class="yobm-schema-dismiss">';
+			echo '<input type="hidden" name="action" value="' . esc_attr( self::DISMISS_ACTION ) . '">';
+			wp_nonce_field( self::DISMISS_ACTION . self::dismissal_key(), '_wpnonce', false );
+			echo '<button type="submit" class="button-link" aria-label="' . esc_attr__( 'Dismiss Database Readiness notices permanently for your account on this site', 'wc-blacklist-manager' ) . '"><span class="dashicons dashicons-no-alt" aria-hidden="true"></span>' . esc_html__( 'Dismiss permanently', 'wc-blacklist-manager' ) . '</button></form>';
 		}
 		echo '</div>';
+		echo '<p>' . esc_html__( 'Stored blacklist records and local protection are unaffected; lists and exports remain available.', 'wc-blacklist-manager' ) . '</p>';
+		echo '<div class="yobm-schema-actions">';
+		if ( $context['can_schedule'] ) {
+			$this->render_schedule_form();
+		}
+		if ( ! self::is_plugin_page() ) {
+			echo '<a href="' . esc_url( self::readiness_url() ) . '">' . esc_html__( 'View remediation instructions', 'wc-blacklist-manager' ) . ' &rarr;</a>';
+		}
+		echo '</div>';
+		$feedback = isset( $_GET['yobm_schema_repair'] ) && is_string( $_GET['yobm_schema_repair'] ) ? sanitize_key( wp_unslash( $_GET['yobm_schema_repair'] ) ) : '';
+		if ( 'schedule_failed' === $feedback ) {
+			echo '<p role="status">' . esc_html__( 'No database readiness repair was queued by this request. Ask your administrator to check WordPress cron.', 'wc-blacklist-manager' ) . '</p>';
+		} elseif ( 'busy' === $feedback ) {
+			echo '<p role="status">' . esc_html__( 'Another request holds the readiness lock. Please check again shortly.', 'wc-blacklist-manager' ) . '</p>';
+		}
+		if ( self::is_plugin_page() ) {
+			$this->render_readiness_page( $context );
+		}
+		echo '</div>';
+	}
+
+	/** Bounded, privileged metadata only. Missing privilege is never a guessed engine. */
+	private function diagnostic_rows( array $inspection ) {
+		global $wpdb;
+		$rows = array();
+		foreach ( self::contracts() as $id => $contract ) {
+			$table = self::table_prefix() . $contract['table_suffix'];
+			$engine = '';
+			if ( preg_match( '/^[A-Za-z0-9_]+$/', $table ) ) {
+				$previous = $wpdb->suppress_errors( true );
+				$value = $wpdb->get_var( $wpdb->prepare( 'SELECT ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s', $table ) );
+				$engine = '' === (string) $wpdb->last_error && is_string( $value ) ? $value : '';
+				$wpdb->suppress_errors( $previous );
+			}
+			$rows[] = array( 'table' => $table, 'index' => $contract['index'], 'columns' => implode( ', ', $contract['columns'] ), 'status' => $inspection['details'][ $id ], 'engine' => $engine );
+		}
+		return $rows;
+	}
+
+	private function render_readiness_page( array $context ) {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'wc-blacklist-manager' ), '', array( 'response' => 403 ) );
+		}
+		$rows = $this->diagnostic_rows( $context['inspection'] );
+		$status_labels = array( 'exact' => __( 'Exact', 'wc-blacklist-manager' ), 'missing' => __( 'Missing', 'wc-blacklist-manager' ), 'wrong' => __( 'Wrong columns', 'wc-blacklist-manager' ), 'metadata_error' => __( 'Unknown', 'wc-blacklist-manager' ) );
+		$packet = __( 'Hello Hosting Support, please help verify Blacklist Manager reporting index readiness on this WordPress site.', 'wc-blacklist-manager' ) . "\n\n";
+		foreach ( $rows as $row ) {
+			$packet .= $row['table'] . ' | ' . $row['index'] . ' (' . $row['columns'] . ') | ' . ( $row['engine'] ?: __( 'Engine unavailable', 'wc-blacklist-manager' ) ) . ' | ' . $status_labels[ $row['status'] ] . "\n";
+		}
+		$manual = 'manual_required' === $context['status'];
+		$unknown = 'unknown' === $context['status'];
+		if ( $unknown ) {
+			$packet .= "\n" . __( 'Metadata is unavailable. Check database metadata permissions and verify physical indexes first. Do not assume indexes are missing or begin repair from an unknown result.', 'wc-blacklist-manager' );
+		} else {
+			$packet .= "\n" . __( 'Verify a restorable backup, database/temp capacity, required ALTER privileges and an approved low-traffic maintenance window with appropriate traffic controls. Blocking repair may interrupt purchases.', 'wc-blacklist-manager' );
+			$packet .= "\n\nwp blacklist-manager schema status\n" . __( 'This command refreshes stored readiness diagnostics. Use the correct WordPress site context.', 'wc-blacklist-manager' );
+			$packet .= "\n\n" . __( 'Only during explicitly authorized CLI maintenance:', 'wc-blacklist-manager' ) . "\nwp blacklist-manager schema repair --allow-blocking\n";
+			$packet .= __( 'Each invocation repairs at most one index. Re-inspect status and exact physical columns after each step; authorize the next step separately only if still required. On error, timeout or uncertain completion, stop and inspect database sessions before retrying. Never run a blind retry loop.', 'wc-blacklist-manager' );
+			$packet .= "\n\n" . __( 'After all required indexes are physically verified, reload Admin to confirm readiness. If WP-CLI is unavailable, arrange operator-led hosting maintenance; do not run blocking repair from a web request. Dismissed notices do not mean the database is ready.', 'wc-blacklist-manager' );
+		}
+		include dirname( __DIR__ ) . '/backend/views/schema-readiness.php';
 	}
 
 	private static function inspect_contract( array $contract ) {
@@ -499,9 +679,10 @@ final class WC_Blacklist_Manager_Schema_Readiness {
 	}
 
 	private function schedule_event() {
-		if ( ! wp_next_scheduled( self::CRON_HOOK ) ) {
-			wp_schedule_single_event( time() + 5, self::CRON_HOOK );
+		if ( false !== wp_next_scheduled( self::CRON_HOOK ) ) {
+			return true;
 		}
+		return true === wp_schedule_single_event( time() + 5, self::CRON_HOOK );
 	}
 
 	private function write_state( $status, array $pending, $error_code = '', $error_message = '', $attempted = false ) {

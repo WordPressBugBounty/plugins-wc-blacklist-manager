@@ -3,6 +3,8 @@
 defined( 'ABSPATH' ) || exit;
 
 final class WC_Blacklist_Notification_Renderer {
+	/** Additive presentation seam; incident eligibility remains Premium-owned. */
+	const CHECKOUT_HEALTH_VERSION = 1;
 	public function render( array $descriptor, array $projection ) {
 		$lines = array();
 		$evidence = array();
@@ -69,6 +71,10 @@ final class WC_Blacklist_Notification_Renderer {
 			$url = admin_url( 'admin.php?page=wc-blacklist-manager-activity-logs' ); $action_label = __( 'Review security activity', 'wc-blacklist-manager' );
 		}
 		if ( $audit ) { $url = admin_url( 'admin.php?page=wc-blacklist-manager-activity-logs' ); $action_label = __( 'Review manual activity', 'wc-blacklist-manager' ); }
+		if ( 'checkout_health' === ( $descriptor['action'] ?? '' ) ) {
+			$url = admin_url( 'admin.php?page=wc-blacklist-checkout-health' );
+			$action_label = __( 'Review Checkout health', 'wc-blacklist-manager' );
+		}
 		$footer = __( 'This is an automated message. Please do not reply.', 'wc-blacklist-manager' ) . '<br>Blacklist Manager by <a href="https://yoohw.com">YoOhw Studio</a>';
 		if ( WC_Blacklist_Notification_Policy::premium() ) {
 			$custom = get_option( 'wc_blacklist_email_footer_text', $footer );

@@ -107,9 +107,15 @@ final class YOGB_BM_Tier_Webhook {
 				'credential_snapshot'        => $credential_snapshot,
 			]
 		);
-		if ( ! empty( $result['repair_required'] ) && class_exists( 'YOGB_BM_Report_V2' ) ) {
-			YOGB_BM_Report_V2::schedule_capability_refresh();
+		if ( ! empty( $result['repair_required'] ) && ! in_array( $result['error'] ?? '', [ 'control_apply_busy', 'control_apply_storage_failed' ], true ) && class_exists( 'YOGB_BM_Report_V2' ) ) {
+			YOGB_BM_Report_V2::schedule_capability_refresh( 2 );
 		}
+		if ( ! empty( $result['ok'] ) ) {
+			YOGB_BM_Reconnect_Guard::run( $credential_snapshot, static function() use ( $payload ) {
+				self::acknowledge_refresh( $payload );
+			} );
+		}
+
 		do_action(
 			'yogb_bm_control_sync_event',
 			'webhook_processed',
@@ -120,6 +126,25 @@ final class YOGB_BM_Tier_Webhook {
 		);
 
 		return new WP_REST_Response( $result, isset( $result['code'] ) ? (int) $result['code'] : 200 );
+	}
+
+	/** Receipt/duplicate status alone cannot satisfy current repair or renew a lease. */
+	private static function acknowledge_refresh( array $payload ) : void {
+		$normalized = self::normalize_payload( $payload, [ 'source' => 'webhook' ] );
+		if ( empty( $normalized['ok'] ) || empty( $normalized['complete'] ) ) return;
+		$state = self::read_apply_state( true );
+		if ( (int) $normalized['tier_version'] !== (int) $state['version']
+			|| ! self::present_state_matches( $normalized['tier'], $normalized['components'], $state['tier'], $state ) ) return;
+		$intent = YOGB_BM_Tier_Sync::CONTROL;
+		$snapshot = $state['capability_snapshot'];
+		$at = (int) ( $snapshot['verified_at'] ?? 0 );
+		$incoming = $normalized['components']['capabilities'];
+		$current = (array) ( $snapshot['capabilities'] ?? [] );
+		sort( $incoming ); sort( $current );
+		if ( $at > 0 && $at <= time() && time() - $at <= YOGB_BM_Report_V2::CAPABILITY_FRESH_SECONDS && $incoming === $current ) {
+			$intent |= YOGB_BM_Tier_Sync::CAPABILITY;
+		}
+		YOGB_BM_Tier_Sync::webhook_satisfied( $intent );
 	}
 
 	/** Validate every present component before any semantic write, then apply in generation order. */

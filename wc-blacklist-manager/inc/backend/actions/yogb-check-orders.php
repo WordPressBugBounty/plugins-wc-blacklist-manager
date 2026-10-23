@@ -10,8 +10,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * - wc_blacklist_enable_global_blacklist (1 = enabled)
  * - wc_blacklist_global_blacklist_decision_mode:
  *      light    → notes only
- *      moderate → notes + status changes
- *      strict   → notes + status changes + hard block at checkout for "block"
+ *      moderate → notes + order admin advisory notices
+ *      strict   → notes + post-order status changes
  */
 final class YOGB_BM_Check_Orders {
 
@@ -52,27 +52,20 @@ final class YOGB_BM_Check_Orders {
 	const META_PRIMARY_MATCHED_VARIANT       = '_yogb_gbl_primary_matched_variant';
 	const META_PRIMARY_MATCHED_IDENTITY_COUNT = '_yogb_gbl_primary_matched_identity_count';
 
+	public static function is_enabled() : bool {
+		return 1 === (int) get_option( 'wc_blacklist_enable_global_blacklist', 0 )
+			&& 1 !== (int) get_option( 'wc_blacklist_development_mode', '1' )
+			&& '' !== trim( (string) get_option( 'yogb_bm_api_key', '' ) )
+			&& '' !== trim( (string) get_option( 'yogb_bm_api_secret', '' ) )
+			&& '' !== trim( (string) get_option( 'yogb_bm_reporter_id', '' ) );
+	}
+
 	/**
 	 * Bootstrap.
 	 */
 	public static function init() : void {
-		$enabled = (int) get_option( 'wc_blacklist_enable_global_blacklist', 0 );
-		$development_mode = (int) get_option( 'wc_blacklist_development_mode', '1' );
+		if ( ! self::is_enabled() ) { return; }
 
-		if ( 1 !== $enabled || 1 === $development_mode ) {
-			return;
-		}
-
-		$api_key     = trim( (string) get_option( 'yogb_bm_api_key', '' ) );
-		$api_secret  = trim( (string) get_option( 'yogb_bm_api_secret', '' ) );
-		$reporter_id = trim( (string) get_option( 'yogb_bm_reporter_id', '' ) );
-
-		$missing_connection = ( '' === $api_key || '' === $api_secret || '' === $reporter_id );
-		if ( $missing_connection ) {
-			return;
-		}
-
-		$mode = self::get_decision_mode();
 
 		add_action(
 			'woocommerce_checkout_order_processed',
@@ -106,21 +99,6 @@ final class YOGB_BM_Check_Orders {
 		add_filter( 'handle_bulk_actions-woocommerce_page_wc-orders', [ __CLASS__, 'handle_bulk_recheck_action' ], 10, 3 );
 		add_action( 'admin_notices', [ __CLASS__, 'show_bulk_recheck_notice' ] );
 
-		if ( 'strict' === $mode ) {
-			add_action(
-				'woocommerce_after_checkout_validation',
-				[ __CLASS__, 'validate_classic_strict' ],
-				20,
-				2
-			);
-
-			add_action(
-				'woocommerce_store_api_checkout_update_order_meta',
-				[ __CLASS__, 'validate_store_api_strict' ],
-				20,
-				1
-			);
-		}
 	}
 
 	/**
@@ -220,7 +198,8 @@ final class YOGB_BM_Check_Orders {
 		self::invalidate_current_decision_context( $order );
 		$order->update_meta_data( self::META_CHECK_STATUS, 'pending' );
 		$order->update_meta_data( self::META_CHECK_ATTEMPTS, $attempts );
-		$order->update_meta_data( self::META_CHECK_STARTED_AT, time() );
+		// Preserve integer lease readers while distinguishing rechecks within the same second.
+		$order->update_meta_data( self::META_CHECK_STARTED_AT, sprintf( '%.6F', microtime( true ) ) );
 		$order->delete_meta_data( self::META_CHECK_NEXT_RETRY_AT );
 		$order->delete_meta_data( self::META_CHECK_LAST_ERROR );
 		$order->delete_meta_data( self::META_CHECK_LAST_HTTP_CODE );
@@ -228,6 +207,22 @@ final class YOGB_BM_Check_Orders {
 		$order->save();
 
 		return $attempts;
+	}
+
+	/** Current local application policy, never inferred from today's settings. */
+	public static function get_applied_policy( WC_Order $order ) : array {
+		$policy = $order->get_meta( '_yogb_gbl_applied_policy', true );
+		if ( ! is_array( $policy ) || 2 !== ( $policy['version'] ?? null )
+			|| ! in_array( $policy['mode'] ?? '', [ 'light', 'moderate', 'strict' ], true )
+			|| ! in_array( $policy['decision'] ?? '', [ 'allow', 'challenge', 'block' ], true )
+			|| 'success' !== $order->get_meta( self::META_CHECK_STATUS, true )
+			|| ! $order->get_meta( self::META_CHECKED, true )
+			|| ( $policy['decision'] ?? '' ) !== $order->get_meta( self::META_DECISION, true )
+			|| ! is_int( $policy['attempt'] ?? null ) || $policy['attempt'] < 1
+			|| $policy['attempt'] !== (int) $order->get_meta( self::META_CHECK_ATTEMPTS, true )
+			|| ! is_string( $policy['started_at'] ?? null ) || '' === $policy['started_at']
+			|| $policy['started_at'] !== (string) $order->get_meta( self::META_CHECK_STARTED_AT, true ) ) { return []; }
+		return $policy;
 	}
 
 	private static function get_check_error_message( array $resp ) : string {
@@ -270,391 +265,39 @@ final class YOGB_BM_Check_Orders {
 		return $delays[ $attempt ] ?? HOUR_IN_SECONDS;
 	}
 
-	private static function schedule_global_check_retry( int $order_id, int $delay ) : bool {
+	private static function schedule_global_check_retry( int $order_id, int $delay ) : int {
 		if ( $order_id <= 0 || $delay <= 0 ) {
-			return false;
+			return 0;
 		}
 
-		if ( function_exists( 'as_next_scheduled_action' ) ) {
-			$existing = as_next_scheduled_action(
-				'yogb_gbl_run_check_async',
-				[ 'order_id' => $order_id ],
-				'yogb-global-blacklist'
-			);
-			if ( $existing ) {
-				return true;
+		try {
+			if ( function_exists( 'as_get_scheduled_actions' ) ) {
+				$future = as_get_scheduled_actions( [
+					'hook' => 'yogb_gbl_run_check_async', 'args' => [ 'order_id' => $order_id ],
+					'group' => 'yogb-global-blacklist', 'status' => 'pending', 'per_page' => 1, 'orderby' => 'date', 'order' => 'ASC',
+				], 'ids' );
+				if ( $future ) { return (int) ActionScheduler::store()->get_date( reset( $future ) )->getTimestamp(); }
 			}
-		}
-
-		if ( function_exists( 'as_schedule_single_action' ) ) {
-			as_schedule_single_action(
-				time() + $delay,
-				'yogb_gbl_run_check_async',
-				[ 'order_id' => $order_id ],
-				'yogb-global-blacklist'
-			);
-			return true;
-		}
-
-		if ( ! wp_next_scheduled( 'yogb_gbl_run_check_async', [ $order_id ] ) ) {
-			return (bool) wp_schedule_single_event( time() + $delay, 'yogb_gbl_run_check_async', [ $order_id ] );
-		}
-
-		return true;
-	}
-
-	private static function normalize_strict_cache_payload( $value ) {
-		if ( ! is_array( $value ) ) {
-			return $value;
-		}
-
-		foreach ( $value as $key => $child ) {
-			$value[ $key ] = self::normalize_strict_cache_payload( $child );
-		}
-
-		if ( array_keys( $value ) !== range( 0, count( $value ) - 1 ) ) {
-			ksort( $value );
-		}
-
-		return $value;
-	}
-
-	private static function get_strict_cache_key( WC_Order $order ) : string {
-		if ( ! class_exists( 'YOGB_BM_Report' ) || ! class_exists( 'YOGB_BM_Check' ) ) {
-			return '';
-		}
-
-		$payload = YOGB_BM_Report::build_check_payload_from_order( $order );
-
-		if ( empty( $payload['identities'] ) || ! is_array( $payload['identities'] ) ) {
-			return '';
-		}
-
-		$cache_material = array(
-			'version'          => 2,
-			'site'             => home_url( '/' ),
-			'mode'             => self::get_decision_mode(),
-			'tier'             => YOGB_BM_Check::get_tier(),
-			'checkout_attempt' => self::get_strict_checkout_attempt_cache_material( $order ),
-			'payload'          => self::normalize_strict_cache_payload( $payload ),
-		);
-
-		return 'yogb_gbl_strict_' . hash( 'sha256', wp_json_encode( $cache_material ) );
-	}
-
-	private static function get_strict_checkout_attempt_cache_material( WC_Order $order ) : array {
-		return array(
-			'cart_hash'          => self::strict_cart_hash(),
-			'wc_session_hash'    => self::strict_hash_value( self::strict_wc_session_fingerprint() ),
-			'billing_email_hash' => self::strict_hash_value( strtolower( sanitize_email( (string) $order->get_billing_email() ) ) ),
-			'billing_phone_hash' => self::strict_hash_value( self::strict_normalize_phone_for_cache( (string) $order->get_billing_phone() ) ),
-			'ip_hash'            => self::strict_hash_value( self::strict_client_ip() ),
-			'user_agent_hash'    => self::strict_hash_value( self::strict_user_agent() ),
-		);
-	}
-
-	private static function strict_cart_hash() : string {
-		if ( function_exists( 'WC' ) && WC()->cart ) {
-			return (string) WC()->cart->get_cart_hash();
-		}
-
-		return '';
-	}
-
-	private static function strict_wc_session_fingerprint() : string {
-		foreach ( $_COOKIE as $key => $value ) {
-			if ( 0 === strpos( (string) $key, 'wp_woocommerce_session_' ) ) {
-				$parts = explode( '||', (string) $value );
-				return sanitize_text_field( (string) ( $parts[0] ?? $value ) );
-			}
-		}
-
-		if ( function_exists( 'WC' ) && WC()->session && method_exists( WC()->session, 'get_customer_id' ) ) {
-			return sanitize_text_field( (string) WC()->session->get_customer_id() );
-		}
-
-		return '';
-	}
-
-	private static function strict_normalize_phone_for_cache( string $phone ) : string {
-		$digits = preg_replace( '/\D+/', '', $phone );
-
-		return is_string( $digits ) ? $digits : '';
-	}
-
-	private static function strict_client_ip() : string {
-		if ( function_exists( 'get_real_customer_ip' ) ) {
-			return (string) get_real_customer_ip();
-		}
-
-		foreach ( array( 'HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_REAL_IP', 'REMOTE_ADDR' ) as $key ) {
-			$value = isset( $_SERVER[ $key ] ) ? sanitize_text_field( wp_unslash( $_SERVER[ $key ] ) ) : '';
-
-			if ( '' === $value ) {
-				continue;
+			if ( function_exists( 'as_schedule_single_action' ) ) {
+				// The running action is not a future retry; unique=true would suppress it.
+				try {
+					$at = time() + $delay;
+					return as_schedule_single_action( $at, 'yogb_gbl_run_check_async', [ 'order_id' => $order_id ], 'yogb-global-blacklist' ) ? $at : 0;
+				} catch ( Throwable $error ) { return 0; }
 			}
 
-			if ( 'HTTP_X_FORWARDED_FOR' === $key ) {
-				$parts = explode( ',', $value );
-				$value = trim( (string) $parts[0] );
-			}
-
-			return $value;
-		}
-
-		return '';
+			$existing = wp_next_scheduled( 'yogb_gbl_run_check_async', [ $order_id ] );
+			if ( $existing ) { return (int) $existing; }
+			$at = time() + $delay;
+			return wp_schedule_single_event( $at, 'yogb_gbl_run_check_async', [ $order_id ] ) ? $at : 0;
+		} catch ( Throwable $error ) { return 0; }
 	}
 
-	private static function strict_user_agent() : string {
-		return isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '';
-	}
+	/** Retained compatibility entry point. Global checks run only after checkout. */
+	public static function validate_classic_strict( $fields, $errors ) : void {}
 
-	private static function strict_hash_value( string $value ) : string {
-		if ( '' === $value ) {
-			return '';
-		}
-
-		return hash_hmac( 'sha256', $value, wp_salt( 'auth' ) );
-	}
-
-	private static function get_strict_cache_ttl() : int {
-		$ttl = (int) apply_filters( 'yogb_gbl_strict_cache_ttl', 5 * MINUTE_IN_SECONDS );
-
-		return max( 0, $ttl );
-	}
-
-	private static function get_cached_strict_check( WC_Order $order ) : ?array {
-		$key = self::get_strict_cache_key( $order );
-
-		if ( '' === $key ) {
-			return null;
-		}
-
-		$cached = get_transient( $key );
-
-		return is_array( $cached ) && YOGB_BM_Reconnect_Guard::current( $cached['authority_context'] ?? [] ) ? $cached : null;
-	}
-
-	private static function cache_strict_check( WC_Order $order, array $resp ) : void {
-		if ( empty( $resp['ok'] ) ) {
-			return;
-		}
-
-  YOGB_BM_Reconnect_Guard::run( $resp['authority_context'] ?? [], static function() use ( $order, $resp ) {
-		$ttl = self::get_strict_cache_ttl();
-		if ( $ttl <= 0 ) {
-			return;
-		}
-
-		$key = self::get_strict_cache_key( $order );
-		if ( '' === $key ) {
-			return;
-		}
-
-		$transfer_key = self::get_strict_transfer_cache_key( $order );
-  if ( ! YOGB_BM_Reconnect_Guard::current( $resp['authority_context'] ?? [] ) ) { return; }
-		set_transient( $key, $resp, $ttl );
-		if ( '' !== $transfer_key && YOGB_BM_Reconnect_Guard::current( $resp['authority_context'] ?? [] ) ) {
-			set_transient( $transfer_key, $resp, $ttl );
-		}
-  } );
-	}
-
-	private static function get_strict_transfer_cache_key( WC_Order $order ) : string {
-		if ( ! class_exists( 'YOGB_BM_Report' ) || ! class_exists( 'YOGB_BM_Check' ) ) {
-			return '';
-		}
-		$payload = YOGB_BM_Report::build_check_payload_from_order( $order );
-		if ( empty( $payload['identities'] ) ) {
-			return '';
-		}
-		$material = [
-			'version' => 1,
-			'site'    => home_url( '/' ),
-			'tier'    => YOGB_BM_Check::get_tier(),
-			'payload' => self::normalize_strict_cache_payload( $payload ),
-		];
-		return 'yogb_gbl_strict_transfer_' . hash( 'sha256', wp_json_encode( $material ) );
-	}
-
-	private static function get_transferred_strict_check( WC_Order $order ) : ?array {
-		$key = self::get_strict_transfer_cache_key( $order );
-		if ( '' === $key ) {
-			return null;
-		}
-		$value = get_transient( $key );
-		return is_array( $value ) && YOGB_BM_Reconnect_Guard::current( $value['authority_context'] ?? [] ) ? $value : null;
-	}
-
-	private static function check_order_for_strict_mode( WC_Order $order ) : array {
-		$cached = self::get_cached_strict_check( $order );
-
-		if ( is_array( $cached ) ) {
-			return $cached;
-		}
-
-		$resp = YOGB_BM_Check::check_order( $order );
-
-		self::cache_strict_check( $order, $resp );
-
-		return $resp;
-	}
-
-	/**
-	 * STRICT MODE (classic checkout):
-	 * Validate before the order is created.
-	 *
-	 * @param array              $fields
-	 * @param WP_Error|WC_Errors $errors
-	 */
-	public static function validate_classic_strict( $fields, $errors ) : void {
-		if ( ! class_exists( 'YOGB_BM_Check' ) ) {
-			return;
-		}
-
-		$enabled = (int) get_option( 'wc_blacklist_enable_global_blacklist', 0 );
-		if ( 1 !== $enabled || 'strict' !== self::get_decision_mode() ) {
-			return;
-		}
-
-		$order = self::build_ephemeral_order_from_fields( (array) $fields );
-		if ( ! $order instanceof WC_Order ) {
-			return;
-		}
-
-		$resp     = self::check_order_for_strict_mode( $order );
-  YOGB_BM_Reconnect_Guard::run( $resp['authority_context'] ?? [], static function() use ( $resp, $order, $errors ) {
-		$decision = YOGB_BM_Check::get_overall_decision( $resp );
-
-		if ( 'block' === $decision ) {
-			$message = __(
-				'Your order cannot be placed at this time due to our fraud protection rules. Please contact the store owner for assistance.',
-				'wc-blacklist-manager'
-			);
-
-			if ( is_object( $errors ) && method_exists( $errors, 'add' ) ) {
-				$errors->add( 'yogb_gbl_blocked', $message );
-			} else {
-				wc_add_notice( $message, 'error' );
-			}
-
-			self::record_global_decision_activity( $order, $decision, $resp, 'classic_strict_checkout', 'woo_checkout' );
-		}
-  } );
-	}
-
-	/**
-	 * Build a temporary WC_Order object from checkout fields for strict validation.
-	 */
-	private static function build_ephemeral_order_from_fields( array $fields ) : ?WC_Order {
-		if ( ! class_exists( 'WC_Order' ) ) {
-			return null;
-		}
-
-		$order = new WC_Order();
-
-		if ( isset( $fields['billing_first_name'] ) ) {
-			$order->set_billing_first_name( wc_clean( $fields['billing_first_name'] ) );
-		}
-		if ( isset( $fields['billing_last_name'] ) ) {
-			$order->set_billing_last_name( wc_clean( $fields['billing_last_name'] ) );
-		}
-		if ( isset( $fields['billing_email'] ) ) {
-			$order->set_billing_email( sanitize_email( $fields['billing_email'] ) );
-		}
-		if ( isset( $fields['billing_phone'] ) ) {
-			$order->set_billing_phone( wc_clean( $fields['billing_phone'] ) );
-		}
-		if ( isset( $fields['billing_address_1'] ) ) {
-			$order->set_billing_address_1( wc_clean( $fields['billing_address_1'] ) );
-		}
-		if ( isset( $fields['billing_address_2'] ) ) {
-			$order->set_billing_address_2( wc_clean( $fields['billing_address_2'] ) );
-		}
-		if ( isset( $fields['billing_city'] ) ) {
-			$order->set_billing_city( wc_clean( $fields['billing_city'] ) );
-		}
-		if ( isset( $fields['billing_state'] ) ) {
-			$order->set_billing_state( wc_clean( $fields['billing_state'] ) );
-		}
-		if ( isset( $fields['billing_postcode'] ) ) {
-			$order->set_billing_postcode( wc_clean( $fields['billing_postcode'] ) );
-		}
-		if ( isset( $fields['billing_country'] ) ) {
-			$order->set_billing_country( wc_clean( $fields['billing_country'] ) );
-		}
-
-		if ( isset( $fields['ship_to_different_address'] ) && $fields['ship_to_different_address'] ) {
-			if ( isset( $fields['shipping_first_name'] ) ) {
-				$order->set_shipping_first_name( wc_clean( $fields['shipping_first_name'] ) );
-			}
-			if ( isset( $fields['shipping_last_name'] ) ) {
-				$order->set_shipping_last_name( wc_clean( $fields['shipping_last_name'] ) );
-			}
-			if ( isset( $fields['shipping_address_1'] ) ) {
-				$order->set_shipping_address_1( wc_clean( $fields['shipping_address_1'] ) );
-			}
-			if ( isset( $fields['shipping_address_2'] ) ) {
-				$order->set_shipping_address_2( wc_clean( $fields['shipping_address_2'] ) );
-			}
-			if ( isset( $fields['shipping_city'] ) ) {
-				$order->set_shipping_city( wc_clean( $fields['shipping_city'] ) );
-			}
-			if ( isset( $fields['shipping_state'] ) ) {
-				$order->set_shipping_state( wc_clean( $fields['shipping_state'] ) );
-			}
-			if ( isset( $fields['shipping_postcode'] ) ) {
-				$order->set_shipping_postcode( wc_clean( $fields['shipping_postcode'] ) );
-			}
-			if ( isset( $fields['shipping_country'] ) ) {
-				$order->set_shipping_country( wc_clean( $fields['shipping_country'] ) );
-			}
-		}
-
-		if ( class_exists( 'WC_Geolocation' ) ) {
-			$order->set_customer_ip_address( WC_Geolocation::get_ip_address() );
-		} elseif ( ! empty( $_SERVER['REMOTE_ADDR'] ) ) {
-			$order->set_customer_ip_address( wc_clean( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) );
-		}
-
-		return $order;
-	}
-
-	/**
-	 * STRICT MODE (blocks checkout):
-	 * Run the check during Store API checkout and throw an exception if "block".
-	 *
-	 * @param WC_Order $order
-	 *
-	 * @throws Exception When order is blocked.
-	 */
-	public static function validate_store_api_strict( $order ) : void {
-		if ( ! class_exists( 'YOGB_BM_Check' ) ) {
-			return;
-		}
-		if ( ! $order instanceof WC_Order ) {
-			return;
-		}
-
-		$enabled = (int) get_option( 'wc_blacklist_enable_global_blacklist', 0 );
-		if ( 1 !== $enabled || 'strict' !== self::get_decision_mode() ) {
-			return;
-		}
-
-		$resp     = self::check_order_for_strict_mode( $order );
-  $blocked = YOGB_BM_Reconnect_Guard::run( $resp['authority_context'] ?? [], static function() use ( $resp, $order ) {
-		$decision = YOGB_BM_Check::get_overall_decision( $resp );
-
-		if ( 'block' === $decision ) {
-			self::record_global_decision_activity( $order, $decision, $resp, 'store_api_strict_checkout', 'woo_store_api_checkout' );
-   return true;
-		}
-   return false;
-  } );
-  if ( true === $blocked ) {
-   throw new Exception( esc_html__( 'Your order cannot be placed at this time due to our fraud protection rules. Please contact the store owner for assistance.', 'wc-blacklist-manager' ) );
-  }
-	}
+	/** Retained compatibility entry point. Never rejects or contacts Global. */
+	public static function validate_store_api_strict( $order ) : void {}
 
 	/**
 	 * Background worker: actually run the Global Blacklist check for an order.
@@ -679,30 +322,34 @@ final class YOGB_BM_Check_Orders {
 			return;
 		}
 
-  $start = YOGB_BM_Reconnect_Guard::run( null, static function() use ( $order ) {
-   if ( self::is_global_check_complete( $order ) || self::has_recent_pending_check( $order ) ) { return [ 'skip' => true ]; }
-   return [ 'attempt' => self::begin_global_check_attempt( $order ), 'authority_token' => (string) ( YOGB_BM_Registrar::auth_recovery_state()['authority_token'] ?? '' ) ];
+  $start = YOGB_BM_Reconnect_Guard::run( null, static function() use ( $order_id ) {
+   $order = wc_get_order( $order_id );
+   if ( ! $order instanceof WC_Order || self::is_global_check_complete( $order ) || self::has_recent_pending_check( $order ) ) { return [ 'skip' => true ]; }
+   $attempt = self::begin_global_check_attempt( $order );
+   return [ 'attempt' => $attempt, 'started_at' => (string) $order->get_meta( self::META_CHECK_STARTED_AT, true ), 'mode' => self::get_decision_mode(), 'authority_token' => (string) ( YOGB_BM_Registrar::auth_recovery_state()['authority_token'] ?? '' ) ];
   } );
   if ( ! empty( $start['skip'] ) ) { return; }
   if ( ! isset( $start['attempt'] ) ) {
-   if ( 'reconnect_busy' === ( $start['error'] ?? '' ) ) { self::schedule_global_check_retry( $order_id, 5 * MINUTE_IN_SECONDS + 1 ); }
+   self::record_unavailable_check( $order_id, (string) ( $start['error'] ?? 'reconnect_storage_unavailable' ) );
    return;
   }
   $attempt = (int) $start['attempt'];
-		$mode    = self::get_decision_mode();
-
-		$resp = 'strict' === $mode ? self::get_transferred_strict_check( $order ) : null;
-		if ( ! is_array( $resp ) ) {
-			$resp = YOGB_BM_Check::check_order( $order, (string) $start['authority_token'] );
-		}
+  $started_at = (string) $start['started_at'];
+		$mode = (string) $start['mode'];
+		$resp = YOGB_BM_Check::check_order( $order, (string) $start['authority_token'] );
   // A guard failure has no reusable remote result; retain only a local failure under the attempt's captured authority.
   if ( isset( $resp['error'] ) && ! isset( $resp['authority_context'] ) && ! isset( $resp['local_authority_token'] ) ) {
    $resp = [ 'ok' => false, 'code' => 0, 'err' => $resp['error'], 'local_authority_token' => $start['authority_token'] ];
   }
-  $projection = YOGB_BM_Reconnect_Guard::run( $resp['authority_context'] ?? null, static function() use ( $resp, $order, $order_id, $attempt, $mode ) {
+  $projection = YOGB_BM_Reconnect_Guard::run( $resp['authority_context'] ?? null, static function() use ( $resp, $order, $order_id, $attempt, $mode, $started_at ) {
+   // Reload under the existing authority guard: an older request cannot overwrite a recheck.
+   $order = wc_get_order( $order_id );
+   if ( ! $order instanceof WC_Order || 'pending' !== $order->get_meta( self::META_CHECK_STATUS, true )
+    || $attempt !== (int) $order->get_meta( self::META_CHECK_ATTEMPTS, true )
+    || $started_at !== (string) $order->get_meta( self::META_CHECK_STARTED_AT, true ) ) { return; }
    if ( ! isset( $resp['authority_context'] ) && ( empty( $resp['local_authority_token'] )
-    || ! hash_equals( (string) $resp['local_authority_token'], (string) ( YOGB_BM_Registrar::auth_recovery_state()['authority_token'] ?? '' ) ) ) ) {
-    return [ 'ok' => false, 'error' => 'credential_epoch_changed' ];
+	|| ! hash_equals( (string) $resp['local_authority_token'], (string) ( YOGB_BM_Registrar::auth_recovery_state()['authority_token'] ?? '' ) ) ) ) {
+	return [ 'ok' => false, 'error' => 'credential_epoch_changed' ];
    }
 
 		$tier      = isset( $resp['tier'] ) ? (string) $resp['tier'] : '';
@@ -751,9 +398,14 @@ final class YOGB_BM_Check_Orders {
 			$order->update_meta_data( self::META_CHECK_LAST_HTTP_CODE, $http_code );
 			$order->delete_meta_data( self::META_CHECKED );
 
+			$retry_requested = $will_retry;
+			$retry_at = $will_retry ? self::schedule_global_check_retry( $order_id, $retry_delay ) : 0;
+			$will_retry = $retry_at > 0;
+			if ( $retry_requested && ! $will_retry ) {
+				$order->add_order_note( __( 'The automatic Global Blacklist retry could not be scheduled. Review background action storage.', 'wc-blacklist-manager' ) );
+			}
 			if ( $will_retry ) {
 				$order->update_meta_data( self::META_CHECK_NEXT_RETRY_AT, $retry_at );
-				self::schedule_global_check_retry( $order->get_id(), $retry_delay );
 				$order->add_order_note(
 					sprintf(
 						__( 'Global Blacklist Decisions check could not be completed (HTTP %1$d, attempt %2$d/%3$d, error: %4$s). Retrying in %5$d minutes. Order allowed until the check completes.', 'wc-blacklist-manager' ),
@@ -847,9 +499,10 @@ final class YOGB_BM_Check_Orders {
 		);
 
 		if ( in_array( $decision, [ 'block', 'challenge' ], true ) ) {
-			self::record_global_decision_activity( $order, $decision, $resp, 'async_order_check', 'woo_order_' . (int) $order->get_id() );
+			self::record_global_decision_activity( $order, $decision, $resp, 'async_order_check', 'woo_order_' . (int) $order->get_id(), $mode );
 		}
 
+		$order->update_meta_data( '_yogb_gbl_applied_policy', [ 'version' => 2, 'mode' => $mode, 'decision' => $decision, 'attempt' => $attempt, 'started_at' => $started_at ] );
 		$order->update_meta_data( self::META_CHECK_STATUS, 'success' );
 		$order->update_meta_data( self::META_CHECKED, 1 );
 		$order->delete_meta_data( self::META_CHECK_LAST_ERROR );
@@ -863,9 +516,30 @@ final class YOGB_BM_Check_Orders {
   } );
   if ( is_array( $projection ) && ! empty( $projection['error'] ) ) {
    // Queue a fresh request after the pending lease expires. Never replay the discarded response.
-   self::schedule_global_check_retry( $order_id, max( 5 * MINUTE_IN_SECONDS + 1, self::get_retry_delay_seconds( $attempt ) ) );
+   self::record_unavailable_check( $order_id, (string) $projection['error'], $attempt, $started_at );
   }
 }
+
+	private static function record_unavailable_check( int $order_id, string $error, int $attempt = 0, string $started_at = '' ) : void {
+		$order = wc_get_order( $order_id );
+		if ( ! $order instanceof WC_Order || self::is_global_check_complete( $order ) ) { return; }
+		if ( '' !== $started_at && $started_at !== (string) $order->get_meta( self::META_CHECK_STARTED_AT, true ) ) { return; }
+		// Do not replace another worker's live attempt or project an untrusted response.
+		if ( self::has_recent_pending_check( $order ) && $attempt !== (int) $order->get_meta( self::META_CHECK_ATTEMPTS, true ) ) { return; }
+		$attempt = $attempt ?: 1 + (int) $order->get_meta( self::META_CHECK_ATTEMPTS, true );
+		$retry_at = $attempt < 3 ? self::schedule_global_check_retry( $order_id, 5 * MINUTE_IN_SECONDS + 1 ) : 0;
+		if ( $attempt < 3 && ! $retry_at ) {
+			$order->add_order_note( __( 'The automatic Global Blacklist retry could not be scheduled. Review background action storage.', 'wc-blacklist-manager' ) );
+		}
+		self::invalidate_current_decision_context( $order );
+		$order->update_meta_data( self::META_CHECK_ATTEMPTS, $attempt );
+		$order->update_meta_data( self::META_CHECK_STATUS, 'unavailable' );
+		$order->update_meta_data( self::META_CHECK_LAST_ERROR, sanitize_key( $error ) );
+		if ( $retry_at ) { $order->update_meta_data( self::META_CHECK_NEXT_RETRY_AT, $retry_at ); }
+		else { $order->delete_meta_data( self::META_CHECK_NEXT_RETRY_AT ); }
+		$order->save();
+		do_action( 'yogb_after_gbl_check', $order_id, 'yogb_gbl_run_check_async' );
+	}
 
 	public static function handle_manual_order_check() : void {
 		$order_id = isset( $_GET['order_id'] ) ? absint( $_GET['order_id'] ) : 0;
@@ -917,15 +591,12 @@ final class YOGB_BM_Check_Orders {
 		$order->delete_meta_data( self::META_CHECK_NEXT_RETRY_AT );
 		$order->delete_meta_data( self::META_CHECK_LAST_ERROR );
 		$order->delete_meta_data( self::META_CHECK_LAST_HTTP_CODE );
-		$transfer_key = self::get_strict_transfer_cache_key( $order );
-		if ( '' !== $transfer_key ) {
-			delete_transient( $transfer_key );
-		}
 	}
 
 	private static function invalidate_current_decision_context( WC_Order $order ) : void {
 		foreach (
 			[
+				'_yogb_gbl_applied_policy',
 				self::META_DECISION,
 				self::META_DECISION_REF,
 				self::META_DECISION_AT,
@@ -1292,9 +963,10 @@ final class YOGB_BM_Check_Orders {
 		string $decision,
 		array $resp,
 		string $context,
-		string $source
+		string $source,
+		string $mode
 	) : void {
-  YOGB_BM_Reconnect_Guard::run( $resp['authority_context'] ?? [], static function() use ( $order, $decision, $resp, $context, $source ) {
+  YOGB_BM_Reconnect_Guard::run( $resp['authority_context'] ?? [], static function() use ( $order, $decision, $resp, $context, $source, $mode ) {
 		global $wpdb;
 
 		if ( ! isset( $wpdb ) ) {
@@ -1305,7 +977,6 @@ final class YOGB_BM_Check_Orders {
 		$context        = sanitize_key( $context );
 		$source         = sanitize_key( $source );
 		$tier           = isset( $resp['tier'] ) ? sanitize_key( (string) $resp['tier'] ) : '';
-		$mode           = self::get_decision_mode();
 		$snapshot       = class_exists( 'YOGB_BM_Check' )
 			? YOGB_BM_Check::get_decision_snapshot( $resp )
 			: [];
@@ -1382,7 +1053,7 @@ final class YOGB_BM_Check_Orders {
 
 		$note = implode( "\n", $note_lines );
 
-		if ( 'light' === $mode ) {
+		if ( 'strict' !== $mode ) {
 			$order->add_order_note( $note );
 			return;
 		}

@@ -408,7 +408,7 @@ require_once plugin_dir_path( __FILE__ ) . 'premium-preview-helpers.php';
 						</select>
 
 						<p class="description">
-							<?php echo esc_html__( 'Select a fit mode for your site.', 'wc-blacklist-manager' ); ?> <a href="https://docs.yoohw.com/global-blacklist-decisions-and-review-workflow/" target="_blank"><?php echo esc_html__('Learn more', 'wc-blacklist-manager'); ?></a>
+							<?php echo esc_html__( 'All modes check after checkout. Light adds notes. Moderate adds notes and advisory warnings or errors on the order admin page. Strict holds pending/processing orders on challenge and cancels orders on block, including paid orders.', 'wc-blacklist-manager' ); ?> <a href="https://docs.yoohw.com/global-blacklist-decisions-and-review-workflow/" target="_blank"><?php echo esc_html__('Learn more', 'wc-blacklist-manager'); ?></a>
 						</p>
 					</td>
 				</tr>

@@ -5,8 +5,6 @@
 	var modalSequence = 0;
 	var activeModal = null;
 	var surfaceController = null;
-	var blockPreparation = null;
-	var preparationSequence = 0;
 	var pageLeaving = false;
 	var requestState = {
 		suspect: false,
@@ -195,19 +193,6 @@
 
 	function modalConfig(action) {
 		var section = 'block' === action && surfaceController ? surfaceController.block() : (getConfig()[action] || {});
-		var freshUntil = Number(section.capabilityFreshUntil);
-
-		if (
-			'block' === action &&
-			'v2' === section.contractMode &&
-			(
-				!isFinite(freshUntil) ||
-				freshUntil <= 0 ||
-				(surfaceController ? surfaceController.now() : Math.floor(Date.now() / 1000)) >= freshUntil
-			)
-		) {
-			return section.legacyFallback || {};
-		}
 
 		return section;
 	}
@@ -361,14 +346,6 @@
 			var intent = renewal.discovery_allowed ? 'discover' : (renewal.eligible && renewal.renew_at <= now() ? 'renew' : 'observe');
 			exchange(intent, true);
 		}
-		function prepareBlock(callback) {
-			if (!visible()) return false;
-			if (!outstanding) {
-				if (!exchange('observe', true)) return false;
-			}
-			outstanding.listeners.push(callback);
-			return true;
-		}
 		function suspend() {
 			clearWork();
 			cancelRequest();
@@ -387,7 +364,7 @@
 				exchange('discover', false);
 			}
 		}
-		return { block: function () { return future; }, nonce: function () { return nonce; }, now: now, prepareBlock: prepareBlock };
+		return { block: function () { return future; }, nonce: function () { return nonce; }, now: now };
 	}
 
 	function mainButtonSelector(action) {
@@ -739,7 +716,7 @@
 		modal.$reason.trigger('focus');
 	}
 
-	function openActionModal(action, $trigger, legacyOnly) {
+	function openActionModal(action, $trigger) {
 		var common = getCommonLabels();
 
 		if (activeModal) {
@@ -763,9 +740,6 @@
 
 		// Resolve the contract before WCBackboneModal creates an immutable interaction.
 		var selected = modalConfig(action);
-		if (legacyOnly && 'v2' === selected.contractMode) {
-			selected = selected.legacyFallback || {};
-		}
 		var section = JSON.parse(JSON.stringify(selected));
 		var blockNonce = surfaceController ? surfaceController.nonce() : ((getConfig().nonces || {}).block || '');
 
@@ -810,44 +784,9 @@
 		return true;
 	}
 
-	function cancelBlockPreparation() {
-		if (!blockPreparation) return;
-		var pending = blockPreparation;
-		blockPreparation = null;
-		clearTimeout(pending.deadline);
-		pending.$indicator.remove();
-		pending.$trigger.prop('disabled', pending.disabled);
-		if (typeof pending.classes === 'undefined') pending.$trigger.removeAttr('class');
-		else pending.$trigger.attr('class', pending.classes);
-		if (typeof pending.ariaBusy === 'undefined') pending.$trigger.removeAttr('aria-busy');
-		else pending.$trigger.attr('aria-busy', pending.ariaBusy);
-	}
-
 	function prepareBlockModal($trigger) {
-		if (blockPreparation || pageLeaving || document.visibilityState !== 'visible') return;
-		if (!surfaceController || 'v2' === modalConfig('block').contractMode) {
-			openActionModal('block', $trigger);
-			return;
-		}
-
-		var pending = {
-			generation: ++preparationSequence,
-			$trigger: $trigger,
-			$indicator: $('<span class="yobm-block-preparing"></span>').text('…'),
-			disabled: !!$trigger.prop('disabled'),
-			classes: $trigger.attr('class'),
-			ariaBusy: $trigger.attr('aria-busy'),
-			deadline: null
-		};
-		blockPreparation = pending;
-		function finish(valid) {
-			if (!blockPreparation || blockPreparation.generation !== pending.generation) return;
-			cancelBlockPreparation();
-			if (!pageLeaving && document.visibilityState === 'visible') openActionModal('block', $trigger, !valid);
-		}
-		$trigger.append(pending.$indicator).attr('aria-busy', 'true').prop('disabled', true).addClass('disabled');
-		pending.deadline = setTimeout(function () { finish(false); }, 5000);
-		if (!surfaceController.prepareBlock(finish)) finish(false);
+		if (pageLeaving || document.visibilityState !== 'visible') return;
+		openActionModal('block', $trigger);
 	}
 
 	function bindSuspectAction() {
@@ -943,12 +882,8 @@
 	}
 
 	$(function () {
-		$(document).on('visibilitychange.yobmBlockPreparation', function () {
-			if (document.visibilityState !== 'visible') cancelBlockPreparation();
-		});
 		$(window).on('pagehide.yobmBlockPreparation', function () {
 			pageLeaving = true;
-			cancelBlockPreparation();
 		});
 		bindSuspectAction();
 		bindModalAction('#block_customer', 'block');

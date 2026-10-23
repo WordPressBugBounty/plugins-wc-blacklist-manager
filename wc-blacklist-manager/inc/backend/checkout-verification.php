@@ -188,6 +188,7 @@ final class WC_Blacklist_Manager_Checkout_Verification_Coordinator {
 				'state_revision'      => isset( $state['state_revision'] ) ? absint( $state['state_revision'] ) : 0,
 				'generation'          => isset( $state['generation'] ) ? absint( $state['generation'] ) : 0,
 				'challenge_id'        => isset( $state['challenge_id'] ) ? sanitize_text_field( $state['challenge_id'] ) : '',
+				'state_scope'         => isset( $state['state_scope'] ) && preg_match( '/^otp-scope-v1:[a-f0-9]{64}$/D', $state['state_scope'] ) ? $state['state_scope'] : ( isset( $state['identity_token'] ) && preg_match( '/^otp-scope-v1:[a-f0-9]{64}$/D', $state['identity_token'] ) ? $state['identity_token'] : '' ),
 				'identity_token'      => isset( $state['identity_token'] ) ? sanitize_text_field( $state['identity_token'] ) : '',
 				'retry_after'         => isset( $state['retry_after'] ) ? absint( $state['retry_after'] ) : 0,
 			);
@@ -258,9 +259,14 @@ final class WC_Blacklist_Manager_Checkout_Verification_Coordinator {
 		}
 
 		$method = 'checkout_verification_' . $operation;
-		$result = 'verify' === $operation
-			? $channels[ $channel_id ]->{$method}( $context, sanitize_text_field( (string) $code ) )
-			: $channels[ $channel_id ]->{$method}( $context );
+		$invoke = function () use ( $operation, $channels, $channel_id, $method, $context, $code ) {
+			return 'verify' === $operation
+				? $channels[ $channel_id ]->{$method}( $context, sanitize_text_field( (string) $code ) )
+				: $channels[ $channel_id ]->{$method}( $context );
+		};
+		$result = function_exists( 'wc_blacklist_manager_otp_state' ) && method_exists( wc_blacklist_manager_otp_state(), 'with_operation_scope' )
+			? wc_blacklist_manager_otp_state()->with_operation_scope( $channel_id, $operation, isset( $context['_yobm_expected_scope'] ) ? $context['_yobm_expected_scope'] : '', $invoke )
+			: $invoke();
 
 		if ( is_wp_error( $result ) ) {
 			return $result;
@@ -325,6 +331,7 @@ final class WC_Blacklist_Manager_Checkout_Verification_Coordinator {
 		}
 
 		$control_keys = array(
+			'expected_scope'       => '_yobm_expected_scope',
 			'request_id'           => '_yobm_request_id',
 			'expected_revision'     => '_yobm_expected_revision',
 			'expected_generation'   => '_yobm_expected_generation',

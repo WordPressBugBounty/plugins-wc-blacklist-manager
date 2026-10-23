@@ -79,21 +79,23 @@
 		return ( projected.channels || [] ).find( function ( item ) { return item.id === channelId; } ) || null;
 	}
 
-	function stateIsFresh( projected ) {
+	function stateIsFresh( projected, authoritativeStatus ) {
 		return ! ( projected.channels || [] ).some( function ( channel ) {
-			return Number( channel.state_revision || 0 ) < Number( channelRevisions[ channel.id ] || 0 );
+			var previous = channelRevisions[ channel.id ];
+			var scope = channel.state_scope || '';
+			if ( ! previous ) { return ! authoritativeStatus; }
+			if ( scope !== previous.scope ) { return ! authoritativeStatus; }
+			// Legacy counterparts lack row scope. Only an eligible status may rehydrate.
+			return Number( channel.state_revision || 0 ) < previous.revision && !( authoritativeStatus && ! scope );
 		} );
 	}
 
-	function applyState( projected ) {
-		if ( ! projected || ! stateIsFresh( projected ) ) {
-			return false;
-		}
+	function applyState( projected, authoritativeStatus ) {
+		if ( ! projected || ! stateIsFresh( projected, authoritativeStatus ) ) { return false; }
 		( projected.channels || [] ).forEach( function ( channel ) {
-			channelRevisions[ channel.id ] = Math.max(
-				Number( channelRevisions[ channel.id ] || 0 ),
-				Number( channel.state_revision || 0 )
-			);
+			var previous = channelRevisions[ channel.id ];
+			if ( authoritativeStatus && previous && previous.scope !== ( channel.state_scope || '' ) ) { issueKey = ''; }
+			channelRevisions[ channel.id ] = { scope: channel.state_scope || '', revision: Number( channel.state_revision || 0 ) };
 		} );
 		state = projected;
 		return true;
@@ -129,13 +131,14 @@
 		payload.append( 'context', contextSnapshot );
 		if ( mutating ) {
 			payload.append( 'request_id', requestId );
+			if ( expectedChannel && expectedChannel.state_scope ) { payload.append( 'expected_scope', expectedChannel.state_scope ); }
 			payload.append( 'expected_revision', expectedChannel ? Number( expectedChannel.state_revision || 0 ) : 0 );
 			payload.append( 'expected_generation', expectedChannel ? Number( expectedChannel.generation || 0 ) : 0 );
 			payload.append( 'expected_challenge_id', expectedChannel ? String( expectedChannel.challenge_id || '' ) : '' );
 		}
 
 		function canApplyStatus() {
-			return ! statusOverlappedMutation &&
+			return contextSnapshot === JSON.stringify( checkoutContext() ) && ! statusOverlappedMutation &&
 				! mutationBusy() &&
 				mutationGenerationAtStart === mutationSequence &&
 				requestToken === latestStatusRequest;
@@ -160,7 +163,7 @@
 			var shouldApply = mutating ? contextUnchanged && stateIsFresh( responseState || state ) : canApplyStatus();
 			if ( ! response || ! response.success ) {
 				if ( shouldApply && responseState ) {
-					applyState( responseState );
+					applyState( responseState, ! mutating );
 				}
 				if ( mutating && ! shouldApply ) {
 					scheduleRefresh();
@@ -168,7 +171,7 @@
 				throw new Error( response && response.data && response.data.message ? response.data.message : 'Verification request failed.' );
 			}
 			if ( shouldApply && response.data && response.data.state ) {
-				shouldApply = applyState( response.data.state );
+				shouldApply = applyState( response.data.state, ! mutating );
 			}
 			if ( mutating && ! shouldApply ) {
 				scheduleRefresh();
@@ -564,7 +567,8 @@
 					}
 					return false;
 				}
-				return true;
+				// Woo's triggerHandler uses the last defined return value. Preserve another gate's false.
+				return;
 			} );
 		}
 		request( 'status', '' ).catch( function () {} );
